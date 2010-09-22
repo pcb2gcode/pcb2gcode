@@ -1,12 +1,5 @@
-This is the experimental branch of pcb2gcode.
+This is a complete rewrite of the original pcb2gcode in C++.
 
-* I'm currently working on a simple optimisation algorithm to reduce milling
-  time and tool wear that will be part of the next release.
+See http://sourceforge.net/apps/mediawiki/pcb2gcode
 
-* The next release will be a complete rewrite in C++.
-
-The availability of this through SVN is merely for my own convienience.
-Once the rewrite is usable and tested reasonably well, I'll put it in trunk
-and make an announcement on the pcb2gcode wiki.
-
--- Patrick Birnzain, 2010-04-26
+-- Patrick Birnzain, 2010-09-14

@@ -1,3 +1,35 @@
+
+Quick Installation
+***************
+
+Fedora:
+*) Open a terminal and cd to the extracted tarball
+*) type the following:
+      su
+      <the root password>
+      yum groupinstall "Development Tools"
+      yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel
+      exit
+      ./configure
+      make
+      su -c 'make install'
+*) done.
+
+Ubuntu:
+*) Open a terminal and cd to the extracted tarball
+*) type the following:
+      sudo apt-get install build-essential automake autoconf libtool boost-dev gtkmm-2.4-dev gerbv
+      <your own password>
+      ./configure
+      make
+      sudo make install
+*) done.
+
+
+-- Patrick Birnzain <pbirnzain@users.sourceforge.net> 2010-09-14
+
+
+
 Installation Instructions
 *************************
 
