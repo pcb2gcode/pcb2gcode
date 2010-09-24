@@ -176,6 +176,15 @@ void Surface::run_to_border(int& x, int& y)
 
         guint32 start_color = PRC(pixels + x*4 + y * stride);
 
+	if( start_color == 0 ) {
+		PRC(pixels + x*4 + y * stride) = 0xFFFF0000;
+		save_debug_image();
+		std::stringstream msg;
+		msg << "run_to_border: start_color == 0 at ("
+		    << x << "," << y << ")\n";
+		throw std::logic_error( msg.str() );
+	}
+
         while( PRC(pixels + x*4 + y*stride) == start_color )
                 x++;
 }
@@ -224,7 +233,7 @@ int growoff_i[3][3][2] =
         {{ 0,-1}, { 1,-1}, {1, 0}}
 };
 
-void Surface::calculate_outline(int x, int y,
+void Surface::calculate_outline(const int x, const int y,
                                 vector< pair<int,int> >& outside, vector< pair<int,int> >& inside)
 {
         guint8* pixels = cairo_surface->get_data();
@@ -232,21 +241,23 @@ void Surface::calculate_outline(int x, int y,
 
         guint32 owncolor = PRC(pixels + x*4 + y*stride);
 
-        run_to_border(x,y);
-        int xout = x;
-        int yout = y;
-        int xin = x-1;
-        int yin = y;
+        int xstart = x;
+        int ystart = y;
+
+        run_to_border(xstart,ystart);
+        int xout = xstart;
+        int yout = ystart;
+        int xin = xout-1;
+        int yin = yout;
 
         outside.push_back( pair<int,int>(xout, yout) );
 
-        int xstart = xout;
-        int ystart = yout;
-
         while(true)
         {
+		int i;
+
                 // step outside
-                for(int i = 0; i < 8; i++)
+                for(i = 0; i < 8; i++)
                 {
                         int xoff = xout - xin + 1;
                         int yoff = yout - yin + 1;
@@ -271,8 +282,41 @@ void Surface::calculate_outline(int x, int y,
                                 break;
                 }
 
+		// check whether stepping was successful.
+		// this prevents endless loops that can occur in rare cases
+		if( i == 0 && xout != xstart ) {
+			// blast the problem
+			for(; i < 8; i++) {
+				int cx = xout + offset8[i][0];
+				int cy = yout + offset8[i][1];
+
+				guint8* pixel = pixels + cx * 4 + cy * stride;
+				PRC(pixel) = 0;
+			}
+			PRC(pixels+xstart*4+ystart*stride) = owncolor;
+			// start right at the beginning. still more efficient than keeping
+			// the history necessary to be able to continue next to the problem.
+			cerr << "Blasted at " << xout << "," << yout << endl;
+			inside.clear();
+			outside.clear();
+			xstart = x;
+			ystart = y;
+			run_to_border(xstart,ystart);
+			xout = xstart;
+			yout = ystart;
+			xin = xout-1;
+			yin = yout;
+			outside.push_back( pair<int,int>(xout, yout) );
+			continue;
+		} else if( i == 8 ) {
+			save_debug_image();
+			std::stringstream msg;
+			msg << "Outside over-stepping at in(" << xin << "," << yin << ")\n";
+			throw std::logic_error( msg.str() );
+		}
+
                 // step inside
-                for(int i = 0; i < 8; i++)
+                for(i = 0; i < 8; i++)
                 {
                         int xoff = xin - xout + 1;
                         int yoff = yin - yout + 1;
@@ -289,12 +333,13 @@ void Surface::calculate_outline(int x, int y,
                         else
                                 break;
                 }
-        }
+		if( i == 8 ) throw std::logic_error("Inside over-stepping.");
+	}
 }
 
 guint Surface::grow_a_component(int x, int y, int& contentions)
 {
-        contentions = 0;
+	contentions = 0;
 
         vector< pair<int,int> > outside, inside;
         calculate_outline(x, y, outside, inside);

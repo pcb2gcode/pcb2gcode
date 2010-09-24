@@ -18,12 +18,12 @@ options::instance()
 void
 options::parse_cl( int argc, char** argv )
 {
-	try { 
+	try {
 		po::options_description generic;
 		generic.add(instance().cli_options).add(instance().cfg_options);
 		po::store(po::parse_command_line(argc, argv, generic), instance().vm);
 	}
-	catch( boost::exception& e ) { 
+	catch( boost::exception& e ) {
 		throw std::runtime_error("Invalid option.\n");
 	}
 
@@ -115,14 +115,14 @@ static void check_generic_parameters( po::variables_map const& vm )
 
 static void check_milling_parameters( po::variables_map const& vm )
 {
-	if( vm.count("front") || vm.count("back") ) {
+	if(vm.count("front") || vm.count("back")) {
 		if( !vm.count("zwork") ) {
 			cerr << "Error: --zwork not specified.\n";
 			exit(1);
 		} else if( vm["zwork"].as<double>() > 0 ) {
 			cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
 		}
-		
+
 		if( !vm.count("offset") ) {
 			cerr << "Error: Etching --offset not specified.\n";
 			exit(4);
@@ -170,7 +170,7 @@ static void check_cutting_parameters( po::variables_map const& vm )
 		if( !vm.count("cut-infeed") ) {
 			cerr << "Error: Board cutting infeed (--cut-infeed) not specified.\n";
 			exit(8);
-		}		
+		}
 	}
 }
 
