@@ -99,3 +99,85 @@ options::options() : cli_options("command line only options"),
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
 		;
 }
+
+
+static void check_generic_parameters( po::variables_map const& vm )
+{
+	int dpi = vm["dpi"].as<int>();
+	if( dpi < 100 ) cerr << "Warning: very low DPI value." << endl;
+	if( dpi > 10000 ) cerr << "Warning: very high DPI value, processing may take extremely long" << endl;
+
+	if( !vm.count("zsafe") ) {
+		cerr << "Error: Safety height not specified.\n";
+		exit(5);
+	}
+}
+
+static void check_milling_parameters( po::variables_map const& vm )
+{
+	if( vm.count("front") || vm.count("back") ) {
+		if( !vm.count("zwork") ) {
+			cerr << "Error: --zwork not specified.\n";
+			exit(1);
+		} else if( vm["zwork"].as<double>() > 0 ) {
+			cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
+		}
+		
+		if( !vm.count("offset") ) {
+			cerr << "Error: Etching --offset not specified.\n";
+			exit(4);
+		}
+	}
+}
+
+static void check_drilling_parameters( po::variables_map const& vm )
+{
+	if( vm.count("drill") ) {
+		if( !vm.count("zdrill") ) {
+			cerr << "Error: Drilling depth (--zdrill) not specified.\n";
+			exit(9);
+		}
+		if( !vm.count("zchange") ) {
+			cerr << "Error: Drill bit changing height (--zchange) not specified.\n";
+			exit(10);
+		}
+		if( !vm.count("drill-feed") ) {
+			cerr << "Error:: Drilling feed (--drill-feed) not specified.\n";
+			exit(11);
+		}
+		if( !vm.count("drill-speed") ) {
+			cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
+			exit(12);
+		}
+	}
+}
+
+static void check_cutting_parameters( po::variables_map const& vm )
+{
+	if( vm.count("outline") ) {
+		if( !vm.count("zcut") ) {
+			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
+			exit(5);
+		}
+		if( !vm.count("cut-feed") ) {
+			cerr << "Error: Board cutting feed (--cut-feed) not specified.\n";
+			exit(6);
+		}
+		if( !vm.count("cut-speed") ) {
+			cerr << "Error: Board cutting spindle RPM (--cut-speed) not specified.\n";
+			exit(7);
+		}
+		if( !vm.count("cut-infeed") ) {
+			cerr << "Error: Board cutting infeed (--cut-infeed) not specified.\n";
+			exit(8);
+		}		
+	}
+}
+
+void options::check_parameters()
+{
+	po::variables_map const& vm = instance().vm;
+	check_generic_parameters( vm );
+	check_milling_parameters( vm );
+	check_cutting_parameters( vm );
+}

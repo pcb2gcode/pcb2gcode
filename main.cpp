@@ -22,43 +22,6 @@ using Glib::ustring;
 #include <fstream>
 #include <sstream>
 
-void check_milling_parameters( po::variables_map& vm );
-void check_drilling_parameters( po::variables_map& vm );
-void check_cutting_parameters( po::variables_map& vm );
-
-void check_parameters( po::variables_map& vm )
-{
-	int dpi = vm["dpi"].as<int>();
-	if( dpi < 100 ) cerr << "Warning: very low DPI value." << endl;
-	if( dpi > 10000 ) cerr << "Warning: very high DPI value, processing may take extremely long" << endl;
-
-	if( !vm.count("zsafe") ) {
-		cerr << "Error: Safety height not specified.\n";
-		exit(5);
-	}
-
-	if( !vm.count("front") && !vm.count("back") ) {
-		if( vm.count("outline") )
-			cerr << "Warning: Neither --front nor --back specified.\n";
-		else {
-			cerr << "Error: No input files specified.\n";
-			exit(2);
-		}
-	} else {
-		if( !vm.count("zwork") ) {
-			cerr << "Error: --zwork not specified.\n";
-			exit(1);
-		} else if( vm["zwork"].as<double>() > 0 ) {
-			cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
-		}
-		
-		if( !vm.count("offset") ) {
-			cerr << "Error: Etching --offset not specified.\n";
-			exit(4);
-		}
-	}
-}
-
 
 int main( int argc, char* argv[] )
 {
@@ -81,7 +44,7 @@ int main( int argc, char* argv[] )
 		//      << "It contains lots of valuable hints on both using this program and milling circuit boards." << endl;
 	}
 
-	check_parameters( vm );
+	options::check_parameters();
 
 	
 	// prepare environment
@@ -187,6 +150,8 @@ int main( int argc, char* argv[] )
 		ep.export_ngc( vm["drill"].as<string>(), driller );
 
 		cout << "done.\n";
+	} else {
+		cout << "No drill file specified.\n";
 	}
 
 

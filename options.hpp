@@ -21,6 +21,7 @@ class options : boost::noncopyable
 public:
 	static void parse_cl( int argc, char** argv );
 	static void parse_files();
+	static void check_parameters();
 
 	static po::variables_map& get_vm() { return instance().vm; };
 	static string help();
