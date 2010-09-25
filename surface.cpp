@@ -296,7 +296,6 @@ void Surface::calculate_outline(const int x, const int y,
 			PRC(pixels+xstart*4+ystart*stride) = owncolor;
 			// start right at the beginning. still more efficient than keeping
 			// the history necessary to be able to continue next to the problem.
-			cerr << "Blasted at " << xout << "," << yout << endl;
 			inside.clear();
 			outside.clear();
 			xstart = x;
@@ -333,7 +332,12 @@ void Surface::calculate_outline(const int x, const int y,
                         else
                                 break;
                 }
-		if( i == 8 ) throw std::logic_error("Inside over-stepping.");
+		if( i == 8 ) {
+			save_debug_image();
+			std::stringstream msg;
+			msg << "Inside over-stepping at out(" << xout << "," << yout << ")\n";
+			throw std::logic_error( msg.str() );
+		}
 	}
 }
 

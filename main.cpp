@@ -48,26 +48,33 @@ int main( int argc, char* argv[] )
 
 	
 	// prepare environment
-	shared_ptr<Isolator> isolator( new Isolator() );
-	isolator->tool_diameter = vm["offset"].as<double>() * 2;
-	isolator->zwork = vm["zwork"].as<double>();
-	isolator->zsafe = vm["zsafe"].as<double>();
-	isolator->feed = vm["mill-feed"].as<double>();
-	isolator->speed = vm["mill-speed"].as<int>();
-	isolator->zchange = vm["zchange"].as<double>();
+	shared_ptr<Isolator> isolator;
+	if( vm.count("front") || vm.count("back") ) {
+		isolator = shared_ptr<Isolator>( new Isolator() );
+		isolator->tool_diameter = vm["offset"].as<double>() * 2;
+		isolator->zwork = vm["zwork"].as<double>();
+		isolator->zsafe = vm["zsafe"].as<double>();
+		isolator->feed = vm["mill-feed"].as<double>();
+		isolator->speed = vm["mill-speed"].as<int>();
+		isolator->zchange = vm["zchange"].as<double>();
+	}
 
-	shared_ptr<Cutter> cutter( new Cutter() );
-	cutter->tool_diameter = vm["cutter-diameter"].as<double>() - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
-	cutter->zwork = vm["zcut"].as<double>();
-	cutter->zsafe = vm["zsafe"].as<double>();
-	cutter->feed = vm["cut-feed"].as<double>();
-	cutter->speed = vm["cut-speed"].as<int>();
-	cutter->zchange = vm["zchange"].as<double>();
-	cutter->do_steps = true;
-	cutter->stepsize = vm["cut-infeed"].as<double>();
+	shared_ptr<Cutter> cutter;
+	if( vm.count("outline") ) {
+		cutter = shared_ptr<Cutter>( new Cutter() );
+		cutter->tool_diameter = vm["cutter-diameter"].as<double>() - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
+		cutter->zwork = vm["zcut"].as<double>();
+		cutter->zsafe = vm["zsafe"].as<double>();
+		cutter->feed = vm["cut-feed"].as<double>();
+		cutter->speed = vm["cut-speed"].as<int>();
+		cutter->zchange = vm["zchange"].as<double>();
+		cutter->do_steps = true;
+		cutter->stepsize = vm["cut-infeed"].as<double>();
+	}
 
-	shared_ptr<Driller> driller( new Driller() );
+	shared_ptr<Driller> driller;
 	if( vm.count("drill") ) {
+		driller = shared_ptr<Driller>( new Driller() );
 		driller->zwork = vm["zdrill"].as<double>();
 		driller->zsafe = vm["zsafe"].as<double>();
 		driller->feed = vm["drill-feed"].as<double>();
@@ -130,16 +137,16 @@ int main( int argc, char* argv[] )
 			std::cerr << "Import Error: No reason given.";
 	}
 
-	board->createLayers();
-
-	cout << "Calculated board dimensions: " << board->get_width() << "in x " << board->get_height() << "in" << endl;
-
 	try {
+		board->createLayers();
+		cout << "Calculated board dimensions: " << board->get_width() << "in x " << board->get_height() << "in" << endl;
+
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );
 		exporter->add_header( PACKAGE_STRING );
 		exporter->export_all();
 	} catch( std::logic_error& le ) {
 		cout << "Internal Error: " << le.what() << endl;
+	} catch( std::runtime_error& re ) {
 	}
 
 	if( vm.count("drill") ) {
