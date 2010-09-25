@@ -30,6 +30,9 @@ Board::prepareLayer( string layername, shared_ptr<LayerImporter> importer, share
 void
 Board::createLayers()
 {
+	if( !prepared_layers.size() )
+		throw std::runtime_error("No layers prepared.");
+
         // start calculating the minimal board size
 
 	min_x = 10000.0;          // not pretty, but ok for now
