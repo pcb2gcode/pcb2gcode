@@ -22,7 +22,6 @@ pcb2gcode_SOURCES = \
 	surface.cpp \
 	options.hpp \
 	options.cpp \
-	version.hpp \
 	config.h \
 	main.cpp
 
