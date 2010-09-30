@@ -243,12 +243,11 @@ pcb2gcode_SOURCES = \
 	surface.cpp \
 	options.hpp \
 	options.cpp \
-	version.hpp \
 	config.h \
 	main.cpp
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(gtkmm2_CFLAGS) $(gerbv_CFLAGS) $(BOOST_CPPFLAGS)
+AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(gtkmm2_CFLAGS) $(gerbv_CFLAGS)
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am

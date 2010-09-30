@@ -1,5 +1,5 @@
 This is a complete rewrite of the original pcb2gcode in C++.
 
-See http://sourceforge.net/apps/mediawiki/pcb2gcode
+See INSTALL and http://sourceforge.net/apps/mediawiki/pcb2gcode
 
 -- Patrick Birnzain, 2010-09-14
