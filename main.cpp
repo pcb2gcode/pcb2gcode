@@ -158,7 +158,7 @@ int main( int argc, char* argv[] )
 	}
 
 	try {
-		board->createLayers();
+		board->createLayers();   // throws std::runtime_error
 		cout << "Calculated board dimensions: " << board->get_width() << "in x " << board->get_height() << "in" << endl;
 
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );

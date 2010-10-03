@@ -99,18 +99,17 @@ options::options() : cli_options("command line only options"),
 		("front",      po::value<string>(), "front side RS274-X .gbr")
 		("back",   po::value<string>(), "back side RS274-X .gbr")
 		("outline",  po::value<string>(), "pcb outline RS274-X .gbr; outline drawn in 10mil traces")
-//		("margins",  po::value<double>(), "pcb margins in inches, substitute for --outline\n")
+		("drill", po::value<string>(), "Excellon drill file\n")
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
 		("mill-feed", po::value<double>(), "feed while isolating in ipm")
 		("mill-speed", po::value<int>(), "spindle rpm when milling\n")
-		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB\n")
+		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")
 		("cut-feed", po::value<double>(), "PCB cutting feed")
 		("cut-speed", po::value<int>(), "PCB cutting spindle speed")
-		("cut-infeed", po::value<double>(), "Maximum cutting depth; PCB may be cut in multiple passes")
-		("drill", po::value<string>(), "Excellon drill file")
+		("cut-infeed", po::value<double>(), "Maximum cutting depth; PCB may be cut in multiple passes\n")
 		("zdrill", po::value<double>(), "drill depth")
 		("zchange", po::value<double>(), "tool changing height")
 		("drill-feed", po::value<double>(), "drill feed; ipm")
@@ -130,6 +129,10 @@ static void check_generic_parameters( po::variables_map const& vm )
 		cerr << "Error: Safety height not specified.\n";
 		exit(5);
 	}
+	if( !vm.count("zchange") ) {
+		cerr << "Error: Tool changing height not specified.\n";
+		exit(15);
+	}
 }
 
 static void check_milling_parameters( po::variables_map const& vm )
@@ -145,6 +148,14 @@ static void check_milling_parameters( po::variables_map const& vm )
 		if( !vm.count("offset") ) {
 			cerr << "Error: Etching --offset not specified.\n";
 			exit(4);
+		}
+		if( !vm.count("mill-feed") ) {
+			cerr << "Error: Milling feed [ipm] not specified.\n";
+			exit(13);
+		}
+		if( !vm.count("mill-speed") ) {
+			cerr << "Error: Milling speed [rpm] not specified.\n";
+			exit(14);
 		}
 	}
 }
@@ -177,6 +188,10 @@ static void check_cutting_parameters( po::variables_map const& vm )
 		if( !vm.count("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
 			exit(5);
+		}
+		if( !vm.count("cutter-diameter") ) {
+			cerr << "Error: Cutter diameter not specified.\n";
+			exit(15);
 		}
 		if( !vm.count("cut-feed") ) {
 			cerr << "Error: Board cutting feed (--cut-feed) not specified.\n";
