@@ -24,7 +24,7 @@
 #include <fstream>
 #include <list>
 #include <boost/foreach.hpp>
-#include <boost/exception.hpp>
+#include <boost/exception/all.hpp>
 
 options&
 options::instance()
