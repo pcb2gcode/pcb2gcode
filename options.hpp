@@ -38,7 +38,7 @@ using std::string;
 class options : boost::noncopyable
 {
 public:
-	static void parse_cl( int argc, char** argv );
+	static void parse( int argc, char** argv );
 	static void parse_files();
 	static void check_parameters();
 

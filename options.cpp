@@ -26,6 +26,11 @@
 #include <boost/foreach.hpp>
 #include <boost/exception/all.hpp>
 
+#include <iostream>
+using std::cerr;
+using std::endl;
+
+
 options&
 options::instance()
 {
@@ -35,15 +40,18 @@ options::instance()
 
 
 void
-options::parse_cl( int argc, char** argv )
+options::parse( int argc, char** argv )
 {
 	try {
 		po::options_description generic;
 		generic.add(instance().cli_options).add(instance().cfg_options);
 		po::store(po::parse_command_line(argc, argv, generic), instance().vm);
 	}
-	catch( boost::exception& e ) {
-		throw std::runtime_error("Invalid option.\n");
+	catch( std::logic_error& e ) {
+	 	cerr << "Error: You've supplied an invalid parameter.\n"
+		     << "Note that spindle speeds are integers!\n"
+		     << "Details: " << e.what() << endl;
+		exit(101);
 	}
 
 	po::notify( instance().vm );
@@ -59,10 +67,6 @@ options::help()
 	msg << instance().cli_options << instance().cfg_options;
 	return msg.str();
 }
-
-#include <iostream>
-using std::cerr;
-using std::endl;
 
 void
 options::parse_files()
@@ -157,6 +161,23 @@ static void check_milling_parameters( po::variables_map const& vm )
 			cerr << "Error: Milling speed [rpm] not specified.\n";
 			exit(14);
 		}
+		
+		// required parameters present. check for validity.
+		if( vm["zsafe"].as<double>() <= vm["zwork"].as<double>() ) {
+			cerr << "Error: The safety height --zsafe is lower than the milling "
+			     << "height --zwork. Are you sure this is correct?\n";
+			exit(15);
+		}
+
+		if( vm["mill-feed"].as<double>() < 0 ) {
+			cerr << "Error: Negative milling feed (--mill-feed).\n";
+			exit(17);
+		}
+
+		if( vm["mill-speed"].as<int>() < 0 ) {
+			cerr << "Error: --mill-speed < 0.\n";
+			exit(16);
+		}
 	}
 }
 
@@ -178,6 +199,25 @@ static void check_drilling_parameters( po::variables_map const& vm )
 		if( !vm.count("drill-speed") ) {
 			cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
 			exit(12);
+		}
+		
+		if( vm["zsafe"].as<double>() <= vm["zdrill"].as<double>() ) {
+			cerr << "Error: The safety height --zsafe is lower than the drilling "
+			     << "height --zdrill!\n";
+			exit(18);
+		}
+		if( vm["zchange"].as<double>() <= vm["zdrill"].as<double>() ) {
+			cerr << "Error: The safety height --zsafe is lower than the tool "
+			     << "change height --zchange!\n";
+			exit(19);
+		}
+		if( vm["drill-feed"].as<double>() <= 0 ) {
+			cerr << "Error: The drilling feed --drill-feed is <= 0.\n";
+			exit(20);
+		}
+		if( vm["drill-speed"].as<int>() < 0 ) {
+			cerr << "Error: --drill-speed < 0.\n";
+			exit(17);
 		}
 	}
 }
@@ -205,13 +245,37 @@ static void check_cutting_parameters( po::variables_map const& vm )
 			cerr << "Error: Board cutting infeed (--cut-infeed) not specified.\n";
 			exit(8);
 		}
+
+		if( vm["zsafe"].as<double>() <= vm["zcut"].as<double>() ) {
+			cerr << "Error: The safety height --zsafe is lower than the cutting "
+			     << "height --zcut!\n";
+			exit(21);
+		}
+		if( vm["cut-feed"].as<double>() <= 0 ) {
+			cerr << "Error: The cutting feed --cut-feed is <= 0.\n";
+			exit(22);
+		}
+		if( vm["cut-speed"].as<int>() < 0 ) {
+			cerr << "Error: The cutting spindle speed --cut-speed is smaler than 0.\n";
+			exit(23);
+		}
+		if( abs(vm["cut-infeed"].as<double>()) < 0.001 ) {
+			cerr << "Error: Too small cutting infeed --cut-infeed.\n";
+			exit(24);
+		}
 	}
 }
 
 void options::check_parameters()
 {
 	po::variables_map const& vm = instance().vm;
-	check_generic_parameters( vm );
-	check_milling_parameters( vm );
-	check_cutting_parameters( vm );
+
+	try {
+		check_generic_parameters( vm );
+		check_milling_parameters( vm );
+		check_cutting_parameters( vm );
+	} catch ( std::runtime_error& re ) {
+		cerr << "Error: Invalid parameter. :-(\n";
+		exit(100);
+	}
 }

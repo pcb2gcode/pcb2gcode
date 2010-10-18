@@ -48,7 +48,7 @@ int main( int argc, char* argv[] )
 	// parse and check command line options
 	Gtk::Main kit(argc, argv);
 	
-	options::parse_cl( argc, argv );
+	options::parse( argc, argv );
 	po::variables_map& vm = options::get_vm();
 
 	if( vm.count("version") ) {
