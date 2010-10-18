@@ -259,7 +259,7 @@ static void check_cutting_parameters( po::variables_map const& vm )
 			cerr << "Error: The cutting spindle speed --cut-speed is smaler than 0.\n";
 			exit(23);
 		}
-		if( abs(vm["cut-infeed"].as<double>()) < 0.001 ) {
+		if( vm["cut-infeed"].as<double>() < 0.001 ) {
 			cerr << "Error: Too small cutting infeed --cut-infeed.\n";
 			exit(24);
 		}
