@@ -103,7 +103,6 @@ options::options() : cli_options("command line only options"),
 		("front",      po::value<string>(), "front side RS274-X .gbr")
 		("back",   po::value<string>(), "back side RS274-X .gbr")
 		("outline",  po::value<string>(), "pcb outline RS274-X .gbr; outline drawn in 10mil traces")
-		("drill", po::value<string>(), "Excellon drill file\n")
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
@@ -118,6 +117,7 @@ options::options() : cli_options("command line only options"),
 		("zchange", po::value<double>(), "tool changing height")
 		("drill-feed", po::value<double>(), "drill feed; ipm")
 		("drill-speed", po::value<int>(), "spindle rpm when drilling\n")
+		("drill", po::value<string>(), "Excellon drill file\n")
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
 		;
 }
