@@ -76,7 +76,12 @@ Board::createLayers()
 
         // if there's no pcb outline, add the specified margins
         try {
-                prepared_layers.at("outline");
+		shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
+		ivalue_t radius = outline_mill->tool_diameter / 2;
+		min_x -= radius;
+		max_x += radius;
+		min_y -= radius;
+		max_y += radius;
         }
 	catch( std::logic_error& e ) {
                 min_x -= margin;
