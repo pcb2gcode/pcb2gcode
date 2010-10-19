@@ -23,3 +23,9 @@ Layer::get_manufacturer()
 {
 	return manufacturer;
 }
+
+void
+Layer::add_mask( shared_ptr<Layer> mask)
+{
+	surface->add_mask( mask->surface);
+}

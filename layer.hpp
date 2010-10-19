@@ -21,6 +21,7 @@ public:
 	vector< shared_ptr<icoords> > get_toolpaths();
 	shared_ptr<RoutingMill> get_manufacturer();
 	string get_name() { return name; };
+	void add_mask( shared_ptr<Layer>);
 
 private:
 	string name;

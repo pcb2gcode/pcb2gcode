@@ -54,6 +54,8 @@ public:
 	ivalue_t get_width_in() { return max_x - min_x; };
 	ivalue_t get_height_in() { return max_y - min_y; };
 
+	void add_mask( shared_ptr<Surface>);
+
 protected:
 	Glib::RefPtr<Gdk::Pixbuf> pixbuf;
 	Cairo::RefPtr<Cairo::ImageSurface> cairo_surface;

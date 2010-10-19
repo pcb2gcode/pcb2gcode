@@ -391,6 +391,34 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
         return pixels_changed;
 }
 
+void Surface::add_mask( shared_ptr<Surface> mask_surface) {
+	Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface = mask_surface->cairo_surface;
+
+        int max_x = cairo_surface->get_width();
+        int max_y = cairo_surface->get_height();
+        int stride = cairo_surface->get_stride();
+
+	if(
+			max_x != mask_cairo_surface->get_width() ||
+			max_y != mask_cairo_surface->get_height() ||
+			stride != mask_cairo_surface->get_stride()
+	  ) {
+		throw std::logic_error( "Surface shapes don't match." );
+	}
+
+        guint8* pixels = cairo_surface->get_data();
+        guint8* mask_pixels = mask_cairo_surface->get_data();
+
+        for(int y = 0; y < max_y; y ++)
+        {
+                for(int x = 0; x < max_x; x ++)
+                {
+			PRC(pixels + x*4 + y*stride) &= PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
+			PRC(pixels + x*4 + y*stride) |= (~PRC(mask_pixels + x*4 + y*stride) & 0xFFFF00FF); /* tint the outiside in an own color to block extension */
+                }
+        }
+}
+
 #include <boost/format.hpp>
 
 void Surface::save_debug_image()
