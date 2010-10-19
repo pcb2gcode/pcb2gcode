@@ -22,10 +22,10 @@
 
 typedef pair<string, shared_ptr<Layer> > layer_t;
 
-Board::Board()
+Board::Board( int _dpi)
 {
         margin = 0.0;
-	dpi = 1000;
+	dpi = _dpi;
 }
 
 double

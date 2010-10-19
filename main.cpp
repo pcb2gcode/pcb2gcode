@@ -103,7 +103,7 @@ int main( int argc, char* argv[] )
 	}
 
 
-	shared_ptr<Board> board( new Board() );
+	shared_ptr<Board> board( new Board( vm["dpi"].as<int>()) );
 
 	if( vm.count("margins") )
 		board->set_margins( vm["margins"].as<double>() );

@@ -60,7 +60,7 @@ using boost::tuple;
 class Board
 {
 public:
-	Board();
+	Board( int dpi);
 
 	void prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool topside );
 	void set_margins( double margins ) { margin = margins; };
