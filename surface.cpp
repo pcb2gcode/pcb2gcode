@@ -101,21 +101,11 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored )
 
 		// i'm not sure wheter this is the right place to do this...
 		// that "mirrored" flag probably is a bad idea.
-		if( mirrored ) {
-			BOOST_FOREACH( coordpair c, outside ) {
-				outline->push_back( icoordpair(
-							    // tricky calculations
-							    // (cairo_surface->get_width() - c.first - zero_x)/(double)dpi,
-							    min_x + max_x - xpt2i( c.first ),
-							    min_y + max_y - ypt2i(c.second) ) );
-			}
-		} else {
-			BOOST_FOREACH( coordpair c, outside ) {
-				outline->push_back( icoordpair(
-							    // tricky calculations
-							    xpt2i(c.first),
-							    min_y + max_y - ypt2i(c.second) ) );
-			}
+		BOOST_FOREACH( coordpair c, outside ) {
+			outline->push_back( icoordpair(
+						    // tricky calculations
+						    mirrored ? -xpt2i(c.first) : xpt2i(c.first),
+						    min_y + max_y - ypt2i(c.second) ) );
 		}
 
 		outside.clear();

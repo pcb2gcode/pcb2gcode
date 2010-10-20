@@ -102,11 +102,11 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 		icoords::const_iterator coord_iter = drill_coords.begin();
 
 		of << "G81 R" << driller->zsafe << " Z" << driller->zwork << " F" << driller->feed 
-		   << " X" << board_width - coord_iter->first << " Y" << coord_iter->second << endl;
+		   << " X" << (-coord_iter->first) << " Y" << coord_iter->second << endl;
 		++coord_iter;
 
 		while( coord_iter != drill_coords.end() ) {
-			of << "X" << board_width - coord_iter->first << " Y" << coord_iter->second << endl;
+			of << "X" << (-coord_iter->first) << " Y" << coord_iter->second << endl;
 			++coord_iter;
 		}
 
