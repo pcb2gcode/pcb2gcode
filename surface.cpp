@@ -122,7 +122,7 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored )
                 toolpath.push_back(outline);
         }
 
-        save_debug_image();
+        save_debug_image("traced");
         return toolpath;
 }
 
@@ -208,7 +208,7 @@ void Surface::run_to_border(int& x, int& y)
 
 	if( start_color == 0 ) {
 		PRC(pixels + x*4 + y * stride) = RED;
-		save_debug_image();
+		save_debug_image("error_runtoborder");
 		std::stringstream msg;
 		msg << "run_to_border: start_color == 0 at ("
 		    << x << "," << y << ")\n";
@@ -338,7 +338,7 @@ void Surface::calculate_outline(const int x, const int y,
 			outside.push_back( pair<int,int>(xout, yout) );
 			continue;
 		} else if( i == 8 ) {
-			save_debug_image();
+			save_debug_image("error_outsideoverstepping");
 			std::stringstream msg;
 			msg << "Outside over-stepping at in(" << xin << "," << yin << ")\n";
 			throw std::logic_error( msg.str() );
@@ -363,7 +363,7 @@ void Surface::calculate_outline(const int x, const int y,
                                 break;
                 }
 		if( i == 8 ) {
-			save_debug_image();
+			save_debug_image("error_insideoverstepping");
 			std::stringstream msg;
 			msg << "Inside over-stepping at out(" << xout << "," << yout << ")\n";
 			throw std::logic_error( msg.str() );
@@ -431,12 +431,12 @@ void Surface::add_mask( shared_ptr<Surface> mask_surface) {
 
 #include <boost/format.hpp>
 
-void Surface::save_debug_image()
+void Surface::save_debug_image(string message)
 {
         static uint debug_image_index = 0;
 
         opacify(pixbuf);
-        pixbuf->save( (boost::format("outp%1%.png") % debug_image_index).str() , "png");
+        pixbuf->save( (boost::format("outp%1%_%2%.png") % debug_image_index % message).str() , "png");
 	debug_image_index++;
 }
 

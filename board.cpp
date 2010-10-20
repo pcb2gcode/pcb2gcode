@@ -102,6 +102,11 @@ Board::createLayers()
 		layers.insert( std::make_pair( layer->get_name(), layer ) );
         }
 
+        // DEBUG output
+        BOOST_FOREACH( layer_t layer, layers ) {
+                layer.second->surface->save_debug_image("original");
+        }
+
 	// mask layers with outline
 	if( prepared_layers.find("outline") != prepared_layers.end()) {
 		shared_ptr<Layer> outline_layer = layers.at("outline");
@@ -109,14 +114,10 @@ Board::createLayers()
 		for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++ ) {
 			if(it->second != outline_layer) {
 				it->second->add_mask(outline_layer);
+				it->second->surface->save_debug_image("masked");
 			}
 		}
 	}
-
-        // DEBUG output
-        BOOST_FOREACH( layer_t layer, layers ) {
-                layer.second->surface->save_debug_image();
-        }
 }
 
 vector< shared_ptr<icoords> >

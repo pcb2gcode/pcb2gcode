@@ -48,7 +48,7 @@ public:
 
 	boost::shared_ptr< Surface > deep_copy();
 
-	void save_debug_image();
+	void save_debug_image(string);
 
 	vector< shared_ptr<icoords> > get_toolpath( shared_ptr<RoutingMill> mill, bool mirror = false );
 	ivalue_t get_width_in() { return max_x - min_x; };
