@@ -45,8 +45,7 @@ using Glib::ustring;
 
 int main( int argc, char* argv[] )
 {
-	// parse and check command line options
-	Gtk::Main kit(argc, argv);
+	Gtk::Main::init_gtkmm_internals();
 	
 	options::parse( argc, argv );
 	po::variables_map& vm = options::get_vm();
