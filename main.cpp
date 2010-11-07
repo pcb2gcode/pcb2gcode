@@ -171,12 +171,15 @@ int main( int argc, char* argv[] )
 
 	if( vm.count("drill") ) {
 		cout << "Converting " << vm["drill"].as<string>() << "... ";
+		try {
+			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
+			ep.add_header( PACKAGE_STRING );
+			ep.export_ngc( vm["drill"].as<string>(), driller );
 
-		ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
-		ep.add_header( PACKAGE_STRING );
-		ep.export_ngc( vm["drill"].as<string>(), driller );
-
-		cout << "done.\n";
+			cout << "done.\n";
+		} catch( drill_exception& e ) {
+			cout << "ERROR.\n";
+		}
 	} else {
 		cout << "No drill file specified.\n";
 	}

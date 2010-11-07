@@ -274,6 +274,7 @@ void options::check_parameters()
 		check_generic_parameters( vm );
 		check_milling_parameters( vm );
 		check_cutting_parameters( vm );
+		check_drilling_parameters( vm );
 	} catch ( std::runtime_error& re ) {
 		cerr << "Error: Invalid parameter. :-(\n";
 		exit(100);
