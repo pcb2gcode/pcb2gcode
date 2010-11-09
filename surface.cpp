@@ -21,6 +21,16 @@
 #include "surface.hpp"
 using std::pair;
 
+// color definitions for the ARGB32 format used
+
+#define OPAQUE 0xFF000000
+#define RED 0xFFFF0000
+#define GREEN 0xFF00FF00
+#define BLUE 0xFF0000FF
+#define WHITE ( RED | GREEN | BLUE )
+// while equal by value, OPAQUE is used for |-ing and BLACK for setting or comparison
+#define BLACK ( RED & GREEN & BLUE )
+
 void Surface::make_the_surface(uint width, uint height)
 {
         pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
@@ -138,7 +148,7 @@ std::vector< std::pair<int,int> > Surface::fill_all_components()
         {
                 for(int x = 5; x <= max_x; x += 10)
                 {
-                        if( (PRC(pixels + x*4 + y*stride) | 0xFF000000) == 0xFFFFFFFF )
+                        if( (PRC(pixels + x*4 + y*stride) | OPAQUE) == WHITE )
                         {
                                 components.push_back( pair<int,int>(x,y) );
                                 fill_a_component(x, y, get_an_unused_color());
@@ -197,7 +207,7 @@ void Surface::run_to_border(int& x, int& y)
         guint32 start_color = PRC(pixels + x*4 + y * stride);
 
 	if( start_color == 0 ) {
-		PRC(pixels + x*4 + y * stride) = 0xFFFF0000;
+		PRC(pixels + x*4 + y * stride) = RED;
 		save_debug_image();
 		std::stringstream msg;
 		msg << "run_to_border: start_color == 0 at ("
@@ -232,7 +242,7 @@ inline bool Surface::allow_grow(int x, int y, guint32 ownclr)
                 guint8* pixel = pixels + cx * 4 + cy * stride;
 
                 // surrounding pixel != own color, not black -> other component!
-                if( PRC(pixel) != ownclr && ( PRC(pixel) & 0x00FFFFFF) != 0x00000000 )
+                if( PRC(pixel) != ownclr && ( PRC(pixel) | OPAQUE) != BLACK )
                         return false;
         }
 
@@ -414,7 +424,7 @@ void Surface::add_mask( shared_ptr<Surface> mask_surface) {
                 for(int x = 0; x < max_x; x ++)
                 {
 			PRC(pixels + x*4 + y*stride) &= PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
-			PRC(pixels + x*4 + y*stride) |= (~PRC(mask_pixels + x*4 + y*stride) & 0xFFFF00FF); /* tint the outiside in an own color to block extension */
+			PRC(pixels + x*4 + y*stride) |= (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
                 }
         }
 }
@@ -432,14 +442,13 @@ void Surface::save_debug_image()
 
 void Surface::opacify( Glib::RefPtr<Gdk::Pixbuf> pixbuf )
 {
+        int stride = pixbuf->get_rowstride();
+        guint8* pixels = pixbuf->get_pixels();
         for(int y = 0; y < pixbuf->get_height(); y++ )
         {
-                guint8* pixel = pixbuf->get_pixels() + 3 + y * pixbuf->get_rowstride();
-
                 for(int x = 0; x < pixbuf->get_width(); x++ )
                 {
-                        PRC(pixel) |= 0x000000FF;
-                        pixel += 4;
+                        PRC(pixels + x*4 + y*stride) |= OPAQUE;
                 }
         }
 }
