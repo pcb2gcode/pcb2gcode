@@ -100,6 +100,10 @@ options::options() : cli_options("command line only options"),
 		;
 
 	cfg_options.add_options()
+		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
+		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
+		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
+		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file drilling")
 		("front",      po::value<string>(), "front side RS274-X .gbr")
 		("back",   po::value<string>(), "back side RS274-X .gbr")
 		("outline",  po::value<string>(), "pcb outline RS274-X .gbr; outline drawn in 10mil traces")

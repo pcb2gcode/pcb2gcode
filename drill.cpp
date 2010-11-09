@@ -55,7 +55,7 @@ ExcellonProcessor::add_header( string header )
 }
 
 void
-ExcellonProcessor::export_ngc( const string outputname, shared_ptr<Driller> driller, bool mirrored )
+ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller, bool mirrored )
 {
 	/* will not be implemented until i've checked whether there's a reason to drill the
 	   holes from the front side. Maybe there are boards without a back side? SMD-only?
@@ -63,8 +63,7 @@ ExcellonProcessor::export_ngc( const string outputname, shared_ptr<Driller> dril
 	g_assert( mirrored == true );
 
 	// open output file
-	std::stringstream of_name; of_name << outputname << ".ngc";
-	std::ofstream of; of.open( of_name.str().c_str() );
+	std::ofstream of; of.open( of_name.c_str() );
 
 	shared_ptr<const map<int,drillbit> > bits = get_bits();
 	shared_ptr<const map<int,icoords> > holes = get_holes();	

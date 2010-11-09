@@ -38,23 +38,26 @@ NGC_Exporter::add_header( string header )
 }
 
 void
-NGC_Exporter::export_all()
+NGC_Exporter::export_all(boost::program_options::variables_map& options)
 {
 	BOOST_FOREACH( string layername, board->list_layers() ) {
-		cerr << "Current Layer: " << layername << endl;
-		export_layer( board->get_layer(layername) );
+		std::stringstream option_name;
+		option_name << layername << "-output";
+		string of_name = options[option_name.str()].as<string>();
+		cerr << "Current Layer: " << layername << ", exporting to " << of_name << "." << endl;
+		export_layer( board->get_layer(layername), of_name);
 	}
 }
 
+
 void
-NGC_Exporter::export_layer( shared_ptr<Layer> layer )
+NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 {
 	string layername = layer->get_name();
 	shared_ptr<RoutingMill> mill = layer->get_manufacturer();
 
 	// open output file
-	std::stringstream of_name; of_name << layername << ".ngc";
-	std::ofstream of; of.open( of_name.str().c_str() );
+	std::ofstream of; of.open( of_name.c_str() );
 
 	// write header to .ngc file
         BOOST_FOREACH( string s, header )

@@ -163,7 +163,7 @@ int main( int argc, char* argv[] )
 
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );
 		exporter->add_header( PACKAGE_STRING );
-		exporter->export_all();
+		exporter->export_all(vm);
 	} catch( std::logic_error& le ) {
 		cout << "Internal Error: " << le.what() << endl;
 	} catch( std::runtime_error& re ) {
@@ -174,7 +174,7 @@ int main( int argc, char* argv[] )
 		try {
 			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
 			ep.add_header( PACKAGE_STRING );
-			ep.export_ngc( vm["drill"].as<string>(), driller );
+			ep.export_ngc( vm["drill-output"].as<string>(), driller );
 
 			cout << "done.\n";
 		} catch( drill_exception& e ) {

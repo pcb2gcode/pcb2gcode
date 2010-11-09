@@ -70,7 +70,7 @@ public:
 	~ExcellonProcessor();
 
 	void add_header( string );
-	void export_ngc( const string ngcfile, shared_ptr<Driller> target, bool mirrored = true );
+	void export_ngc( const string of_name, shared_ptr<Driller> target, bool mirrored = true );
 
 	shared_ptr<const map<int,drillbit> > get_bits();
 	shared_ptr<const map<int,icoords> > get_holes();

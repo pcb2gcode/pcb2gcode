@@ -34,6 +34,8 @@ using std::ofstream;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
+#include <boost/program_options.hpp>
+
 #include "coord.hpp"
 #include "mill.hpp"
 #include "exporter.hpp"
@@ -47,10 +49,10 @@ public:
         /* virtual void add_path( vector< shared_ptr<icoords> > ); */
 
 	void add_header( string );
-	void export_all();
+	void export_all( boost::program_options::variables_map& );
 
 protected:
-	void export_layer( shared_ptr<Layer> layer );
+	void export_layer( shared_ptr<Layer> layer, string of_name );
 
 	shared_ptr<Board> board;
 	vector<string> header;
