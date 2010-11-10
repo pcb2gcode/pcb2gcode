@@ -42,10 +42,14 @@ options::instance()
 void
 options::parse( int argc, char** argv )
 {
+	// guessing causes problems when one option is the start of another
+	// (--drill, --drill-diameter); see bug 3089930
+	int style = po::command_line_style::default_style & ~po::command_line_style::allow_guessing;
+
 	try {
 		po::options_description generic;
 		generic.add(instance().cli_options).add(instance().cfg_options);
-		po::store(po::parse_command_line(argc, argv, generic), instance().vm);
+		po::store(po::parse_command_line(argc, argv, generic, style), instance().vm);
 	}
 	catch( std::logic_error& e ) {
 	 	cerr << "Error: You've supplied an invalid parameter.\n"
@@ -100,29 +104,34 @@ options::options() : cli_options("command line only options"),
 		;
 
 	cfg_options.add_options()
-		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
-		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
-		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
-		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file drilling")
 		("front",      po::value<string>(), "front side RS274-X .gbr")
 		("back",   po::value<string>(), "back side RS274-X .gbr")
 		("outline",  po::value<string>(), "pcb outline RS274-X .gbr; outline drawn in 10mil traces")
 		("drill", po::value<string>(), "Excellon drill file\n")
+
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
 		("mill-feed", po::value<double>(), "feed while isolating in ipm")
 		("mill-speed", po::value<int>(), "spindle rpm when milling\n")
+
 		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")
 		("cut-feed", po::value<double>(), "PCB cutting feed")
 		("cut-speed", po::value<int>(), "PCB cutting spindle speed")
 		("cut-infeed", po::value<double>(), "Maximum cutting depth; PCB may be cut in multiple passes\n")
+
 		("zdrill", po::value<double>(), "drill depth")
 		("zchange", po::value<double>(), "tool changing height")
 		("drill-feed", po::value<double>(), "drill feed; ipm")
 		("drill-speed", po::value<int>(), "spindle rpm when drilling\n")
-		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
+
+		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution\n")
+
+		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
+		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
+		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
+		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
 		;
 }
 
