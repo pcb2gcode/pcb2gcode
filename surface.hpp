@@ -50,7 +50,7 @@ public:
 
 	void save_debug_image(string);
 
-	vector< shared_ptr<icoords> > get_toolpath( shared_ptr<RoutingMill> mill, bool mirror = false );
+	vector< shared_ptr<icoords> > get_toolpath( shared_ptr<RoutingMill> mill, bool mirror, bool mirror_absolute );
 	ivalue_t get_width_in() { return max_x - min_x; };
 	ivalue_t get_height_in() { return max_y - min_y; };
 

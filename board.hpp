@@ -62,7 +62,7 @@ class Board
 public:
 	Board( int dpi);
 
-	void prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool topside );
+	void prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool topside, bool mirror_absolute );
 	void set_margins( double margins ) { margin = margins; };
 
 	ivalue_t get_width();
@@ -87,7 +87,16 @@ private:
 	ivalue_t min_y;
 	ivalue_t max_y;
 
-	typedef tuple< shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool > prep_t;
+	/* The Layer gets constructed from data prepared in
+	 * prepareLayer after the size calculations are done in createLayers.
+	 * (It can't be constructed in prepareLayer as the surface which gets
+	 * passed to the Layer at construction time needs the sizes to be
+	 * created.)
+	 * In the meantime, the construction arguments get carried around in
+	 * prep_t tuples, whose signature must basically match the construction
+	 * signature of Layer.
+	 */
+	typedef tuple< shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool, bool > prep_t;
 	map< string, prep_t > prepared_layers;
 	map< string, shared_ptr<Layer> >    layers;
 };

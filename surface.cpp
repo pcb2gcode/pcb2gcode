@@ -66,13 +66,14 @@ using std::cout;
 using std::endl;
 
 vector< shared_ptr<icoords> >
-Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored )
+Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_absolute )
 {
         coords components = fill_all_components();
 
         int added = -1;
         int contentions = 0;
         int grow = mill->tool_diameter / 2 * dpi;
+	ivalue_t double_mirror_axis = mirror_absolute ? 0 : (min_x + max_x);
 
         for(int i = 0; i < grow && added != 0; i++)
         {
@@ -104,7 +105,7 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored )
 		BOOST_FOREACH( coordpair c, outside ) {
 			outline->push_back( icoordpair(
 						    // tricky calculations
-						    mirrored ? -xpt2i(c.first) : xpt2i(c.first),
+						    mirrored ? (double_mirror_axis - xpt2i(c.first)) : xpt2i(c.first),
 						    min_y + max_y - ypt2i(c.second) ) );
 		}
 

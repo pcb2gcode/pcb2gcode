@@ -115,7 +115,7 @@ int main( int argc, char* argv[] )
 		try {
 			string frontfile = vm["front"].as<string>();
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(frontfile) );
-			board->prepareLayer( "front", importer, isolator, false );
+			board->prepareLayer( "front", importer, isolator, false, vm.count("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
@@ -127,7 +127,7 @@ int main( int argc, char* argv[] )
 		try {
 			string backfile = vm["back"].as<string>();
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(backfile) );
-			board->prepareLayer( "back", importer, isolator, true );
+			board->prepareLayer( "back", importer, isolator, true, vm.count("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
@@ -139,7 +139,7 @@ int main( int argc, char* argv[] )
 		try {
 			string outline = vm["outline"].as<string>();
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(outline) );
-			board->prepareLayer( "outline", importer, cutter, !vm.count("front") );
+			board->prepareLayer( "outline", importer, cutter, !vm.count("front"), vm.count("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
@@ -173,7 +173,7 @@ int main( int argc, char* argv[] )
 		try {
 			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
 			ep.add_header( PACKAGE_STRING );
-			ep.export_ngc( vm["drill-output"].as<string>(), driller );
+			ep.export_ngc( vm["drill-output"].as<string>(), driller, true, vm.count("mirror-absolute") );
 
 			cout << "done.\n";
 		} catch( drill_exception& e ) {

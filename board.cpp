@@ -42,9 +42,10 @@ Board::get_height()
 
 
 void
-Board::prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool mirror )
+Board::prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool mirror, bool mirror_absolute )
 {
-        prepared_layers.insert( std::make_pair( layername, make_tuple(importer, manufacturer, mirror) ) );
+        // see comment for prep_t in board.hpp
+        prepared_layers.insert( std::make_pair( layername, make_tuple(importer, manufacturer, mirror, mirror_absolute) ) );
 }
 
 void
@@ -97,7 +98,7 @@ Board::createLayers()
                 shared_ptr<LayerImporter> importer = it->second.get<0>();
                 surface->render(importer);
 
-		shared_ptr<Layer> layer( new Layer(it->first, surface, it->second.get<1>(), it->second.get<2>() ) );
+		shared_ptr<Layer> layer( new Layer(it->first, surface, it->second.get<1>(), it->second.get<2>(), it->second.get<3>() ) ); // see comment for prep_t in board.hpp
                 
 		layers.insert( std::make_pair( layer->get_name(), layer ) );
         }
