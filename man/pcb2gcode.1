@@ -1,0 +1,147 @@
+.TH PCB2GCODE 1 "2010-11-10"
+.\" Please adjust this date whenever revising the manpage.
+.SH NAME
+pcb2gcode \- command-line tool for engraving PCBs using CNCs
+.SH SYNOPSIS
+.B pcb2gcode
+.RI [ options ]
+.SH DESCRIPTION
+This manual page documents briefly the \fBpcb2gcode\fP command.
+.PP
+\fBpcb2gcode\fP is a program that takes the files typically produced by PCB
+(printed circuit board) designing tools, in particular Gerber (RS-274X) and
+Excellon (an RS-274C variant) files as parsed by \fBgerbv\fP, and produces
+files that can be used to control a CNC (computer numerical control) milling
+machine. These files are in G code format (RS-274D/NGC) that can be read, for
+example, by the linuxcnc EMC2 system.
+
+When these files are executed, an engraving bit is used to remove the surface
+from a copper covered circuit board, thus creating isolated areas. In another
+step, holes are drilled into the board at the appropriate positions, and it can
+be cut out in another step. (For each step, a separate output file is created.)
+.SH OPTIONS
+These programs follow the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of options is included below.
+
+Instead of passing all options on the command line, nearly all options can be
+stored in a file named \fImillproject\fP. There, options are given one per line
+as \fIoption\fP=\fIvalue\fP pairs (without the two dashes), and can be
+separated by blank lines and commented (everything after a `#` character is
+treated as a comment).
+
+Unless stated otherwise, numeric values are in units of inch and inch/minute.
+
+.TP
+\fB\-\-front\fP \fIfilename.gbr\fP
+Engrave the front side according to the given file (typically used in two-sided
+boards).
+.TP
+\fB\-\-back\fP \fIfilename.gbr\fP
+Engrave the back side according to the given file.
+.TP
+\fB\-\-outline\fP \fIfilename.gbr\fP
+Cut out the board to the shape exposed in the given file. Typically, there is
+only a polygon in this gerber file.
+.TP
+\fB\-\-drill\fP \fIfilename.cnc\fP
+Convert the given file (containing drill sizes and positions) to G-code.
+
+.PP
+For every option \fB\-\-x\fP that takes a filename, there is an
+\fB\-\-x\-output\fP option that specifies where the resulting G-code is saved,
+defaulting to \fIx.gbr\fP.
+
+.PP
+The parameters that define engraving are:
+.TP
+\fB\-\-zwork\fP \fIinch\fP
+Z-coordinate at which engraving happens
+.TP
+\fB\-\-zsafe\fP \fIinch\fP
+Z-coordinate for movements between engraving steps
+.TP
+\fB\-\-mill-feed\fP \fIinch/minute\fP
+feed rate at which engraving takes place (horizontal speed)
+.TP
+\fB\-\-mill-speed\fP \fIrpm\fP
+spindle speed during engraving (rounds per minute)
+.TP
+\fB\-\-offset\fP \fIinch\fP
+distance by which the tool movement will be outset from the contours in the
+gerber file to be engraved
+
+If this distance can't be satisfied because copper areas are too close, a
+warning will be printed and the line will be drawn between the areas. This
+behavior can be used to get voronoi-style (flood-filling) areas; simply set the
+offset to a large value (like 1 inch).
+.PP
+The parameters that define outline cutting are:
+.TP
+\fB\-\-cutter-diameter\fP \fIinch\fP
+amount by half of which the tool path is outset from the shape in the outline
+file
+.TP
+\fB\-\-zcut\fP \fIinch\fP
+Z-coordinate indicating where the outline cutting ends
+.TP
+\fB\-\-cut-feed\fP \fIinch\fP
+feed rate at which outline cutting takes place (horizontal speed)
+.TP
+\fB\-\-cut-speed\fP \fIinch/minute\fP
+spindle speed during outline cutting (rounds per minute)
+.TP
+\fB\-\-cut-infeed\fP \fIrpm\fP
+maximum Z distance that is cut away in a single pass (positive value; if less
+then zcut's value, there will be more than one pass)
+.PP
+Drilling takes another set of options:
+.TP
+\fB\-\-zdrill\fP \fIinch\fP
+Z value down to which will be drilled
+.TP
+\fB\-\-zchange\fP \fIinch\fP
+Z-coordinate for movements with the drill head
+.TP
+\fB\-\-drill-feed\fP \fIinch/minute\fP
+feed rate for drilling (vertical speed)
+.TP
+\fB\-\-drill-speed\fP \fIrpm\fP
+spindle speed during drilling (rounds per minute)
+.PP
+These options govern the general behavior of \fBpcb2gcode\fP:
+.TP
+\fB\-\-dpi\fP \fIdpi\fP
+resolution used internally (defaults to 1000)
+.TP
+\fB\-\-mirror-absolute\fP
+mirror operations on the back side along the Y axis instead of the board
+center, which is the default
+.PP
+The only options that can't be used in the \fImillproject\fP file are the
+common ones:
+.TP
+.B \-?, \-\-help
+Show summary of options.
+.TP
+.B \-v, \-\-version
+Show version of program.
+.SH SEE ALSO
+.BR gerbv (1),
+.BR pcb (1).
+.br
+.\" from man(7)
+.de URL
+\\$2 \(laURL: \\$1 \(ra\\$3
+..
+.if \n[.g] .mso www.tmac
+
+For further information about \fBpcb2gcode\fP, see the
+.URL "http://sourceforge.net/apps/mediawiki/pcb2gcode/" "project wiki" "."
+.SH AUTHOR
+pcb2gcode was written by Patrick Birnzain, loosely based on an earlier program
+of the same name by Jeff Prothero (Cynbe ru Taren), which in term was based
+even more loosely on Matthew Sager's gerber_to_gcode.
+.PP
+This manual page was written by chrysn <chrysn@fsfe.org> for the Debian project
+(and may be used by others).

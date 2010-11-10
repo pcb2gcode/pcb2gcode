@@ -1,3 +1,4 @@
+SUBDIRS = man
 
 bin_PROGRAMS = pcb2gcode
 
