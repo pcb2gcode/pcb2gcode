@@ -62,7 +62,10 @@ int main( int argc, char* argv[] )
 		// cout << endl << "If you're new to pcb2gcode and CNC milling, please don't forget to read the attached documentation! "
 		//      << "It contains lots of valuable hints on both using this program and milling circuit boards." << endl;
 	}
-
+	double unit=1;
+	if( vm.count("metric") ) {
+		unit=1./25.4;
+	}
 	options::check_parameters();
 
 	
@@ -70,35 +73,35 @@ int main( int argc, char* argv[] )
 	shared_ptr<Isolator> isolator;
 	if( vm.count("front") || vm.count("back") ) {
 		isolator = shared_ptr<Isolator>( new Isolator() );
-		isolator->tool_diameter = vm["offset"].as<double>() * 2;
-		isolator->zwork = vm["zwork"].as<double>();
-		isolator->zsafe = vm["zsafe"].as<double>();
-		isolator->feed = vm["mill-feed"].as<double>();
+		isolator->tool_diameter = vm["offset"].as<double>() * 2*unit;
+		isolator->zwork = vm["zwork"].as<double>()*unit;
+		isolator->zsafe = vm["zsafe"].as<double>()*unit;
+		isolator->feed = vm["mill-feed"].as<double>()*unit;
 		isolator->speed = vm["mill-speed"].as<int>();
-		isolator->zchange = vm["zchange"].as<double>();
+		isolator->zchange = vm["zchange"].as<double>()*unit;
 	}
 
 	shared_ptr<Cutter> cutter;
 	if( vm.count("outline") ) {
 		cutter = shared_ptr<Cutter>( new Cutter() );
-		cutter->tool_diameter = vm["cutter-diameter"].as<double>() - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
-		cutter->zwork = vm["zcut"].as<double>();
-		cutter->zsafe = vm["zsafe"].as<double>();
-		cutter->feed = vm["cut-feed"].as<double>();
+		cutter->tool_diameter = vm["cutter-diameter"].as<double>()*unit - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
+		cutter->zwork = vm["zcut"].as<double>()*unit;
+		cutter->zsafe = vm["zsafe"].as<double>()*unit;
+		cutter->feed = vm["cut-feed"].as<double>()*unit;
 		cutter->speed = vm["cut-speed"].as<int>();
-		cutter->zchange = vm["zchange"].as<double>();
+		cutter->zchange = vm["zchange"].as<double>()*unit;
 		cutter->do_steps = true;
-		cutter->stepsize = vm["cut-infeed"].as<double>();
+		cutter->stepsize = vm["cut-infeed"].as<double>()*unit;
 	}
 
 	shared_ptr<Driller> driller;
 	if( vm.count("drill") ) {
 		driller = shared_ptr<Driller>( new Driller() );
-		driller->zwork = vm["zdrill"].as<double>();
-		driller->zsafe = vm["zsafe"].as<double>();
-		driller->feed = vm["drill-feed"].as<double>();
+		driller->zwork = vm["zdrill"].as<double>()*unit;
+		driller->zsafe = vm["zsafe"].as<double>()*unit;
+		driller->feed = vm["drill-feed"].as<double>()*unit;
 		driller->speed = vm["drill-speed"].as<int>();
-		driller->zchange = vm["zchange"].as<double>();
+		driller->zchange = vm["zchange"].as<double>()*unit;
 	}
 
 

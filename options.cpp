@@ -101,6 +101,7 @@ options::options() : cli_options("command line only options"),
 	cli_options.add_options()
 		("help,?",   "produce help message")
 		("version",  "\n")
+		("metric",   "all units are given metric")
 		;
 
 	cfg_options.add_options()
