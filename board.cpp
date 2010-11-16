@@ -105,7 +105,7 @@ Board::createLayers()
 
         // DEBUG output
         BOOST_FOREACH( layer_t layer, layers ) {
-                layer.second->surface->save_debug_image("original");
+                layer.second->surface->save_debug_image(string("original_")+layer.second->get_name());
         }
 
 	// mask layers with outline
