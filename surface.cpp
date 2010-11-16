@@ -270,6 +270,14 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
                         queued_pixels.push( pair<int,int>(x, y+1) );
                 if( PRC(here-stride) == ownclr )
                         queued_pixels.push( pair<int,int>(x, y-1) );
+                if( PRC(here+4+stride) == ownclr )
+                        queued_pixels.push( pair<int,int>(x+1, y+1) );
+                if( PRC(here-4+stride) == ownclr )
+                        queued_pixels.push( pair<int,int>(x-1, y+1) );
+                if( PRC(here+4-stride) == ownclr )
+                        queued_pixels.push( pair<int,int>(x+1, y-1) );
+                if( PRC(here-4-stride) == ownclr )
+                        queued_pixels.push( pair<int,int>(x-1, y-1) );
         }
 
         cairo_surface->mark_dirty();
