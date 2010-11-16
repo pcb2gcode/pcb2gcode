@@ -67,6 +67,74 @@ void Surface::render( boost::shared_ptr<LayerImporter> importer ) throw(import_e
 using std::cout;
 using std::endl;
 
+using std::list;
+double distancePointLine(const icoordpair &x,const icoordpair &la,const  icoordpair &lb)
+{
+	icoordpair nab; //normal vector to a-b= {-ab_y,ab_x}
+	nab.first=-(la.second-lb.second);
+	nab.second=(la.first-lb.first);
+	double lnab=sqrt(nab.first*nab.first+nab.second*nab.second);
+	double skalar; //product
+	
+	skalar=nab.first*(x.first-la.first)+nab.second*(x.second-la.second);
+	return fabs(skalar/lnab );
+}
+
+void simplifypath(shared_ptr<icoords> outline, double accuracy)
+{
+	//take two points of the path 
+	// and their interconnecting path.
+	// if the distance between all intermediate points and this line is smaller 
+	// than the accuracy, all the points in between can be removed..
+	bool change;
+	int lasterased=0;
+	const bool debug=false;
+	std::list<icoordpair> l;
+	for(int i=0;i<outline->size();i++)
+	{
+		icoordpair &ii=(*outline)[i];
+		l.push_back(ii);
+	}
+	
+	if (debug) cerr<<"outline size:"<<outline->size()<<endl;
+	int pos=0;
+	do //cycle until no two points can be combined..
+	{
+		change=false;
+		
+		list<icoordpair>::iterator a=l.begin();
+		do 
+		{		
+			list<icoordpair>::iterator b,c; 
+			b=a;b++;
+			c=b;c++;
+			if((b==l.end()))
+				break;
+			double d=distancePointLine(*b, *a,*c);
+			if((d<accuracy) )  
+			{
+				 
+				 if(debug) cerr<<"erasing at"<<pos<<" of "<<l.size()<<" d="<<d<<endl;
+				 a=l.erase(b);
+				 change=true;
+			}
+			else
+				a=b;
+			pos++;
+		}while(a!=l.end());
+		//change=false;
+	}
+	while(change);
+	
+	if(debug) cout<<"copying"<<endl;
+	outline->resize(0);
+	for( list<icoordpair>::iterator a=l.begin();a!=l.end();a++) 
+		outline->push_back(*a);
+	if(debug) cerr<<"outline size:"<<outline->size()<<endl;
+
+}
+
+
 vector< shared_ptr<icoords> >
 Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_absolute )
 {
@@ -111,6 +179,7 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_
 						    min_y + max_y - ypt2i(c.second) ) );
 		}
 
+		if(0) simplifypath(outline,0.005);
 		outside.clear();
                 toolpath.push_back(outline);
         }
