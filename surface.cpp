@@ -53,6 +53,8 @@ Surface::Surface( guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, iva
 	  zero_x(-min_x*(ivalue_t)dpi + (ivalue_t)procmargin), zero_y(-min_y*(ivalue_t)dpi + (ivalue_t)procmargin), clr(32)
 {
         make_the_surface( (max_x - min_x) * dpi + 2*procmargin, (max_y - min_y) * dpi + 2*procmargin );
+		  usedcolors.push_back(BLACK);
+		  usedcolors.push_back(WHITE);
 }
 
 void Surface::render( boost::shared_ptr<LayerImporter> importer ) throw(import_exception)
@@ -64,6 +66,74 @@ void Surface::render( boost::shared_ptr<LayerImporter> importer ) throw(import_e
 #include <iostream>
 using std::cout;
 using std::endl;
+
+using std::list;
+double distancePointLine(const icoordpair &x,const icoordpair &la,const  icoordpair &lb)
+{
+	icoordpair nab; //normal vector to a-b= {-ab_y,ab_x}
+	nab.first=-(la.second-lb.second);
+	nab.second=(la.first-lb.first);
+	double lnab=sqrt(nab.first*nab.first+nab.second*nab.second);
+	double skalar; //product
+	
+	skalar=nab.first*(x.first-la.first)+nab.second*(x.second-la.second);
+	return fabs(skalar/lnab );
+}
+
+void simplifypath(shared_ptr<icoords> outline, double accuracy)
+{
+	//take two points of the path 
+	// and their interconnecting path.
+	// if the distance between all intermediate points and this line is smaller 
+	// than the accuracy, all the points in between can be removed..
+	bool change;
+	int lasterased=0;
+	const bool debug=false;
+	std::list<icoordpair> l;
+	for(int i=0;i<outline->size();i++)
+	{
+		icoordpair &ii=(*outline)[i];
+		l.push_back(ii);
+	}
+	
+	if (debug) cerr<<"outline size:"<<outline->size()<<endl;
+	int pos=0;
+	do //cycle until no two points can be combined..
+	{
+		change=false;
+		
+		list<icoordpair>::iterator a=l.begin();
+		do 
+		{		
+			list<icoordpair>::iterator b,c; 
+			b=a;b++;
+			c=b;c++;
+			if((b==l.end()))
+				break;
+			double d=distancePointLine(*b, *a,*c);
+			if((d<accuracy) )  
+			{
+				 
+				 if(debug) cerr<<"erasing at"<<pos<<" of "<<l.size()<<" d="<<d<<endl;
+				 a=l.erase(b);
+				 change=true;
+			}
+			else
+				a=b;
+			pos++;
+		}while(a!=l.end());
+		//change=false;
+	}
+	while(change);
+	
+	if(debug) cout<<"copying"<<endl;
+	outline->resize(0);
+	for( list<icoordpair>::iterator a=l.begin();a!=l.end();a++) 
+		outline->push_back(*a);
+	if(debug) cerr<<"outline size:"<<outline->size()<<endl;
+
+}
+
 
 vector< shared_ptr<icoords> >
 Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_absolute )
@@ -109,6 +179,7 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_
 						    min_y + max_y - ypt2i(c.second) ) );
 		}
 
+		if(0) simplifypath(outline,0.005);
 		outside.clear();
                 toolpath.push_back(outline);
         }
@@ -119,14 +190,28 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_
 
 guint32 Surface::get_an_unused_color()
 {
-        /// @todo this is quite crappy...
+	 // clr = ((rand()%256) << 24) + ((rand()%256) << 16) + ((rand()%256) << 8) + (rand()%256);
+	 bool badcol;
+	 do
+	 {
+		badcol=false;
+		clr = rand();
 
-        // clr = ((rand()%256) << 24) + ((rand()%256) << 16) + ((rand()%256) << 8) + (rand()%256);
-        clr = rand();
-
-        return clr;
+		for(int i=0;i<usedcolors.size();i++)
+		{
+		  if(usedcolors[i]==clr)
+		  {
+			 badcol=true;
+			 break;
+		  }
+		}
+	}while(badcol);
+	usedcolors.push_back(clr);
+	return clr;
 }
 
+//try to find white pixels, aka uncolored pixels, and do some floodfilling with a random color based on them.
+//returns the list floodfill-seed points
 std::vector< std::pair<int,int> > Surface::fill_all_components()
 {
         std::vector< pair<int,int> > components;
@@ -190,6 +275,7 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
         cairo_surface->mark_dirty();
 }
 
+// starting from a pixel at xy within a "component" aka a blob of same-colored pixels, increase x until it is next to a new color
 void Surface::run_to_border(int& x, int& y)
 {
         guint8* pixels = cairo_surface->get_data();
@@ -259,13 +345,14 @@ void Surface::calculate_outline(const int x, const int y,
 {
         guint8* pixels = cairo_surface->get_data();
         int stride = cairo_surface->get_stride();
+		  int max_y = cairo_surface->get_height();
 
         guint32 owncolor = PRC(pixels + x*4 + y*stride);
 
         int xstart = x;
         int ystart = y;
 
-        run_to_border(xstart,ystart);
+        run_to_border(xstart,ystart); //change xstart so that xstart++ would be outside of the component
         int xout = xstart;
         int yout = ystart;
         int xin = xout-1;
@@ -284,12 +371,21 @@ void Surface::calculate_outline(const int x, const int y,
                         int yoff = yout - yin + 1;
                         int xnext = xin + growoff_o[xoff][yoff][0];
                         int ynext = yin + growoff_o[xoff][yoff][1];
+								//next point is counter clockwise from origal outside point
 
                         if(xnext == xstart && ynext == ystart)
                         {
                                 outside.push_back( pair<int,int>(xout, yout) );
                                 return;
                         }
+
+                        if(xnext<0  || ynext<0 || xnext>stride || ynext>max_y)
+								{
+								  save_debug_image("error_outerpath");
+								  std::stringstream msg;
+								  msg << "Outside path reaches image margins at " << xin << "," << yin << ")\n";
+								  throw std::logic_error( msg.str() );
+								}
 
                         guint8* next = pixels + xnext*4 + ynext*stride;
 
@@ -342,7 +438,15 @@ void Surface::calculate_outline(const int x, const int y,
                         int yoff = yin - yout + 1;
                         int xnext = xout + growoff_i[xoff][yoff][0];
                         int ynext = yout + growoff_i[xoff][yoff][1];
+								//next pixel  is checked clockwise...
                         guint8* next = pixels + xnext*4 + ynext*stride;
+								if(xnext<0  || ynext<0 || xnext>stride || ynext>max_y)
+								{
+								  save_debug_image("error_innerpath");
+								  std::stringstream msg;
+								  msg << "Inside path reaches image margins at " << xin << "," << yin << ")\n";
+								  throw std::logic_error( msg.str() );
+								}
 
                         if( PRC(next) == owncolor )
                         {

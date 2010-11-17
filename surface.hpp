@@ -90,6 +90,7 @@ protected:
 
 	guint32 clr;
 	guint32 get_an_unused_color();
+	std::vector<guint32> usedcolors;
 };
 
 

@@ -126,6 +126,7 @@ options::options() : cli_options("command line only options"),
 		("drill-feed", po::value<double>(), "drill feed; ipm")
 		("drill-speed", po::value<int>(), "spindle rpm when drilling\n")
 
+		("metric",   "all units are given metric")
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
 		("mirror-absolute",      po::value<bool>()->zero_tokens(),   "mirror back side along absolute zero instead of board center\n")
 
