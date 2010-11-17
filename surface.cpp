@@ -141,6 +141,8 @@ guint32 Surface::get_an_unused_color()
 	return clr;
 }
 
+//try to find white pixels, aka uncolored pixels, and do some floodfilling with a random color based on them.
+//returns the list floodfill-seed points
 std::vector< std::pair<int,int> > Surface::fill_all_components()
 {
         std::vector< pair<int,int> > components;
@@ -204,6 +206,7 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
         cairo_surface->mark_dirty();
 }
 
+// starting from a pixel at xy within a "component" aka a blob of same-colored pixels, increase x until it is next to a new color
 void Surface::run_to_border(int& x, int& y)
 {
         guint8* pixels = cairo_surface->get_data();
@@ -279,7 +282,7 @@ void Surface::calculate_outline(const int x, const int y,
         int xstart = x;
         int ystart = y;
 
-        run_to_border(xstart,ystart);
+        run_to_border(xstart,ystart); //change xstart so that xstart++ would be outside of the component
         int xout = xstart;
         int yout = ystart;
         int xin = xout-1;
@@ -298,6 +301,7 @@ void Surface::calculate_outline(const int x, const int y,
                         int yoff = yout - yin + 1;
                         int xnext = xin + growoff_o[xoff][yoff][0];
                         int ynext = yin + growoff_o[xoff][yoff][1];
+								//next point is counter clockwise from origal outside point
 
                         if(xnext == xstart && ynext == ystart)
                         {
@@ -356,6 +360,7 @@ void Surface::calculate_outline(const int x, const int y,
                         int yoff = yin - yout + 1;
                         int xnext = xout + growoff_i[xoff][yoff][0];
                         int ynext = yout + growoff_i[xoff][yoff][1];
+								//next pixel  is checked clockwise...
                         guint8* next = pixels + xnext*4 + ynext*stride;
 
                         if( PRC(next) == owncolor )
