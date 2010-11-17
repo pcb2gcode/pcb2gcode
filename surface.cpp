@@ -53,6 +53,8 @@ Surface::Surface( guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, iva
 	  zero_x(-min_x*(ivalue_t)dpi + (ivalue_t)procmargin), zero_y(-min_y*(ivalue_t)dpi + (ivalue_t)procmargin), clr(32)
 {
         make_the_surface( (max_x - min_x) * dpi + 2*procmargin, (max_y - min_y) * dpi + 2*procmargin );
+		  usedcolors.push_back(BLACK);
+		  usedcolors.push_back(WHITE);
 }
 
 void Surface::render( boost::shared_ptr<LayerImporter> importer ) throw(import_exception)
@@ -119,12 +121,24 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_
 
 guint32 Surface::get_an_unused_color()
 {
-        /// @todo this is quite crappy...
+	 // clr = ((rand()%256) << 24) + ((rand()%256) << 16) + ((rand()%256) << 8) + (rand()%256);
+	 bool badcol;
+	 do
+	 {
+		badcol=false;
+		clr = rand();
 
-        // clr = ((rand()%256) << 24) + ((rand()%256) << 16) + ((rand()%256) << 8) + (rand()%256);
-        clr = rand();
-
-        return clr;
+		for(int i=0;i<usedcolors.size();i++)
+		{
+		  if(usedcolors[i]==clr)
+		  {
+			 badcol=true;
+			 break;
+		  }
+		}
+	}while(badcol);
+	usedcolors.push_back(clr);
+	return clr;
 }
 
 std::vector< std::pair<int,int> > Surface::fill_all_components()
