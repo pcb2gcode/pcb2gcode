@@ -276,6 +276,7 @@ void Surface::calculate_outline(const int x, const int y,
 {
         guint8* pixels = cairo_surface->get_data();
         int stride = cairo_surface->get_stride();
+		  int max_y = cairo_surface->get_height();
 
         guint32 owncolor = PRC(pixels + x*4 + y*stride);
 
@@ -308,6 +309,14 @@ void Surface::calculate_outline(const int x, const int y,
                                 outside.push_back( pair<int,int>(xout, yout) );
                                 return;
                         }
+
+                        if(xnext<0  || ynext<0 || xnext>stride || ynext>max_y)
+								{
+								  save_debug_image("error_outerpath");
+								  std::stringstream msg;
+								  msg << "Outside path reaches image margins at " << xin << "," << yin << ")\n";
+								  throw std::logic_error( msg.str() );
+								}
 
                         guint8* next = pixels + xnext*4 + ynext*stride;
 
@@ -362,6 +371,13 @@ void Surface::calculate_outline(const int x, const int y,
                         int ynext = yout + growoff_i[xoff][yoff][1];
 								//next pixel  is checked clockwise...
                         guint8* next = pixels + xnext*4 + ynext*stride;
+								if(xnext<0  || ynext<0 || xnext>stride || ynext>max_y)
+								{
+								  save_debug_image("error_innerpath");
+								  std::stringstream msg;
+								  msg << "Inside path reaches image margins at " << xin << "," << yin << ")\n";
+								  throw std::logic_error( msg.str() );
+								}
 
                         if( PRC(next) == owncolor )
                         {
