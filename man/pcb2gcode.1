@@ -52,7 +52,9 @@ Convert the given file (containing drill sizes and positions) to G-code.
 .PP
 For every option \fB\-\-x\fP that takes a filename, there is an
 \fB\-\-x\-output\fP option that specifies where the resulting G-code is saved,
-defaulting to \fIx.gbr\fP.
+defaulting to \fIx.gbr\fP. Instead of giving each output file name, the
+\fB\-\-basename\fP option can be used; the base name will be used as a prefix
+to the default output file names.
 
 .PP
 The parameters that define engraving are:
@@ -110,6 +112,13 @@ feed rate for drilling (vertical speed)
 .TP
 \fB\-\-drill-speed\fP \fIrpm\fP
 spindle speed during drilling (rounds per minute)
+.TP
+\fB\-\-milldrill\fP
+If \fB\-\-milldrill\fP is given, the milling head will be used to drill the
+holes in the PCB. Holes up to the size of the milling head will be drilled
+regularly (possibly creating a bigger hole than intended), the other holes are
+created by moving the head in circles using the feed and infeed parameters used
+in cutting.
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
