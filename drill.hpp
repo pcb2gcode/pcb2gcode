@@ -89,6 +89,8 @@ private:
 	gerbv_project_t* project;
 
 	vector<string> header;
+	string preamble,postamble;
+
 private: //methods
 	void millhole(std::ofstream &of,float x, float y,  shared_ptr<Cutter> cutter,float holediameter);
 };
