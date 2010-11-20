@@ -82,7 +82,7 @@ int main( int argc, char* argv[] )
 	}
 
 	shared_ptr<Cutter> cutter;
-	if( vm.count("outline") ) {
+	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill")) ) {
 		cutter = shared_ptr<Cutter>( new Cutter() );
 		cutter->tool_diameter = vm["cutter-diameter"].as<double>()*unit - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
 		cutter->zwork = vm["zcut"].as<double>()*unit;

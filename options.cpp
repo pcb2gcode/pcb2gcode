@@ -261,7 +261,7 @@ static void check_drilling_parameters( po::variables_map const& vm )
 
 static void check_cutting_parameters( po::variables_map const& vm )
 {
-	if( vm.count("outline") ) {
+	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
 		if( !vm.count("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
 			exit(5);
