@@ -46,6 +46,12 @@ ExcellonProcessor::ExcellonProcessor( string drillfile, const ivalue_t board_wid
 	gerbv_open_layer_from_filename(project, filename.get());
 	if( project->file[0] == NULL)
 		throw drill_exception();
+
+	preamble=string("G94     ( Inches per minute feed rate. )\n")+
+	   "G20     ( Units == INCHES.             )\n"+
+	   "G90     ( Absolute coordinates.        )\n";
+	postamble=string("M9 ( Coolant off. )\n")+
+		"M2 ( Program end. )\n\n";
 }
 
 void
@@ -84,9 +90,7 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 	of << setw(7);
 
 	// preamble
-	of << "G94     ( Inches per minute feed rate. )\n"
-	   << "G20     ( Units == INCHES.             )\n"
-	   << "G90     ( Absolute coordinates.        )\n"
+	of <<preamble
 	   << "S" << left << driller->speed << "  ( RPM spindle speed.           )\n"
 	   << endl;
 
@@ -120,6 +124,111 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 
 	of << "M9 ( Coolant off. )\n";
 	of << "M2 ( Program end. )\n\n";
+
+	of.close();
+}
+
+void ExcellonProcessor::millhole(std::ofstream &of,float x, float y,  shared_ptr<Cutter> cutter,float holediameter)
+{
+	g_assert(cutter);
+	double cutdiameter=cutter->tool_diameter+2 * 0.005;
+
+	if(cutdiameter*1.001>=holediameter)
+	{
+		of<<"G0 X"<< x<<" Y" << y<< endl;
+		//of<<"G1 Z"<<cutter->zwork<<endl;
+		//of<<"G0 Z"<<cutter->zsafe<<endl<<endl;
+		of<<"G1 Z#50"<<endl;
+		of<<"G0 Z#51"<<endl<<endl;
+	}
+	else
+	{
+		float millr=(holediameter-cutdiameter)/2.;
+		of<<"G0 X"<< x+millr<<" Y" << y<< endl;
+		
+		double z_step = cutter->stepsize;
+		//z_step=0.01;
+		double z = cutter->zwork + z_step * abs( int( cutter->zwork / z_step ) );
+		if( !cutter->do_steps ) {
+			z=cutter->zwork;
+			z_step=1; //dummy to exit the loop
+		}
+		int stepcount=abs( int( cutter->zwork / z_step )) ;
+		while( z >= cutter->zwork ) 
+		{
+			//of<<"G1 Z"<<z<<endl;
+			of<<"G1 Z[#50+"<<stepcount<<"*#52]"<<endl;
+			of<<"G2 I"<<-millr<<" J0"<<endl;
+			z -= z_step;
+			stepcount--;
+		}
+		of<<"G0 Z"<<cutter->zsafe<<endl<<endl;
+	}
+}
+
+//mill larger holes by using a smaller mill-head
+void 
+ExcellonProcessor::export_ngc( const string outputname,  shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute )
+{
+
+	g_assert( mirrored == true );
+	g_assert( mirror_absolute == false );
+	cerr << "Currently Drilling "<< endl;
+
+	// open output file
+	std::stringstream of_name; of_name << outputname << ".ngc";
+	std::ofstream of; of.open( of_name.str().c_str() );
+
+	shared_ptr<const map<int,drillbit> > bits = get_bits();
+	shared_ptr<const map<int,icoords> > holes = get_holes();	
+
+	// write header to .ngc file
+        BOOST_FOREACH( string s, header )
+        {
+                of << "( " << s << " )" << endl;
+        }
+        of << endl;
+
+	//of << "( This file uses " << bits->size() << " drill bit sizes. )\n\n";
+	of << "( This file uses a mill head of "<<target->tool_diameter<<" to drill the "<<bits->size() <<"bit sizes. )\n\n";
+
+        of.setf( ios_base::fixed );
+        of.precision(5);
+	of << setw(7);
+
+	// preamble
+	of << preamble
+	   << "S" << left << target->speed << "  ( RPM spindle speed.           )\n"
+	   << endl;
+	of<<"F"<<target->feed<<endl;
+	
+	of<<"#50="<<target->zwork<<" ; zwork"<<endl;
+	of<<"#51="<<target->zsafe<<" ; zsafe"<<endl;
+	of<<"#52="<<target->stepsize<<" ; stepsize"<<endl;
+	
+	
+	for( map<int,drillbit>::const_iterator it = bits->begin(); it != bits->end(); it++ ) {
+		
+		float diameter=it->second.diameter;
+		//cerr<<"bit:"<<diameter<<endl;
+		const icoords drill_coords = holes->at(it->first);
+		icoords::const_iterator coord_iter = drill_coords.begin();
+		
+		millhole(of,  board_width - coord_iter->first, coord_iter->second, target,diameter);
+		++coord_iter;
+
+		while( coord_iter != drill_coords.end() ) {
+
+			millhole(of,  board_width - coord_iter->first, coord_iter->second, target,diameter);
+			++coord_iter;
+		}
+	
+	}
+
+	// retract, end
+	of << "G00 Z" << target->zchange << " ( All done -- retract )\n" << endl;
+
+	of << postamble;
 
 	of.close();
 }
@@ -175,4 +284,13 @@ ExcellonProcessor::get_holes()
 ExcellonProcessor::~ExcellonProcessor()
 {
 	gerbv_destroy_project(project);
+}
+
+void ExcellonProcessor::set_preamble(string _preamble)
+{
+	preamble=_preamble;
+}
+void ExcellonProcessor::set_postamble(string _postamble)
+{
+	postamble=_postamble;
 }

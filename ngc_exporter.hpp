@@ -50,12 +50,16 @@ public:
 
 	void add_header( string );
 	void export_all( boost::program_options::variables_map& );
+	
+	void set_preamble(string);
+	void set_postamble(string);
 
 protected:
 	void export_layer( shared_ptr<Layer> layer, string of_name );
 
 	shared_ptr<Board> board;
 	vector<string> header;
+	string preamble, postamble;
 };
 
 #endif // NGCEXPORTER_H
