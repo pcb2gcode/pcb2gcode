@@ -70,7 +70,9 @@ public:
 	~ExcellonProcessor();
 
 	void add_header( string );
+
 	void export_ngc( const string of_name, shared_ptr<Driller> target, bool mirrored, bool mirror_absolute );
+	void export_ngc( const string of_name, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute );
 
 	shared_ptr<const map<int,drillbit> > get_bits();
 	shared_ptr<const map<int,icoords> > get_holes();
@@ -87,6 +89,8 @@ private:
 	gerbv_project_t* project;
 
 	vector<string> header;
+private: //methods
+	void millhole(std::ofstream &of,float x, float y,  shared_ptr<Cutter> cutter,float holediameter);
 };
 
 

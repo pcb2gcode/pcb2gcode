@@ -133,7 +133,8 @@ options::options() : cli_options("command line only options"),
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
 		("mill-feed", po::value<double>(), "feed while isolating in ipm")
-		("mill-speed", po::value<int>(), "spindle rpm when milling\n")
+		("mill-speed", po::value<int>(), "spindle rpm when milling")
+		("milldrill",   "drill using the mill head\n")
 
 		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")

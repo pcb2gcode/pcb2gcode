@@ -176,7 +176,11 @@ int main( int argc, char* argv[] )
 		try {
 			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
 			ep.add_header( PACKAGE_STRING );
-			ep.export_ngc( vm["drill-output"].as<string>(), driller, true, vm.count("mirror-absolute") );
+			
+			if( vm.count("milldrill") )
+				ep.export_ngc( vm["drill-output"].as<string>(), cutter, true, vm.count("mirror-absolute") );
+			else 
+				ep.export_ngc( vm["drill-output"].as<string>(), driller, true, vm.count("mirror-absolute") );
 
 			cout << "done.\n";
 		} catch( drill_exception& e ) {
