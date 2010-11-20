@@ -285,3 +285,12 @@ ExcellonProcessor::~ExcellonProcessor()
 {
 	gerbv_destroy_project(project);
 }
+
+void ExcellonProcessor::set_preamble(string _preamble)
+{
+	preamble=_preamble;
+}
+void ExcellonProcessor::set_postamble(string _postamble)
+{
+	postamble=_postamble;
+}

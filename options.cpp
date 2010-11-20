@@ -155,7 +155,10 @@ options::options() : cli_options("command line only options"),
 		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
 		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
 		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
-		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
+		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling\n")
+
+		("preamble",      po::value<string>(), "gcode preamble file")
+		("postamble",      po::value<string>(), "gcode postamble file")
 		;
 }
 
