@@ -134,3 +134,13 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 
 	of.close();
 }
+
+void NGC_Exporter::set_preamble(string _preamble)
+{
+	preamble=_preamble;
+}
+
+void NGC_Exporter::set_postamble(string _postamble)
+{
+	postamble=_postamble;
+}

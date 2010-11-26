@@ -46,9 +46,10 @@ options::parse( int argc, char** argv )
 	// (--drill, --drill-diameter); see bug 3089930
 	int style = po::command_line_style::default_style & ~po::command_line_style::allow_guessing;
 
+	po::options_description generic;
+	generic.add(instance().cli_options).add(instance().cfg_options);
+
 	try {
-		po::options_description generic;
-		generic.add(instance().cli_options).add(instance().cfg_options);
 		po::store(po::parse_command_line(argc, argv, generic, style), instance().vm);
 	}
 	catch( std::logic_error& e ) {
@@ -61,6 +62,25 @@ options::parse( int argc, char** argv )
 	po::notify( instance().vm );
 
 	parse_files();
+
+	/*
+	 * this needs to be an extra step, as --basename modifies the default
+	 * values of the --...-output parameters
+	 */
+	string basename="";
+	if( instance().vm.count("basename"))
+	{
+		basename = instance().vm["basename"].as<string>()+"_";
+	}
+
+	const char *fake_basename_command_line[] = {"",
+		"--front-output", (basename+"front.ngc").c_str(),
+		"--back-output", (basename+"back.ngc").c_str(),
+		"--outline-output", (basename+"outline.ngc").c_str(),
+		"--drill-output", (basename+"drill.ngc").c_str()
+	};
+	po::store(po::parse_command_line(9, (char**)fake_basename_command_line, generic, style), instance().vm);
+	po::notify(instance().vm);
 }
 
 string
@@ -113,7 +133,8 @@ options::options() : cli_options("command line only options"),
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
 		("mill-feed", po::value<double>(), "feed while isolating in ipm")
-		("mill-speed", po::value<int>(), "spindle rpm when milling\n")
+		("mill-speed", po::value<int>(), "spindle rpm when milling")
+		("milldrill",   "drill using the mill head\n")
 
 		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")
@@ -130,10 +151,14 @@ options::options() : cli_options("command line only options"),
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
 		("mirror-absolute",      po::value<bool>()->zero_tokens(),   "mirror back side along absolute zero instead of board center\n")
 
+		("basename",      po::value<string>(), "prefix for default output file names")
 		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
 		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
 		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
-		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
+		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling\n")
+
+		("preamble",      po::value<string>(), "gcode preamble file")
+		("postamble",      po::value<string>(), "gcode postamble file")
 		;
 }
 
@@ -239,7 +264,7 @@ static void check_drilling_parameters( po::variables_map const& vm )
 
 static void check_cutting_parameters( po::variables_map const& vm )
 {
-	if( vm.count("outline") ) {
+	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
 		if( !vm.count("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
 			exit(5);
