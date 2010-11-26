@@ -18,7 +18,7 @@ Fedora:
 Ubuntu:
 *) Open a terminal and cd to the extracted tarball
 *) type the following:
-      sudo apt-get install build-essential automake autoconf libtool boost-dev gtkmm-2.4-dev gerbv
+      sudo apt-get install build-essential automake autoconf libtool libboost-all-dev libgtkmm-2.4-dev gerbv
       <your own password>
       ./configure
       make
