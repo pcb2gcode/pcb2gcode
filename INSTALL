@@ -26,6 +26,15 @@ Ubuntu:
 *) done.
 
 
+Installation from GIT (latest development version):
+
+$ git clone git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode
+$ cd pcb2gcode
+$ autoreconf
+$ ./configure
+$ make
+$ sudo make install
+
 -- Patrick Birnzain <pbirnzain@users.sourceforge.net> 2010-09-14
 
 
