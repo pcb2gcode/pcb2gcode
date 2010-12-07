@@ -73,13 +73,15 @@ options::parse( int argc, char** argv )
 		basename = instance().vm["basename"].as<string>()+"_";
 	}
 
-	const char *fake_basename_command_line[] = {"",
-		"--front-output", (basename+"front.ngc").c_str(),
-		"--back-output", (basename+"back.ngc").c_str(),
-		"--outline-output", (basename+"outline.ngc").c_str(),
-		"--drill-output", (basename+"drill.ngc").c_str()
+	const char *fake_basename_command_line[] = {
+		"",
+		("--front-output="+basename+"front.ngc").c_str(),
+		("--back-output="+basename+"back.ngc").c_str(),
+		("--outline-output="+basename+"outline.ngc").c_str(),
+		("--drill-output="+basename+"drill.ngc").c_str()
 	};
-	po::store(po::parse_command_line(9, (char**)fake_basename_command_line, generic, style), instance().vm);
+
+	po::store(po::parse_command_line(5, (char**)fake_basename_command_line, generic, style), instance().vm);
 	po::notify(instance().vm);
 }
 
