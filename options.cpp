@@ -134,7 +134,8 @@ options::options() : cli_options("command line only options"),
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
 		("mill-feed", po::value<double>(), "feed while isolating in ipm")
 		("mill-speed", po::value<int>(), "spindle rpm when milling")
-		("milldrill",   "drill using the mill head\n")
+		("milldrill",   "drill using the mill head")
+		("extra-passes", po::value<int>(), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass\n")
 
 		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")

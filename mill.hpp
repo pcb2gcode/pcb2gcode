@@ -44,6 +44,8 @@ public:
 
 class Isolator : public RoutingMill
 {
+public:
+        int extra_passes;
 };
 
 class Cutter : public RoutingMill

@@ -138,6 +138,9 @@ void simplifypath(shared_ptr<icoords> outline, double accuracy)
 vector< shared_ptr<icoords> >
 Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_absolute )
 {
+	Isolator* iso = dynamic_cast<Isolator*>(mill.get());
+	int extra_passes = iso?iso->extra_passes:0;
+
         coords components = fill_all_components();
 
         int added = -1;
@@ -145,44 +148,48 @@ Surface::get_toolpath( shared_ptr<RoutingMill> mill, bool mirrored, bool mirror_
         int grow = mill->tool_diameter / 2 * dpi;
 	ivalue_t double_mirror_axis = mirror_absolute ? 0 : (min_x + max_x);
 
-        for(int i = 0; i < grow && added != 0; i++)
-        {
-                added = 0;
+	vector< shared_ptr<icoords> > toolpath;
+
+	for( int pass = 0; pass <= extra_passes && added != 0; pass++ )
+	{
+		for(int i = 0; i < grow && added != 0; i++)
+                {
+                        added = 0;
+
+                        BOOST_FOREACH( coordpair c, components ) {
+                                added += grow_a_component(c.first, c.second, contentions);
+                        }
+                }
+
+                coords inside, outside;
 
                 BOOST_FOREACH( coordpair c, components ) {
-                        added += grow_a_component(c.first, c.second, contentions);
-                }
-        }
+                        calculate_outline( c.first, c.second, outside, inside );
+                        inside.clear();
+
+                        shared_ptr<icoords> outline( new icoords() );
+
+			// i'm not sure wheter this is the right place to do this...
+			// that "mirrored" flag probably is a bad idea.
+			BOOST_FOREACH( coordpair c, outside ) {
+				outline->push_back( icoordpair(
+							    // tricky calculations
+							    mirrored ? (double_mirror_axis - xpt2i(c.first)) : xpt2i(c.first),
+							    min_y + max_y - ypt2i(c.second) ) );
+			}
+
+			if(0) simplifypath(outline,0.005);
+			outside.clear();
+			toolpath.push_back(outline);
+		}
+	}
 
         if(contentions) {
                 cerr << "Warning: pcb2gcode hasn't been able to fulfill all"
                      << " clearance requirements and tried a best effort approach"
                      << " instead. You may want to check the g-code output and"
                      << " possibly use a smaller milling width.\n";
-        }
-
-        vector< shared_ptr<icoords> > toolpath;
-        coords inside, outside;
-        
-        BOOST_FOREACH( coordpair c, components ) {
-                calculate_outline( c.first, c.second, outside, inside );
-                inside.clear();
-
-                shared_ptr<icoords> outline( new icoords() );
-
-		// i'm not sure wheter this is the right place to do this...
-		// that "mirrored" flag probably is a bad idea.
-		BOOST_FOREACH( coordpair c, outside ) {
-			outline->push_back( icoordpair(
-						    // tricky calculations
-						    mirrored ? (double_mirror_axis - xpt2i(c.first)) : xpt2i(c.first),
-						    min_y + max_y - ypt2i(c.second) ) );
-		}
-
-		if(0) simplifypath(outline,0.005);
-		outside.clear();
-                toolpath.push_back(outline);
-        }
+	}
 
         save_debug_image("traced");
         return toolpath;

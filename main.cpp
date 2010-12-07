@@ -84,6 +84,7 @@ int main( int argc, char* argv[] )
 		isolator->feed = vm["mill-feed"].as<double>()*unit;
 		isolator->speed = vm["mill-speed"].as<int>();
 		isolator->zchange = vm["zchange"].as<double>()*unit;
+		isolator->extra_passes = vm.count("extra-passes")?vm["extra-passes"].as<int>():0;
 	}
 
 	shared_ptr<Cutter> cutter;
