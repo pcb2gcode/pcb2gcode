@@ -21,10 +21,6 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <glibmm/refptr.h>
-#include <cairomm/cairomm.h>
-#include <gdk/gdkcairo.h>
-
 #include <stdint.h>
 
 #include <stdexcept>

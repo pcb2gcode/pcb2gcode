@@ -27,10 +27,11 @@ using std::cerr;
 using std::endl;
 using std::fstream;
 
-#include <gtkmm/main.h>
-
 #include <glibmm/ustring.h>
 using Glib::ustring;
+
+#include <glibmm/init.h>
+#include <gdkmm/wrap_init.h>
 
 #include "gerberimporter.hpp"
 #include "surface.hpp"
@@ -48,8 +49,9 @@ using Glib::ustring;
 
 int main( int argc, char* argv[] )
 {
-	Gtk::Main::init_gtkmm_internals();
-	
+	Glib::init();
+	Gdk::wrap_init();
+
 	options::parse( argc, argv );
 	po::variables_map& vm = options::get_vm();
 

@@ -24,10 +24,8 @@ BOOST_SMART_PTR
 BOOST_FOREACH
 BOOST_TUPLE
 
-PKG_CHECK_MODULES([gtkmm2], [gtkmm-2.4 >= 2.8])
-
-AC_SUBST(gtkmm2_LIBS)
-AC_SUBST(gtkmm2_CFLAGS)
+PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
+PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 
