@@ -219,9 +219,9 @@ int main( int argc, char* argv[] )
 			ep.set_postamble(postamble);
 			
 			if( vm.count("milldrill") )
-				ep.export_ngc( vm["drill-output"].as<string>(), cutter, true, vm.count("mirror-absolute") );
+				ep.export_ngc( vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute") );
 			else 
-				ep.export_ngc( vm["drill-output"].as<string>(), driller, true, vm.count("mirror-absolute") );
+				ep.export_ngc( vm["drill-output"].as<string>(), driller, !vm.count("drill-front"), vm.count("mirror-absolute") );
 
 			cout << "done.\n";
 		} catch( drill_exception& e ) {

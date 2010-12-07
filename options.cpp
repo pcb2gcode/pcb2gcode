@@ -146,7 +146,8 @@ options::options() : cli_options("command line only options"),
 		("zdrill", po::value<double>(), "drill depth")
 		("zchange", po::value<double>(), "tool changing height")
 		("drill-feed", po::value<double>(), "drill feed; ipm")
-		("drill-speed", po::value<int>(), "spindle rpm when drilling\n")
+		("drill-speed", po::value<int>(), "spindle rpm when drilling")
+		("drill-front", po::value<bool>()->zero_tokens(), "drill through the front side of board\n")
 
 		("metric",   "all units are given metric")
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")

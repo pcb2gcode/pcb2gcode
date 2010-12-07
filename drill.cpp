@@ -63,11 +63,6 @@ ExcellonProcessor::add_header( string header )
 void
 ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller, bool mirrored, bool mirror_absolute )
 {
-	/* will not be implemented until i've checked whether there's a reason to drill the
-	   holes from the front side. Maybe there are boards without a back side? SMD-only?
-	 */
-	g_assert( mirrored == true );
-
 	ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
 	// open output file
@@ -108,11 +103,11 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 		icoords::const_iterator coord_iter = drill_coords.begin();
 
 		of << "G81 R" << driller->zsafe << " Z" << driller->zwork << " F" << driller->feed 
-		   << " X" << (double_mirror_axis - coord_iter->first) << " Y" << coord_iter->second << endl;
+		   << " X" << (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first) << " Y" << coord_iter->second << endl;
 		++coord_iter;
 
 		while( coord_iter != drill_coords.end() ) {
-			of << "X" << (double_mirror_axis - coord_iter->first) << " Y" << coord_iter->second << endl;
+			of << "X" << (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first) << " Y" << coord_iter->second << endl;
 			++coord_iter;
 		}
 
