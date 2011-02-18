@@ -111,35 +111,32 @@ int main( int argc, char* argv[] )
 	}
 
 
-	string preamble="",postamble="";
-	preamble="G94     ( Inches per minute feed rate. )\nG20     ( Units == INCHES.             )\nG90     ( Absolute coordinates.        )\nM3      ( Spindle on clockwise.        )\n\n";
-	
-	postamble="M9 ( Coolant off. )\n M2 ( Program end. )\n\n";
+	string preamble, postamble;
 	
 	if( vm.count("preamble"))
 	{
-		string name=vm["preamble"].as<string>();
+		string name = vm["preamble"].as<string>();
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
-			cerr<<"Cannot read preamble file \""<<name<<"\""<<endl;
+			cerr << "Cannot read preamble file \"" << name << "\"" << endl;
 			exit(1);
 		}
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-		preamble=tmp+"\n\n";
+		preamble = tmp + "\n\n";
 	}
 	
 	if( vm.count("postamble"))
 	{
-		string name=vm["postamble"].as<string>();
+		string name = vm["postamble"].as<string>();
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
-			cerr<<"Cannot read preamble file \""<<name<<"\""<<endl;
+			cerr << "Cannot read preamble file \"" << name << "\"" << endl;
 			exit(1);
 		}
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-		postamble=tmp+"\n\n";
+		postamble = tmp + "\n\n";
 	}
 	
 	shared_ptr<Board> board( new Board( vm["dpi"].as<int>()) );
@@ -202,8 +199,8 @@ int main( int argc, char* argv[] )
 
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );
 		exporter->add_header( PACKAGE_STRING );
-		exporter->set_preamble(preamble);
-		exporter->set_postamble(postamble);
+		if( vm.count("preamble") ) exporter->set_preamble(preamble);
+		if( vm.count("postamble") ) exporter->set_postamble(postamble);
 		exporter->export_all(vm);
 	} catch( std::logic_error& le ) {
 		cout << "Internal Error: " << le.what() << endl;
@@ -215,8 +212,8 @@ int main( int argc, char* argv[] )
 		try {
 			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
 			ep.add_header( PACKAGE_STRING );
-			ep.set_preamble(preamble);
-			ep.set_postamble(postamble);
+			if( vm.count("preamble") ) ep.set_preamble(preamble);
+			if( vm.count("postamble") ) ep.set_postamble(postamble);
 			
 			if( vm.count("milldrill") )
 				ep.export_ngc( vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute") );

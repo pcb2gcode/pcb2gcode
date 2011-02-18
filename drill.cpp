@@ -44,13 +44,12 @@ ExcellonProcessor::ExcellonProcessor( string drillfile, const ivalue_t board_wid
 	strcpy(filename.get(), cfilename);
 
 	gerbv_open_layer_from_filename(project, filename.get());
-	if( project->file[0] == NULL)
-		throw drill_exception();
+	if( project->file[0] == NULL) throw drill_exception();
 
-	preamble=string("G94     ( Inches per minute feed rate. )\n")+
-	   "G20     ( Units == INCHES.             )\n"+
+	preamble = string("G94     ( Inches per minute feed rate. )\n") +
+	   "G20     ( Units == INCHES.             )\n" +
 	   "G90     ( Absolute coordinates.        )\n";
-	postamble=string("M9 ( Coolant off. )\n")+
+	postamble = string("M9 ( Coolant off. )\n") +
 		"M2 ( Program end. )\n\n";
 }
 
@@ -85,7 +84,7 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 	of << setw(7);
 
 	// preamble
-	of <<preamble
+	of << preamble
 	   << "S" << left << driller->speed << "  ( RPM spindle speed.           )\n"
 	   << endl;
 
