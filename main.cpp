@@ -1,19 +1,18 @@
-
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
- * 
+ *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -63,17 +62,18 @@ int main( int argc, char* argv[] )
 	if( vm.count("help") ) {
 		cout << options::help();
 		exit(0);
-		
+
 		// cout << endl << "If you're new to pcb2gcode and CNC milling, please don't forget to read the attached documentation! "
 		//      << "It contains lots of valuable hints on both using this program and milling circuit boards." << endl;
 	}
+
 	double unit=1;
 	if( vm.count("metric") ) {
 		unit=1./25.4;
 	}
 	options::check_parameters();
 
-	
+
 	// prepare environment
 	shared_ptr<Isolator> isolator;
 	if( vm.count("front") || vm.count("back") ) {
@@ -90,7 +90,7 @@ int main( int argc, char* argv[] )
 	shared_ptr<Cutter> cutter;
 	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill")) ) {
 		cutter = shared_ptr<Cutter>( new Cutter() );
-		cutter->tool_diameter = vm["cutter-diameter"].as<double>()*unit - 2 * 0.005; // 2*0.005 compensates for the 10 mil outline, read doc/User_Manual.pdf
+		cutter->tool_diameter = vm["cutter-diameter"].as<double>()*unit;
 		cutter->zwork = vm["zcut"].as<double>()*unit;
 		cutter->zsafe = vm["zsafe"].as<double>()*unit;
 		cutter->feed = vm["cut-feed"].as<double>()*unit;
@@ -110,9 +110,8 @@ int main( int argc, char* argv[] )
 		driller->zchange = vm["zchange"].as<double>()*unit;
 	}
 
-
+	// prepare custom preamble
 	string preamble, postamble;
-	
 	if( vm.count("preamble"))
 	{
 		string name = vm["preamble"].as<string>();
@@ -125,7 +124,7 @@ int main( int argc, char* argv[] )
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		preamble = tmp + "\n\n";
 	}
-	
+
 	if( vm.count("postamble"))
 	{
 		string name = vm["postamble"].as<string>();
@@ -138,9 +137,10 @@ int main( int argc, char* argv[] )
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		postamble = tmp + "\n\n";
 	}
-	
+
 	shared_ptr<Board> board( new Board( vm["dpi"].as<int>()) );
 
+	// this is currently disabled, use --outline instead
 	if( vm.count("margins") )
 		board->set_margins( vm["margins"].as<double>() );
 
@@ -214,10 +214,10 @@ int main( int argc, char* argv[] )
 			ep.add_header( PACKAGE_STRING );
 			if( vm.count("preamble") ) ep.set_preamble(preamble);
 			if( vm.count("postamble") ) ep.set_postamble(postamble);
-			
+
 			if( vm.count("milldrill") )
 				ep.export_ngc( vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute") );
-			else 
+			else
 				ep.export_ngc( vm["drill-output"].as<string>(), driller, !vm.count("drill-front"), vm.count("mirror-absolute") );
 
 			cout << "done.\n";
