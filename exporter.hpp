@@ -32,8 +32,6 @@ using std::pair;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
-#include <boost/program_options.hpp>
-
 #include "coord.hpp"
 #include "board.hpp"
 
@@ -42,7 +40,7 @@ class Exporter : public boost::noncopyable
 public:
 	Exporter( shared_ptr<Board> board ) {};
 
-	virtual void export_all(boost::program_options::variables_map&) = 0;
+	virtual void export_all() = 0;
 };
 
 #endif // EXPORTER_H

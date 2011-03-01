@@ -26,6 +26,7 @@ pcb2gcode_SOURCES = \
 	options.hpp \
 	options.cpp \
 	config.h \
+	GetPotM \
 	main.cpp
 
 ACLOCAL_AMFLAGS = -I m4

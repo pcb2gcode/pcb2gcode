@@ -1,7 +1,7 @@
 /*
  * This file is part of pcb2gcode.
  *
- * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
+ * Copyright (C) 2009, 2010, 2011 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,16 +51,16 @@ int main( int argc, char* argv[] )
 {
 	Glib::init();
 	Gdk::wrap_init();
-
+	
 	options::parse( argc, argv );
-	po::variables_map& vm = options::get_vm();
-
-	if( vm.count("version") ) {
+	options::parse( "millproject" );
+	
+	if( options::cl_flag("version") ) {
 		cout << PACKAGE_STRING << endl;
 		exit(0);
 	}
 
-	if( vm.count("help") ) {
+	if( options::cl_flag("help") ) {
 		cout << options::help();
 		exit(0);
 
@@ -68,52 +68,53 @@ int main( int argc, char* argv[] )
 		//      << "It contains lots of valuable hints on both using this program and milling circuit boards." << endl;
 	}
 
+	options::check_parameters();
+
 	double unit=1;
-	if( vm.count("metric") ) {
+	if( options::flag("metric") ) {
 		unit=1./25.4;
 	}
-	options::check_parameters();
 
 
 	// prepare environment
 	shared_ptr<Isolator> isolator;
-	if( vm.count("front") || vm.count("back") ) {
+	if( options::have_str("front") || options::have_str("back") ) {
 		isolator = shared_ptr<Isolator>( new Isolator() );
-		isolator->tool_diameter = vm["offset"].as<double>() * 2*unit;
-		isolator->zwork = vm["zwork"].as<double>()*unit;
-		isolator->zsafe = vm["zsafe"].as<double>()*unit;
-		isolator->feed = vm["mill-feed"].as<double>()*unit;
-		isolator->speed = vm["mill-speed"].as<int>();
-		isolator->zchange = vm["zchange"].as<double>()*unit;
-		isolator->extra_passes = vm.count("extra-passes")?vm["extra-passes"].as<int>():0;
+		isolator->tool_diameter = options::dbl("offset") * 2*unit;
+		isolator->zwork = options::dbl("zwork")*unit;
+		isolator->zsafe = options::dbl("zsafe")*unit;
+		isolator->feed = options::dbl("mill-feed")*unit;
+		isolator->speed = options::dbl("mill-speed");
+		isolator->zchange = options::dbl("zchange")*unit;
+		isolator->extra_passes = options::have_dbl("extra-passes") ? options::dbl("extra-passes") : 0;
 	}
 
 	shared_ptr<Cutter> cutter;
-	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill")) ) {
+	if( options::have_str("outline") || (options::have_str("drill") && options::flag("milldrill")) ) {
 		cutter = shared_ptr<Cutter>( new Cutter() );
-		cutter->tool_diameter = vm["cutter-diameter"].as<double>()*unit;
-		cutter->zwork = vm["zcut"].as<double>()*unit;
-		cutter->zsafe = vm["zsafe"].as<double>()*unit;
-		cutter->feed = vm["cut-feed"].as<double>()*unit;
-		cutter->speed = vm["cut-speed"].as<int>();
-		cutter->zchange = vm["zchange"].as<double>()*unit;
+		cutter->tool_diameter = options::dbl("cutter-diameter") * unit;
+		cutter->zwork = options::dbl("zcut") * unit;
+		cutter->zsafe = options::dbl("zsafe")*unit;
+		cutter->feed = options::dbl("cut-feed")*unit;
+		cutter->speed = options::dbl("cut-speed");
+		cutter->zchange = options::dbl("zchange")*unit;
 		cutter->do_steps = true;
-		cutter->stepsize = vm["cut-infeed"].as<double>()*unit;
+		cutter->stepsize = options::dbl("cut-infeed")*unit;
 	}
 
 	shared_ptr<Driller> driller;
-	if( vm.count("drill") ) {
+	if( options::have_str("drill") ) {
 		driller = shared_ptr<Driller>( new Driller() );
-		driller->zwork = vm["zdrill"].as<double>()*unit;
-		driller->zsafe = vm["zsafe"].as<double>()*unit;
-		driller->feed = vm["drill-feed"].as<double>()*unit;
-		driller->speed = vm["drill-speed"].as<int>();
-		driller->zchange = vm["zchange"].as<double>()*unit;
+		driller->zwork = options::dbl("zdrill")*unit;
+		driller->zsafe = options::dbl("zsafe")*unit;
+		driller->feed = options::dbl("drill-feed")*unit;
+		driller->speed = options::dbl("drill-speed");
+		driller->zchange = options::dbl("zchange")*unit;
 	}
 
 	// prepare custom preamble
 	string preamble, postamble;
-	if( vm.count("preamble"))
+/*	if( options::have_str("preamble"))
 	{
 		string name = vm["preamble"].as<string>();
 		fstream in(name.c_str(),fstream::in);
@@ -137,13 +138,15 @@ int main( int argc, char* argv[] )
 		}
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		postamble = tmp + "\n\n";
-	}
+		} */
 
-	shared_ptr<Board> board( new Board( vm["dpi"].as<int>(), vm.count("fill-outline"), vm.count("fill-outline") ? vm["outline-width"].as<double>() * unit : INFINITY ));
+	shared_ptr<Board> board(new Board( options::dbl("dpi"), options::flag("fill-outline"),
+					   options::flag("fill-outline") ? options::dbl("outline-width") : INFINITY ));
 
 	// this is currently disabled, use --outline instead
-	if( vm.count("margins") )
+/*	if( vm.count("margins") )
 		board->set_margins( vm["margins"].as<double>() );
+*/
 
 	// load files
 	try
@@ -151,37 +154,37 @@ int main( int argc, char* argv[] )
 		// import layer files, create surface
 		cout << "Importing front side... ";
 		try {
-			string frontfile = vm["front"].as<string>();
+			string frontfile = options::str("front");
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(frontfile) );
-			board->prepareLayer( "front", importer, isolator, false, vm.count("mirror-absolute") );
+			board->prepareLayer( "front", importer, isolator, false, options::flag("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
-		} catch( boost::exception& e ) {
+		} catch( std::runtime_error& e ) {
 			cout << "not specified\n";
 		}
 
 		cout << "Importing back side... ";
 		try {
-			string backfile = vm["back"].as<string>();
+			string backfile = options::str("back");
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(backfile) );
-			board->prepareLayer( "back", importer, isolator, true, vm.count("mirror-absolute") );
+			board->prepareLayer( "back", importer, isolator, true, options::flag("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
-		} catch( boost::exception& e ) {
+		} catch( std::runtime_error& e ) {
 			cout << "not specified\n";
 		}
 
 		cout << "Importing outline... ";
 		try {
-			string outline = vm["outline"].as<string>();
+			string outline = options::str("outline");
 			boost::shared_ptr<LayerImporter> importer( new GerberImporter(outline) );
-			board->prepareLayer( "outline", importer, cutter, !vm.count("front"), vm.count("mirror-absolute") );
+			board->prepareLayer( "outline", importer, cutter, !options::have_str("front"), options::flag("mirror-absolute") );
 			cout << "done\n";
 		} catch( import_exception& i ) {
 			cout << "error\n";
-		} catch( boost::exception& e ) {
+		} catch( std::runtime_error& e ) {
 			cout << "not specified\n";
 		}
 
@@ -193,7 +196,6 @@ int main( int argc, char* argv[] )
 		else
 			std::cerr << "Import Error: No reason given.";
 	}
-
 	
 	//SVG EXPORTER
 	shared_ptr<SVG_Exporter> svgexpo( new SVG_Exporter( board ) );
@@ -201,44 +203,41 @@ int main( int argc, char* argv[] )
 	try {
 		board->createLayers();   // throws std::logic_error
 		cout << "Calculated board dimensions: " << board->get_width() << "in x " << board->get_height() << "in" << endl;
-
 		
 		//SVG EXPORTER
-		if( vm.count("svg") ) {
-			cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
-			svgexpo->create_svg( vm["svg"].as<string>() );
+		if( options::have_str("svg") ) {
+			cout << "Create SVG File ... " << options::str("svg") << endl;
+			svgexpo->create_svg( options::str("svg") );
 		}
 		
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );
 		exporter->add_header( PACKAGE_STRING );
-		if( vm.count("preamble") ) exporter->set_preamble(preamble);
-		if( vm.count("postamble") ) exporter->set_postamble(postamble);
+
+		if( options::have_str("preamble") ) exporter->set_preamble(preamble);
+		if( options::have_str("postamble") ) exporter->set_postamble(postamble);
 		
 		//SVG EXPORTER
-		if( vm.count("svg") ) exporter->set_svg_exporter( svgexpo );
+		if( options::have_str("svg") ) exporter->set_svg_exporter( svgexpo );
 		
-		exporter->export_all(vm);
+		exporter->export_all();
 	} catch( std::logic_error& le ) {
 		cout << "Internal Error: " << le.what() << endl;
 	} catch( std::runtime_error& re ) {
 	}
 
-	if( vm.count("drill") ) {
-		cout << "Converting " << vm["drill"].as<string>() << "... ";
+	if( options::have_str("drill") ) {
+		cout << "Converting " << options::str("drill") << "... ";
 		try {
-			ExcellonProcessor ep( vm["drill"].as<string>(), board->get_min_x() + board->get_max_x() );
+			ExcellonProcessor ep( options::str("drill"), board->get_min_x() + board->get_max_x() );
 			ep.add_header( PACKAGE_STRING );
-			if( vm.count("preamble") ) ep.set_preamble(preamble);
-			if( vm.count("postamble") ) ep.set_postamble(postamble);
 
 			//SVG EXPORTER
-			if( vm.count("svg") ) ep.set_svg_exporter( svgexpo );
+			if( options::flag("svg") ) ep.set_svg_exporter( svgexpo );
 			
-			
-			if( vm.count("milldrill") )
-				ep.export_ngc( vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute") );
+			if( options::flag("milldrill") )
+				ep.export_ngc( options::str("drill-output", "drill.ngc"), cutter, !options::flag("drill-front"), options::flag("mirror-absolute") );
 			else
-				ep.export_ngc( vm["drill-output"].as<string>(), driller, !vm.count("drill-front"), vm.count("mirror-absolute") );
+				ep.export_ngc( options::str("drill-output", "drill.ngc"), driller, !options::flag("drill-front"), options::flag("mirror-absolute") );
 
 			cout << "done.\n";
 		} catch( drill_exception& e ) {
@@ -247,6 +246,4 @@ int main( int argc, char* argv[] )
 	} else {
 		cout << "No drill file specified.\n";
 	}
-
-
 }

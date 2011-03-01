@@ -2,7 +2,7 @@
 /*
  * This file is part of pcb2gcode.
  * 
- * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
+ * Copyright (C) 2009, 2010, 2011 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
  * 
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,51 +38,158 @@ options::instance()
 	return singleton;
 }
 
-
 void
 options::parse( int argc, char** argv )
 {
-	// guessing causes problems when one option is the start of another
-	// (--drill, --drill-diameter); see bug 3089930
-	int style = po::command_line_style::default_style & ~po::command_line_style::allow_guessing;
+	instance().sources.push_front( GetPot(argc, argv) );
+}
 
-	po::options_description generic;
-	generic.add(instance().cli_options).add(instance().cfg_options);
+void
+options::parse( const string file )
+{
+	instance().sources.push_back( GetPot(file.c_str()) );
+}
 
+
+/* returns true if the flag "name" is set in ANY of the config files
+ * or specified as a command line argument
+ */
+bool
+options::flag( string name )
+{
+	list<GetPot>& sources = instance().sources;
+
+	// check if --name was specified on the command line
+	if( sources.begin()->search( (string("--")+name).c_str() ) ) return true;
+
+	// check if it is in any of the config files
+	for( list<GetPot>::iterator it = sources.begin(); it != sources.end(); it++ )
+		if( it->search( name.c_str() ) ) return true;
+
+	// --name not found
+	return false;
+}
+
+/* same as flag(), bug checks only the command line.
+ * this is useful for commands like --verbose, --help and --version
+ */
+bool
+options::cl_flag( string name )
+{
+	list<GetPot>& sources = instance().sources;
+
+	// check if --name was specified on the command line
+	if( sources.begin()->search( (string("--")+name).c_str() ) )
+		return true;
+	else
+		return false;
+}
+
+
+bool
+options::have_dbl( string name )
+{
 	try {
-		po::store(po::parse_command_line(argc, argv, generic, style), instance().vm);
+		dbl( name );
+		return true;
+	} catch ( std::runtime_error ) {
+		return false;
 	}
-	catch( std::logic_error& e ) {
-	 	cerr << "Error: You've supplied an invalid parameter.\n"
-		     << "Note that spindle speeds are integers!\n"
-		     << "Details: " << e.what() << endl;
-		exit(101);
-	}
+}
 
-	po::notify( instance().vm );
+/* get a parameter of type double
+ *
+ * - priorities of the config files in order of loading, the first loaded
+ *   is of the highest priority
+ * - command line parameters override everything
+ * - if nothing is found, throw a runtime_error
+ */
+double
+options::dbl( string name )
+{
+	list<GetPot>& sources = instance().sources;
 
-	parse_files();
-
-	/*
-	 * this needs to be an extra step, as --basename modifies the default
-	 * values of the --...-output parameters
-	 */
-	string basename="";
-	if( instance().vm.count("basename"))
-	{
-		basename = instance().vm["basename"].as<string>()+"_";
-	}
-
-	const char *fake_basename_command_line[] = {
-		"",
-		("--front-output="+basename+"front.ngc").c_str(),
-		("--back-output="+basename+"back.ngc").c_str(),
-		("--outline-output="+basename+"outline.ngc").c_str(),
-		("--drill-output="+basename+"drill.ngc").c_str()
+	// check command line
+	string dashname = string("--") + name;
+	try {
+		// try variable style: --param=123.4
+		return (*sources.begin())(dashname.c_str(), (double)0 );
+	} catch( std::runtime_error ) {
+		try {
+			// try "arguments that follow arguments"-style: --param 123.4
+			return sources.begin()->follow( (double)0, dashname.c_str() );
+		} catch( std::runtime_error ) {	}
 	};
 
-	po::store(po::parse_command_line(5, (char**)fake_basename_command_line, generic, style), instance().vm);
-	po::notify(instance().vm);
+	// check config files
+	for( list<GetPot>::iterator it = sources.begin(); it != sources.end(); it++ )
+		try {
+			return (*it)(name.c_str(), (double)0 );
+		} catch( std::runtime_error ) {};
+
+
+	std::stringstream msg; msg << "Parameter " << name << "(double) not found.";
+	throw std::runtime_error( msg.str() );
+}
+
+double
+options::dbl( string name, double default_value )
+{
+	try {
+		return dbl(name);
+	} catch( std::runtime_error ) {
+		return default_value;
+	}
+}
+
+
+bool
+options::have_str( string name )
+{
+	try {
+		str( name );
+		return true;
+	} catch ( std::runtime_error ) {
+		return false;
+	}
+}
+
+string
+options::str( string name )
+{
+	list<GetPot>& sources = instance().sources;
+
+	// check command line
+	string dashname = string("--") + name;
+	try {
+		// try variable style
+		return (*sources.begin())(dashname.c_str(), string(""));
+	} catch( std::runtime_error ) {
+		try {
+			// try argument follow style
+			return sources.begin()->follow( string("").c_str(), dashname.c_str() );
+		} catch( std::runtime_error ) {}
+	}
+
+	// check config files
+	for( list<GetPot>::iterator it = sources.begin(); it != sources.end(); it++ )
+		try {
+			return (*it)(name.c_str(), string(""));
+		} catch( std::runtime_error ) { };
+
+
+	std::stringstream msg; msg << "Parameter " << name << "(string) not found.";
+	throw std::runtime_error( msg.str() );
+}
+
+string
+options::str( string name, string default_value )
+{
+	try {
+		return str(name);
+	} catch( std::runtime_error ) {
+		return default_value;
+	}
 }
 
 string
@@ -90,195 +197,172 @@ options::help()
 {
 	std::stringstream msg;
 	msg << PACKAGE_STRING << "\n\n";
-	msg << instance().cli_options << instance().cfg_options;
+
+	msg << "command line only options:\n";
+	msg << "  --help, -?                 " << "produce help message" << endl;
+	msg << "  --version                  " << "print version information" << endl << endl;
+
+	msg << "generic options (CLI and config files):" << endl;
+	msg << "  --front                    " << "front side RS274-X .gbr" << endl;
+	msg << "  --back                     " << "back side RS274-X .gbr" << endl;
+	msg << "  --outline                  " << "pcb outline polygon RS274-X .gbr" << endl;
+	msg << "  --drill                    " << "Excellon drill file" << endl << endl;
+
+	msg << "  --zwork                    " << "milling depth in inches (Z-coordinate while engraving)" << endl;
+	msg << "  --zsafe                    " << "safety height (Z-coordinate during rapid moves)" << endl;
+	msg << "  --offset                   " << "distance between the PCB traces and the end mill path in" << endl
+	    << "                             " << "inches; usually half the isolation width" << endl;
+	msg << "  --mill-feed                " << "feed while isolating in ipm" << endl;
+	msg << "  --mill-speed               " << "spindle rpm when milling" << endl;
+	msg << "  --milldrill                " << "drill using the mill head" << endl;
+
+	msg << "  --extra-passes             " << "specify the the number of extra isolation passes, increasing" << endl
+	    << "                             " << "the isolation width half the tool diameter with each pass" << endl;
+
+	msg << "  --fill-outline             " << "accept a contour instead of a polygon as outline" << endl;
+	msg << "  --outline-width            " << "width of the outline" << endl;
+	msg << "  --cutter-diameter          " << "diameter of the end mill used for cutting out the PCB" << endl;
+	msg << "  --zcut                     " << "PCB cutting depth in inches." << endl;
+	msg << "  --cut-feed                 " << "PCB cutting feed" << endl;
+	msg << "  --cut-speed                " << "PCB cutting spindle speed" << endl;
+	msg << "  --cut-infeed               " << "Maximum cutting depth; PCB may be cut in multiple passes" << endl << endl;
+
+	msg << "  --zdrill                   " << "drill depth" << endl;
+	msg << "  --zchange                  " << "tool changing height" << endl;
+	msg << "  --drill-feed               " << "drill feed; ipm" << endl;
+	msg << "  --drill-speed              " << "spindle rpm when drilling" << endl;
+	msg << "  --drill-front              " << "drill through the front side of board" << endl << endl;
+
+	msg << "  --metric                   " << "use metric instead of imperial units" << endl;
+	msg << "  --dpi                      " << "virtual photoplot resolution" << endl;
+	msg << "  --mirror-absolute          " << "mirror back side along absolute zero instead of board center" << endl << endl;
+
+	msg << "  --svg                      " << "SVG output file" << endl;
+	msg << "  --basename                 " << "prefix for default output file names" << endl;
+	msg << "  --front-output             " << "output file for front layer" << endl;
+	msg << "  --back-output              " << "output file for back layer" << endl;
+	msg << "  --outline-output           " << "output file for outline" << endl;
+	msg << "  --drill-output             " << "output file for drilling" << endl << endl;
+	
+	msg << "  --preamble                 " << "gcode preamble file" << endl;
+	msg << "  --postamble                " << "gcode postamble file" << endl;
+
 	return msg.str();
 }
 
-void
-options::parse_files()
+
+void 
+options::check_generic_parameters()
 {
-	std::string file("millproject");
-
-	try {
-		std::ifstream stream;
-		try {
-			stream.open(file.c_str());
-			po::store( po::parse_config_file( stream, instance().cfg_options), instance().vm);
-		} catch( std::exception& e ) {
-			cerr << "Error parsing configuration file \"" << file << "\": "
-			     << e.what() << endl;
-		}
-		stream.close();
-	}
-	catch( std::exception& e ) {
-		cerr << "Error reading configuration file \"" << file << "\": " << e.what() << endl;
-	}
-
-	po::notify( instance().vm );
-}
-
-options::options() : cli_options("command line only options"),
-		     cfg_options("generic options (CLI and config files)")
-{
-	cli_options.add_options()
-		("help,?",   "produce help message")
-		("version",  "\n")
-		;
-
-	cfg_options.add_options()
-		("front",      po::value<string>(), "front side RS274-X .gbr")
-		("back",   po::value<string>(), "back side RS274-X .gbr")
-		("outline",  po::value<string>(), "pcb outline polygon RS274-X .gbr")
-		("drill", po::value<string>(), "Excellon drill file\n")
-
-		("svg", po::value<string>(), "SVG file\n")
-	
-		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
-		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
-		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
-		("mill-feed", po::value<double>(), "feed while isolating in ipm")
-		("mill-speed", po::value<int>(), "spindle rpm when milling")
-		("milldrill",   "drill using the mill head")
-		("extra-passes", po::value<int>(), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass\n")
-
-		("fill-outline", po::value<bool>()->zero_tokens(), "accept a contour instead of a polygon as outline")
-		("outline-width", po::value<double>(), "width of the outline")
-		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
-		("zcut", po::value<double>(), "PCB cutting depth in inches.")
-		("cut-feed", po::value<double>(), "PCB cutting feed")
-		("cut-speed", po::value<int>(), "PCB cutting spindle speed")
-		("cut-infeed", po::value<double>(), "Maximum cutting depth; PCB may be cut in multiple passes\n")
-
-		("zdrill", po::value<double>(), "drill depth")
-		("zchange", po::value<double>(), "tool changing height")
-		("drill-feed", po::value<double>(), "drill feed; ipm")
-		("drill-speed", po::value<int>(), "spindle rpm when drilling")
-		("drill-front", po::value<bool>()->zero_tokens(), "drill through the front side of board\n")
-
-		("metric",   "all units are given metric")
-		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
-		("mirror-absolute",      po::value<bool>()->zero_tokens(),   "mirror back side along absolute zero instead of board center\n")
-
-		("basename",      po::value<string>(), "prefix for default output file names")
-		("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
-		("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
-		("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
-		("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling\n")
-
-		("preamble",      po::value<string>(), "gcode preamble file")
-		("postamble",      po::value<string>(), "gcode postamble file")
-		;
-}
-
-
-static void check_generic_parameters( po::variables_map const& vm )
-{
-	int dpi = vm["dpi"].as<int>();
+	int dpi = options::dbl("dpi");
 	if( dpi < 100 ) cerr << "Warning: very low DPI value." << endl;
-	if( dpi > 10000 ) cerr << "Warning: very high DPI value, processing may take extremely long" << endl;
+	if( dpi > 10000 ) cerr << "Warning: (possibly) unreasonably high DPI value, processing may take very long" << endl;
 
-	if( !vm.count("zsafe") ) {
+	if( !options::have_dbl("zsafe") ) {
 		cerr << "Error: Safety height not specified.\n";
 		exit(5);
 	}
-	if( !vm.count("zchange") ) {
+	if( !options::have_dbl("zchange") ) {
 		cerr << "Error: Tool changing height not specified.\n";
 		exit(15);
 	}
 }
 
-static void check_milling_parameters( po::variables_map const& vm )
+void
+options::check_milling_parameters()
 {
-	if(vm.count("front") || vm.count("back")) {
-		if( !vm.count("zwork") ) {
+	if(options::have_str("front") || options::have_str("back")) {
+		if( !options::have_dbl("zwork") ) {
 			cerr << "Error: --zwork not specified.\n";
 			exit(1);
-		} else if( vm["zwork"].as<double>() > 0 ) {
+		} else if( options::dbl("zwork") > 0.0001 ) {
 			cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
 		}
 
-		if( !vm.count("offset") ) {
+		if( !options::have_dbl("offset") ) {
 			cerr << "Error: Etching --offset not specified.\n";
 			exit(4);
 		}
-		if( !vm.count("mill-feed") ) {
+		if( !options::have_dbl("mill-feed") ) {
 			cerr << "Error: Milling feed [ipm] not specified.\n";
 			exit(13);
 		}
-		if( !vm.count("mill-speed") ) {
+		if( !options::have_dbl("mill-speed") ) {
 			cerr << "Error: Milling speed [rpm] not specified.\n";
 			exit(14);
 		}
 		
 		// required parameters present. check for validity.
-		if( vm["zsafe"].as<double>() <= vm["zwork"].as<double>() ) {
+		if( options::dbl("zsafe") <= options::dbl("zwork") ) {
 			cerr << "Error: The safety height --zsafe is lower than the milling "
-			     << "height --zwork. Are you sure this is correct?\n";
+			     << "height --zwork.\n";
 			exit(15);
 		}
 
-		if( vm["mill-feed"].as<double>() < 0 ) {
+		if( options::dbl("mill-feed") < 0 ) {
 			cerr << "Error: Negative milling feed (--mill-feed).\n";
 			exit(17);
 		}
 
-		if( vm["mill-speed"].as<int>() < 0 ) {
+		if( options::dbl("mill-speed") < 0 ) {
 			cerr << "Error: --mill-speed < 0.\n";
 			exit(16);
 		}
 	}
 }
 
-static void check_drilling_parameters( po::variables_map const& vm )
+void
+options::check_drilling_parameters()
 {
-	if( vm.count("drill") ) {
-		if( !vm.count("zdrill") ) {
+	if( options::have_str("drill") ) {
+		if( !options::have_dbl("zdrill") ) {
 			cerr << "Error: Drilling depth (--zdrill) not specified.\n";
 			exit(9);
 		}
-		if( !vm.count("zchange") ) {
+		if( !options::have_dbl("zchange") ) {
 			cerr << "Error: Drill bit changing height (--zchange) not specified.\n";
 			exit(10);
 		}
-		if( !vm.count("drill-feed") ) {
+		if( !options::have_dbl("drill-feed") ) {
 			cerr << "Error:: Drilling feed (--drill-feed) not specified.\n";
 			exit(11);
 		}
-		if( !vm.count("drill-speed") ) {
+		if( !options::have_dbl("drill-speed") ) {
 			cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
 			exit(12);
 		}
 		
-		if( vm["zsafe"].as<double>() <= vm["zdrill"].as<double>() ) {
+		if( options::dbl("zsafe") <= options::dbl("zdrill") ) {
 			cerr << "Error: The safety height --zsafe is lower than the drilling "
 			     << "height --zdrill!\n";
 			exit(18);
 		}
-		if( vm["zchange"].as<double>() <= vm["zdrill"].as<double>() ) {
+		if( options::dbl("zchange") <= options::dbl("zdrill") ) {
 			cerr << "Error: The safety height --zsafe is lower than the tool "
 			     << "change height --zchange!\n";
 			exit(19);
 		}
-		if( vm["drill-feed"].as<double>() <= 0 ) {
+		if( options::dbl("drill-feed") <= 0 ) {
 			cerr << "Error: The drilling feed --drill-feed is <= 0.\n";
 			exit(20);
 		}
-		if( vm["drill-speed"].as<int>() < 0 ) {
+		if( options::dbl("drill-speed") < 0 ) {
 			cerr << "Error: --drill-speed < 0.\n";
 			exit(17);
 		}
 	}
 }
 
-static void check_cutting_parameters( po::variables_map const& vm )
+void
+options::check_cutting_parameters()
 {
-	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
-		if( vm.count("fill-outline") ) {
-			if(!vm.count("outline-width")) {
+	if( options::have_str("outline") || (options::have_str("drill") && options::flag("milldrill"))) {
+		if( options::flag("fill-outline") ) {
+			if(!options::have_dbl("outline-width")) {
 				cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
 				exit(25);
 			} else {
-				double outline_width = vm["outline-width"].as<double>();
+				double outline_width = options::dbl("outline-width");
 				if( outline_width < 0 ) {
 					cerr << "Error: Specified outline width is less than zero!\n";
 					exit(26);
@@ -287,67 +371,72 @@ static void check_cutting_parameters( po::variables_map const& vm )
 					exit(27);
 				} else {
 					std::stringstream width_sb;
-					if( (vm.count("metric") && outline_width >= 10)
-					    || (!vm.count("metric") && outline_width >= 0.4) ) {
+					if( (options::flag("metric") && outline_width >= 10)
+					    || (!options::flag("metric") && outline_width >= 0.4) ) {
 						
-						width_sb << outline_width << (vm.count("metric") ? " mm" : " inch");
+						width_sb << outline_width << (options::flag("metric") ? " mm" : " inch");
 						cerr << "Warning: You specified an outline-width of " << width_sb.str() << "!\n";
 					}
 				}
 			}
 		}
-		if( !vm.count("zcut") ) {
+
+		if( !options::have_dbl("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
 			exit(5);
 		}
-		if( !vm.count("cutter-diameter") ) {
+		if( !options::have_dbl("cutter-diameter") ) {
 			cerr << "Error: Cutter diameter not specified.\n";
 			exit(15);
 		}
-		if( !vm.count("cut-feed") ) {
+		if( !options::have_dbl("cut-feed") ) {
 			cerr << "Error: Board cutting feed (--cut-feed) not specified.\n";
 			exit(6);
 		}
-		if( !vm.count("cut-speed") ) {
+		if( !options::have_dbl("cut-speed") ) {
 			cerr << "Error: Board cutting spindle RPM (--cut-speed) not specified.\n";
 			exit(7);
 		}
-		if( !vm.count("cut-infeed") ) {
+		if( !options::have_dbl("cut-infeed") ) {
 			cerr << "Error: Board cutting infeed (--cut-infeed) not specified.\n";
 			exit(8);
 		}
 
-		if( vm["zsafe"].as<double>() <= vm["zcut"].as<double>() ) {
+		if( options::dbl("zsafe") <= options::dbl("zcut") ) {
 			cerr << "Error: The safety height --zsafe is lower than the cutting "
 			     << "height --zcut!\n";
 			exit(21);
 		}
-		if( vm["cut-feed"].as<double>() <= 0 ) {
+		if( options::dbl("cut-feed") <= 0 ) {
 			cerr << "Error: The cutting feed --cut-feed is <= 0.\n";
 			exit(22);
 		}
-		if( vm["cut-speed"].as<int>() < 0 ) {
-			cerr << "Error: The cutting spindle speed --cut-speed is smaler than 0.\n";
+		if( options::dbl("cut-speed") < 0 ) {
+			cerr << "Error: The cutting spindle speed --cut-speed is smaller than 0.\n";
 			exit(23);
 		}
-		if( vm["cut-infeed"].as<double>() < 0.001 ) {
+		if( options::dbl("cut-infeed") < 0.001 ) {
 			cerr << "Error: Too small cutting infeed --cut-infeed.\n";
 			exit(24);
 		}
 	}
 }
 
-void options::check_parameters()
+void
+options::check_parameters()
 {
-	po::variables_map const& vm = instance().vm;
-
 	try {
-		check_generic_parameters( vm );
-		check_milling_parameters( vm );
-		check_cutting_parameters( vm );
-		check_drilling_parameters( vm );
+		check_generic_parameters();
+		check_milling_parameters();
+		check_cutting_parameters();
+		check_drilling_parameters();
 	} catch ( std::runtime_error& re ) {
-		cerr << "Error: Invalid parameter. :-(\n";
+		cerr << "Error: Invalid parameter: " << re.what() << endl;
 		exit(100);
+	}
+
+	if( !options::have_str("front-output") ) {
+		cerr << "Adding front-output.\n";
+		instance().sources.begin()->set("front-output", "front.ngc");
 	}
 }

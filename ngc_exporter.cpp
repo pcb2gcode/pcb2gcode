@@ -19,6 +19,7 @@
  */
 
 #include "ngc_exporter.hpp"
+#include "options.hpp"
 
 #include <boost/foreach.hpp>
 
@@ -32,6 +33,9 @@ NGC_Exporter::NGC_Exporter( shared_ptr<Board> board ) : Exporter(board)
 	bDoSVG = false;
 }
 
+NGC_Exporter::~NGC_Exporter()
+{
+}
 
 void
 NGC_Exporter::set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo )
@@ -48,12 +52,11 @@ NGC_Exporter::add_header( string header )
 }
 
 void
-NGC_Exporter::export_all(boost::program_options::variables_map& options)
+NGC_Exporter::export_all()
 {
 	BOOST_FOREACH( string layername, board->list_layers() ) {
 		std::stringstream option_name;
-		option_name << layername << "-output";
-		string of_name = options[option_name.str()].as<string>();
+		string of_name = options::str( layername+"-output", layername+".ngc");
 		cerr << "Current Layer: " << layername << ", exporting to " << of_name << "." << endl;
 		export_layer( board->get_layer(layername), of_name);
 	}
@@ -74,6 +77,13 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	string layername = layer->get_name();
 	shared_ptr<RoutingMill> mill = layer->get_manufacturer();
 
+	double last_x = -99.99;
+	double last_y = -99.99;
+	bool skipped = false;
+	bool skip_x = false;
+	bool skip_y = false;
+	bool lastskip_x = false;
+	bool lastskip_y = false;
 	bool bSvgOnce = TRUE;
 	
 	// open output file
