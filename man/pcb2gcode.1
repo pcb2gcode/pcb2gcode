@@ -79,6 +79,12 @@ If this distance can't be satisfied because copper areas are too close, a
 warning will be printed and the line will be drawn between the areas. This
 behavior can be used to get voronoi-style (flood-filling) areas; simply set the
 offset to a large value (like 1 inch).
+.TP
+\fB\-\-extra-passes\fP \fInumber\fP
+number of additional isolation passes
+
+For each extra pass, engraving is repeated with the offset width increased by
+half its original value, creating wider isolation areas.
 .PP
 The parameters that define outline cutting are:
 .TP
@@ -119,6 +125,10 @@ holes in the PCB. Holes up to the size of the milling head will be drilled
 regularly (possibly creating a bigger hole than intended), the other holes are
 created by moving the head in circles using the feed and infeed parameters used
 in cutting.
+.TP
+\fB\-\-drill\-front\fP
+use the coordinates of the front side for drilling instead of the coordinates
+of the back side
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
