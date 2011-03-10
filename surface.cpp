@@ -416,7 +416,7 @@ void Surface::calculate_outline(const int x, const int y,
 
 		// check whether stepping was successful.
 		// this prevents endless loops that can occur in rare cases
-		if( i == 0 && xout != xstart ) {
+		if( i == 0 ) {
 			// blast the problem
 			for(; i < 8; i++) {
 				int cx = xout + offset8[i][0];
@@ -472,6 +472,7 @@ void Surface::calculate_outline(const int x, const int y,
                         else
                                 break;
                 }
+
 		if( i == 8 ) {
 			save_debug_image("error_insideoverstepping");
 			std::stringstream msg;
