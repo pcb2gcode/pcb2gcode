@@ -239,9 +239,9 @@ std::vector< std::pair<int,int> > Surface::fill_all_components()
 	guint8* pixels = cairo_surface->get_data();
 	int stride = cairo_surface->get_stride();
 
-	for(int y = 5; y <= max_y; y += 10)
+	for(int y = 0; y <= max_y; y ++)
 	{
-		for(int x = 5; x <= max_x; x += 10)
+		for(int x = 0; x <= max_x; x ++)
 		{
 			if( (PRC(pixels + x*4 + y*stride) | OPAQUE) == WHITE )
 			{
