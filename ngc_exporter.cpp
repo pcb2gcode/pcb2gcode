@@ -49,6 +49,14 @@ NGC_Exporter::export_all(boost::program_options::variables_map& options)
 	}
 }
 
+double
+NGC_Exporter::get_tolerance( void )
+{
+	// maximum deviation is less than 1px for every point in the path; 0.75
+	// is the minimum required to get seemingly smooth movements in the
+	// emc2 simulation machine
+	return 0.75/this->board->get_dpi();
+}
 
 void
 NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
@@ -85,7 +93,7 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	   << "M3      ( Spindle on clockwise.        )\n"
 	   << endl;
 
-	of << "G64 P0.002 ( set maximum deviation from commanded toolpath )\n"
+	of << "G64 P" << get_tolerance() << " ( set maximum deviation from commanded toolpath )\n"
 	   << endl;
 
 	// contours

@@ -55,6 +55,7 @@ public:
 	void set_postamble(string);
 
 protected:
+	double get_tolerance( void );
 	void export_layer( shared_ptr<Layer> layer, string of_name );
 
 	shared_ptr<Board> board;
