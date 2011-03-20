@@ -402,6 +402,7 @@ void Surface::calculate_outline(const int x, const int y,
 			if(xnext == xstart && ynext == ystart)
 			{
 				outside.push_back( pair<int,int>(xout, yout) );
+				outside.push_back( pair<int,int>(xstart, ystart) );
 				return;
 			}
 
