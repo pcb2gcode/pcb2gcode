@@ -107,6 +107,7 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
         skip_y = FALSE;
         lastskip_y = FALSE;
 		// retract, move to the starting point of the next contour
+		of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 		of << "G00 Z" << mill->zsafe << " ( retract )\n" << endl;
                 of << "G00 X" << path->begin()->first << " Y" << path->begin()->second << " ( rapid move to begin. )\n";
 		
@@ -121,6 +122,7 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 
 			while( z >= mill->zwork ) {
 				of << "G01 Z" << z << " F" << mill->feed << " ( plunge. )\n";
+				of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 				icoords::iterator iter = path->begin();
 				while( iter != path->end() ) {
@@ -149,6 +151,7 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 		} else {
 			// isolating
 			of << "G01 Z" << mill->zwork << " F" << mill->feed << " ( plunge. )\n";
+			of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 			icoords::iterator iter = path->begin();
 			while( iter != path->end() ) {
@@ -178,6 +181,7 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
         of << endl;
 
 	// retract, end
+	of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 	of << "G00 Z" << mill->zchange << " ( retract )\n" << endl;
 
 	of << "M9 ( Coolant off. )\n";
