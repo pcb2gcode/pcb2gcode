@@ -75,6 +75,8 @@ public:
 
 	void createLayers();	// should be private
 
+	uint get_dpi();
+
 private:
 	ivalue_t margin;
 	uint dpi;

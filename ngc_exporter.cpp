@@ -49,19 +49,20 @@ NGC_Exporter::export_all(boost::program_options::variables_map& options)
 	}
 }
 
+double
+NGC_Exporter::get_tolerance( void )
+{
+	// maximum deviation is less than 1px for every point in the path; 0.75
+	// is the minimum required to get seemingly smooth movements in the
+	// emc2 simulation machine
+	return 0.75/this->board->get_dpi();
+}
 
 void
 NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 {
 	string layername = layer->get_name();
 	shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    double last_x = -99.99;
-    double last_y = -99.99;
-    bool skipped = FALSE;
-    bool skip_x = FALSE;
-    bool skip_y = FALSE;
-    bool lastskip_x = FALSE;
-    bool lastskip_y = FALSE;
 
 	// open output file
 	std::ofstream of; of.open( of_name.c_str() );
@@ -85,20 +86,14 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	   << "M3      ( Spindle on clockwise.        )\n"
 	   << endl;
 
-	of << "G64 P0.002 ( set maximum deviation from commanded toolpath )\n"
+	of << "G64 P" << get_tolerance() << " ( set maximum deviation from commanded toolpath )\n"
 	   << endl;
 
 	// contours
  	BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() )
         {
-        last_x = -99.99;
-        last_y = -99.99;
-        skipped = FALSE;
-        skip_x = FALSE;
-        lastskip_x = FALSE;
-        skip_y = FALSE;
-        lastskip_y = FALSE;
 		// retract, move to the starting point of the next contour
+		of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 		of << "G00 Z" << mill->zsafe << " ( retract )\n" << endl;
                 of << "G00 X" << path->begin()->first << " Y" << path->begin()->second << " ( rapid move to begin. )\n";
 		
@@ -113,27 +108,26 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 
 			while( z >= mill->zwork ) {
 				of << "G01 Z" << z << " F" << mill->feed << " ( plunge. )\n";
+				of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 				icoords::iterator iter = path->begin();
+				icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
+				icoords::iterator peek;
 				while( iter != path->end() ) {
-				    lastskip_x = skip_x;
-				    lastskip_y = skip_y;
-				    skip_x = ( iter->first == last_x ) ? TRUE : FALSE;
-				    skip_y = ( iter->second == last_y ) ? TRUE : FALSE;
-                    if ( ( !skip_x && skip_x == lastskip_x ) ||
-                         ( !skip_y && skip_y == lastskip_y ) ) {
-                        skipped = TRUE;
-                    }
-                    else {
-					    of << "X" << iter->first << " Y" << iter->second << endl;
-                        skipped = FALSE;
-                    }
-                    last_x = iter->first;
-                    last_y = iter->second;
+					peek = iter + 1;
+					if( /* it's necessary to write the coordinates if... */
+							last == path->end() || /* it's the beginning */
+							peek == path->end() || /* it's the end */
+							!( /* or if neither of the axis align */
+								( last->first == iter->first && iter->first == peek->first ) || /* x axis aligns */
+								( last->second == iter->second && iter->second == peek->second ) /* y axis aligns */
+							)
+							/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
+					  ) {
+						of << "X" << iter->first << " Y" << iter->second << endl;
+					}
+					last = iter;
 					++iter;
-				    if (iter == path->end() && skipped ) {
-				        of << "X" << last_x << " Y" << last_y << endl;
-				    }
 				}
 			
 				z -= z_step;
@@ -141,35 +135,38 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 		} else {
 			// isolating
 			of << "G01 Z" << mill->zwork << " F" << mill->feed << " ( plunge. )\n";
+			of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 			icoords::iterator iter = path->begin();
+			icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
+			icoords::iterator peek;
 			while( iter != path->end() ) {
-				lastskip_x = skip_x;
-				lastskip_y = skip_y;
-				skip_x = ( iter->first == last_x ) ? TRUE : FALSE;
-				skip_y = ( iter->second == last_y ) ? TRUE : FALSE;
-                if ( ( !skip_x && skip_x == lastskip_x ) ||
-                     ( !skip_y && skip_y == lastskip_y ) ) {
-                    skipped = TRUE;
-                }
-                else {
+				peek = iter + 1;
+				if( /* it's necessary to write the coordinates if... */
+						last == path->end() || /* it's the beginning */
+						peek == path->end() || /* it's the end */
+						!( /* or if neither of the axis align */
+							( last->first == iter->first && iter->first == peek->first ) || /* x axis aligns */
+							( last->second == iter->second && iter->second == peek->second ) /* y axis aligns */
+						)
+						/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
+				  ) {
 					of << "X" << iter->first << " Y" << iter->second << endl;
-                    skipped = FALSE;
-                }
-                last_x = iter->first;
-                last_y = iter->second;
-				++iter;
-				if (iter == path->end() && skipped ) {
-				    of << "X" << last_x << " Y" << last_y << endl;
 				}
+				last = iter;
+				++iter;
 			}		
 
-		}	
-    }
+		}
+
+
+		
+        }
 
         of << endl;
 
 	// retract, end
+	of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 	of << "G00 Z" << mill->zchange << " ( retract )\n" << endl;
 
 	of << "M9 ( Coolant off. )\n";

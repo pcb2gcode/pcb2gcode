@@ -51,9 +51,23 @@ Surface::Surface( guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, iva
 	: dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y),
 	  zero_x(-min_x*(ivalue_t)dpi + (ivalue_t)procmargin), zero_y(-min_y*(ivalue_t)dpi + (ivalue_t)procmargin), clr(32)
 {
+	guint8* pixels;
+	int stride;
 	make_the_surface( (max_x - min_x) * dpi + 2*procmargin, (max_y - min_y) * dpi + 2*procmargin );
 	usedcolors.push_back(BLACK);
 	usedcolors.push_back(WHITE);
+
+	/* "Note that the buffer is not cleared; you will have to fill it completely yourself." */
+	printf("clearing\n");
+        pixels = cairo_surface->get_data();
+        stride = cairo_surface->get_stride();
+        for(int y = 0; y < pixbuf->get_height(); y++ )
+        {
+                for(int x = 0; x < pixbuf->get_width(); x++ )
+                {
+                        PRC(pixels + x*4 + y*stride) = BLACK;
+                }
+        }
 }
 
 void Surface::render( boost::shared_ptr<LayerImporter> importer ) throw(import_exception)
@@ -225,9 +239,9 @@ std::vector< std::pair<int,int> > Surface::fill_all_components()
 	guint8* pixels = cairo_surface->get_data();
 	int stride = cairo_surface->get_stride();
 
-	for(int y = 5; y <= max_y; y += 10)
+	for(int y = 0; y <= max_y; y ++)
 	{
-		for(int x = 5; x <= max_x; x += 10)
+		for(int x = 0; x <= max_x; x ++)
 		{
 			if( (PRC(pixels + x*4 + y*stride) | OPAQUE) == WHITE )
 			{
@@ -388,6 +402,7 @@ void Surface::calculate_outline(const int x, const int y,
 			if(xnext == xstart && ynext == ystart)
 			{
 				outside.push_back( pair<int,int>(xout, yout) );
+				outside.push_back( pair<int,int>(xstart, ystart) );
 				return;
 			}
 

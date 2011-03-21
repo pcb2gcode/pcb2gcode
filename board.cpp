@@ -40,6 +40,11 @@ Board::get_height()
 	return layers.begin()->second->surface->get_height_in();
 }
 
+uint
+Board::get_dpi()
+{
+	return dpi;
+}
 
 void
 Board::prepareLayer( string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool mirror, bool mirror_absolute )
