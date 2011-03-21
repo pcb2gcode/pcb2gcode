@@ -7,7 +7,7 @@ typedef std::pair<int,int>     coordpair;
 typedef std::vector<coordpair> coords;
 
 
-#include "Fixed.hpp"
+//#include "Fixed.hpp"
 //typedef numeric::Fixed<16,16> ivalue_t;
 typedef double ivalue_t;
 
