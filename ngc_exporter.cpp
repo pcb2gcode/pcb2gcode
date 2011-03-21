@@ -63,13 +63,6 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 {
 	string layername = layer->get_name();
 	shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    double last_x = -99.99;
-    double last_y = -99.99;
-    bool skipped = FALSE;
-    bool skip_x = FALSE;
-    bool skip_y = FALSE;
-    bool lastskip_x = FALSE;
-    bool lastskip_y = FALSE;
 
 	// open output file
 	std::ofstream of; of.open( of_name.c_str() );
@@ -99,13 +92,6 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	// contours
  	BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() )
         {
-        last_x = -99.99;
-        last_y = -99.99;
-        skipped = FALSE;
-        skip_x = FALSE;
-        lastskip_x = FALSE;
-        skip_y = FALSE;
-        lastskip_y = FALSE;
 		// retract, move to the starting point of the next contour
 		of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 		of << "G00 Z" << mill->zsafe << " ( retract )\n" << endl;
@@ -126,24 +112,8 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 
 				icoords::iterator iter = path->begin();
 				while( iter != path->end() ) {
-				    lastskip_x = skip_x;
-				    lastskip_y = skip_y;
-				    skip_x = ( iter->first == last_x ) ? TRUE : FALSE;
-				    skip_y = ( iter->second == last_y ) ? TRUE : FALSE;
-                    if ( ( !skip_x && skip_x == lastskip_x ) ||
-                         ( !skip_y && skip_y == lastskip_y ) ) {
-                        skipped = TRUE;
-                    }
-                    else {
-					    of << "X" << iter->first << " Y" << iter->second << endl;
-                        skipped = FALSE;
-                    }
-                    last_x = iter->first;
-                    last_y = iter->second;
+					of << "X" << iter->first << " Y" << iter->second << endl;
 					++iter;
-				    if (iter == path->end() && skipped ) {
-				        of << "X" << last_x << " Y" << last_y << endl;
-				    }
 				}
 			
 				z -= z_step;
@@ -155,28 +125,15 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 
 			icoords::iterator iter = path->begin();
 			while( iter != path->end() ) {
-				lastskip_x = skip_x;
-				lastskip_y = skip_y;
-				skip_x = ( iter->first == last_x ) ? TRUE : FALSE;
-				skip_y = ( iter->second == last_y ) ? TRUE : FALSE;
-                if ( ( !skip_x && skip_x == lastskip_x ) ||
-                     ( !skip_y && skip_y == lastskip_y ) ) {
-                    skipped = TRUE;
-                }
-                else {
-					of << "X" << iter->first << " Y" << iter->second << endl;
-                    skipped = FALSE;
-                }
-                last_x = iter->first;
-                last_y = iter->second;
+				of << "X" << iter->first << " Y" << iter->second << endl;
 				++iter;
-				if (iter == path->end() && skipped ) {
-				    of << "X" << last_x << " Y" << last_y << endl;
-				}
 			}		
 
-		}	
-    }
+		}
+
+
+		
+        }
 
         of << endl;
 
