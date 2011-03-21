@@ -61,10 +61,10 @@ Board::createLayers()
 
         // start calculating the minimal board size
 
-	min_x = 10000.0;          // not pretty, but ok for now
-	max_x = -10000.0;
-	min_y = 10000.0;
-	max_y = -10000.0;
+	min_x = INFINITY;
+	max_x = -INFINITY;
+	min_y = INFINITY;
+	max_y = -INFINITY;
 
         // calculate room needed by the PCB traces
         for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ ) {
