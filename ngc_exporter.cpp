@@ -111,8 +111,22 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 				of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 				icoords::iterator iter = path->begin();
+				icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
+				icoords::iterator peek;
 				while( iter != path->end() ) {
-					of << "X" << iter->first << " Y" << iter->second << endl;
+					peek = iter + 1;
+					if( /* it's necessary to write the coordinates if... */
+							last == path->end() || /* it's the beginning */
+							peek == path->end() || /* it's the end */
+							!( /* or if neither of the axis align */
+								( last->first == iter->first && iter->first == peek->first ) || /* x axis aligns */
+								( last->second == iter->second && iter->second == peek->second ) /* y axis aligns */
+							)
+							/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
+					  ) {
+						of << "X" << iter->first << " Y" << iter->second << endl;
+					}
+					last = iter;
 					++iter;
 				}
 			
@@ -124,8 +138,22 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 			of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 			icoords::iterator iter = path->begin();
+			icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
+			icoords::iterator peek;
 			while( iter != path->end() ) {
-				of << "X" << iter->first << " Y" << iter->second << endl;
+				peek = iter + 1;
+				if( /* it's necessary to write the coordinates if... */
+						last == path->end() || /* it's the beginning */
+						peek == path->end() || /* it's the end */
+						!( /* or if neither of the axis align */
+							( last->first == iter->first && iter->first == peek->first ) || /* x axis aligns */
+							( last->second == iter->second && iter->second == peek->second ) /* y axis aligns */
+						)
+						/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
+				  ) {
+					of << "X" << iter->first << " Y" << iter->second << endl;
+				}
+				last = iter;
 				++iter;
 			}		
 
