@@ -265,6 +265,7 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
 	int stride = cairo_surface->get_stride();
 
 	guint8* here = pixels + x*4 + y*stride;
+	guint8* maxhere = pixels + (cairo_surface->get_width()-1)*4 + (cairo_surface->get_height()-1)*stride;
 
 	guint32 ownclr = PRC(here);
 
@@ -281,21 +282,21 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
 		here = pixels + x*4 + y*stride;
 		PRC(here) = newclr;
 
-		if( PRC(here+4) == ownclr )
+		if( here+4 <= maxhere && PRC(here+4) == ownclr )
 			queued_pixels.push( pair<int,int>(x+1, y) );
-		if( PRC(here-4) == ownclr )
+		if( pixels <= here-4 && PRC(here-4) == ownclr )
 			queued_pixels.push( pair<int,int>(x-1, y) );
-		if( PRC(here+stride) == ownclr )
+		if( here+stride <= maxhere && PRC(here+stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x, y+1) );
-		if( PRC(here-stride) == ownclr )
+		if( pixels <= here-stride && PRC(here-stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x, y-1) );
-		if( PRC(here+4+stride) == ownclr )
+		if( here+4+stride <= maxhere && PRC(here+4+stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x+1, y+1) );
-		if( PRC(here-4+stride) == ownclr )
+		if( here-4+stride <= maxhere && PRC(here-4+stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x-1, y+1) );
-		if( PRC(here+4-stride) == ownclr )
+		if( pixels <= here+4-stride && PRC(here+4-stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x+1, y-1) );
-		if( PRC(here-4-stride) == ownclr )
+		if( pixels <= here-4-stride && PRC(here-4-stride) == ownclr )
 			queued_pixels.push( pair<int,int>(x-1, y-1) );
 	}
 
