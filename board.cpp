@@ -117,6 +117,9 @@ Board::createLayers()
 	if( prepared_layers.find("outline") != prepared_layers.end()) {
 		shared_ptr<Layer> outline_layer = layers.at("outline");
 
+		// fill outline
+		outline_layer->surface->fill_outline();
+
 		for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++ ) {
 			if(it->second != outline_layer) {
 				it->second->add_mask(outline_layer);

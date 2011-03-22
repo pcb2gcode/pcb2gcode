@@ -576,3 +576,38 @@ void Surface::opacify( Glib::RefPtr<Gdk::Pixbuf> pixbuf )
 		}
 	}
 }
+
+void Surface::fill_outline ( void )
+{
+	/* paint everything white that can not be reached from outside the image */
+
+	int stride = pixbuf->get_rowstride();
+	guint8* pixels = pixbuf->get_pixels();
+
+	/* in order to find out what is "outside", we need to walk "around' the image */
+	for(int x = 0; x < pixbuf->get_width(); x++ )
+	{
+		if(PRC(pixels + x*4 + 0*stride) != BLACK) throw std::logic_error( "Non-black pixel at top border" );
+		if(PRC(pixels + x*4 + (pixbuf->get_height() - 1)*stride) != BLACK) throw std::logic_error( "Non-black pixel at bottom border" );
+	}
+	for(int y = 0; y < pixbuf->get_height(); y++ )
+	{
+		if(PRC(pixels + 0*4 + y*stride) != BLACK) throw std::logic_error( "Non-black pixel at left border" );
+		if(PRC(pixels + (pixbuf->get_width() - 1)*4 + y*stride) != BLACK) throw std::logic_error( "Non-black pixel at right border" );
+	}
+
+	fill_a_component(0, 0, RED);
+
+	for(int y = 0; y < pixbuf->get_height(); y++ )
+	{
+		for(int x = 0; x < pixbuf->get_width(); x++ )
+		{
+			if(PRC(pixels + x*4 + y*stride) == RED)
+				PRC(pixels + x*4 + y*stride) = BLACK;
+			else
+				PRC(pixels + x*4 + y*stride) = WHITE;
+		}
+	}
+
+	save_debug_image("outline_filled");
+}
