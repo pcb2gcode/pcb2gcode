@@ -125,7 +125,7 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 void ExcellonProcessor::millhole(std::ofstream &of,float x, float y,  shared_ptr<Cutter> cutter,float holediameter)
 {
 	g_assert(cutter);
-	double cutdiameter=cutter->tool_diameter+2 * 0.005;
+	double cutdiameter=cutter->tool_diameter;
 
 	if(cutdiameter*1.001>=holediameter)
 	{
