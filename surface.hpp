@@ -55,7 +55,7 @@ public:
 	ivalue_t get_height_in() { return max_y - min_y; };
 
 	void add_mask( shared_ptr<Surface>);
-	void fill_outline(void);
+	void fill_outline(double linewidth);
 
 protected:
 	Glib::RefPtr<Gdk::Pixbuf> pixbuf;

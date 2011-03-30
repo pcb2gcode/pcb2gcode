@@ -577,7 +577,7 @@ void Surface::opacify( Glib::RefPtr<Gdk::Pixbuf> pixbuf )
 	}
 }
 
-void Surface::fill_outline ( void )
+void Surface::fill_outline ( double linewidth )
 {
 	/* paint everything white that can not be reached from outside the image */
 
@@ -596,13 +596,56 @@ void Surface::fill_outline ( void )
 		if(PRC(pixels + (pixbuf->get_width() - 1)*4 + y*stride) != BLACK) throw std::logic_error( "Non-black pixel at right border" );
 	}
 
-	fill_a_component(0, 0, RED);
+	fill_a_component(0, 0, BLUE);
+
+	/* everything else (that is, the area of the board) will be black
+	 *
+	 * saving the line where black starts for later when we need something
+	 * black so grow's run_to_border can work.
+	 */
+	int first_line_with_black = 0;
+	for(int y = 0; y < pixbuf->get_height(); y++ )
+	{
+		for(int x = 0; x < pixbuf->get_width(); x++ )
+		{
+			if(PRC(pixels + x*4 + y*stride) != BLUE) {
+				PRC(pixels + x*4 + y*stride) = BLACK;
+				if(first_line_with_black == 0) {
+					first_line_with_black = y;
+				}
+			} 
+		}
+	}
+
+	/* compensate for growth induced by line thicknesses.
+	 *
+	 * this could be done by growing the outline by a reduced amount later
+	 * (providing the lines are not wider than the tool), but by doing the
+	 * reduction now, the lines are already compensated for in the masking
+	 * step. thus, the engraving bit will really engrave once around the
+	 * outline instead of engraving in an area that is going to be removed,
+	 * potentially creating neater edges and providing a more realistic
+	 * rendition in png and gcode previews.
+	 */
+	int grow = linewidth / 2 * dpi;
+	int contentions = 0;
+	int added = 0;
+	for(int i = 0; i < grow; ++i)
+	{
+		// starting at the very left 
+		added = grow_a_component(0, first_line_with_black + grow, contentions);
+	}
+	// if you can think of a sane situation in which either of this could
+	// occur and nevertheless give a meaningful result, change it to a
+	// warning.
+	if(!added) throw std::logic_error( "Shrinking the outline by half the line width came to a halt." );
+	if(contentions) throw std::logic_error( "Shrinking the outline collided with something while there should not be anything." );
 
 	for(int y = 0; y < pixbuf->get_height(); y++ )
 	{
 		for(int x = 0; x < pixbuf->get_width(); x++ )
 		{
-			if(PRC(pixels + x*4 + y*stride) == RED)
+			if(PRC(pixels + x*4 + y*stride) == BLUE)
 				PRC(pixels + x*4 + y*stride) = BLACK;
 			else
 				PRC(pixels + x*4 + y*stride) = WHITE;
