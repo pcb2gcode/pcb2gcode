@@ -23,9 +23,9 @@ using std::pair;
 // color definitions for the ARGB32 format used
 
 #define OPAQUE 0xFF000000
-#define RED 0xFFFF0000
+#define RED 0xFF0000FF
 #define GREEN 0xFF00FF00
-#define BLUE 0xFF0000FF
+#define BLUE 0xFFFF0000
 #define WHITE ( RED | GREEN | BLUE )
 // while equal by value, OPAQUE is used for |-ing and BLACK for setting or comparison
 #define BLACK ( RED & GREEN & BLUE )
