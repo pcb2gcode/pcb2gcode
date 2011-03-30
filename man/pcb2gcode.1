@@ -44,7 +44,8 @@ Engrave the back side according to the given file.
 .TP
 \fB\-\-outline\fP \fIfilename.gbr\fP
 Cut out the board to the shape exposed in the given file. Typically, there is
-only a polygon in this gerber file.
+only a polygon in this gerber file. Alternatively, this file can contain a
+closed line chain (see \fB\-\-fill-outline\fP).
 .TP
 \fB\-\-drill\fP \fIfilename.cnc\fP
 Convert the given file (containing drill sizes and positions) to G-code.
@@ -104,6 +105,14 @@ spindle speed during outline cutting (rounds per minute)
 \fB\-\-cut-infeed\fP \fIunit\fP
 maximum Z distance that is cut away in a single pass (positive value; if less
 then zcut's value, there will be more than one pass)
+.TP
+\fB\-\-fill-outline\fP
+If \fB\-\-fill-outline\fP is given, it is assumed that the outline file
+contains not a polygon but a closed chain of lines. The board will be cut along
+the centres of these lines.
+.TP
+\fB\-\-outline-width \fIunit\fP\fP
+thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
 .PP
 Drilling takes another set of options:
 .TP
