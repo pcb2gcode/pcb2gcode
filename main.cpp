@@ -138,7 +138,7 @@ int main( int argc, char* argv[] )
 		postamble = tmp + "\n\n";
 	}
 
-	shared_ptr<Board> board( new Board( vm["dpi"].as<int>()) );
+	shared_ptr<Board> board( new Board( vm["dpi"].as<int>(), vm.count("fill-outline"), vm.count("fill-outline") ? vm["outline-width"].as<double>() * unit : INFINITY ));
 
 	// this is currently disabled, use --outline instead
 	if( vm.count("margins") )

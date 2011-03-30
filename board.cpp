@@ -22,10 +22,12 @@
 
 typedef pair<string, shared_ptr<Layer> > layer_t;
 
-Board::Board( int _dpi)
+Board::Board( int _dpi, bool _fill_outline, double _outline_width)
 {
         margin = 0.0;
 	dpi = _dpi;
+	fill_outline = _fill_outline;
+	outline_width = _outline_width;
 }
 
 double
@@ -117,8 +119,9 @@ Board::createLayers()
 	if( prepared_layers.find("outline") != prepared_layers.end()) {
 		shared_ptr<Layer> outline_layer = layers.at("outline");
 
-		// fill outline
-		outline_layer->surface->fill_outline();
+		if(fill_outline) {
+			outline_layer->surface->fill_outline(outline_width);
+		}
 
 		for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++ ) {
 			if(it->second != outline_layer) {

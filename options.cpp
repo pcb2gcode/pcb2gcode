@@ -128,7 +128,7 @@ options::options() : cli_options("command line only options"),
 	cfg_options.add_options()
 		("front",      po::value<string>(), "front side RS274-X .gbr")
 		("back",   po::value<string>(), "back side RS274-X .gbr")
-		("outline",  po::value<string>(), "pcb outline RS274-X .gbr; outline drawn in 10mil traces")
+		("outline",  po::value<string>(), "pcb outline polygon RS274-X .gbr")
 		("drill", po::value<string>(), "Excellon drill file\n")
 
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
@@ -139,6 +139,8 @@ options::options() : cli_options("command line only options"),
 		("milldrill",   "drill using the mill head")
 		("extra-passes", po::value<int>(), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass\n")
 
+		("fill-outline", po::value<bool>()->zero_tokens(), "accept a contour instead of a polygon as outline")
+		("outline-width", po::value<double>(), "width of the outline")
 		("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
 		("zcut", po::value<double>(), "PCB cutting depth in inches.")
 		("cut-feed", po::value<double>(), "PCB cutting feed")
@@ -269,6 +271,10 @@ static void check_drilling_parameters( po::variables_map const& vm )
 static void check_cutting_parameters( po::variables_map const& vm )
 {
 	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
+		if( vm.count("fill-outline") && !vm.count("outline-width")) {
+			cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
+			exit(25);
+		}
 		if( !vm.count("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
 			exit(5);
