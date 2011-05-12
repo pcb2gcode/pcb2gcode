@@ -497,6 +497,12 @@ void Surface::calculate_outline(const int x, const int y,
 
 guint Surface::grow_a_component(int x, int y, int& contentions)
 {
+	if( x < 0 || x >= cairo_surface->get_width() || y < 0 || y >= cairo_surface->get_height() ) {
+		std::stringstream msg;
+		msg << "grow_a_component(): invalid starting point: (" << x << "," << y << ")";
+		throw std::logic_error( msg.str() );
+	}
+
 	contentions = 0;
 
 	vector< pair<int,int> > outside, inside;
