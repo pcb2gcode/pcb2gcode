@@ -271,9 +271,28 @@ static void check_drilling_parameters( po::variables_map const& vm )
 static void check_cutting_parameters( po::variables_map const& vm )
 {
 	if( vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
-		if( vm.count("fill-outline") && !vm.count("outline-width")) {
-			cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
-			exit(25);
+		if( vm.count("fill-outline") ) {
+			if(!vm.count("outline-width")) {
+				cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
+				exit(25);
+			} else {
+				double outline_width = vm["outline-width"].as<double>();
+				if( outline_width < 0 ) {
+					cerr << "Error: Specified outline width is less than zero!\n";
+					exit(26);
+				} else if( outline_width == 0 ) {
+					cerr << "Error. Specified outline width is zero!\n";
+					exit(27);
+				} else {
+					std::stringstream width_sb;
+					if( (vm.count("metric") && outline_width >= 10)
+					    || (!vm.count("metric") && outline_width >= 0.4) ) {
+						
+						width_sb << outline_width << (vm.count("metric") ? " mm" : " inch");
+						cerr << "Warning: You specified an outline-width of " << width_sb.str() << "!\n";
+					}
+				}
+			}
 		}
 		if( !vm.count("zcut") ) {
 			cerr << "Error: Board cutting depth (--zcut) not specified.\n";
