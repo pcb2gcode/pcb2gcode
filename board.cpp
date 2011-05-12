@@ -59,7 +59,7 @@ void
 Board::createLayers()
 {
 	if( !prepared_layers.size() )
-		throw std::runtime_error("No layers prepared.");
+		throw std::logic_error("No layers prepared.");
 
         // start calculating the minimal board size
 
