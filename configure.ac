@@ -2,13 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([pcb2gcode], [1.1.1], [pbirnzain@users.sourceforge.net])
+AC_INIT([pcb2gcode], [1.1.2], [pbirnzain@users.sourceforge.net])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([m4])
 
-AM_INIT_AUTOMAKE([pcb2gcode],  [1.1.1])
+AM_INIT_AUTOMAKE([pcb2gcode],  [1.1.2])
 
 # Checks for programs.
 AC_PROG_CXX
