@@ -38,6 +38,7 @@ using Glib::ustring;
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
+#include "svg_exporter.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
@@ -193,14 +194,29 @@ int main( int argc, char* argv[] )
 			std::cerr << "Import Error: No reason given.";
 	}
 
+	
+	//SVG EXPORTER
+	shared_ptr<SVG_Exporter> svgexpo( new SVG_Exporter( board ) );
+	
 	try {
 		board->createLayers();   // throws std::logic_error
 		cout << "Calculated board dimensions: " << board->get_width() << "in x " << board->get_height() << "in" << endl;
 
+		
+		//SVG EXPORTER
+		if( vm.count("svg") ) {
+			cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
+			svgexpo->create_svg( vm["svg"].as<string>() );
+		}
+		
 		shared_ptr<NGC_Exporter> exporter( new NGC_Exporter( board ) );
 		exporter->add_header( PACKAGE_STRING );
 		if( vm.count("preamble") ) exporter->set_preamble(preamble);
 		if( vm.count("postamble") ) exporter->set_postamble(postamble);
+		
+		//SVG EXPORTER
+		if( vm.count("svg") ) exporter->set_svg_exporter( svgexpo );
+		
 		exporter->export_all(vm);
 	} catch( std::logic_error& le ) {
 		cout << "Internal Error: " << le.what() << endl;
@@ -215,6 +231,10 @@ int main( int argc, char* argv[] )
 			if( vm.count("preamble") ) ep.set_preamble(preamble);
 			if( vm.count("postamble") ) ep.set_postamble(postamble);
 
+			//SVG EXPORTER
+			if( vm.count("svg") ) ep.set_svg_exporter( svgexpo );
+			
+			
 			if( vm.count("milldrill") )
 				ep.export_ngc( vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute") );
 			else

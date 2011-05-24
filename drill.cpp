@@ -53,6 +53,15 @@ ExcellonProcessor::ExcellonProcessor( string drillfile, const ivalue_t board_wid
 		"M2 ( Program end. )\n\n";
 }
 
+
+void
+ExcellonProcessor::set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo )
+{
+	this->svgexpo = svgexpo;
+	bDoSVG = true;
+}
+
+
 void
 ExcellonProcessor::add_header( string header )
 {
@@ -64,6 +73,9 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 {
 	ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
+	//SVG EXPORTER
+	int rad = 1.;
+	
 	// open output file
 	std::ofstream of; of.open( of_name.c_str() );
 
@@ -101,12 +113,31 @@ ExcellonProcessor::export_ngc( const string of_name, shared_ptr<Driller> driller
 		const icoords drill_coords = holes->at(it->first);
 		icoords::const_iterator coord_iter = drill_coords.begin();
 
+		
+		//SVG EXPORTER
+		if (bDoSVG) {
+			//set a random color
+			svgexpo->set_rand_color();
+			//draw first circle
+			svgexpo->circle( (double_mirror_axis - coord_iter->first), coord_iter->second, rad);		
+			svgexpo->stroke();
+		}
+		
+		
 		of << "G81 R" << driller->zsafe << " Z" << driller->zwork << " F" << driller->feed 
 		   << " X" << (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first) << " Y" << coord_iter->second << endl;
 		++coord_iter;
 
 		while( coord_iter != drill_coords.end() ) {
 			of << "X" << (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first) << " Y" << coord_iter->second << endl;
+			
+			//SVG EXPORTER
+			if (bDoSVG) {
+				//make a whole
+				svgexpo->circle( (double_mirror_axis - coord_iter->first), coord_iter->second, rad);
+				svgexpo->stroke();
+			}
+			
 			++coord_iter;
 		}
 

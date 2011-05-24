@@ -45,6 +45,7 @@ extern "C" {
 class drill_exception : virtual std::exception, virtual boost::exception {};
 
 #include "mill.hpp"
+#include "svg_exporter.hpp"
 
 
 class drillbit
@@ -72,6 +73,9 @@ public:
 	void add_header( string );
 	void set_preamble(string);
 	void set_postamble(string);
+	
+	//SVG EXPORTER
+	void set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo );
 
 	void export_ngc( const string of_name, shared_ptr<Driller> target, bool mirrored, bool mirror_absolute );
 	void export_ngc( const string of_name, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute );
@@ -84,6 +88,9 @@ private:
 	void parse_bits();
 
 	const ivalue_t board_width;
+	
+	bool bDoSVG;
+	shared_ptr<SVG_Exporter> svgexpo;
 
 	shared_ptr< map<int,drillbit> > bits;
 	shared_ptr< map<int,icoords> > holes;

@@ -29,7 +29,17 @@ using namespace std;
 NGC_Exporter::NGC_Exporter( shared_ptr<Board> board ) : Exporter(board)
 {
 	this->board = board;
+	bDoSVG = false;
 }
+
+
+void
+NGC_Exporter::set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo )
+{
+	this->svgexpo = svgexpo;
+	bDoSVG = true;
+}
+
 
 void
 NGC_Exporter::add_header( string header )
@@ -64,6 +74,8 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	string layername = layer->get_name();
 	shared_ptr<RoutingMill> mill = layer->get_manufacturer();
 
+	bool bSvgOnce = TRUE;
+	
 	// open output file
 	std::ofstream of; of.open( of_name.c_str() );
 
@@ -89,6 +101,14 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	of << "G64 P" << get_tolerance() << " ( set maximum deviation from commanded toolpath )\n"
 	   << endl;
 
+	
+	//SVG EXPORTER
+	if (bDoSVG) {
+		//choose a color
+		svgexpo->set_rand_color();
+	}
+	
+	
 	// contours
  	BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() )
         {
@@ -97,6 +117,13 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 		of << "G00 Z" << mill->zsafe << " ( retract )\n" << endl;
                 of << "G00 X" << path->begin()->first << " Y" << path->begin()->second << " ( rapid move to begin. )\n";
 		
+			
+		//SVG EXPORTER
+		if (bDoSVG) {						
+			svgexpo->move_to(path->begin()->first, path->begin()->second);
+			bSvgOnce = TRUE;
+		}
+			
 		/** if we're cutting, perhaps do it in multiple steps, but do isolations just once.
 		 *  i know this is partially repetitive, but this way it's easier to read
 		 */
@@ -125,9 +152,19 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 							/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
 					  ) {
 						of << "X" << iter->first << " Y" << iter->second << endl;
+						
+						//SVG EXPORTER
+						if (bDoSVG) {
+							if (bSvgOnce) svgexpo->line_to(iter->first, iter->second);
+						}
 					}
 					last = iter;
 					++iter;
+				}
+				//SVG EXPORTER
+				if (bDoSVG) {
+					svgexpo->close_path();
+					bSvgOnce = FALSE;
 				}
 			
 				z -= z_step;
@@ -152,10 +189,19 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 						/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
 				  ) {
 					of << "X" << iter->first << " Y" << iter->second << endl;
+					
+					//SVG EXPORTER
+					if (bDoSVG) if (bSvgOnce) svgexpo->line_to(iter->first, iter->second);
+
 				}
 				last = iter;
 				++iter;
-			}		
+			}
+			//SVG EXPORTER
+			if (bDoSVG) {
+				svgexpo->close_path();
+				bSvgOnce = FALSE;
+			}
 
 		}
 
@@ -173,6 +219,11 @@ NGC_Exporter::export_layer( shared_ptr<Layer> layer, string of_name )
 	of << "M2 ( Program end. )\n\n";
 
 	of.close();
+	
+	//SVG EXPORTER
+	if (bDoSVG) {
+		svgexpo->stroke();
+	}
 }
 
 void NGC_Exporter::set_preamble(string _preamble)

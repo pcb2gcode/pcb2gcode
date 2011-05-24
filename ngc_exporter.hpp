@@ -39,6 +39,7 @@ using boost::shared_ptr;
 #include "coord.hpp"
 #include "mill.hpp"
 #include "exporter.hpp"
+#include "svg_exporter.hpp"
 
 class NGC_Exporter : public Exporter
 {
@@ -50,6 +51,9 @@ public:
 
 	void add_header( string );
 	void export_all( boost::program_options::variables_map& );
+
+	//SVG EXPORTER
+	void set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo );
 	
 	void set_preamble(string);
 	void set_postamble(string);
@@ -58,6 +62,10 @@ protected:
 	double get_tolerance( void );
 	void export_layer( shared_ptr<Layer> layer, string of_name );
 
+	//SVG EXPORTER
+	bool bDoSVG;
+	shared_ptr<SVG_Exporter> svgexpo;
+	
 	shared_ptr<Board> board;
 	vector<string> header;
 	string preamble, postamble;

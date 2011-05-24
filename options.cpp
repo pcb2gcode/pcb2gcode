@@ -131,6 +131,8 @@ options::options() : cli_options("command line only options"),
 		("outline",  po::value<string>(), "pcb outline polygon RS274-X .gbr")
 		("drill", po::value<string>(), "Excellon drill file\n")
 
+		("svg", po::value<string>(), "SVG file\n")
+	
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
 		("offset",   po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
