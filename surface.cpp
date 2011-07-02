@@ -325,6 +325,7 @@ void Surface::run_to_border(int& x, int& y)
 }
 
 int offset8[8][2] = {{1,0}, {1,1}, {0,1}, {-1,1}, {-1,0}, {-1,-1}, {0,-1}, {1,-1}};
+int offset4[4][2] = {{1,0}, {0,1}, {-1,0}, {0,-1}};
 
 // true if free for growing components
 inline bool Surface::allow_grow(int x, int y, guint32 ownclr)
@@ -388,9 +389,12 @@ void Surface::calculate_outline(const int x, const int y,
 
 	outside.push_back( pair<int,int>(xout, yout) );
 
+	int blasts = 0;
+
 	while(true)
 	{
 		int i;
+		int steps = 0; // number of steps done in 1 iteration of the while loop
 
 		// step outside
 		for(i = 0; i < 8; i++)
@@ -426,38 +430,15 @@ void Surface::calculate_outline(const int x, const int y,
 			else
 				break;
 		}
-
-		// check whether stepping was successful.
-		// this prevents endless loops that can occur in rare cases
-		if( i == 0 ) {
-			// blast the problem
-			for(; i < 8; i++) {
-				int cx = xout + offset8[i][0];
-				int cy = yout + offset8[i][1];
-
-				guint8* pixel = pixels + cx * 4 + cy * stride;
-				PRC(pixel) = 0;
-			}
-			PRC(pixels+xstart*4+ystart*stride) = owncolor;
-			// start right at the beginning. still more efficient than keeping
-			// the history necessary to be able to continue next to the problem.
-			inside.clear();
-			outside.clear();
-			xstart = x;
-			ystart = y;
-			run_to_border(xstart,ystart);
-			xout = xstart;
-			yout = ystart;
-			xin = xout-1;
-			yin = yout;
-			outside.push_back( pair<int,int>(xout, yout) );
-			continue;
-		} else if( i == 8 ) {
+		if( i == 8 ) {
 			save_debug_image("error_outsideoverstepping");
 			std::stringstream msg;
 			msg << "Outside over-stepping at in(" << xin << "," << yin << ")\n";
 			throw std::logic_error( msg.str() );
 		}
+
+		steps += i;
+
 
 		// step inside
 		for(i = 0; i < 8; i++)
@@ -485,14 +466,75 @@ void Surface::calculate_outline(const int x, const int y,
 			else
 				break;
 		}
-
 		if( i == 8 ) {
 			save_debug_image("error_insideoverstepping");
 			std::stringstream msg;
 			msg << "Inside over-stepping at out(" << xout << "," << yout << ")\n";
 			throw std::logic_error( msg.str() );
 		}
+
+		steps += i;
+
+		// check whether we made any progress calculating the trace outline.
+		// if we haven't, our algorithm is deadlocked by stray pixels
+		// we try to resolve this by enforcing the algorithm's constraints
+		// for the components
+		if( steps == 0 ) {
+			int changes = 0;
+			// test constraints for surrounding pixels, enforce if necessary
+			for(i = 0; i < 8; i++) {
+				int cx = xin + offset8[i][0];
+				int cy = yin + offset8[i][1];
+				guint8* pixel = pixels + cx * 4 + cy * stride;
+
+				if( allow_grow( cx, cy, owncolor) ) {
+					PRC(pixel) = owncolor;
+					changes++;
+				}
+				
+				// if a component pixel can't be reached non-diagonally, clear it
+				// even if it was set just now
+				int j;
+				for(j = 0; j < 4; j++) {
+					if( PRC( pixels + (cx + offset4[j][0]) * 4
+						 + (cy + offset4[j][1]) * stride )
+					    != BLACK ) break;
+				}
+				if( j == 4 ) {
+					PRC(pixel) = BLACK;
+					changes++;
+				}
+			}
+			if( allow_grow(xstart, ystart, owncolor) )
+				PRC(pixels+xstart*4+ystart*stride) = owncolor;
+			
+			if( changes == 0 ) {
+				PRC(pixels + xin*4 + yin*stride) |= RED;
+				PRC(pixels + xout*4 + yout*stride) |= BLUE;
+				save_debug_image("failed_repair");
+				std::stringstream msg;
+				msg << "Failed repairing @ (" << xin << "," << yin << ")\n";
+				throw std::logic_error( msg.str() );
+			} else
+				blasts++;
+
+			// start right at the beginning. still more efficient than keeping
+			// the history necessary to be able to continue next to the problem.
+			inside.clear();
+			outside.clear();
+			xstart = x;
+			ystart = y;
+			run_to_border(xstart,ystart);
+			xout = xstart;
+			yout = ystart;
+			xin = xout-1;
+			yin = yout;
+			outside.push_back( pair<int,int>(xout, yout) );
+			continue;
+		}
 	}
+
+	fprintf(stderr, "blasts: %d", blasts);
 }
 
 guint Surface::grow_a_component(int x, int y, int& contentions)
@@ -527,6 +569,8 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
 			contentions++;
 		}
 	}
+
+
 
 	return pixels_changed;
 }
