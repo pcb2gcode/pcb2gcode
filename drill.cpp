@@ -37,6 +37,7 @@ using std::pair;
 
 ExcellonProcessor::ExcellonProcessor( string drillfile, const ivalue_t board_width ) : board_width(board_width)
 {
+	bDoSVG = false;
 	project = gerbv_create_project();
 
 	const char* cfilename = drillfile.c_str();
