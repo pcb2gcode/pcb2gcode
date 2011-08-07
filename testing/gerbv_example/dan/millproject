@@ -1,0 +1,11 @@
+dpi=500
+
+front=top.gbx
+back=top_sr.gbx
+
+offset=0.010
+zwork=-0.008
+zsafe=0.08
+mill-feed=6
+mill-speed=30000
+zchange=1.0

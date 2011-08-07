@@ -1,0 +1,10 @@
+dpi=500
+
+back=l1-orig.grb
+
+offset=0.5
+zwork=-0.008
+zsafe=0.08
+mill-feed=6
+mill-speed=30000
+zchange=1.0

@@ -1,0 +1,22 @@
+This is a quick hack to aid refactoring pcb2gcode.
+Needs python 2.7, meld
+
+Uses some of the example files that come with the (awesome) gerbv project.
+
+The script accepts 4 parameters:
+    buildold:	   run pcb2gcode on all four example projects, save results and use as output of "old" version
+    buildnew:	   same as buildold, but use as output of "new" version in comparison
+    cmp:	   compare output of "old" and "new" version
+    clean:	   remove files created by buildold and buildnew
+
+
+It is used as follows:
+   1) run "python test.py buildold"
+   2) refactor pcb2gcode
+   3) run "python test.py buildnew"
+   4) run "python test.py cmp"
+   5) if the output differs:
+      	 a) meld is automatically called so you can check what has changed
+	 b) you fix your mistakes, continue with 3)
+      if the output is the same:
+      	 a) celebrate, then send me your improvements ;-)
