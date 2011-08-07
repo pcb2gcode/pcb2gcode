@@ -114,9 +114,9 @@ int main( int argc, char* argv[] )
 
 	// prepare custom preamble
 	string preamble, postamble;
-/*	if( options::have_str("preamble"))
+	if( options::have_str("preamble"))
 	{
-		string name = vm["preamble"].as<string>();
+		string name = options::str("preamble");
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
@@ -127,9 +127,9 @@ int main( int argc, char* argv[] )
 		preamble = tmp + "\n\n";
 	}
 
-	if( vm.count("postamble"))
+	if( options::have_str("postamble"))
 	{
-		string name = vm["postamble"].as<string>();
+		string name = options::str("postamble");
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
@@ -138,7 +138,7 @@ int main( int argc, char* argv[] )
 		}
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		postamble = tmp + "\n\n";
-		} */
+	}
 
 	shared_ptr<Board> board(new Board( options::dbl("dpi"), options::flag("fill-outline"),
 					   options::flag("fill-outline") ? options::dbl("outline-width") : INFINITY ));
