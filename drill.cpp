@@ -202,8 +202,7 @@ ExcellonProcessor::export_ngc( const string outputname,  shared_ptr<Cutter> targ
 	cerr << "Currently Drilling "<< endl;
 
 	// open output file
-	std::stringstream of_name; of_name << outputname << ".ngc";
-	std::ofstream of; of.open( of_name.str().c_str() );
+	std::ofstream of; of.open( outputname.c_str() );
 
 	shared_ptr<const map<int,drillbit> > bits = get_bits();
 	shared_ptr<const map<int,icoords> > holes = get_holes();	
