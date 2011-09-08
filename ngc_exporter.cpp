@@ -1,4 +1,3 @@
-
 /*
  * This file is part of pcb2gcode.
  * 
@@ -65,10 +64,8 @@ NGC_Exporter::export_all()
 double
 NGC_Exporter::get_tolerance( void )
 {
-	// maximum deviation is less than 1px for every point in the path; 0.75
-	// is the minimum required to get seemingly smooth movements in the
-	// emc2 simulation machine
-	return 0.75/this->board->get_dpi();
+	// set maximum deviation to 5 pixels to ensure smooth movement
+	return 5.0/this->board->get_dpi();
 }
 
 void
