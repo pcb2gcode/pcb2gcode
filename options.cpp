@@ -131,7 +131,7 @@ options::options() : cli_options("command line only options"),
 		("outline",  po::value<string>(), "pcb outline polygon RS274-X .gbr")
 		("drill", po::value<string>(), "Excellon drill file\n")
 
-		("svg", po::value<string>(), "SVG file\n")
+		("svg", po::value<string>(), "SVG output file. EXPERIMENTAL\n")
 	
 		("zwork",    po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")
 		("zsafe",      po::value<double>(), "safety height (Z-coordinate during rapid moves)")
@@ -155,7 +155,7 @@ options::options() : cli_options("command line only options"),
 		("drill-speed", po::value<int>(), "spindle rpm when drilling")
 		("drill-front", po::value<bool>()->zero_tokens(), "drill through the front side of board\n")
 
-		("metric",   "all units are given metric")
+		("metric",   "use metric units for parameters. does not affect gcode output")
 		("dpi",      po::value<int>()->default_value(1000),   "virtual photoplot resolution")
 		("mirror-absolute",      po::value<bool>()->zero_tokens(),   "mirror back side along absolute zero instead of board center\n")
 
