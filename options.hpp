@@ -2,7 +2,7 @@
 /*
  * This file is part of pcb2gcode.
  * 
- * Copyright (C) 2009, 2010, 2011 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
+ * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * 
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,44 +21,37 @@
 #ifndef OPTIONS_HPP
 #define OPTIONS_HPP
 
-#include <list>
-using std::list;
 #include <stdexcept>
-#include <string>
-using std::string;
+
+#include <boost/shared_ptr.hpp>
+using boost::shared_ptr;
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 #include <boost/noncopyable.hpp>
 
-#include <GetPotM>
-
+#include <istream>
+#include <string>
+using std::string;
 
 class options : boost::noncopyable
 {
 public:
 	static void parse( int argc, char** argv );
-	static void parse( string file );
+	static void parse_files();
 	static void check_parameters();
 
-	static bool flag( string name );
-	static bool cl_flag( string name );
-
-	static bool have_dbl( string name );
-	static double dbl( string name );
-	static double dbl( string name, double default_value );
-
-	static bool have_str( string name );
-	static string str( string name );
-	static string str( string name, string default_value );
-
+	static po::variables_map& get_vm() { return instance().vm; };
 	static string help();
-private:
-	options(){};
-	list<GetPot> sources;
 
-	static void check_generic_parameters();
-	static void check_milling_parameters();
-	static void check_cutting_parameters();
-	static void check_drilling_parameters();
+private:
+	options();
+	
+	po::variables_map vm;
+
+	po::options_description cli_options; //! CLI options
+	po::options_description cfg_options; //! generic options
 
 	static options& instance();
 };

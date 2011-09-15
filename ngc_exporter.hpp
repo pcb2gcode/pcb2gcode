@@ -34,6 +34,8 @@ using std::ofstream;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
+#include <boost/program_options.hpp>
+
 #include "coord.hpp"
 #include "mill.hpp"
 #include "exporter.hpp"
@@ -43,20 +45,18 @@ class NGC_Exporter : public Exporter
 {
 public:
 	NGC_Exporter( shared_ptr<Board> board );
-	virtual ~NGC_Exporter();
 
 	/* virtual void add_path( shared_ptr<icoords> ); */
         /* virtual void add_path( vector< shared_ptr<icoords> > ); */
 
 	void add_header( string );
-
-	void export_all();
-	
-	void set_preamble(string);
-	void set_postamble(string);
+	void export_all( boost::program_options::variables_map& );
 
 	//SVG EXPORTER
 	void set_svg_exporter( shared_ptr<SVG_Exporter> svgexpo );
+	
+	void set_preamble(string);
+	void set_postamble(string);
 
 protected:
 	double get_tolerance( void );
