@@ -9,6 +9,10 @@
 #drill=board.plated-drill.cnc
 
 
+# The board outline is 10mil wide, no holes
+fill-outline = yes
+outline-width = 0.010
+
 # parameters for isolation routing / engraving / etching
 #offset=1			# uncomment for voronoi regions
 #offset=0.010		# uncomment for 20mil isolator
