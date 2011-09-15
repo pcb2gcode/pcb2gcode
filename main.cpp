@@ -1,7 +1,7 @@
 /*
  * This file is part of pcb2gcode.
  *
- * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
+ * Copyright (C) 2009, 2010, 2011 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -113,9 +113,9 @@ int main( int argc, char* argv[] )
 
 	// prepare custom preamble
 	string preamble, postamble;
-	if( vm.count("preamble"))
+	if( vm.count("preamble") )
 	{
-		string name = options::str("preamble");
+		string name = vm["preamble"].as<string>();
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
@@ -126,9 +126,9 @@ int main( int argc, char* argv[] )
 		preamble = tmp + "\n\n";
 	}
 
-	if( options::have_str("postamble"))
+	if( vm.count("postamble") )
 	{
-		string name = options::str("postamble");
+		string name = vm["postamble"].as<string>();
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
