@@ -3,6 +3,12 @@ This is a complete rewrite of the original pcb2gcode in C++.
 Quick Installation
 ***************
 
+
+Archlinux:
+pcb2gcode stable 1.1.3 -> https://aur.archlinux.org/packages.php?ID=50457
+pcb2gcode git 1.1.4 -> https://aur.archlinux.org/packages.php?ID=55198
+
+
 Fedora:
 *) Open a terminal and cd to the extracted tarball
 *) type the following:
@@ -16,7 +22,11 @@ Fedora:
       su -c 'make install'
 *) done.
 
-Ubuntu:
+
+Debian, Ubuntu:
+There are pcb2gcode packages in the official repositories.
+The Ubuntu ones are outdated (1.1.2) as of 26-12-2011, I recommend installing 1.1.4 from source.
+
 *) Open a terminal and cd to the extracted tarball
 *) type the following:
       sudo apt-get install build-essential automake autoconf libtool libboost-all-dev libgtkmm-2.4-dev gerbv
