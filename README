@@ -1,3 +1,14 @@
+This is a fork of git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode.
+
+Goals:
+- Implement option to set g64 manually istead of internal dpi>g64 calculation.
+- Implement metric output option.
+- Implement option to use only one drillsize.
+- Start documenting the code.
+- Reformat the code according Linux coding style.
+
+ORIGINAL README:
+
 This is a complete rewrite of the original pcb2gcode in C++.
 
 Quick Installation
