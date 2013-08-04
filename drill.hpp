@@ -1,30 +1,32 @@
 /*!\defgroup DRILL*/
 /******************************************************************************/
 /*!
-\file   drill.hpp
-\brief  This file is part of pcb2gcode.
+ \file   drill.hpp
+ \brief  This file is part of pcb2gcode.
 
-\version
-        1.1.x - 2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
-        - Formatted according to Linux coding style.
+ \version
+ 04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Added onedrill option.
+ - Formatted according to Linux coding style.
+ - Started documenting the code for doxygen processing.
 
-\version
-        1.1.4 - 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
+ \version
+ 1.1.4 - 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
 
-\copyright
-        pcb2gcode is free software: you can redistribute it and/or modify
-        it under the terms of the GNU General Public License as published by
-        the Free Software Foundation, either version 3 of the License, or
-        (at your option) any later version.
-        pcb2gcode is distributed in the hope that it will be useful,
-        but WITHOUT ANY WARRANTY; without even the implied warranty of
-        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-        GNU General Public License for more details.
-        You should have received a copy of the GNU General Public License
-        along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
+ \copyright
+ pcb2gcode is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ pcb2gcode is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ You should have received a copy of the GNU General Public License
+ along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
 
-\ingroup    DRILL
-*/
+ \ingroup    DRILL
+ */
 /******************************************************************************/
 
 #ifndef DRILL_H
@@ -44,25 +46,29 @@ using std::map;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
-extern "C" {
+extern "C"
+{
 #include <gerbv.h>
 }
 
 #include "coord.hpp"
 
 #include <boost/exception/all.hpp>
-class drill_exception : virtual std::exception, virtual boost::exception {};
+class drill_exception: virtual std::exception, virtual boost::exception
+{
+};
 
 #include "mill.hpp"
 #include "svg_exporter.hpp"
 
 /******************************************************************************/
 /*
-*/
+ */
 /******************************************************************************/
 class drillbit
 {
-        public: //Variables, constants, flags...
+        public:
+                //Variables, constants, flags...
                 double diameter;
                 string unit;
                 int drill_count;
@@ -70,47 +76,53 @@ class drillbit
 
 /******************************************************************************/
 /*
-\brief  Reads Excellon drill files and directly creates RS274-NGC gcode output.
-\remark While we could easily add different input and output formats for the layerfiles
-        to pcb2gcode, i've decided to ditch the importer/exporter scheme here.
-        We'll very likely not encounter any drill files that gerbv can't read, and
-        still rather likely never export to anything other than a ngc g-code file.
-        Also, i'm lazy, and if I turn out to be wrong splitting the code won't be much effort anyway.
-*/
+ \brief  Reads Excellon drill files and directly creates RS274-NGC gcode output.
+ \remark While we could easily add different input and output formats for the layerfiles
+ to pcb2gcode, i've decided to ditch the importer/exporter scheme here.
+ We'll very likely not encounter any drill files that gerbv can't read, and
+ still rather likely never export to anything other than a ngc g-code file.
+ Also, i'm lazy, and if I turn out to be wrong splitting the code won't be much effort anyway.
+ */
 /******************************************************************************/
 class ExcellonProcessor
 {
-        public: //Methods
-                ExcellonProcessor (const string drillfile, const ivalue_t board_width, bool _metricoutput);
+        public:
+                //Methods
+                ExcellonProcessor(const string drillfile,
+                                const ivalue_t board_width, bool metricoutput);
                 ~ExcellonProcessor();
-                void add_header (string);
-                void set_preamble (string);
-                void set_postamble (string);
-                void export_ngc (const string of_name, shared_ptr<Driller> target, bool mirrored, bool mirror_absolute);
-                void export_ngc (const string of_name, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute);
-                void set_svg_exporter (shared_ptr<SVG_Exporter> svgexpo);
-                
+                void add_header(string);
+                void set_preamble(string);
+                void set_postamble(string);
+                void export_ngc(const string of_name,
+                                shared_ptr<Driller> target, bool mirrored,
+                                bool mirror_absolute, bool onedrill);
+                void export_ngc(const string of_name, shared_ptr<Cutter> target,
+                                bool mirrored, bool mirror_absolute, bool onedrill);
+                void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
+
                 //Variables, constants, flags...
                 shared_ptr<const map<int, drillbit> > get_bits();
                 shared_ptr<const map<int, icoords> > get_holes();
 
-        private://Methods
+        private:
+                //Methods
                 void parse_holes();
                 void parse_bits();
-                void millhole (std::ofstream &of, float x, float y, shared_ptr<Cutter> cutter, float holediameter);
-                
+                void millhole(std::ofstream &of, float x, float y,
+                                shared_ptr<Cutter> cutter, float holediameter);
+
                 //Variables, constants, flags...
                 const ivalue_t board_width;
-                bool bDoSVG;                    //!< Flag to indicate SVG output
+                bool bDoSVG; //!< Flag to indicate SVG output
                 shared_ptr<SVG_Exporter> svgexpo;
-                shared_ptr< map<int, drillbit> > bits;
-                shared_ptr< map<int, icoords> > holes;
+                shared_ptr<map<int, drillbit> > bits;
+                shared_ptr<map<int, icoords> > holes;
                 gerbv_project_t* project;
                 vector<string> header;
-                string preamble;                //!< Preamble for output file
-                string postamble;               //!< Postamble for output file
-                bool metricoutput;              //!< Flag to indicate metric g-code output
-                double factor;                  //!< Conversion factor imperial/metric
+                string preamble; //!< Preamble for output file
+                string postamble; //!< Postamble for output file
+                double cfactor; //!< imperial/metric conversion factor for output file
 };
 
 #endif // DRILL_H

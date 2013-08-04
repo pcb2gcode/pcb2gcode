@@ -186,8 +186,8 @@ options::options() : cli_options ("command line only options"),
         ("zchange", po::value<double>(), "tool changing height")
         ("drill-feed", po::value<double>(), "drill feed; ipm")
         ("drill-speed", po::value<int>(), "spindle rpm when drilling")
-        ("drill-front", po::value<bool>()->zero_tokens(), "drill through the front side of board\n")
-        ("onerill", po::value<bool>()->default_value (false)->zero_tokens()->implicit_value (true), "Only use one drill bit size.")
+        ("drill-front", po::value<bool>()->zero_tokens(), "drill through the front side of board")
+        ("onedrill", po::value<bool>()->default_value (false)->zero_tokens()->implicit_value (true), "use only one drill bit size\n")
 
         ("metric",       po::value<bool>()->default_value (false)->zero_tokens()->implicit_value (true), "use metric units for parameters. does not affect gcode output")
         ("metricoutput", po::value<bool>()->default_value (false)->zero_tokens()->implicit_value (true), "use metric units for output")
