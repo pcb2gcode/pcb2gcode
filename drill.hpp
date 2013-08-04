@@ -7,7 +7,7 @@
  \version
  04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added onedrill option.
- - Formatted according to Linux coding style.
+ - Formatted the code with the Eclipse code styler (Style: K&R).
  - Started documenting the code for doxygen processing.
 
  \version
@@ -46,16 +46,14 @@ using std::map;
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
 
-extern "C"
-{
+extern "C" {
 #include <gerbv.h>
 }
 
 #include "coord.hpp"
 
 #include <boost/exception/all.hpp>
-class drill_exception: virtual std::exception, virtual boost::exception
-{
+class drill_exception: virtual std::exception, virtual boost::exception {
 };
 
 #include "mill.hpp"
@@ -65,13 +63,12 @@ class drill_exception: virtual std::exception, virtual boost::exception
 /*
  */
 /******************************************************************************/
-class drillbit
-{
-        public:
-                //Variables, constants, flags...
-                double diameter;
-                string unit;
-                int drill_count;
+class drillbit {
+public:
+	//Variables, constants, flags...
+	double diameter;
+	string unit;
+	int drill_count;
 };
 
 /******************************************************************************/
@@ -84,45 +81,43 @@ class drillbit
  Also, i'm lazy, and if I turn out to be wrong splitting the code won't be much effort anyway.
  */
 /******************************************************************************/
-class ExcellonProcessor
-{
-        public:
-                //Methods
-                ExcellonProcessor(const string drillfile,
-                                const ivalue_t board_width, bool metricoutput);
-                ~ExcellonProcessor();
-                void add_header(string);
-                void set_preamble(string);
-                void set_postamble(string);
-                void export_ngc(const string of_name,
-                                shared_ptr<Driller> target, bool mirrored,
-                                bool mirror_absolute, bool onedrill);
-                void export_ngc(const string of_name, shared_ptr<Cutter> target,
-                                bool mirrored, bool mirror_absolute, bool onedrill);
-                void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
+class ExcellonProcessor {
+public:
+	//Methods
+	ExcellonProcessor(const string drillfile, const ivalue_t board_width,
+			bool metricoutput);
+	~ExcellonProcessor();
+	void add_header(string);
+	void set_preamble(string);
+	void set_postamble(string);
+	void export_ngc(const string of_name, shared_ptr<Driller> target,
+			bool mirrored, bool mirror_absolute, bool onedrill);
+	void export_ngc(const string of_name, shared_ptr<Cutter> target,
+			bool mirrored, bool mirror_absolute, bool onedrill);
+	void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
 
-                //Variables, constants, flags...
-                shared_ptr<const map<int, drillbit> > get_bits();
-                shared_ptr<const map<int, icoords> > get_holes();
+	//Variables, constants, flags...
+	shared_ptr<const map<int, drillbit> > get_bits();
+	shared_ptr<const map<int, icoords> > get_holes();
 
-        private:
-                //Methods
-                void parse_holes();
-                void parse_bits();
-                void millhole(std::ofstream &of, float x, float y,
-                                shared_ptr<Cutter> cutter, float holediameter);
+private:
+	//Methods
+	void parse_holes();
+	void parse_bits();
+	void millhole(std::ofstream &of, float x, float y,
+			shared_ptr<Cutter> cutter, float holediameter);
 
-                //Variables, constants, flags...
-                const ivalue_t board_width;
-                bool bDoSVG; //!< Flag to indicate SVG output
-                shared_ptr<SVG_Exporter> svgexpo;
-                shared_ptr<map<int, drillbit> > bits;
-                shared_ptr<map<int, icoords> > holes;
-                gerbv_project_t* project;
-                vector<string> header;
-                string preamble; //!< Preamble for output file
-                string postamble; //!< Postamble for output file
-                double cfactor; //!< imperial/metric conversion factor for output file
+	//Variables, constants, flags...
+	const ivalue_t board_width;
+	bool bDoSVG; //!< Flag to indicate SVG output
+	shared_ptr<SVG_Exporter> svgexpo;
+	shared_ptr<map<int, drillbit> > bits;
+	shared_ptr<map<int, icoords> > holes;
+	gerbv_project_t* project;
+	vector<string> header;
+	string preamble; //!< Preamble for output file
+	string postamble; //!< Postamble for output file
+	double cfactor; //!< imperial/metric conversion factor for output file
 };
 
 #endif // DRILL_H
