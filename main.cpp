@@ -5,6 +5,11 @@
  \brief      Main module of pcb2gcode.
 
  \version
+ 18.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Added cut-front option.
+ - Formatted command line output.
+
+ \version
  04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added onedrill option.
  - Added metricoutput option.
@@ -179,45 +184,43 @@ int main(int argc, char* argv[]) {
 
 		try {
 			string frontfile = vm["front"].as<string>();
-			boost::shared_ptr<LayerImporter> importer(
-					new GerberImporter(frontfile));
-			board->prepareLayer("front", importer, isolator, false,
-					vm.count("mirror-absolute"));
-			cout << "done\n";
+			boost::shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
+			board->prepareLayer("front", importer, isolator, false, vm.count("mirror-absolute"));
+			cout << "DONE.\n";
 		} catch (import_exception& i) {
-			cout << "error\n";
+			cout << "ERROR.\n";
 		} catch (boost::exception& e) {
-			cout << "not specified\n";
+			cout << "not specified.\n";
 		}
 
 		cout << "Importing back side... ";
 
 		try {
 			string backfile = vm["back"].as<string>();
-			boost::shared_ptr<LayerImporter> importer(
-					new GerberImporter(backfile));
-			board->prepareLayer("back", importer, isolator, true,
-					vm.count("mirror-absolute"));
-			cout << "done\n";
+			boost::shared_ptr<LayerImporter> importer(new GerberImporter(backfile));
+			board->prepareLayer("back", importer, isolator, true, vm.count("mirror-absolute"));
+			cout << "DONE.\n";
 		} catch (import_exception& i) {
-			cout << "error\n";
+			cout << "ERROR.\n";
 		} catch (boost::exception& e) {
-			cout << "not specified\n";
+			cout << "not specified.\n";
 		}
 
 		cout << "Importing outline... ";
 
+		//outline from front or back side:
+		bool flip_outline = false;
+		flip_outline = vm.count("cut-front") ? !vm["cut-front"].as<bool>() : !vm.count("front");
+
 		try {
 			string outline = vm["outline"].as<string>();
-			boost::shared_ptr<LayerImporter> importer(
-					new GerberImporter(outline));
-			board->prepareLayer("outline", importer, cutter, !vm.count("front"),
-					vm.count("mirror-absolute"));
-			cout << "done\n";
+			boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
+			board->prepareLayer("outline", importer, cutter, flip_outline , vm.count("mirror-absolute"));
+			cout << "DONE.\n";
 		} catch (import_exception& i) {
-			cout << "error\n";
+			cout << "ERROR.\n";
 		} catch (boost::exception& e) {
-			cout << "not specified\n";
+			cout << "not specified.\n";
 		}
 
 	} catch (import_exception ie) {
@@ -260,8 +263,9 @@ int main(int argc, char* argv[]) {
 	} catch (std::runtime_error& re) {
 	}
 
+	cout << "Importing drill... ";
+
 	if (vm.count("drill")) {
-		cout << "Converting " << vm["drill"].as<string>() << "... ";
 
 		try {
 			ExcellonProcessor ep(vm["drill"].as<string>(),
@@ -285,15 +289,14 @@ int main(int argc, char* argv[]) {
 						vm["onedrill"].as<bool>());
 			else
 				ep.export_ngc(vm["drill-output"].as<string>(), driller,
-						!vm.count("drill-front"), vm.count("mirror-absolute"),
+						vm.count("drill-front"), vm.count("mirror-absolute"),
 						vm["onedrill"].as<bool>());
-
-			cout << "done.\n";
+			cout << "DONE.\n";
 		} catch (drill_exception& e) {
 			cout << "ERROR.\n";
 		}
 	} else {
-		cout << "No drill file specified.\n";
+		cout << "not specified.\n";
 	}
 
 }
