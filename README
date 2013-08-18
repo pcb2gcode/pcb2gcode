@@ -1,14 +1,17 @@
 This is a fork of git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode.
 
-Goals:
-- Implement option to set g64 manually istead of internal dpi>g64 calculation > DONE.
-- Implement metric output option >> DONE.
-- Implement option to use only one drillsize >> DONE.
-- Start documenting the code >> DONE.
-- Reformat the code with Eclipse code styler (K&R) >> DONE.
+Changes to original:
+- option to set g64 manually istead of internal dpi>g64 calculation.
+- metric output option.
+- option to use only one drillsize.
+- option to cut outline from the front.
+- calculate boardwith for drill file based on drill coordinates, not on top/bottom layer.
+- reformatted the code with Eclipse code styler (K&R).
+- started documenting the code.
 
 ToDo:
 - The Milldrill option does not work with metricoutput yet.
+- Why is no front+back side generated if a single pcb2gcode call is used?
 
 ORIGINAL README:
 
