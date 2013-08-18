@@ -5,6 +5,10 @@
  \brief  This file is part of pcb2gcode.
 
  \version
+ 18.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Changed x-coordinate calculation.
+
+ \version
  04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added onedrill option.
  - Formatted the code with the Eclipse code styler (Style: K&R).
@@ -55,6 +59,7 @@ using std::pair;
 ExcellonProcessor::ExcellonProcessor(string drillfile,
 		const ivalue_t board_width, bool metricoutput) :
 		board_width(board_width) {
+
 	bDoSVG = false; //clear flag for SVG export
 	project = gerbv_create_project();
 
@@ -69,6 +74,7 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
 
 	//set imperial/metric conversion factor for output coordinates depending on metricoutput option
 	cfactor = metricoutput ? 25.4 : 1;
+	calc_dimensions();
 
 	//set metric or imperial preambles
 	if (metricoutput) {
@@ -113,17 +119,76 @@ void ExcellonProcessor::add_header(string header) {
 
 /******************************************************************************/
 /*
+ \brief	Calculate the board dimensions based on the drill file only
+ */
+/******************************************************************************/
+void ExcellonProcessor::calc_dimensions(void) {
+
+	x_min = +INFINITY;
+	x_max = -INFINITY;
+
+	shared_ptr<const map<int, drillbit> > bits = get_bits();
+	shared_ptr<const map<int, icoords> > holes = get_holes();
+
+	for (map<int, drillbit>::const_iterator it = bits->begin();
+			it != bits->end(); it++) {
+		const icoords drill_coords = holes->at(it->first);
+		icoords::const_iterator coord_iter = drill_coords.begin();
+		x_min = (coord_iter->first < x_min) ? coord_iter->first : x_min;
+		x_max = (coord_iter->first > x_max) ? coord_iter->first : x_max;
+		++coord_iter;
+		while (coord_iter != drill_coords.end()) {
+			x_min = (coord_iter->first < x_min) ? coord_iter->first : x_min;
+			x_max = (coord_iter->first > x_max) ? coord_iter->first : x_max;
+
+			++coord_iter;
+		}
+	}
+	width = x_max - x_min;
+	x_center = x_min + width/2;
+}
+
+/******************************************************************************/
+/*
+ \brief	Recalulates the x-coordinate based on drillfront and mirror_absolute
+ \param	drillfront = drill from front side
+ \param	mirror_absoulte = mirror back side on y-axis
+ \param xvalue = x-coordinate
+ \retval recalulated x-coordinate
+ */
+/******************************************************************************/
+double	ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute, double xvalue) {
+
+	double retval;
+
+	if( drillfront ) {
+		//if we drill from the front, no calculation is needed
+		retval = xvalue;
+	} else {
+		if( mirror_absolute ) {
+			retval = xvalue * -1;
+		} else {
+			retval = (2* x_center - xvalue);
+		}
+	}
+
+	return retval;
+}
+
+/******************************************************************************/
+/*
  \brief  Exports the ngc file for drilling
  \param  of_name = Filename
  \param  driller = ...
- \param  mirrored = ...
- \param  mirror_absolute = ...
- \param  onedrill : if true, only the first drill size is used, the others are skipped
+ \param  drillfront = if true, use the coordinates from the front side instead of the back side (drill-front=true)
+ \param  mirror_absolute = if true, mirror along the y axis instead of the board center
+ \param  onedrill : if true, only the first drill bit is used, the others are skipped
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_name,
-		shared_ptr<Driller> driller, bool mirrored, bool mirror_absolute,
+		shared_ptr<Driller> driller, bool drillfront, bool mirror_absolute,
 		bool onedrill) {
+
 	ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
 	//SVG EXPORTER
@@ -141,15 +206,16 @@ void ExcellonProcessor::export_ngc(const string of_name,
 		of << "( " << s << " )" << endl;
 	}
 	of << endl;
+
 	if (!onedrill) {
 		of << "( This file uses " << bits->size() << " drill bit sizes. )\n\n";
 	} else {
 		of << "( This file uses only one drill bit. )\n\n";
 	}
 
-	of.setf(ios_base::fixed); //write floating-point values in fixed-point notation
-	of.precision(5); //Set floating-point decimal precision
-	of << setw(7); //Sets the field width to be used on output operations.
+	of.setf(ios_base::fixed); 	//write floating-point values in fixed-point notation
+	of.precision(5); 			//Set floating-point decimal precision
+	of << setw(7); 				//Sets the field width to be used on output operations.
 
 	// preamble
 	of << preamble << "S" << left << driller->speed
@@ -185,21 +251,20 @@ void ExcellonProcessor::export_ngc(const string of_name,
 			svgexpo->stroke();
 		}
 
-		of << "G81 R" << driller->zsafe * cfactor << " Z"
-				<< driller->zwork * cfactor << " F" << driller->feed * cfactor
-				<< " X"
-				<< (mirrored ?
-						double_mirror_axis - coord_iter->first :
-						coord_iter->first) * cfactor << " Y"
-				<< coord_iter->second * cfactor << endl;
+		//coord_iter->first = x-coorinate (top view)
+		//coord_iter->second =y-coordinate (top view)
+
+		of << "G81 R" << driller->zsafe * cfactor
+		   << " Z"	<< driller->zwork * cfactor << " F" << driller->feed * cfactor
+		   << " X"	<< get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor
+		   << " Y"	<< (coord_iter->second * cfactor) << endl << endl;
+
 		++coord_iter;
 
 		while (coord_iter != drill_coords.end()) {
-			of << "X"
-					<< (mirrored ?
-							double_mirror_axis - coord_iter->first :
-							coord_iter->first) * cfactor << " Y"
-					<< coord_iter->second * cfactor << endl;
+
+			of << " X"	<< get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor
+			   << " Y"	<< (coord_iter->second * cfactor) << endl;
 
 			//SVG EXPORTER
 			if (bDoSVG) {
@@ -253,7 +318,7 @@ void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
 			z_step = 1; //dummy to exit the loop
 		}
 
-		int stepcount = abs(int(cutter->zwork / z_step));
+		int stepcount = abs(int(cutter->zwork * cfactor / z_step));
 
 		while (z >= cutter->zwork) {
 			//of<<"G1 Z"<<z<<endl;

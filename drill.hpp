@@ -5,6 +5,10 @@
  \brief  This file is part of pcb2gcode.
 
  \version
+ 18.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Changed x-coordinate calculation.
+
+ \version
  04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added onedrill option.
  - Formatted the code with the Eclipse code styler (Style: K&R).
@@ -106,6 +110,8 @@ private:
 	void parse_bits();
 	void millhole(std::ofstream &of, float x, float y,
 			shared_ptr<Cutter> cutter, float holediameter);
+	void	calc_dimensions();
+	double	get_xvalue(bool, bool, double);
 
 	//Variables, constants, flags...
 	const ivalue_t board_width;
@@ -115,9 +121,13 @@ private:
 	shared_ptr<map<int, icoords> > holes;
 	gerbv_project_t* project;
 	vector<string> header;
-	string preamble; //!< Preamble for output file
-	string postamble; //!< Postamble for output file
-	double cfactor; //!< imperial/metric conversion factor for output file
+	string preamble; 	//!< Preamble for output file
+	string postamble; 	//!< Postamble for output file
+	double cfactor; 	//!< imperial/metric conversion factor for output file
+	double x_min;		//!< absolute min drill coordinate
+	double x_max;		//!< absolute max drill coordinate
+	double width;		//!< distance between x_min and x_max
+	double x_center;	//!< absolute center of drill coordinates
 };
 
 #endif // DRILL_H
