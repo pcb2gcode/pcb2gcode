@@ -56,9 +56,8 @@ using std::pair;
  \param  metricoutput : if true, ngc output in metric units
  */
 /******************************************************************************/
-ExcellonProcessor::ExcellonProcessor(string drillfile,
-		const ivalue_t board_width, bool metricoutput) :
-		board_width(board_width) {
+ExcellonProcessor::ExcellonProcessor(string drillfile, const ivalue_t board_width, const ivalue_t board_center, bool metricoutput) :
+		board_center(board_center), board_width(board_width) {
 
 	bDoSVG = false; //clear flag for SVG export
 	project = gerbv_create_project();
@@ -78,17 +77,14 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
 
 	//set metric or imperial preambles
 	if (metricoutput) {
-		preamble = string("G94     ( Millimeters per minute feed rate.)\n")
-				+ "G21     ( Units == Millimeters.)\n"
-				+ "G90     ( Absolute coordinates.)\n";
+		preamble = string("G94     ( Millimeters per minute feed rate.)\n") + "G21     ( Units == Millimeters.)\n" + "G90     ( Absolute coordinates.)\n";
 	} else {
-		preamble = string("G94     ( Inches per minute feed rate. )\n")
-				+ "G20     ( Units == INCHES.             )\n"
-				+ "G90     ( Absolute coordinates.        )\n";
+		preamble = string("G94     ( Inches per minute feed rate. )\n") + "G20     ( Units == INCHES.             )\n"
+			+ "G90     ( Absolute coordinates.        )\n";
 	}
 
 	//set postamble
-	postamble = string("M9 ( Coolant off. )\n") + "M2 ( Program end. )\n\n";
+	postamble = string("M9 ( Coolant off. )\n") + "M2 ( Program end. )\n";
 }
 
 /******************************************************************************/
@@ -130,8 +126,7 @@ void ExcellonProcessor::calc_dimensions(void) {
 	shared_ptr<const map<int, drillbit> > bits = get_bits();
 	shared_ptr<const map<int, icoords> > holes = get_holes();
 
-	for (map<int, drillbit>::const_iterator it = bits->begin();
-			it != bits->end(); it++) {
+	for (map<int, drillbit>::const_iterator it = bits->begin(); it != bits->end(); it++) {
 		const icoords drill_coords = holes->at(it->first);
 		icoords::const_iterator coord_iter = drill_coords.begin();
 		x_min = (coord_iter->first < x_min) ? coord_iter->first : x_min;
@@ -145,30 +140,33 @@ void ExcellonProcessor::calc_dimensions(void) {
 		}
 	}
 	width = x_max - x_min;
-	x_center = x_min + width/2;
+	x_center = x_min + width / 2;
 }
 
 /******************************************************************************/
 /*
- \brief	Recalulates the x-coordinate based on drillfront and mirror_absolute
+ \brief	Recalculates the x-coordinate based on drillfront and mirror_absolute
  \param	drillfront = drill from front side
  \param	mirror_absoulte = mirror back side on y-axis
  \param xvalue = x-coordinate
  \retval recalulated x-coordinate
  */
 /******************************************************************************/
-double	ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute, double xvalue) {
+double ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute, double xvalue) {
 
 	double retval;
 
-	if( drillfront ) {
-		//if we drill from the front, no calculation is needed
+	if (drillfront) {
+		//drill from the front, no calculation needed
 		retval = xvalue;
 	} else {
-		if( mirror_absolute ) {
+		if (mirror_absolute) {
+			//drill from back side, mirrored along y-axis
 			retval = xvalue * -1;
 		} else {
-			retval = (2* x_center - xvalue);
+			//drill from back side, mirrored along board center
+			retval = (2 * board_center - xvalue);
+			//cout << "Center:" << board_center * 25.4 << " Xvalue:" << xvalue * 25.4 << endl;
 		}
 	}
 
@@ -178,16 +176,14 @@ double	ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute, doub
 /******************************************************************************/
 /*
  \brief  Exports the ngc file for drilling
- \param  of_name = Filename
+ \param  of_name = output filename
  \param  driller = ...
  \param  drillfront = if true, use the coordinates from the front side instead of the back side (drill-front=true)
  \param  mirror_absolute = if true, mirror along the y axis instead of the board center
  \param  onedrill : if true, only the first drill bit is used, the others are skipped
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_name,
-		shared_ptr<Driller> driller, bool drillfront, bool mirror_absolute,
-		bool onedrill) {
+void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> driller, bool drillfront, bool mirror_absolute, bool onedrill) {
 
 	ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
@@ -213,29 +209,22 @@ void ExcellonProcessor::export_ngc(const string of_name,
 		of << "( This file uses only one drill bit. )\n\n";
 	}
 
-	of.setf(ios_base::fixed); 	//write floating-point values in fixed-point notation
-	of.precision(5); 			//Set floating-point decimal precision
-	of << setw(7); 				//Sets the field width to be used on output operations.
+	of.setf(ios_base::fixed); //write floating-point values in fixed-point notation
+	of.precision(5); //Set floating-point decimal precision
+	of << setw(7); //Sets the field width to be used on output operations.
 
 	// preamble
-	of << preamble << "S" << left << driller->speed
-			<< "  ( RPM spindle speed.           )\n" << endl;
+	of << preamble_ext;
+	of << preamble << "S" << left << driller->speed << " ( RPM spindle speed.)\n" << endl;
 
-	for (map<int, drillbit>::const_iterator it = bits->begin();
-			it != bits->end(); it++) {
+	for (map<int, drillbit>::const_iterator it = bits->begin(); it != bits->end(); it++) {
 		//if the command line option "onedrill" is given, allow only the inital toolchange
 		if ((onedrill == true) && (it != bits->begin())) {
-			of << "(Drill change skipped due to 'onedrill' parameter.)\n"
-					<< endl;
+			of << "(Drill change skipped due to 'onedrill' parameter.)\n" << endl;
 		} else {
-			of << "G00 Z" << driller->zchange * cfactor << " ( Retract )\n"
-					<< "T" << it->first << endl
-					<< "M5      ( Spindle stop.                )\n"
-					<< "M6      ( Tool change.                 )\n"
-					<< "(MSG, CHANGE TOOL BIT: to drill size "
-					<< it->second.diameter << " " << it->second.unit << ")\n"
-					<< "M0      ( Temporary machine stop.      )\n"
-					<< "M3      ( Spindle on clockwise.        )\n" << endl;
+			of << "G00 Z" << driller->zchange * cfactor << " ( Retract )\n" << "T" << it->first << endl << "M5      ( Spindle stop.                )\n"
+				<< "M6      ( Tool change.                 )\n" << "(MSG, CHANGE TOOL BIT: to drill size " << it->second.diameter << " " << it->second.unit
+				<< ")\n" << "M0      ( Temporary machine stop.      )\n" << "M3      ( Spindle on clockwise.        )\n" << endl;
 		}
 
 		const icoords drill_coords = holes->at(it->first);
@@ -246,31 +235,26 @@ void ExcellonProcessor::export_ngc(const string of_name,
 			//set a random color
 			svgexpo->set_rand_color();
 			//draw first circle
-			svgexpo->circle((double_mirror_axis - coord_iter->first),
-					coord_iter->second, rad);
+			svgexpo->circle((double_mirror_axis - coord_iter->first), coord_iter->second, rad);
 			svgexpo->stroke();
 		}
 
 		//coord_iter->first = x-coorinate (top view)
 		//coord_iter->second =y-coordinate (top view)
 
-		of << "G81 R" << driller->zsafe * cfactor
-		   << " Z"	<< driller->zwork * cfactor << " F" << driller->feed * cfactor
-		   << " X"	<< get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor
-		   << " Y"	<< (coord_iter->second * cfactor) << endl << endl;
+		of << "G81 R" << driller->zsafe * cfactor << " Z" << driller->zwork * cfactor << " F" << driller->feed * cfactor << " X"
+			<< get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor << " Y" << (coord_iter->second * cfactor) << endl << endl;
 
 		++coord_iter;
 
 		while (coord_iter != drill_coords.end()) {
 
-			of << " X"	<< get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor
-			   << " Y"	<< (coord_iter->second * cfactor) << endl;
+			of << " X" << get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor << " Y" << (coord_iter->second * cfactor) << endl;
 
 			//SVG EXPORTER
 			if (bDoSVG) {
 				//make a whole
-				svgexpo->circle((double_mirror_axis - coord_iter->first),
-						coord_iter->second, rad);
+				svgexpo->circle((double_mirror_axis - coord_iter->first), coord_iter->second, rad);
 				svgexpo->stroke();
 			}
 
@@ -281,12 +265,9 @@ void ExcellonProcessor::export_ngc(const string of_name,
 	}
 
 	// retract, end
-	of << "G00 Z" << driller->zchange * cfactor << " ( All done -- retract )\n"
-			<< endl;
-
-	of << "M9 ( Coolant off. )\n";
-	of << "M2 ( Program end. )\n\n";
-
+	of << "G00 Z" << driller->zchange * cfactor << " ( All done -- retract )\n" << endl;
+	of << postamble_ext;
+	of << postamble;
 	of.close();
 }
 
@@ -294,8 +275,8 @@ void ExcellonProcessor::export_ngc(const string of_name,
 /*
  */
 /******************************************************************************/
-void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
-		shared_ptr<Cutter> cutter, float holediameter) {
+void ExcellonProcessor::millhole(std::ofstream &of, float x, float y, shared_ptr<Cutter> cutter, float holediameter) {
+
 	g_assert(cutter);
 	double cutdiameter = cutter->tool_diameter;
 
@@ -337,9 +318,7 @@ void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
  \brief  mill larger holes by using a smaller mill-head
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string outputname,
-		shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute,
-		bool onedrill) {
+void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute, bool onedrill) {
 
 	g_assert(mirrored == true);
 	g_assert(mirror_absolute == false);
@@ -359,48 +338,40 @@ void ExcellonProcessor::export_ngc(const string outputname,
 	of << endl;
 
 	//of << "( This file uses " << bits->size() << " drill bit sizes. )\n\n";
-	of << "( This file uses a mill head of " << target->tool_diameter
-			<< " to drill the " << bits->size() << "bit sizes. )\n\n";
+	of << "( This file uses a mill head of " << target->tool_diameter << " to drill the " << bits->size() << "bit sizes. )\n\n";
 
 	of.setf(ios_base::fixed);
 	of.precision(5);
 	of << setw(7);
 
 	// preamble
-	of << preamble << "S" << left << target->speed
-			<< "  ( RPM spindle speed.           )\n" << endl;
+	of << preamble << "S" << left << target->speed << "  ( RPM spindle speed.           )\n" << endl;
 	of << "F" << target->feed << endl;
 
 	of << "#50=" << target->zwork * cfactor << " ; zwork" << endl;
 	of << "#51=" << target->zsafe * cfactor << " ; zsafe" << endl;
 	of << "#52=" << target->stepsize * cfactor << " ; stepsize" << endl;
 
-	for (map<int, drillbit>::const_iterator it = bits->begin();
-			it != bits->end(); it++) {
+	for (map<int, drillbit>::const_iterator it = bits->begin(); it != bits->end(); it++) {
 
 		float diameter = it->second.diameter;
 		//cerr<<"bit:"<<diameter<<endl;
 		const icoords drill_coords = holes->at(it->first);
 		icoords::const_iterator coord_iter = drill_coords.begin();
 
-		millhole(of, board_width - coord_iter->first, coord_iter->second,
-				target, diameter);
+		millhole(of, board_width - coord_iter->first, coord_iter->second, target, diameter);
 		++coord_iter;
 
 		while (coord_iter != drill_coords.end()) {
 
-			millhole(of, board_width - coord_iter->first, coord_iter->second,
-					target, diameter);
+			millhole(of, board_width - coord_iter->first, coord_iter->second, target, diameter);
 			++coord_iter;
 		}
 
 	}
 
 	// retract, end
-	of << "G00 Z" << target->zchange * cfactor << " ( All done -- retract )\n"
-			<< endl;
-
-	of << postamble;
+	of << "G00 Z" << target->zchange * cfactor << " ( All done -- retract )\n" << endl;
 
 	of.close();
 }
@@ -412,9 +383,7 @@ void ExcellonProcessor::export_ngc(const string outputname,
 void ExcellonProcessor::parse_bits() {
 	bits = shared_ptr<map<int, drillbit> >(new map<int, drillbit>());
 
-	for (gerbv_drill_list_t* currentDrill =
-			project->file[0]->image->drill_stats->drill_list; currentDrill;
-			currentDrill = currentDrill->next) {
+	for (gerbv_drill_list_t* currentDrill = project->file[0]->image->drill_stats->drill_list; currentDrill; currentDrill = currentDrill->next) {
 		drillbit curBit;
 		curBit.diameter = currentDrill->drill_size;
 		curBit.unit = string(currentDrill->drill_unit);
@@ -434,11 +403,9 @@ void ExcellonProcessor::parse_holes() {
 
 	holes = shared_ptr<map<int, icoords> >(new map<int, icoords>());
 
-	for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
-			currentNet = currentNet->next) {
+	for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet; currentNet = currentNet->next) {
 		if (currentNet->aperture != 0)
-			(*holes)[currentNet->aperture].push_back(
-					icoordpair(currentNet->start_x, currentNet->start_y));
+			(*holes)[currentNet->aperture].push_back(icoordpair(currentNet->start_x, currentNet->start_y));
 	}
 }
 
@@ -469,7 +436,7 @@ shared_ptr<const map<int, icoords> > ExcellonProcessor::get_holes() {
  */
 /******************************************************************************/
 void ExcellonProcessor::set_preamble(string _preamble) {
-	preamble = _preamble;
+	preamble_ext = _preamble;
 }
 
 /******************************************************************************/
@@ -477,5 +444,5 @@ void ExcellonProcessor::set_preamble(string _preamble) {
  */
 /******************************************************************************/
 void ExcellonProcessor::set_postamble(string _postamble) {
-	postamble = _postamble;
+	postamble_ext = _postamble;
 }

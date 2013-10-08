@@ -31,9 +31,7 @@
 /******************************************************************************/
 
 #include "ngc_exporter.hpp"
-
 #include <boost/foreach.hpp>
-
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -42,8 +40,7 @@ using namespace std;
 /*
  */
 /******************************************************************************/
-NGC_Exporter::NGC_Exporter(shared_ptr<Board> board) :
-		Exporter(board) {
+NGC_Exporter::NGC_Exporter(shared_ptr<Board> board) : Exporter(board) {
 	this->board = board;
 	bDoSVG = false;
 }
@@ -56,7 +53,6 @@ void NGC_Exporter::set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo) {
 	this->svgexpo = svgexpo;
 	bDoSVG = true;
 }
-
 /******************************************************************************/
 /*
  */
@@ -81,9 +77,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 		std::stringstream option_name;
 		option_name << layername << "-output";
 		string of_name = options[option_name.str()].as<string>();
-		cerr << "Current Layer: " << layername << ", exporting to " << of_name
-				<< "." << endl;
+		cerr << "Exporting " << layername << "... ";
 		export_layer(board->get_layer(layername), of_name);
+		cerr << "DONE." << endl;
 	}
 }
 
@@ -135,21 +131,22 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 	of << setw(7);
 
 	// preamble
+	of << preamble;
 
 	if (metricoutput) {
 		of << "G94     ( Millimeters per minute feed rate. )\n"
-				<< "G21     ( Units == Millimeters. )\n" << endl;
+			<< "G21     ( Units == Millimeters. )\n" << endl;
 	} else {
 		of << "G94     ( Inches per minute feed rate. )\n"
-				<< "G20     ( Units == INCHES. )\n" << endl;
+			<< "G20     ( Units == INCHES. )\n" << endl;
 	}
 
 	of << "G90     ( Absolute coordinates.        )\n" << "S" << left
-			<< mill->speed << "  ( RPM spindle speed.           )\n"
-			<< "M3      ( Spindle on clockwise.        )\n" << endl;
+		<< mill->speed << "  ( RPM spindle speed.           )\n"
+		<< "M3      ( Spindle on clockwise.        )\n" << endl;
 
 	of << "G64 P" << get_tolerance() * factor
-			<< " ( set maximum deviation from commanded toolpath )\n" << endl;
+		<< " ( set maximum deviation from commanded toolpath )\n" << endl;
 
 	//SVG EXPORTER
 	if (bDoSVG) {
@@ -161,11 +158,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 	BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() ) {
 		// retract, move to the starting point of the next contour
 		of
-				<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+			<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 		of << "G00 Z" << mill->zsafe * factor << " ( retract )\n" << endl;
-		of << "G00 X" << path->begin()->first * factor << " Y"
-				<< path->begin()->second * factor
-				<< " ( rapid move to begin. )\n";
+		of << "G00 X" << path->begin()->first * factor << " Y" << path->begin()->second * factor << " ( rapid move to begin. )\n";
 
 		//SVG EXPORTER
 		if (bDoSVG) {
@@ -185,9 +180,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
 			while (z >= mill->zwork) {
 				of << "G01 Z" << z * factor << " F" << mill->feed * factor
-						<< " ( plunge. )\n";
+					<< " ( plunge. )\n";
 				of
-						<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+					<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 				icoords::iterator iter = path->begin();
 				icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
@@ -198,19 +193,13 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
 					if ( /* it's necessary to write the coordinates if... */
 					last == path->end() || /* it's the beginning */
-					peek == path->end()
-							|| /* it's the end */
-							!( /* or if neither of the axis align */
-							(last->first == iter->first
-									&& iter->first == peek->first)
-									|| /* x axis aligns */
-									(last->second == iter->second
-											&& iter->second == peek->second) /* y axis aligns */
-							)
-							/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
-							) {
-						of << "X" << iter->first * factor << " Y"
-								<< iter->second * factor << endl;
+					peek == path->end()	|| /* it's the end */
+					!( /* or if neither of the axis align */
+							(last->first == iter->first	&& iter->first == peek->first) || /* x axis aligns */
+							(last->second == iter->second && iter->second == peek->second) /* y axis aligns */	)
+						/* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
+						) {
+						of << "X" << iter->first * factor << " Y" << iter->second * factor << endl;
 
 						//SVG EXPORTER
 						if (bDoSVG) {
@@ -234,9 +223,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 		} else {
 			// isolating
 			of << "G01 Z" << mill->zwork * factor << " F" << mill->feed * factor
-					<< " ( plunge. )\n";
+				<< " ( plunge. )\n";
 			of
-					<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+				<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
 			icoords::iterator iter = path->begin();
 			icoords::iterator last = path->end(); // initializing to quick & dirty sentinel value
@@ -255,7 +244,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 				/* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
 				) {
 					of << "X" << iter->first * factor << " Y"
-							<< iter->second * factor << endl;
+						<< iter->second * factor << endl;
 
 					//SVG EXPORTER
 					if (bDoSVG)
@@ -279,15 +268,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 	}
 
 	of << endl;
-
-	// retract, end
-	of
-			<< "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+	// retract
+	of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )" << endl;
 	of << "G00 Z" << mill->zchange * factor << " ( retract )\n" << endl;
-
-	of << "M9 ( Coolant off. )\n";
-	of << "M2 ( Program end. )\n\n";
-
+	of << postamble;
+	of << "M9 ( Coolant off. )" << endl;
+	of << "M2 ( Program end. )" << endl;
 	of.close();
 
 	//SVG EXPORTER
@@ -311,3 +297,4 @@ void NGC_Exporter::set_preamble(string _preamble) {
 void NGC_Exporter::set_postamble(string _postamble) {
 	postamble = _postamble;
 }
+

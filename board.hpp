@@ -74,37 +74,19 @@ public:
 	void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
 			shared_ptr<RoutingMill> manufacturer, bool topside,
 			bool mirror_absolute);
-	void set_margins(double margins) {
-		margin = margins;
-	}
-	;
-
+	void set_margins(double margins) { margin = margins;	};
 	ivalue_t get_width();
 	ivalue_t get_height();
-
-	ivalue_t get_min_x() {
-		return min_x;
-	}
-	;
-	ivalue_t get_max_x() {
-		return max_x;
-	}
-	;
-	ivalue_t get_min_y() {
-		return min_y;
-	}
-	;
-	ivalue_t get_max_y() {
-		return max_y;
-	}
-	;
+	ivalue_t get_min_x() {	return min_x; };
+	ivalue_t get_max_x() {	return max_x; };
+	ivalue_t get_min_y() {	return min_y; };
+	ivalue_t get_max_y() {	return max_y; };
 
 	vector<string> list_layers();
 	shared_ptr<Layer> get_layer(string layername);
 	vector<shared_ptr<icoords> > get_toolpath(string layername);
 
 	void createLayers(); // should be private
-
 	uint get_dpi();
 
 private:

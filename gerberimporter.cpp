@@ -56,8 +56,7 @@ gdouble GerberImporter::get_width() {
 	if (!project || !project->file[0])
 		throw gerber_exception();
 
-	return project->file[0]->image->info->max_x
-			- project->file[0]->image->info->min_x;
+	return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
 }
 
 /******************************************************************************/
@@ -68,8 +67,7 @@ gdouble GerberImporter::get_height() {
 	if (!project || !project->file[0])
 		throw gerber_exception();
 
-	return project->file[0]->image->info->max_y
-			- project->file[0]->image->info->min_y;
+	return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
 }
 
 /******************************************************************************/
@@ -121,9 +119,7 @@ gdouble GerberImporter::get_max_y() {
 /*
  */
 /******************************************************************************/
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-		const guint dpi, const double min_x, const double min_y)
-				throw (import_exception) {
+void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) throw (import_exception) {
 	gerbv_render_info_t render_info;
 
 	render_info.scaleFactorX = dpi;

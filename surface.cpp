@@ -75,7 +75,7 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
 	usedcolors.push_back(WHITE);
 
 	/* "Note that the buffer is not cleared; you will have to fill it completely yourself." */
-	printf("clearing\n");
+	//printf("clearing\n");
 	pixels = cairo_surface->get_data();
 	stride = cairo_surface->get_stride();
 	for (int y = 0; y < pixbuf->get_height(); y++) {
@@ -232,7 +232,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 	}
 
 	if (contentions) {
-		cerr << "Warning: pcb2gcode hasn't been able to fulfill all"
+		cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
 				<< " clearance requirements and tried a best effort approach"
 				<< " instead. You may want to check the g-code output and"
 				<< " possibly use a smaller milling width.\n";

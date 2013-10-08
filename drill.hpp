@@ -88,16 +88,13 @@ public:
 class ExcellonProcessor {
 public:
 	//Methods
-	ExcellonProcessor(const string drillfile, const ivalue_t board_width,
-			bool metricoutput);
+	ExcellonProcessor(const string drillfile, const ivalue_t board_width, const ivalue_t board_center, bool metricoutput);
 	~ExcellonProcessor();
 	void add_header(string);
 	void set_preamble(string);
 	void set_postamble(string);
-	void export_ngc(const string of_name, shared_ptr<Driller> target,
-			bool mirrored, bool mirror_absolute, bool onedrill);
-	void export_ngc(const string of_name, shared_ptr<Cutter> target,
-			bool mirrored, bool mirror_absolute, bool onedrill);
+	void export_ngc(const string of_name, shared_ptr<Driller> target, bool mirrored, bool mirror_absolute, bool onedrill);
+	void export_ngc(const string of_name, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute, bool onedrill);
 	void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
 
 	//Variables, constants, flags...
@@ -108,26 +105,28 @@ private:
 	//Methods
 	void parse_holes();
 	void parse_bits();
-	void millhole(std::ofstream &of, float x, float y,
-			shared_ptr<Cutter> cutter, float holediameter);
-	void	calc_dimensions();
-	double	get_xvalue(bool, bool, double);
+	void millhole(std::ofstream &of, float x, float y, shared_ptr<Cutter> cutter, float holediameter);
+	void calc_dimensions();
+	double get_xvalue(bool, bool, double);
 
 	//Variables, constants, flags...
 	const ivalue_t board_width;
+	const ivalue_t board_center;
 	bool bDoSVG; //!< Flag to indicate SVG output
 	shared_ptr<SVG_Exporter> svgexpo;
 	shared_ptr<map<int, drillbit> > bits;
 	shared_ptr<map<int, icoords> > holes;
 	gerbv_project_t* project;
 	vector<string> header;
-	string preamble; 	//!< Preamble for output file
-	string postamble; 	//!< Postamble for output file
-	double cfactor; 	//!< imperial/metric conversion factor for output file
-	double x_min;		//!< absolute min drill coordinate
-	double x_max;		//!< absolute max drill coordinate
-	double width;		//!< distance between x_min and x_max
-	double x_center;	//!< absolute center of drill coordinates
+	string preamble;	//!< Preamble for output file
+	string postamble;	//!< Postamble for output file
+	string preamble_ext;	//!< Preamble from command line (user file)
+	string postamble_ext;	//!< Postmable from command line (user file)
+	double cfactor; //!< imperial/metric conversion factor for output file
+	double x_min; //!< absolute min drill coordinate
+	double x_max; //!< absolute max drill coordinate
+	double width; //!< distance between x_min and x_max
+	double x_center; //!< absolute center of drill coordinates
 };
 
 #endif // DRILL_H

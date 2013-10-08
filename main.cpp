@@ -107,8 +107,7 @@ int main(int argc, char* argv[]) {
 		isolator->feed = vm["mill-feed"].as<double>() * unit;
 		isolator->speed = vm["mill-speed"].as<int>();
 		isolator->zchange = vm["zchange"].as<double>() * unit;
-		isolator->extra_passes =
-				vm.count("extra-passes") ? vm["extra-passes"].as<int>() : 0;
+		isolator->extra_passes = vm.count("extra-passes") ? vm["extra-passes"].as<int>() : 0;
 	}
 
 	shared_ptr<Cutter> cutter;
@@ -140,6 +139,7 @@ int main(int argc, char* argv[]) {
 	string preamble, postamble;
 
 	if (vm.count("preamble")) {
+		cout << "Importing preamble... ";
 		string name = vm["preamble"].as<string>();
 		fstream in(name.c_str(), fstream::in);
 
@@ -148,12 +148,13 @@ int main(int argc, char* argv[]) {
 			exit(1);
 		}
 
-		string tmp((std::istreambuf_iterator<char>(in)),
-				std::istreambuf_iterator<char>());
+		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		preamble = tmp + "\n\n";
+		cout << "DONE\n";
 	}
 
 	if (vm.count("postamble")) {
+		cout << "Importing postamble... ";
 		string name = vm["postamble"].as<string>();
 		fstream in(name.c_str(), fstream::in);
 
@@ -162,16 +163,13 @@ int main(int argc, char* argv[]) {
 			exit(1);
 		}
 
-		string tmp((std::istreambuf_iterator<char>(in)),
-				std::istreambuf_iterator<char>());
+		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
 		postamble = tmp + "\n\n";
+		cout << "DONE\n";
 	}
 
 	shared_ptr<Board> board(
-			new Board(vm["dpi"].as<int>(), vm.count("fill-outline"),
-					vm.count("fill-outline") ?
-							vm["outline-width"].as<double>() * unit :
-							INFINITY));
+		new Board(vm["dpi"].as<int>(), vm.count("fill-outline"), vm.count("fill-outline") ? vm["outline-width"].as<double>() * unit : INFINITY));
 
 	// this is currently disabled, use --outline instead
 	if (vm.count("margins"))
@@ -215,7 +213,7 @@ int main(int argc, char* argv[]) {
 		try {
 			string outline = vm["outline"].as<string>();
 			boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-			board->prepareLayer("outline", importer, cutter, flip_outline , vm.count("mirror-absolute"));
+			board->prepareLayer("outline", importer, cutter, flip_outline, vm.count("mirror-absolute"));
 			cout << "DONE.\n";
 		} catch (import_exception& i) {
 			cout << "ERROR.\n";
@@ -223,7 +221,7 @@ int main(int argc, char* argv[]) {
 			cout << "not specified.\n";
 		}
 
-	} catch (import_exception ie) {
+	} catch (import_exception& ie) {
 		if (ustring const* mes = boost::get_error_info<errorstring>(ie))
 			std::cerr << "Import Error: " << *mes;
 		else
@@ -235,9 +233,10 @@ int main(int argc, char* argv[]) {
 
 	try {
 		board->createLayers(); // throws std::logic_error
-		cout << "Calculated board dimensions: " << board->get_width() << "in x "
-				<< board->get_height() << "in" << endl;
-
+		/*
+		 cout << "Calculated board dimensions: " << board->get_width() << "in x "
+		 << board->get_height() << "in" << endl;
+		 */
 		//SVG EXPORTER
 		if (vm.count("svg")) {
 			cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
@@ -268,29 +267,26 @@ int main(int argc, char* argv[]) {
 	if (vm.count("drill")) {
 
 		try {
-			ExcellonProcessor ep(vm["drill"].as<string>(),
-					board->get_min_x() + board->get_max_x(),
-					vm["metricoutput"].as<bool>());
+			ExcellonProcessor ep(vm["drill"].as<string>(), board->get_max_x() - board->get_min_x(),
+				board->get_min_x() + (board->get_max_x() - board->get_min_x()) / 2, vm["metricoutput"].as<bool>());
 			ep.add_header(PACKAGE_STRING);
 
-			if (vm.count("preamble"))
+			if (vm.count("preamble")) {
 				ep.set_preamble(preamble);
+			}
 
-			if (vm.count("postamble"))
+			if (vm.count("postamble")) {
 				ep.set_postamble(postamble);
+			}
 
 			//SVG EXPORTER
 			if (vm.count("svg"))
 				ep.set_svg_exporter(svgexpo);
 
 			if (vm.count("milldrill"))
-				ep.export_ngc(vm["drill-output"].as<string>(), cutter,
-						!vm.count("drill-front"), vm.count("mirror-absolute"),
-						vm["onedrill"].as<bool>());
+				ep.export_ngc(vm["drill-output"].as<string>(), cutter, !vm.count("drill-front"), vm.count("mirror-absolute"), vm["onedrill"].as<bool>());
 			else
-				ep.export_ngc(vm["drill-output"].as<string>(), driller,
-						vm.count("drill-front"), vm.count("mirror-absolute"),
-						vm["onedrill"].as<bool>());
+				ep.export_ngc(vm["drill-output"].as<string>(), driller, vm.count("drill-front"), vm.count("mirror-absolute"), vm["onedrill"].as<bool>());
 			cout << "DONE.\n";
 		} catch (drill_exception& e) {
 			cout << "ERROR.\n";

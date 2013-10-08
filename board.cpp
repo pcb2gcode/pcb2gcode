@@ -71,14 +71,9 @@ uint Board::get_dpi() {
 /*
  */
 /******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer,
-		shared_ptr<RoutingMill> manufacturer, bool mirror,
-		bool mirror_absolute) {
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool mirror, bool mirror_absolute) {
 	// see comment for prep_t in board.hpp
-	prepared_layers.insert(
-			std::make_pair(layername,
-					make_tuple(importer, manufacturer, mirror,
-							mirror_absolute)));
+	prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, mirror, mirror_absolute)));
 }
 
 /******************************************************************************/
@@ -97,8 +92,7 @@ void Board::createLayers() {
 	max_y = -INFINITY;
 
 	// calculate room needed by the PCB traces
-	for (map<string, prep_t>::iterator it = prepared_layers.begin();
-			it != prepared_layers.end(); it++) {
+	for (map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++) {
 		shared_ptr<LayerImporter> importer = it->second.get<0>();
 		float t;
 		t = importer->get_min_x();
@@ -117,8 +111,7 @@ void Board::createLayers() {
 
 	// if there's no pcb outline, add the specified margins
 	try {
-		shared_ptr<RoutingMill> outline_mill =
-				prepared_layers.at("outline").get<1>();
+		shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
 		ivalue_t radius = outline_mill->tool_diameter / 2;
 		min_x -= radius;
 		max_x += radius;
@@ -132,25 +125,20 @@ void Board::createLayers() {
 	}
 
 	// board size calculated. create layers
-	for (map<string, prep_t>::iterator it = prepared_layers.begin();
-			it != prepared_layers.end(); it++) {
+	for (map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++) {
 		// prepare the surface
-		shared_ptr<Surface> surface(
-				new Surface(dpi, min_x, max_x, min_y, max_y));
+		shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y));
 		shared_ptr<LayerImporter> importer = it->second.get<0>();
 		surface->render(importer);
 
-		shared_ptr<Layer> layer(
-				new Layer(it->first, surface, it->second.get<1>(),
-						it->second.get<2>(), it->second.get<3>())); // see comment for prep_t in board.hpp
+		shared_ptr<Layer> layer(new Layer(it->first, surface, it->second.get<1>(), it->second.get<2>(), it->second.get<3>())); // see comment for prep_t in board.hpp
 
 		layers.insert(std::make_pair(layer->get_name(), layer));
 	}
 
 	// DEBUG output
 	BOOST_FOREACH( layer_t layer, layers ) {
-		layer.second->surface->save_debug_image(
-				string("original_") + layer.second->get_name());
+		layer.second->surface->save_debug_image(string("original_") + layer.second->get_name());
 	}
 
 	// mask layers with outline
@@ -161,8 +149,7 @@ void Board::createLayers() {
 			outline_layer->surface->fill_outline(outline_width);
 		}
 
-		for (map<string, shared_ptr<Layer> >::iterator it = layers.begin();
-				it != layers.end(); it++) {
+		for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++) {
 			if (it->second != outline_layer) {
 				it->second->add_mask(outline_layer);
 				it->second->surface->save_debug_image("masked");
