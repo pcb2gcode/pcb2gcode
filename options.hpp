@@ -5,12 +5,9 @@
  \brief
 
  \version
- 04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
- - Added metricoutput option.
- - Added g64 option.
- - Added ondrill option.
- - Started documenting the code for doxygen processing.
- - Formatted the code with the Eclipse code styler (Style: K&R).
+ 2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Prepared documenting the code with doxygen.
+ - Formatted the code.
 
  \version
  1.1.4 - 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
@@ -52,26 +49,23 @@ using std::string;
  */
 /******************************************************************************/
 class options: boost::noncopyable {
-public:
-	static void parse(int argc, char** argv);
-	static void parse_files();
-	static void check_parameters();
 
-	static po::variables_map& get_vm() {
-		return instance().vm;
-	}
-	;
-	static string help();
+   public:
+      static void parse(int argc, char** argv);
+      static void parse_files();
+      static void check_parameters();
+      static po::variables_map& get_vm() {
+         return instance().vm;
+      }
+      ;
+      static string help();
 
-private:
-	options();
-
-	po::variables_map vm;
-
-	po::options_description cli_options; //! CLI options
-	po::options_description cfg_options; //! generic options
-
-	static options& instance();
+   private:
+      options();
+      po::variables_map vm;
+      po::options_description cli_options;      //!< CLI options
+      po::options_description cfg_options;      //!< generic options
+      static options& instance();
 };
 
 #endif // OPTIONS_HPP

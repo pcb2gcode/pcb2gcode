@@ -5,14 +5,13 @@
  \brief  This file is part of pcb2gcode.
 
  \version
- 18.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ 2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - Bugfix for preamble & postamble.
  - Changed x-coordinate calculation.
-
- \version
- 04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added onedrill option.
- - Formatted the code with the Eclipse code styler (Style: K&R).
- - Started documenting the code for doxygen processing.
+ - Added metricoutput option.
+ - Prepared documenting the code with doxygen.
+ - Formatted the code.
 
  \version
  1.1.4 - 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
@@ -68,11 +67,11 @@ class drill_exception: virtual std::exception, virtual boost::exception {
  */
 /******************************************************************************/
 class drillbit {
-public:
-	//Variables, constants, flags...
-	double diameter;
-	string unit;
-	int drill_count;
+   public:
+      //Variables, constants, flags...
+      double diameter;
+      string unit;
+      int drill_count;
 };
 
 /******************************************************************************/
@@ -86,47 +85,48 @@ public:
  */
 /******************************************************************************/
 class ExcellonProcessor {
-public:
-	//Methods
-	ExcellonProcessor(const string drillfile, const ivalue_t board_width, const ivalue_t board_center, bool metricoutput);
-	~ExcellonProcessor();
-	void add_header(string);
-	void set_preamble(string);
-	void set_postamble(string);
-	void export_ngc(const string of_name, shared_ptr<Driller> target, bool mirrored, bool mirror_absolute, bool onedrill);
-	void export_ngc(const string of_name, shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute, bool onedrill);
-	void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
+   public:
+      ExcellonProcessor(const string drillfile, const ivalue_t board_width,
+                        const ivalue_t board_center, bool metricoutput);
+      ~ExcellonProcessor();
+      void add_header(string);
+      void set_preamble(string);
+      void set_postamble(string);
+      void export_ngc(const string of_name, shared_ptr<Driller> target,
+                      bool mirrored, bool mirror_absolute, bool onedrill);
+      void export_ngc(const string of_name, shared_ptr<Cutter> target,
+                      bool mirrored, bool mirror_absolute, bool onedrill);
+      void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
 
-	//Variables, constants, flags...
-	shared_ptr<const map<int, drillbit> > get_bits();
-	shared_ptr<const map<int, icoords> > get_holes();
+      shared_ptr<const map<int, drillbit> > get_bits();
+      shared_ptr<const map<int, icoords> > get_holes();
 
-private:
-	//Methods
-	void parse_holes();
-	void parse_bits();
-	void millhole(std::ofstream &of, float x, float y, shared_ptr<Cutter> cutter, float holediameter);
-	void calc_dimensions();
-	double get_xvalue(bool, bool, double);
+   private:
+      void parse_holes();
+      void parse_bits();
+      void millhole(std::ofstream &of, float x, float y,
+                    shared_ptr<Cutter> cutter, float holediameter);
+      void calc_dimensions();
+      double get_xvalue(bool, bool, double);
 
-	//Variables, constants, flags...
-	const ivalue_t board_width;
-	const ivalue_t board_center;
-	bool bDoSVG; //!< Flag to indicate SVG output
-	shared_ptr<SVG_Exporter> svgexpo;
-	shared_ptr<map<int, drillbit> > bits;
-	shared_ptr<map<int, icoords> > holes;
-	gerbv_project_t* project;
-	vector<string> header;
-	string preamble;	//!< Preamble for output file
-	string postamble;	//!< Postamble for output file
-	string preamble_ext;	//!< Preamble from command line (user file)
-	string postamble_ext;	//!< Postmable from command line (user file)
-	double cfactor; //!< imperial/metric conversion factor for output file
-	double x_min; //!< absolute min drill coordinate
-	double x_max; //!< absolute max drill coordinate
-	double width; //!< distance between x_min and x_max
-	double x_center; //!< absolute center of drill coordinates
+      const ivalue_t board_width;
+      const ivalue_t board_center;
+      bool bDoSVG;            //!< Flag to indicate SVG output
+      shared_ptr<SVG_Exporter> svgexpo;
+      shared_ptr<map<int, drillbit> > bits;
+      shared_ptr<map<int, icoords> > holes;
+      gerbv_project_t* project;
+      vector<string> header;
+      string preamble;        //!< Preamble for output file
+      string postamble;       //!< Postamble for output file
+      string preamble_ext;    //!< Preamble from command line (user file)
+      string postamble_ext;   //!< Postamble from command line (user file)
+      double cfactor;         //!< imperial/metric conversion factor for output file
+      double x_min;           //!< absolute min drill coordinate
+      double x_max;           //!< absolute max drill coordinate
+      double width;           //!< distance between x_min and x_max
+      double x_center;        //!< absolute center of drill coordinates
+      bool   bMetricOutput;   //!< Flag to indicate metric output
 };
 
 #endif // DRILL_H

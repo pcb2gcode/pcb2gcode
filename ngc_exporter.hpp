@@ -60,34 +60,29 @@ using boost::shared_ptr;
 class NGC_Exporter: public Exporter {
 public:
 	NGC_Exporter(shared_ptr<Board> board);
-
 	/* virtual void add_path( shared_ptr<icoords> ); */
 	/* virtual void add_path( vector< shared_ptr<icoords> > ); */
-
 	void add_header(string);
 	void export_all(boost::program_options::variables_map&);
-
-	//SVG EXPORTER
 	void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
-
 	void set_preamble(string);
 	void set_postamble(string);
 
 protected:
 	double get_tolerance(void);
+	double calcSlope(icoords::iterator, icoords::iterator);
 	void export_layer(shared_ptr<Layer> layer, string of_name);
-
-	//SVG EXPORTER
-	bool bDoSVG;
+	bool bDoSVG;            //!< if true, export svg
 	shared_ptr<SVG_Exporter> svgexpo;
-
 	shared_ptr<Board> board;
 	vector<string> header;
-	string preamble, postamble;
-
-	double g64; //!< maximum deviation from commanded toolpath [inch]
-	bool metricinput; //!< if true, input parameters are in metric units
-	bool metricoutput; //!< if true, metric g-code output
+   string preamble;        //!< Preamble from command line (user file)
+   string postamble;       //!< Postamble from command line (user file)
+	double g64;             //!< maximum deviation from commanded toolpath [inch]
+	double cfactor;         //!< imperial/metric conversion factor for output file
+	bool bMetricinput;      //!< if true, input parameters are in metric units
+	bool bMetricoutput;     //!< if true, metric g-code output
+	bool bOptimise;         //!< if true, output will be optimised
 };
 
 #endif // NGCEXPORTER_H
