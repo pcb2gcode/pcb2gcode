@@ -1,11 +1,12 @@
 This is a fork of git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode.
 
 Changes to original:
-- option to set g64 manually istead of internal dpi>g64 calculation.
-- metric output option.
-- option to use only one drillsize.
-- option to cut outline from the front.
-- calculate boardwith for drill file based on drill coordinates, not on top/bottom layer.
+- additional option "optimise" reduces the g-code file size up to 40%.
+- additional option "bridges" adds four bridges to the outline cut.
+- additional option "g64" to manually set the g64 value.
+- additional option "metric output".
+- additional option "cut front" for outline cutting from top layer.
+- additional option "onedrill" to skip the tool change when drilling.
 - reformatted the code with Eclipse code styler (K&R).
 - started documenting the code.
 

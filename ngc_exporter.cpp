@@ -5,6 +5,12 @@
  \brief
 
  \version
+ 19.12.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
+ - added option for optimised g-code output (reduces file size up to 40%).
+ - added option to add four bridges to the outline cut (clumsy code, but it works)
+ - added methods optimise_Path,add_Bridge,get_SlopeOfLine,get_D_PointToLine,get_D_PointToPoint,get_Y_onLine,get_X_onLine
+
+ \version
  04.08.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Optimised time for export by approx. 5%. ("\n" instead of endl).
  - Added metricoutput option.
@@ -72,13 +78,25 @@ void NGC_Exporter::add_header(string header) {
 /******************************************************************************/
 void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
-   g64 = options.count("g64") ? options["g64"].as<double>() : 1;        //set g64 value
-   bMetricinput = options["metric"].as<bool>();                         //set flag for metric input
-   bMetricoutput = options["metricoutput"].as<bool>();                  //set flag for metric output
-   bOptimise = options["optimise"].as<bool>();                          //set flag for optimisation
+   g64 = options.count("g64") ? options["g64"].as<double>() : 1;      //set g64 value
+   bMetricinput = options["metric"].as<bool>();      //set flag for metric input
+   bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
+   bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
+   bMirrored = options.count("mirror-absolute") ? true : false;      //set flag
+   bCutfront = options.count("cut-front") ? true : false;      //set flag
 
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricoutput ? 25.4 : 1;
+
+   if (options["bridges"].as<double>() == 0) {
+      bBridges = false;
+      dBridgewidth = 0;
+   } else {
+      bBridges = true;
+      dBridgewidth = options["bridges"].as<double>() / cfactor;
+   }
+
+   g64 = bMetricinput ? g64 / cfactor : g64;
 
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
@@ -115,11 +133,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
    string layername = layer->get_name();
    shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-
    bool bSvgOnce = TRUE;
-   double tolerance = get_tolerance();
-   //double xcenter = (board->get_max_x() - board->get_min_x()) / 2;
-   //double ycenter = (board->get_max_y() - board->get_min_y()) / 2;
 
    // open output file
    std::ofstream of;
@@ -131,10 +145,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    }
 
    of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
-   of.precision(5);           //Set floating-point decimal precision
+   of.precision(5);              //Set floating-point decimal precision
    of << setw(7);        //Sets the field width to be used on output operations.
 
-   of << "\n" << preamble;      //insert external preamble
+   of << "\n" << preamble;       //insert external preamble
 
    if (bMetricoutput) {
       of << "G94     ( Millimeters per minute feed rate. )\n"
@@ -145,11 +159,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    }
 
    of << "G90     ( Absolute coordinates.        )\n" << "S" << left
-      << mill->speed << "  ( RPM spindle speed.           )\n"
-      << "F" << mill->feed * cfactor << "\n"
+      << mill->speed << "  ( RPM spindle speed.           )\n" << "F"
+      << mill->feed * cfactor << "\n"
       << "M3      ( Spindle on clockwise.        )\n\n";
 
-   of << "G64 P" << tolerance
+   of << "G64 P" << get_tolerance() * cfactor
       << " ( set maximum deviation from commanded toolpath )\n\n";
 
    //SVG EXPORTER
@@ -160,6 +174,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
    // contours
    BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() ) {
+
+      if (bOptimise) {
+         optimise_Path(path);
+      }
+
       // retract, move to the starting point of the next contour
       of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
       of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
@@ -179,6 +198,26 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
       if (cutter && cutter->do_steps) {
 
+         if( bBridges ) {
+            dBridgewidth += mill->tool_diameter;
+            if (!bMirrored) {
+               dBridgexmin = (board->get_width() / 2 + board->get_min_x())
+                             - dBridgewidth / 2;
+               dBridgexmax = dBridgexmin + dBridgewidth;
+               dBridgeymin = (board->get_height() / 2 + board->get_min_y())
+                             - dBridgewidth / 2;
+               dBridgeymax = dBridgeymin + dBridgewidth;
+            } else {
+               dBridgexmax = (board->get_width() / 2 + board->get_min_x())
+                             - dBridgewidth / 2;
+               dBridgexmax *= -1;
+               dBridgexmin = dBridgexmax - dBridgewidth;
+               dBridgeymin = (board->get_height() / 2 + board->get_min_y())
+                             - dBridgewidth / 2;
+               dBridgeymax = dBridgeymin + dBridgewidth;
+            }
+         }
+
          //--------------------------------------------------------------------
          //cutting (outline)
 
@@ -186,89 +225,97 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
 
          while (z >= mill->zwork) {
-            /*
-            of << "G01 Z" << z * cfactor << " F" << mill->feed * cfactor
-               << " ( plunge. )\n";*/
-            of << "G01 Z" << z * cfactor << "\n";
+            of << "G01 Z" << z * cfactor << " F" << mill->feed * cfactor / 2
+               << " ( plunge. )\n";
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+            of << "F" << mill->feed * cfactor << "\n";
 
             icoords::iterator iter = path->begin();
             icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
             icoords::iterator peek;
-
             while (iter != path->end()) {
                peek = iter + 1;
 
-               //iter->first = x-coorinate (top view)
-               //iter->second =y-coordinate (top view)
-
-               /* it's necessary to write the coordinates if...it's the beginning or it's the end*/
-               /* or if neither of the axis align */
-               /* x axis aligns */
-               /* y axis aligns */
-               /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
-
-               if (last == path->end()
-                   || peek == path->end()
-                   || !((last->first == iter->first
-                         && iter->first == peek->first)
-                        || (last->second == iter->second
-                            && iter->second == peek->second))) {
-
-                  of << "X" << iter->first * cfactor << " Y" << iter->second * cfactor << "\n";
-
-                  //SVG EXPORTER
+               if (!bOptimise
+                   && (last == path->end()
+                       || peek == path->end()
+                       || !((last->first == iter->first
+                             && iter->first == peek->first)
+                            || (last->second == iter->second
+                                && iter->second == peek->second)))) {
+                  of << "X" << iter->first * cfactor << " Y"
+                     << iter->second * cfactor << endl;
                   if (bDoSVG) {
                      if (bSvgOnce)
                         svgexpo->line_to(iter->first, iter->second);
                   }
                }
+               if (bOptimise) {
+
+                  if (bBridges && last != path->end() && peek != path->end()) {
+                     add_Bridge(of, double(mill->zsafe * cfactor),
+                              double(z * cfactor),
+                              path->at(distance(path->begin(), last)),
+                              path->at(distance(path->begin(), iter)));
+                     of << "X" << iter->first * cfactor << " Y"
+                        << iter->second * cfactor << endl;
+                  } else {
+                     of << "X" << iter->first * cfactor << " Y"
+                        << iter->second * cfactor << endl;
+                  }
+                  if (bDoSVG) {
+                     if (bSvgOnce)
+                        svgexpo->line_to(iter->first, iter->second);
+                  }
+               }
+
                last = iter;
                ++iter;
             }
-
             //SVG EXPORTER
             if (bDoSVG) {
                svgexpo->close_path();
                bSvgOnce = FALSE;
             }
-
             z -= z_step;
          }
       } else {
-
+         //optimise_Path(path,"test_iso.ngc");
          //--------------------------------------------------------------------
          // isolating (front/backside)
-         /*
-         of << "G01 Z" << mill->zwork * cfactor << " F" << mill->feed * cfactor
-            << " ( plunge. )\n";
-            */
          of << "G01 Z" << mill->zwork * cfactor << "\n";
          of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
          icoords::iterator iter = path->begin();
-         icoords::iterator last = path->end();      //initializing to quick & dirty sentinel value
+         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
          icoords::iterator peek;
-
          while (iter != path->end()) {
             peek = iter + 1;
-            if ( /* it's necessary to write the coordinates if... */
-            last == path->end() || /* it's the beginning */
-            peek == path->end()
-            || /* it's the end */
-            !( /* or if neither of the axis align */
-            (last->first == iter->first && iter->first == peek->first) || /* x axis aligns */
-            (last->second == iter->second && iter->second == peek->second) /* y axis aligns */
-            )
-            /* no need to check for "they are on one axis but iter is outside of last and peek" becaus that's impossible from how they are generated */
-            ) {
+            if (!bOptimise
+                && (last == path->end()
+                    || peek == path->end()
+                    || !((last->first == iter->first
+                          && iter->first == peek->first)
+                         || (last->second == iter->second
+                             && iter->second == peek->second)))
+                /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
+                ) {
                of << "X" << iter->first * cfactor << " Y"
-                  << iter->second * cfactor << "\n";
+                  << iter->second * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
                      svgexpo->line_to(iter->first, iter->second);
             }
+            if (bOptimise) {
+               of << "X" << iter->first * cfactor << " Y"
+                  << iter->second * cfactor << endl;
+               //SVG EXPORTER
+               if (bDoSVG)
+                  if (bSvgOnce)
+                     svgexpo->line_to(iter->first, iter->second);
+            }
+
             last = iter;
             ++iter;
          }
@@ -283,29 +330,14 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    of << "\n";
    // retract
    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
-      << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n"
-      << postamble
-      << "M9 ( Coolant off. )\n"
-      << "M2 ( Program end. )" << endl;
+      << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n" << postamble
+      << "M9 ( Coolant off. )\n" << "M2 ( Program end. )" << endl;
    of.close();
 
    //SVG EXPORTER
    if (bDoSVG) {
       svgexpo->stroke();
    }
-}
-
-/******************************************************************************/
-/*
- \brief   Calculates the slope of the line between point A and B
- */
-/******************************************************************************/
-double NGC_Exporter::calcSlope(icoords::iterator a, icoords::iterator b) {
-   double x;
-   double y;
-   x = b->first - a->first;
-   y = b->second - a->second;
-   return y / x;
 }
 
 /******************************************************************************/
@@ -322,5 +354,220 @@ void NGC_Exporter::set_preamble(string _preamble) {
 /******************************************************************************/
 void NGC_Exporter::set_postamble(string _postamble) {
    postamble = _postamble;
+}
+
+/******************************************************************************/
+/*
+ \brief        Optimise the tool path
+ \description  Simple path optimisation (no fancy algorithm).
+ Reduces the file size by approx. 20-40%.
+ Loss of precision is less than the dpi value.
+ */
+/******************************************************************************/
+void NGC_Exporter::optimise_Path(shared_ptr<icoords> path) {
+
+   icoords::iterator p0;
+   icoords::iterator p1;
+   icoords::iterator p2;
+   double smax, s02, m01, m02, m12;
+
+   p0 = path->begin();
+   smax = 1.01 / board->get_dpi() * sqrt(2);
+   while (p0 < path->end() - 2) {
+      p1 = p0 + 1;
+      p2 = p1 + 1;
+      m02 = get_SlopeOfLine(path->at(distance(path->begin(), p0)),
+                   path->at(distance(path->begin(), p2)));
+      m02 = fabs(m02);
+      s02 = get_D_PointToPoint(path->at(distance(path->begin(), p0)),
+                            path->at(distance(path->begin(), p2)));
+      if ((m02 > 0.95 && m02 < 1.05 && s02 <= smax)) {
+         path->erase(p1);
+      } else {
+         p0++;
+      }
+   }
+
+   p0 = path->begin();
+   while (p0 < path->end() - 2) {
+      p1 = p0 + 1;
+      p2 = p1 + 1;
+      m01 = get_SlopeOfLine(path->at(distance(path->begin(), p0)),
+                   path->at(distance(path->begin(), p1)));
+      m12 = get_SlopeOfLine(path->at(distance(path->begin(), p1)),
+                   path->at(distance(path->begin(), p2)));
+      if (m01 == m12) {
+         path->erase(p1);
+      } else {
+         p0++;
+      }
+   }
+}
+
+/******************************************************************************/
+/*
+ \brief        Add ridges to the outline cut
+ \description  Works for "normal" shaped pcb only.
+ \param        of = output file
+ \param        zsh = saftey height
+ \param        zcut = cut depth
+ \param        p0 = last point
+ \param        p1 = current point
+ */
+/******************************************************************************/
+void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
+                            icoordpair p0, icoordpair p1) {
+   static unsigned char state = 0;      //state of statemachine
+   static bool cutting = true;      //if true, cutting, else on saftey height
+   double x0 = p0.first;
+   double x1 = p1.first;
+   double y0 = p0.second;
+   double y1 = p1.second;
+   double x, y;
+
+   switch (state) {
+
+      case 0:
+         //top to bottom
+         if (cutting && y0 >= dBridgeymax && y1 <= dBridgeymax) {
+            x = get_X_onLine(dBridgeymax, p0, p1);
+            of << "X" << x * cfactor << " Y" << dBridgeymax * cfactor << "\n";
+            of << "Z" << zsh << "\n";
+            cutting = false;      //set flag
+         }
+         if (!cutting && y0 >= dBridgeymin && y1 <= dBridgeymin) {
+            x = get_X_onLine(dBridgeymin, p0, p1);
+            of << "X" << x * cfactor << " Y" << dBridgeymin * cfactor << "\n";
+            of << "Z" << zcut << "\n";
+            cutting = true;      //set flag
+            state = bCutfront ? 3 : 1;      //set next state
+         }
+         break;
+
+      case 1:
+         //left to right
+         if (cutting && x0 <= dBridgexmin && x1 >= dBridgexmin) {
+            y = get_Y_onLine(dBridgexmax, p0, p1);
+            of << "X" << dBridgexmin * cfactor << " Y" << y * cfactor << "\n";
+            of << "Z" << zsh << "\n";
+            cutting = false;      //set flag
+         }
+         if (!cutting && x0 <= dBridgexmax && x1 >= dBridgexmax) {
+            y = get_Y_onLine(dBridgexmax, p0, p1);
+            of << "X" << dBridgexmax * cfactor << " Y" << y * cfactor << "\n";
+            of << "Z" << zcut << "\n";
+            cutting = true;      //set flag
+            state = bCutfront ? 0 : 2;      //set next state
+         }
+         break;
+
+      case 2:
+         //bottom to top
+         if (cutting && y0 <= dBridgeymin && y1 >= dBridgeymin) {
+            x = get_X_onLine(dBridgeymin, p0, p1);
+            of << "X" << x * cfactor << " Y" << dBridgeymin * cfactor << "\n";
+            of << "Z" << zsh << "\n";
+            cutting = false;      //set flag
+         }
+         if (!cutting && y0 <= dBridgeymax && y1 >= dBridgeymax) {
+            x = get_X_onLine(dBridgeymax, p0, p1);
+            of << "X" << x * cfactor << " Y" << dBridgeymax * cfactor << "\n";
+            of << "Z" << zcut << "\n";
+            cutting = true;      //set flag
+            state = bCutfront ? 1 : 3;      //set next state
+         }
+         break;
+
+      case 3:
+         //right to left
+         if (cutting && x0 >= dBridgexmax && x1 <= dBridgexmax) {
+            y = get_Y_onLine(dBridgexmax, p0, p1);
+            of << "X" << dBridgexmax * cfactor << " Y" << y * cfactor << "\n";
+            of << "Z" << zsh << "\n";
+            cutting = false;      //set flag
+         }
+         if (!cutting && x0 >= dBridgexmin && x1 <= dBridgexmin) {
+            y = get_Y_onLine(dBridgexmax, p0, p1);
+            of << "X" << dBridgexmin * cfactor << " Y" << y * cfactor << "\n";
+            of << "Z" << zcut << "\n";
+            cutting = true;      //set flag
+            state = bCutfront ? 2 : 0;      //set next state
+         }
+         break;
+   }
+}
+
+/******************************************************************************/
+/*
+ \brief   Get the y value with given x value and a line between p1 and p2
+ \param   x = x-value on the line
+ \param   p1,p2 = points of the line
+ \retval  y-value
+ */
+/******************************************************************************/
+double NGC_Exporter::get_Y_onLine(double x, icoordpair p1, icoordpair p2) {
+   double x1 = p1.first;
+   double y1 = p1.second;
+   double x2 = p2.first;
+   double y2 = p2.second;
+   return (y2 - y1) / (x2 - x1) * x + (x2 * y1 - x1 * y2) / (x2 - x1);
+}
+
+/******************************************************************************/
+/*
+ \brief   Get the x value with given y value and a line between p1 and p2
+ \param   y = y-value on the line
+ \param   p1,p2 = points of the line
+ \retval  x-value
+ */
+/******************************************************************************/
+double NGC_Exporter::get_X_onLine(double y, icoordpair p1, icoordpair p2) {
+   double x1 = p1.first;
+   double y1 = p1.second;
+   double x2 = p2.first;
+   double y2 = p2.second;
+   return (y * (x1 - x1) - (x2 * y1 - x1 * y2)) / (y2 - y1);
+}
+
+/******************************************************************************/
+/*
+ \brief   Calculates the slope of the line between point A and B
+ \param   p1,p2 = Points of the line
+ \retval  Slope
+ */
+/******************************************************************************/
+double NGC_Exporter::get_SlopeOfLine(icoordpair p1, icoordpair p2) {
+   return (p2.second - p1.second) / (p2.first - p1.first);
+}
+
+/******************************************************************************/
+/*
+ \brief  Calculates the distance of a point from a line
+ \param  p1 = point
+ \param  p2 = point 1 of line
+ \param  p3 = point 2 of line
+ \reval  d  = distance of point p1 from line p2-p3
+ */
+/******************************************************************************/
+double NGC_Exporter::get_D_PointToLine(icoordpair p1, icoordpair p2,
+                                    icoordpair p3) {
+   double a = fabs(
+            (p2.first * p3.second + p3.first * p1.second + p1.first * p2.second
+             - p3.first * p2.second - p1.first * p3.second
+             - p2.first * p1.second));
+   double b = sqrt(
+            pow((p2.first - p3.first), 2) + pow((p2.second - p3.second), 2));
+   return a / b;
+}
+
+/******************************************************************************/
+/*
+ \brief   Calculates the distance between two points
+ \param   p1,p2 = points
+ \retval  Distance
+ */
+/******************************************************************************/
+double NGC_Exporter::get_D_PointToPoint(icoordpair p1, icoordpair p2) {
+   return sqrt(pow((p1.first - p2.first), 2) + pow((p1.second - p2.second), 2));
 }
 

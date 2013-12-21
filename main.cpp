@@ -238,7 +238,7 @@ int main(int argc, char* argv[]) {
       bool flip_outline = false;
       flip_outline =
                vm.count("cut-front") ? !vm["cut-front"].as<bool>() :
-                                       !vm.count("front");
+                                       !vm.count("front");           //ERROR??
 
       try {
          string outline = vm["outline"].as<string>();                               //Filename
@@ -304,11 +304,18 @@ int main(int argc, char* argv[]) {
 
    if (vm.count("drill")) {
       try {
+         /*
          ExcellonProcessor ep(
                   vm["drill"].as<string>(),
                   board->get_max_x() - board->get_min_x(),
                   board->get_min_x()
                   + (board->get_max_x() - board->get_min_x()) / 2,
+                  vm["metricoutput"].as<bool>());
+*/
+         ExcellonProcessor ep(
+                  vm["drill"].as<string>(),
+                  board->get_width(),
+                  board->get_min_x() + board->get_width() / 2,
                   vm["metricoutput"].as<bool>());
 
          ep.add_header(PACKAGE_STRING);

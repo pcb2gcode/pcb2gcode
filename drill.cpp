@@ -34,7 +34,7 @@
  \bug Milldrill + mirror_absolute returns error #134.
 
  \todo Sort the drill coordinates if the onedrill option is given to reduce the
-   time for the drilling process.
+ time for the drilling process.
 
  \ingroup    DRILL
  */
@@ -86,7 +86,7 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricOutput ? 25.4 : 1;
 
-   calc_dimensions();//calculate board dimensions
+   calc_dimensions();      //calculate board dimensions
 
    //set metric or imperial preambles
    if (bMetricOutput) {
@@ -194,7 +194,7 @@ double ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute,
  \param  mirror_absolute = if true, mirror along the y axis instead of the board center
  \param  onedrill : if true, only the first drill bit is used, the others are skipped
  \todo   Optimise the implementation of onedrill by modifying the bits and
-         using the smallest bit only.
+ using the smallest bit only.
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_name,
@@ -232,9 +232,9 @@ void ExcellonProcessor::export_ngc(const string of_name,
       of << "\n( This file uses only one drill bit. Forced by 'onedrill' option )\n\n";
    }
 
-   of.setf(ios_base::fixed);  //write floating-point values in fixed-point notation
+   of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
    of.precision(5);           //Set floating-point decimal precision
-   of << setw(7);             //Sets the field width to be used on output operations.
+   of << setw(7);        //Sets the field width to be used on output operations.
 
    of << preamble_ext;        //insert external preamble file
    of << preamble;            //insert internal preamble
@@ -246,9 +246,8 @@ void ExcellonProcessor::export_ngc(const string of_name,
       if ((onedrill == true) && (it != bits->begin())) {
          of << "(Drill change skipped. Forced by 'onedrill' option.)\n" << "\n";
       } else {
-         of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n"
-            << "T" << it->first << "\n"
-            << "M5      (Spindle stop.)\n"
+         of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
+            << it->first << "\n" << "M5      (Spindle stop.)\n"
             << "M6      (Tool change.)\n"
             << "(MSG, Change tool bit to drill size " << it->second.diameter
             << " " << it->second.unit << ")\n"
@@ -311,20 +310,19 @@ void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
    g_assert(cutter);
    double cutdiameter = cutter->tool_diameter;
 
+   cout << " C: " << cutdiameter << " H:" << holediameter << "\n";
+
    if (cutdiameter * 1.001 >= holediameter) {
       of << "G0 X" << x * cfactor << " Y" << y * cfactor << endl;
       of << "G1 Z#50" << endl;
       of << "G0 Z#51" << endl << endl;
    } else {
-      cout << "\n holedia:" << holediameter << "\n";
-      cout << "\n cutdia:" << cutdiameter << "\n";
+
       double millr = (holediameter - cutdiameter) / 2.;      //mill radius
 
-      cout << "\nmillr=" << millr * cfactor << "\n";
+      of << "G0 X" << x * cfactor + millr << " Y" << y * cfactor << endl;
 
-      of << "G0 X" << (x + millr) * cfactor << " Y" << y * cfactor << endl;
-
-      double z_step = cutter->stepsize;      //z_step=0.01;
+      double z_step = cutter->stepsize;
       double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
 
       if (!cutter->do_steps) {
@@ -336,8 +334,7 @@ void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
 
       while (z >= cutter->zwork) {
          of << "G1 Z[#50+" << stepcount << "*#52]" << endl;
-         millr = 0.039370079;
-         of << "G2 I" << -millr * cfactor << " J0" << endl;
+         of << "G2 I" << -millr << " J0" << endl;
          z -= z_step;
          stepcount--;
       }
@@ -353,10 +350,10 @@ void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string outputname,
-                                   shared_ptr<Cutter> target, bool mirrored,
+                                   shared_ptr<Cutter> target, bool drillfront,
                                    bool mirror_absolute, bool onedrill) {
 
-   g_assert(mirrored == true);
+   g_assert(drillfront == true);
    g_assert(mirror_absolute == false);
    cerr << "Currently Drilling " << "\n";
 
@@ -367,60 +364,56 @@ void ExcellonProcessor::export_ngc(const string outputname,
    shared_ptr<const map<int, drillbit> > bits = get_bits();
    shared_ptr<const map<int, icoords> > holes = get_holes();
 
-   cout << "\n*****\n";
-   cout << "Bit count: " << bits->size() << "\n";
-   cout << "Empty? " << (bits->empty() ? "true" : "false") << "\n";
-   cout << "Bits max size: " << bits->max_size() << "\n";
-   cout << "*****" << endl;
-
    // write header to .ngc file
    BOOST_FOREACH (string s, header) {
       of << "( " << s << " )" << "\n";
    }
    of << "\n";
 
-   of.setf(ios_base::fixed);     //write floating-point values in fixed-point notation
+   of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
    of.precision(5);              //Set floating-point decimal precision
-   of << setw(7);                //Sets the field width to be used on output operations.
+   of << setw(7);        //Sets the field width to be used on output operations.
 
-   of << "( This file uses a mill head of " << target->tool_diameter
-      << (bMetricOutput ? "mm" : "inch")
-      << " to drill the " << bits->size() << "bit sizes. )" << "\n";
+   of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
+      << (bMetricOutput ? "mm" : "inch") << " to drill the " << bits->size()
+      << "bit sizes. )" << "\n";
 
    of << "( Bit sizes:";
    for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++) {
-      of << " [" << it->second.diameter * cfactor << "]";
+      of << " [" << it->second.diameter << "]";
    }
    of << " )\n\n";
 
    //preamble
    of << preamble_ext << preamble << "S" << left << target->speed
-      << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor << " (Feedrate)\n\n";
+      << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor
+      << " (Feedrate)\n\n";
 
    of << "#50=" << target->zwork * cfactor << "  (zwork)" << "\n";
    of << "#51=" << target->zsafe * cfactor << "  (zsafe)" << "\n";
    of << "#52=" << target->stepsize * cfactor << "  (stepsize)" << "\n\n";
 
+   of << "G00 Z#51\n";
+
    for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++) {
 
       double diameter = it->second.diameter;
-      //cerr<<"bit:"<<diameter<<endl;
+
       const icoords drill_coords = holes->at(it->first);
       icoords::const_iterator coord_iter = drill_coords.begin();
 
-      millhole(of, board_width - coord_iter->first, coord_iter->second, target,
-               diameter);
+      millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first),
+               coord_iter->second, target, diameter);
       ++coord_iter;
 
       while (coord_iter != drill_coords.end()) {
 
-         millhole(of, board_width - coord_iter->first, coord_iter->second,
+         millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first), coord_iter->second,
                   target, diameter);
          ++coord_iter;
       }
-
    }
 
    // retract, end

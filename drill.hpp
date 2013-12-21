@@ -119,6 +119,7 @@ class ExcellonProcessor {
       vector<string> header;
       string preamble;        //!< Preamble for output file
       string postamble;       //!< Postamble for output file
+
       string preamble_ext;    //!< Preamble from command line (user file)
       string postamble_ext;   //!< Postamble from command line (user file)
       double cfactor;         //!< imperial/metric conversion factor for output file
