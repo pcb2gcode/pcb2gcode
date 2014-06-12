@@ -48,7 +48,7 @@ ExcellonProcessor::ExcellonProcessor( string drillfile, const ivalue_t board_wid
 	if( project->file[0] == NULL) throw drill_exception();
 
 	preamble = string("G94     ( Inches per minute feed rate. )\n") +
-	   "G20     ( Units == INCHES.             )\n" +
+       "G20     ( Units == INCHES.             )\n" +
 	   "G90     ( Absolute coordinates.        )\n";
 	postamble = string("M9 ( Coolant off. )\n") +
 		"M2 ( Program end. )\n\n";
@@ -196,9 +196,10 @@ void ExcellonProcessor::millhole(std::ofstream &of,float x, float y,  shared_ptr
 void 
 ExcellonProcessor::export_ngc( const string outputname,  shared_ptr<Cutter> target, bool mirrored, bool mirror_absolute )
 {
+    ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
-	g_assert( mirrored == true );
-	g_assert( mirror_absolute == false );
+//	g_assert( mirrored == true );
+//	g_assert( mirror_absolute == false );
 	cerr << "Currently Drilling "<< endl;
 
 	// open output file
@@ -233,18 +234,18 @@ ExcellonProcessor::export_ngc( const string outputname,  shared_ptr<Cutter> targ
 	
 	
 	for( map<int,drillbit>::const_iterator it = bits->begin(); it != bits->end(); it++ ) {
-		
-		float diameter=it->second.diameter;
-		//cerr<<"bit:"<<diameter<<endl;
+        float diameter;
+        (it->second.unit=="mm")?diameter=it->second.diameter/25.4:diameter=it->second.diameter;
+
 		const icoords drill_coords = holes->at(it->first);
 		icoords::const_iterator coord_iter = drill_coords.begin();
 		
-		millhole(of,  board_width - coord_iter->first, coord_iter->second, target,diameter);
+        millhole(of,  (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first), coord_iter->second, target,diameter);
 		++coord_iter;
 
 		while( coord_iter != drill_coords.end() ) {
 
-			millhole(of,  board_width - coord_iter->first, coord_iter->second, target,diameter);
+            millhole(of,  (mirrored?double_mirror_axis - coord_iter->first:coord_iter->first), coord_iter->second, target,diameter);
 			++coord_iter;
 		}
 	
