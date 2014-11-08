@@ -1,4 +1,4 @@
-This is a fork of `git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode by Patrick Kanzler (patkan).`
+This is a fork of `git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode` by Patrick Kanzler (patkan).
 I forked the project since the original is not under active development anymore.
 At the moment I do not have that much time to look into the code and tend to issues, but I will try to merge pull requests.
 
