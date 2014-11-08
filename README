@@ -1,5 +1,9 @@
-This is a fork of git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode.
+This is a fork of git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode by Patrick Kanzler (patkan).
+I forked the project since the original is not under active development anymore.
+At the moment I do not have that much time to look into the code and tend to issues, but I will try to merge pull requests.
+------------------------------------------------------------------------------------
 
+changes by "erik74"
 Changes to original:
 - additional option "optimise" reduces the g-code file size up to 40%.
 - additional option "bridges" adds four bridges to the outline cut.
@@ -57,9 +61,9 @@ The Ubuntu ones are outdated (1.1.2) as of 26-12-2011, I recommend installing 1.
 
 Installation from GIT (latest development version):
 
-$ git clone git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode
+$ git clone https://github.com/patkan/pcb2gcode.git
 $ cd pcb2gcode
 $ ./git-build.sh
 $ sudo make install
 
-For further details, see INSTALL and http://sourceforge.net/apps/mediawiki/pcb2gcode
+For further details, see INSTALL.
