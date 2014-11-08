@@ -44,3 +44,5 @@ man/Makefile.in
 pcb2gcode
 stamp-h1
 
+#editor or browser files
+.directory
