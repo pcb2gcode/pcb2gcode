@@ -5,6 +5,10 @@
  \brief
 
  \version
+ 20.11.2014 - Nicola Corna - nicola@corna.info\n
+ - added bridge height option
+ 
+ \version
  19.12.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - added option for optimised g-code output (reduces file size up to 40%).
  - added option to add four bridges to the outline cut (clumsy code, but it works)
@@ -91,9 +95,14 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    if (options["bridges"].as<double>() == 0) {
       bBridges = false;
       dBridgewidth = 0;
+      bridgesZ = options["zsafe"].as<double>();
    } else {
       bBridges = true;
       dBridgewidth = options["bridges"].as<double>() / cfactor;
+      if (options.count("zbridges"))
+        bridgesZ = options["zbridges"].as<double>();
+      else
+        bridgesZ = options["zsafe"].as<double>();	//Use zsafe as default value
    }
 
    g64 = bMetricinput ? g64 / cfactor : g64;
@@ -253,8 +262,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                if (bOptimise) {
 
                   if (bBridges && last != path->end() && peek != path->end()) {
-                     add_Bridge(of, double(mill->zsafe * cfactor),
-                              double(z * cfactor),
+                     add_Bridge(of, bridgesZ, double(z * cfactor),
                               path->at(distance(path->begin(), last)),
                               path->at(distance(path->begin(), iter)));
                      of << "X" << iter->first * cfactor << " Y"

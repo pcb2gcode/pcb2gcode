@@ -4,6 +4,9 @@ At the moment I do not have that much time to look into the code and tend to iss
 
 ------------------------------------------------------------------------------------
 
+changes by "Corna" (Nicola Corna nicola@corna.info)
+- added bridge height option
+
 changes by "erik74"
 Changes to original:
 - additional option "optimise" reduces the g-code file size up to 40%.
