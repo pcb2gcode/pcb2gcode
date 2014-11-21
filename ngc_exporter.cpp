@@ -6,7 +6,8 @@
 
  \version
  20.11.2014 - Nicola Corna - nicola@corna.info\n
- - added bridge height option
+ - Added bridge height option
+ - Enabled bridges when bOptimise=false
  
  \version
  19.12.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
@@ -259,22 +260,18 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                         svgexpo->line_to(iter->first, iter->second);
                   }
                }
-               if (bOptimise) {
-
-                  if (bBridges && last != path->end() && peek != path->end()) {
-                     add_Bridge(of, bridgesZ, double(z * cfactor),
-                              path->at(distance(path->begin(), last)),
-                              path->at(distance(path->begin(), iter)));
-                     of << "X" << iter->first * cfactor << " Y"
-                        << iter->second * cfactor << endl;
-                  } else {
-                     of << "X" << iter->first * cfactor << " Y"
-                        << iter->second * cfactor << endl;
-                  }
-                  if (bDoSVG) {
-                     if (bSvgOnce)
-                        svgexpo->line_to(iter->first, iter->second);
-                  }
+               if (bBridges && last != path->end() && peek != path->end()) {
+                  add_Bridge(of, bridgesZ, double(z * cfactor),
+                           path->at(distance(path->begin(), last)),
+                           path->at(distance(path->begin(), iter)));
+                  of << "X" << iter->first * cfactor << " Y"
+                     << iter->second * cfactor << endl;
+               } else {
+                  of << "X" << iter->first * cfactor << " Y"
+                     << iter->second * cfactor << endl;
+               }
+               if (bDoSVG && bOptimise && bSvgOnce) {
+                  svgexpo->line_to(iter->first, iter->second);
                }
 
                last = iter;
