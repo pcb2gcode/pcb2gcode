@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2010-11-10"
+.TH PCB2GCODE 1 "2014-11-21"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -57,7 +57,7 @@ gcode preamble file, inserted at the very beginning
 \fB\-\-postamble\fP \fIfilename.ngc\fP
 gcode postamble file, inserted before M9 and M2
 .TP
-\fB\-\-g64\fP
+\fB\-\-g64\fP \fIunit\fP
 maximum deviation from toolpath, overrides internal calculation
 
 .PP
@@ -93,11 +93,40 @@ offset to a large value (like 1 inch).
 .TP
 \fB\-\-extra\-passes\fP \fInumber\fP
 number of additional isolation passes
-
 For each extra pass, engraving is repeated with the offset width increased by
 half its original value, creating wider isolation areas.
+
 .PP
-The parameters that define outline cutting are:
+The parameters that define drilling are:
+.TP
+\fB\-\-zdrill\fP \fIunit\fP
+Z value down to which will be drilled
+.TP
+\fB\-\-zchange\fP \fIunit\fP
+Z-coordinate for movements with the drill head
+.TP
+\fB\-\-drill\-feed\fP \fIunit/minute\fP
+feed rate for drilling (vertical speed)
+.TP
+\fB\-\-drill-speed\fP \fIrpm\fP
+spindle speed during drilling (rounds per minute)
+.TP
+\fB\-\-milldrill\fP
+If \fB\-\-milldrill\fP is given, the milling head will be used to drill the
+holes in the PCB. Holes up to the size of the milling head will be drilled
+regularly (possibly creating a bigger hole than intended), the other holes are
+created by moving the head in circles using the feed and infeed parameters used
+in cutting.
+.TP
+\fB\-\-drill\-front\fP
+use the coordinates of the front side for drilling instead of the coordinates
+of the back side
+.TP
+\fB\-\-onedrill\fP
+use only one drill bit size
+
+.PP
+Outline cutting takes another set of options:
 .TP
 \fB\-\-cutter\-diameter\fP \fIunit\fP
 amount by half of which the tool path is outset from the shape in the outline
@@ -132,34 +161,7 @@ add four bridges with the given width to the outline cut
 .TP
 \fB\-\-zbridges \fIunit\fP
 bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
-.PP
-Drilling takes another set of options:
-.TP
-\fB\-\-zdrill\fP \fIunit\fP
-Z value down to which will be drilled
-.TP
-\fB\-\-zchange\fP \fIunit\fP
-Z-coordinate for movements with the drill head
-.TP
-\fB\-\-drill\-feed\fP \fIunit/minute\fP
-feed rate for drilling (vertical speed)
-.TP
-\fB\-\-drill-speed\fP \fIrpm\fP
-spindle speed during drilling (rounds per minute)
-.TP
-\fB\-\-milldrill\fP
-If \fB\-\-milldrill\fP is given, the milling head will be used to drill the
-holes in the PCB. Holes up to the size of the milling head will be drilled
-regularly (possibly creating a bigger hole than intended), the other holes are
-created by moving the head in circles using the feed and infeed parameters used
-in cutting.
-.TP
-\fB\-\-drill\-front\fP
-use the coordinates of the front side for drilling instead of the coordinates
-of the back side
-.TP
-\fB\-\-onedrill\fP
-use only one drill bit size
+
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
@@ -182,7 +184,7 @@ use metric units for parameters. Does not affect output code
 .TP
 \fB\-\-metricoutput\fP
 use metric units for output code
-.TP
+
 .PP
 The only options that can't be used in the \fImillproject\fP file are the
 common ones:
