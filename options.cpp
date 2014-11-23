@@ -3,6 +3,10 @@
 /*!
  \file       options.cpp
  \brief
+ 
+ \version
+ 20.11.2014 - Nicola Corna - nicola@corna.info\n
+ - added bridge height option
 
  \version
  19.12.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
@@ -222,6 +226,8 @@ options::options()
             "Reduce output file size by up to 40% while accepting a little loss of precision.")(
             "bridges", po::value<double>()->default_value(0),
             "add four bridges with the given width to the outline cut")(
+            "zbridges", po::value<double>(),
+            "bridges heigth (Z-coordinates while engraving bridges, default to zsafe) ")(
             "dpi", po::value<int>()->default_value(1000),
             "virtual photoplot resolution")(
             "g64", po::value<double>(),

@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2010-11-10"
+.TH PCB2GCODE 1 "2014-11-21"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -50,6 +50,15 @@ closed line chain (see \fB\-\-fill-outline\fP).
 .TP
 \fB\-\-drill\fP \fIfilename.cnc\fP
 Convert the given file (containing drill sizes and positions) to G-code.
+.TP
+\fB\-\-preamble\fP \fIfilename.ngc\fP
+gcode preamble file, inserted at the very beginning
+.TP
+\fB\-\-postamble\fP \fIfilename.ngc\fP
+gcode postamble file, inserted before M9 and M2
+.TP
+\fB\-\-g64\fP \fIunit\fP
+maximum deviation from toolpath, overrides internal calculation
 
 .PP
 For every option \fB\-\-x\fP that takes a filename, there is an
@@ -67,10 +76,10 @@ Z-coordinate at which engraving happens
 \fB\-\-zsafe\fP \fIunit\fP
 Z-coordinate for movements between engraving steps
 .TP
-\fB\-\-mill-feed\fP \fIunit/minute\fP
+\fB\-\-mill\-feed\fP \fIunit/minute\fP
 feed rate at which engraving takes place (horizontal speed)
 .TP
-\fB\-\-mill-speed\fP \fIrpm\fP
+\fB\-\-mill\-speed\fP \fIrpm\fP
 spindle speed during engraving (rounds per minute)
 .TP
 \fB\-\-offset\fP \fIunit\fP
@@ -82,40 +91,13 @@ warning will be printed and the line will be drawn between the areas. This
 behavior can be used to get voronoi-style (flood-filling) areas; simply set the
 offset to a large value (like 1 inch).
 .TP
-\fB\-\-extra-passes\fP \fInumber\fP
+\fB\-\-extra\-passes\fP \fInumber\fP
 number of additional isolation passes
-
 For each extra pass, engraving is repeated with the offset width increased by
 half its original value, creating wider isolation areas.
+
 .PP
-The parameters that define outline cutting are:
-.TP
-\fB\-\-cutter-diameter\fP \fIunit\fP
-amount by half of which the tool path is outset from the shape in the outline
-file
-.TP
-\fB\-\-zcut\fP \fIunit\fP
-Z-coordinate indicating where the outline cutting ends
-.TP
-\fB\-\-cut-feed\fP \fIunit/minute\fP
-feed rate at which outline cutting takes place (horizontal speed)
-.TP
-\fB\-\-cut-speed\fP \fIrpm\fP
-spindle speed during outline cutting (rounds per minute)
-.TP
-\fB\-\-cut-infeed\fP \fIunit\fP
-maximum Z distance that is cut away in a single pass (positive value; if less
-then zcut's value, there will be more than one pass)
-.TP
-\fB\-\-fill-outline\fP
-If \fB\-\-fill-outline\fP is given, it is assumed that the outline file
-contains not a polygon but a closed chain of lines. The board will be cut along
-the centres of these lines.
-.TP
-\fB\-\-outline-width \fIunit\fP\fP
-thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
-.PP
-Drilling takes another set of options:
+The parameters that define drilling are:
 .TP
 \fB\-\-zdrill\fP \fIunit\fP
 Z value down to which will be drilled
@@ -123,7 +105,7 @@ Z value down to which will be drilled
 \fB\-\-zchange\fP \fIunit\fP
 Z-coordinate for movements with the drill head
 .TP
-\fB\-\-drill-feed\fP \fIunit/minute\fP
+\fB\-\-drill\-feed\fP \fIunit/minute\fP
 feed rate for drilling (vertical speed)
 .TP
 \fB\-\-drill-speed\fP \fIrpm\fP
@@ -139,15 +121,70 @@ in cutting.
 \fB\-\-drill\-front\fP
 use the coordinates of the front side for drilling instead of the coordinates
 of the back side
+.TP
+\fB\-\-onedrill\fP
+use only one drill bit size
+
+.PP
+Outline cutting takes another set of options:
+.TP
+\fB\-\-cutter\-diameter\fP \fIunit\fP
+amount by half of which the tool path is outset from the shape in the outline
+file
+.TP
+\fB\-\-zcut\fP \fIunit\fP
+Z-coordinate indicating where the outline cutting ends
+.TP
+\fB\-\-cut\-feed\fP \fIunit/minute\fP
+feed rate at which outline cutting takes place (horizontal speed)
+.TP
+\fB\-\-cut\-speed\fP \fIrpm\fP
+spindle speed during outline cutting (rounds per minute)
+.TP
+\fB\-\-cut\-infeed\fP \fIunit\fP
+maximum Z distance that is cut away in a single pass (positive value; if less
+then zcut's value, there will be more than one pass)
+.TP
+\fB\-\-fill\-outline\fP
+If \fB\-\-fill-outline\fP is given, it is assumed that the outline file
+contains not a polygon but a closed chain of lines. The board will be cut along
+the centres of these lines.
+.TP
+\fB\-\-outline\-width \fIunit\fP\fP
+thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
+.TP
+\fB\-\-cut\-front\fP
+cut from the front side. Default is from the back side
+.TP
+\fB\-\-bridges \fIunit\fP
+add four bridges with the given width to the outline cut
+.TP
+\fB\-\-zbridges \fIunit\fP
+bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
+
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
+.TP
+\fB\-\-optimize\fP
+Optimize output gcode, reducing its output size up to 40%, while accepting a
+little loss of precision
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000)
 .TP
-\fB\-\-mirror-absolute\fP
+\fB\-\-mirror\-absolute\fP
 mirror operations on the back side along the Y axis instead of the board
 center, which is the default
+.TP
+\fB\-\-svg\fP
+output SVG file (EXPERIMENTAL)
+.TP
+\fB\-\-metric\fP
+use metric units for parameters. Does not affect output code
+.TP
+\fB\-\-metricoutput\fP
+use metric units for output code
+
 .PP
 The only options that can't be used in the \fImillproject\fP file are the
 common ones:
@@ -174,5 +211,6 @@ pcb2gcode was written by Patrick Birnzain, loosely based on an earlier program
 of the same name by Jeff Prothero (Cynbe ru Taren), which in term was based
 even more loosely on Matthew Sager's gerber_to_gcode.
 .PP
-This manual page was written by chrysn <chrysn@fsfe.org> for the Debian project
+This manual page was written by chrysn <chrysn@fsfe.org> and Nicola Corna 
+<nicola@corna.info> for the Debian project
 (and may be used by others).

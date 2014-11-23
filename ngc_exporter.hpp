@@ -4,6 +4,10 @@
  \file       ngc_exporter.hpp
  \brief
 
+ \version
+ 20.11.2014 - Nicola Corna - nicola@corna.info\n
+ - added bridge height option
+ 
   \version
  19.12.2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - added option for optimised g-code output (reduces file size up to 40%).
@@ -107,6 +111,7 @@ protected:
 	double dBridgexmax;     //!< maximum x threshold of the bridges
 	double dBridgeymin;     //!< minimum y threshold of the bridges
 	double dBridgeymax;     //!< maximum y threshold of the bridges
+	double bridgesZ;	//!< z-coordinate of the bridges
 };
 
 #endif // NGCEXPORTER_H
