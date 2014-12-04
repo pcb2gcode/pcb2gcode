@@ -244,6 +244,8 @@ options::options()
             "output file for outline")(
             "drill-output", po::value<string>()->default_value("drill.ngc"),
             "output file for drilling\n")(
+            "preamble-text", po::value<string>(),
+            "preamble text file, inserted at the very beginning as a comment.")(
             "preamble", po::value<string>(),
             "gcode preamble file, inserted at the very beginning.")(
             "postamble", po::value<string>(),
