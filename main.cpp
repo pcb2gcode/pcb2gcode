@@ -5,6 +5,10 @@
  \brief      Main module of pcb2gcode.
 
  \version
+ 04.12.2014 - Nicola Corna - nicola@corna.info\n
+ - added preamble text option
+ 
+ \version
  2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added cut-front option.
  - Added onedrill option.

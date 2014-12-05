@@ -3,6 +3,10 @@
 /*!
  \file       options.cpp
  \brief
+
+  \version
+ 04.12.2014 - Nicola Corna - nicola@corna.info\n
+ - added preamble text option
  
  \version
  20.11.2014 - Nicola Corna - nicola@corna.info\n
