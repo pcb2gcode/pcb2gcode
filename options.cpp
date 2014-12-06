@@ -430,8 +430,7 @@ static void check_cutting_parameters(po::variables_map const& vm) {
 
    //only check the parameters if an outline file is given
    if (vm.count("outline")) {
-
-      if ((vm.count("drill") && vm.count("milldrill"))) {
+      if ((vm.count("drill") || vm.count("milldrill"))) {
          if (vm.count("fill-outline")) {
             if (!vm.count("outline-width")) {
                cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
