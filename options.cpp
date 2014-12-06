@@ -3,6 +3,10 @@
 /*!
  \file       options.cpp
  \brief
+
+  \version
+ 04.12.2014 - Nicola Corna - nicola@corna.info\n
+ - added preamble text option
  
  \version
  20.11.2014 - Nicola Corna - nicola@corna.info\n
@@ -244,6 +248,8 @@ options::options()
             "output file for outline")(
             "drill-output", po::value<string>()->default_value("drill.ngc"),
             "output file for drilling\n")(
+            "preamble-text", po::value<string>(),
+            "preamble text file, inserted at the very beginning as a comment.")(
             "preamble", po::value<string>(),
             "gcode preamble file, inserted at the very beginning.")(
             "postamble", po::value<string>(),
@@ -424,8 +430,7 @@ static void check_cutting_parameters(po::variables_map const& vm) {
 
    //only check the parameters if an outline file is given
    if (vm.count("outline")) {
-
-      if ((vm.count("drill") && vm.count("milldrill"))) {
+      if ((vm.count("drill") || vm.count("milldrill"))) {
          if (vm.count("fill-outline")) {
             if (!vm.count("outline-width")) {
                cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";

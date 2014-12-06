@@ -5,6 +5,10 @@
  \brief      Main module of pcb2gcode.
 
  \version
+ 04.12.2014 - Nicola Corna - nicola@corna.info\n
+ - added preamble text option
+ 
+ \version
  2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Added cut-front option.
  - Added onedrill option.
@@ -61,6 +65,8 @@ using Glib::ustring;
 
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <fstream>
 #include <sstream>
@@ -144,6 +150,29 @@ int main(int argc, char* argv[]) {
 
    string preamble, postamble;
 
+   if (vm.count("preamble-text")) {
+      cout << "Importing preamble text... ";
+      string name = vm["preamble-text"].as<string>();
+      fstream in(name.c_str(), fstream::in);
+
+      if (!in.good()) {
+         cerr << "Cannot read preamble-text file \"" << name << "\"" << endl;
+         exit(1);
+      }
+
+      string tmp ((std::istreambuf_iterator<char>(in)),
+                   std::istreambuf_iterator<char>());
+      boost::regex re ( "\\( *\\)" );
+
+      boost::replace_all ( tmp, "(", "<" );       //Substitute round parenthesis with angled parenthesis
+      boost::replace_all ( tmp, ")", ">" );
+      boost::replace_all ( tmp, "\n", " )\n( " ); //Set the text as comment by adding round parenthesis
+
+      preamble += boost::regex_replace( "( " + tmp + " )\n\n" , re, "");    //Remove empty comment blocks
+
+      cout << "DONE\n";
+   }
+
    if (vm.count("preamble")) {
       cout << "Importing preamble... ";
       string name = vm["preamble"].as<string>();
@@ -156,7 +185,7 @@ int main(int argc, char* argv[]) {
 
       string tmp((std::istreambuf_iterator<char>(in)),
                  std::istreambuf_iterator<char>());
-      preamble = tmp + "\n";
+      preamble += tmp + "\n";
       cout << "DONE\n";
    }
 
@@ -169,7 +198,7 @@ int main(int argc, char* argv[]) {
       fstream in(name.c_str(), fstream::in);
 
       if (!in.good()) {
-         cerr << "Cannot read preamble file \"" << name << "\"" << endl;
+         cerr << "Cannot read postamble file \"" << name << "\"" << endl;
          exit(1);
       }
 
@@ -276,7 +305,7 @@ int main(int argc, char* argv[]) {
       shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
       exporter->add_header(PACKAGE_STRING);
 
-      if (vm.count("preamble")) {
+      if (vm.count("preamble") || vm.count("preamble-text")) {
          exporter->set_preamble(preamble);
       }
 
@@ -320,7 +349,7 @@ int main(int argc, char* argv[]) {
 
          ep.add_header(PACKAGE_STRING);
 
-         if (vm.count("preamble")) {
+         if (vm.count("preamble") || vm.count("preamble-text")) {
             ep.set_preamble(preamble);
          }
 

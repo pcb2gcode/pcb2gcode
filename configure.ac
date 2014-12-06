@@ -20,6 +20,7 @@ export LC_NUMERIC="POSIX"
 # Checks for libraries.
 BOOST_REQUIRE([1.39.0])
 BOOST_PROGRAM_OPTIONS
+BOOST_REGEX
 BOOST_SMART_PTR
 BOOST_FOREACH
 BOOST_TUPLE
@@ -31,7 +32,6 @@ PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
-
 
 # Checks for header files.
 AC_HEADER_STDC

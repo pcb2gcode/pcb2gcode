@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2014-11-21"
+.TH PCB2GCODE 1 "2014-12-05"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -50,6 +50,12 @@ closed line chain (see \fB\-\-fill-outline\fP).
 .TP
 \fB\-\-drill\fP \fIfilename.cnc\fP
 Convert the given file (containing drill sizes and positions) to G-code.
+.TP
+\fB\-\-preamble-text\fP \fIfilename\fP
+gcode text preamble file, inserted at the very beginning as a comment. All the
+round parenthesis will be converted to angled parenthesis (due to gcode's 
+comments limitations). You can use this to include the license header at the 
+top of the gcode output files.
 .TP
 \fB\-\-preamble\fP \fIfilename.ngc\fP
 gcode preamble file, inserted at the very beginning
