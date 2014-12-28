@@ -288,14 +288,15 @@ int main(int argc, char* argv[]) {
       else
          std::cerr << "Import Error: No reason given.";
    }
-
+   
    //---------------------------------------------------------------------------
    //SVG EXPORTER
 
    shared_ptr<SVG_Exporter> svgexpo(new SVG_Exporter(board));
 
    try {
-      board->createLayers();      // throws std::logic_error
+
+     board->createLayers();      // throws std::logic_error
 
       if (vm.count("svg")) {
          cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
@@ -325,7 +326,7 @@ int main(int argc, char* argv[]) {
    } catch (std::runtime_error& re) {
       cout << "Runtime Error: " << re.what() << endl;
    }
-
+   
    //---------------------------------------------------------------------------
    //load and process the drill file
 

@@ -47,6 +47,7 @@
 
 #include "ngc_exporter.hpp"
 #include <boost/foreach.hpp>
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -83,15 +84,43 @@ void NGC_Exporter::add_header(string header) {
 /******************************************************************************/
 void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
+   autoleveller::Software autolevellerSoftware;
    g64 = options.count("g64") ? options["g64"].as<double>() : 1;      //set g64 value
    bMetricinput = options["metric"].as<bool>();      //set flag for metric input
    bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
    bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
    bMirrored = options.count("mirror-absolute") ? true : false;      //set flag
    bCutfront = options.count("cut-front") ? true : false;      //set flag
+   bFrontAutoleveller = options["al_front"].as<bool>();
+   bBackAutoleveller = options["al_back"].as<bool>();
+   probeOnCommands = options["al_probeOnCommands"].as<string>();
+   probeOffCommands = options["al_probeOffCommands"].as<string>();
 
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricoutput ? 25.4 : 1;
+
+   if( bFrontAutoleveller || bBackAutoleveller ) {
+      autolevellerFeed = options["al_probefeed"].as<double>();
+	  autolevellerFailDepth = AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor;	//Fixed (by now) 
+       
+	  if( boost::iequals( options["software"].as<string>(), "turbocnc" ) )
+	     autolevellerSoftware = autoleveller::TURBOCNC;
+	  else if( boost::iequals( options["software"].as<string>(), "mach3" ) )
+	     autolevellerSoftware = autoleveller::MACH3;
+	  else
+	     autolevellerSoftware = autoleveller::LINUXCNC;
+    
+      try {
+      	 leveller = new autoleveller ( board->get_min_x() * cfactor, board->get_min_y() * cfactor,
+      								 board->get_max_x() * cfactor, board->get_max_y() * cfactor,
+      								 options["al_x"].as<double>(),
+      								 options["al_y"].as<double>(),
+      								 autolevellerSoftware );
+      } catch (autoleveller_exception &exc) {
+      	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either autolevellerx or autolevellery" << std::endl;
+      	 exit(40);	//FIXME use the correct error code
+      }
+	}
 
    if (options["bridges"].as<double>() == 0) {
       bBridges = false;
@@ -144,6 +173,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    string layername = layer->get_name();
    shared_ptr<RoutingMill> mill = layer->get_manufacturer();
    bool bSvgOnce = TRUE;
+   bool bAutolevelNow;
 
    // open output file
    std::ofstream of;
@@ -153,6 +183,15 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    BOOST_FOREACH( string s, header ) {
       of << "( " << s << " )\n";
    }
+
+   if( ( bFrontAutoleveller && layername == "front" ) ||
+   	   ( bBackAutoleveller && layername == "back" ) ) {
+   	  bAutolevelNow = true;
+   	  leveller->setMillingParameters( mill->zwork * cfactor, mill->zsafe * cfactor, mill->feed * cfactor );
+      leveller->newChain();
+   }
+   else
+      bAutolevelNow = false;
 
    of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
    of.precision(5);              //Set floating-point decimal precision
@@ -175,6 +214,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
    of << "G64 P" << get_tolerance() * cfactor
       << " ( set maximum deviation from commanded toolpath )\n\n";
+
+   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) )
+      leveller->probeHeader( of, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
+      						  autolevellerFeed, probeOnCommands, probeOffCommands );
 
    //SVG EXPORTER
    if (bDoSVG) {
@@ -305,16 +348,22 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                              && iter->second == peek->second)))
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
                 ) {
-               of << "X" << iter->first * cfactor << " Y"
-                  << iter->second * cfactor << endl;
+               if( bAutolevelNow )
+                  leveller->addChainPoint(of, iter->first * cfactor, iter->second * cfactor);
+               else 
+	              of << "X" << iter->first * cfactor << " Y"
+	                 << iter->second * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
                      svgexpo->line_to(iter->first, iter->second);
             }
             if (bOptimise) {
-               of << "X" << iter->first * cfactor << " Y"
-                  << iter->second * cfactor << endl;
+		       if( bAutolevelNow )
+		          leveller->addChainPoint(of, iter->first * cfactor, iter->second * cfactor);
+		       else 
+		          of << "X" << iter->first * cfactor << " Y"
+		             << iter->second * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
@@ -575,4 +624,3 @@ double NGC_Exporter::get_D_PointToLine(icoordpair p1, icoordpair p2,
 double NGC_Exporter::get_D_PointToPoint(icoordpair p1, icoordpair p2) {
    return sqrt(pow((p1.first - p2.first), 2) + pow((p1.second - p2.second), 2));
 }
-

@@ -62,6 +62,9 @@ using boost::shared_ptr;
 #include "mill.hpp"
 #include "exporter.hpp"
 #include "svg_exporter.hpp"
+#include "autoleveller.hpp"
+
+#define AUTOLEVELLER_FIXED_FAIL_DEPTH ( -0.03937 )
 
 /******************************************************************************/
 /*
@@ -94,8 +97,8 @@ protected:
 	shared_ptr<SVG_Exporter> svgexpo;
 	shared_ptr<Board> board;
 	vector<string> header;
-   string preamble;        //!< Preamble from command line (user file)
-   string postamble;       //!< Postamble from command line (user file)
+    string preamble;        //!< Preamble from command line (user file)
+    string postamble;       //!< Postamble from command line (user file)
 
 	double g64;             //!< maximum deviation from commanded toolpath [inch]
 	double cfactor;         //!< imperial/metric conversion factor for output file
@@ -112,6 +115,14 @@ protected:
 	double dBridgeymin;     //!< minimum y threshold of the bridges
 	double dBridgeymax;     //!< maximum y threshold of the bridges
 	double bridgesZ;	//!< z-coordinate of the bridges
+	
+	autoleveller *leveller;
+	double autolevellerFeed;
+	double autolevellerFailDepth;
+	bool bFrontAutoleveller;
+	bool bBackAutoleveller;
+	string probeOnCommands;
+	string probeOffCommands;
 };
 
 #endif // NGCEXPORTER_H
