@@ -171,10 +171,10 @@ bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
 .PP
 <AUTOLEVELLER DESCRIPTION HERE>
 .TP
-\fB\-\-al_front\fP
+\fB\-\-al-front\fP
 enable the autoleveller for the front side
 .TP
-\fB\-\-al_back\fP
+\fB\-\-al-back\fP
 enable the autoleveller for the back side
 .TP
 \fB\-\-software\fP \fIsoftware\fP
@@ -182,24 +182,24 @@ the height probing commands are different from software to software. Use this
 option to select the used software; currently supported softwares are LinuxCNC,
 Mach3 and TurboCNC
 .TP
-\fB\-\-al_x\fP \fIunit\fP
+\fB\-\-al-x\fP \fIunit\fP
 the width of the probing on the X axis. Higher values increase the levelling 
 precision but also increases the probing time (but not the milling time)
 .TP
-\fB\-\-al_y\fP \fIunit\fP
+\fB\-\-al-y\fP \fIunit\fP
 the width of the probing on the Y axis. Higher values increase the levelling
 precision but also increases the probing time (but not the milling time)
 .TP
-\fB\-\-al_probefeed\fP \fIunit/second\fP
+\fB\-\-al-probefeed\fP \fIunit/second\fP
 probe speed on the Z axis. Higher values decrease the probing time but also 
 increase the wear of the probing tool
 .TP
-\fB\-\-al_probeOnCommands\fP \fIcommand(s)\fP
+\fB\-\-al-probe-on\fP \fIcommand(s)\fP
 insert these commands at the start of the probing sequence. You can use this
 argument to add a M64/M65 command (LinuxCNC) to automatically enable the 
 probe tool. Use a dollar sign ($) to insert a newline
 .TP
-\fB\-\-al_probeOffCommands\fP \fIcommand(s)\fP
+\fB\-\-al-probe-off\fP \fIcommand(s)\fP
 insert these commands at the end of the probing sequence, replacing the 
 standard M0 command. You can use this argument to add a M64/M65 command 
 (LinuxCNC) to automatically disable the probe tool. Use a dollar sign ($) to

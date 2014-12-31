@@ -233,21 +233,21 @@ options::options()
             "add four bridges with the given width to the outline cut")(
             "zbridges", po::value<double>(),
             "bridges heigth (Z-coordinates while engraving bridges, default to zsafe) ")(
-        /**/"al_front", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+        /**/"al-front", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
             "enable the z autoleveller for the front layer")(
-        /**/"al_back", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+        /**/"al-back", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
             "enable the z autoleveller for the back layer")(
         /**/"software", po::value<string>(),
             "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3 and turbocnc")(
-        /**/"al_x", po::value<double>(),
+        /**/"al-x", po::value<double>(),
             "width of the x probes")( 
-        /**/"al_y", po::value<double>(),
+        /**/"al-y", po::value<double>(),
             "width of the y probes")(           
-        /**/"al_probefeed", po::value<double>(),
+        /**/"al-probefeed", po::value<double>(),
             "speed during the probing")(
-        /**/"al_probeOnCommands", po::value<string>()->default_value(""),
+        /**/"al-probe-on", po::value<string>()->default_value(""),
             "execute this commands to enable the probe tool")(
-        /**/"al_probeOffCommands", po::value<string>()->default_value(""),
+        /**/"al-probe-off", po::value<string>()->default_value(""),
             "execute this commands to disable the probe tool")(
             "dpi", po::value<int>()->default_value(1000),
             "virtual photoplot resolution")(
@@ -339,7 +339,7 @@ static void check_generic_parameters(po::variables_map const& vm) {
    //---------------------------------------------------------------------------
    //Check for autoleveller parameters
 
-   if (vm["al_front"].as<bool>() || vm["al_back"].as<bool>()) {
+   if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>()) {
    	  if (!vm.count("software") || 
    	  		( boost::iequals( vm["software"].as<string>(), "linuxcnc" ) &&	//boost::iequals is case insensitive
    	  		  boost::iequals( vm["software"].as<string>(), "mach3" ) &&
@@ -348,17 +348,17 @@ static void check_generic_parameters(po::variables_map const& vm) {
       	 exit(28);
       }
       
-      if (!vm.count("al_x")) {
+      if (!vm.count("al-x")) {
       	 cerr << "Error: autoleveller probe width x not specified.\n";
          exit(29);
       }
        
-      if (!vm.count("al_y")) {
+      if (!vm.count("al-y")) {
       	 cerr << "Error: autoleveller probe width y not specified.\n";
          exit(30);
       }
       
-      if (!vm.count("al_probefeed")) {
+      if (!vm.count("al-probefeed")) {
       	 cerr << "Error: autoleveller probe feed rate not specified.\n";
          exit(31);
       }

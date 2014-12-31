@@ -91,16 +91,16 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
    bMirrored = options.count("mirror-absolute") ? true : false;      //set flag
    bCutfront = options.count("cut-front") ? true : false;      //set flag
-   bFrontAutoleveller = options["al_front"].as<bool>();
-   bBackAutoleveller = options["al_back"].as<bool>();
-   probeOnCommands = options["al_probeOnCommands"].as<string>();
-   probeOffCommands = options["al_probeOffCommands"].as<string>();
+   bFrontAutoleveller = options["al-front"].as<bool>();
+   bBackAutoleveller = options["al-back"].as<bool>();
+   probeOnCommands = options["al-probe-on"].as<string>();
+   probeOffCommands = options["al-probe-off"].as<string>();
 
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricoutput ? 25.4 : 1;
 
    if( bFrontAutoleveller || bBackAutoleveller ) {
-      autolevellerFeed = options["al_probefeed"].as<double>();
+      autolevellerFeed = options["al-probefeed"].as<double>();
 	  autolevellerFailDepth = AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor;	//Fixed (by now) 
        
 	  if( boost::iequals( options["software"].as<string>(), "turbocnc" ) )
@@ -113,8 +113,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
       try {
       	 leveller = new autoleveller ( board->get_min_x() * cfactor, board->get_min_y() * cfactor,
       								 board->get_max_x() * cfactor, board->get_max_y() * cfactor,
-      								 options["al_x"].as<double>(),
-      								 options["al_y"].as<double>(),
+      								 options["al-x"].as<double>(),
+      								 options["al-y"].as<double>(),
       								 autolevellerSoftware );
       } catch (autoleveller_exception &exc) {
       	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either autolevellerx or autolevellery" << std::endl;
