@@ -132,7 +132,7 @@ int main( int argc, char* argv[] )
 		fstream in(name.c_str(),fstream::in);
 		if(!in.good())
 		{
-			cerr << "Cannot read preamble file \"" << name << "\"" << endl;
+			cerr << "Cannot read postamble file \"" << name << "\"" << endl;
 			exit(1);
 		}
 		string tmp((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
