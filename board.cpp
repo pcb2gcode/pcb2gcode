@@ -84,18 +84,29 @@ Board::createLayers()
 
         // if there's no pcb outline, add the specified margins
         try {
-		shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
-		ivalue_t radius = outline_mill->tool_diameter / 2;
-		min_x -= radius;
-		max_x += radius;
-		min_y -= radius;
-		max_y += radius;
+            shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
+            ivalue_t radius = outline_mill->tool_diameter / 2;
+            min_x -= radius;
+            max_x += radius;
+            min_y -= radius;
+            max_y += radius;
         }
-	catch( std::logic_error& e ) {
+        catch( std::logic_error& e ) {
+            try {
+                shared_ptr<Isolator> trace_mill = boost::static_pointer_cast<Isolator>(prepared_layers.at("front").get<1>());
+                ivalue_t radius = trace_mill->tool_diameter / 2;
+                int passes = trace_mill->extra_passes + 1;
+                min_x -= radius * passes;
+                max_x += radius * passes;
+                min_y -= radius * passes;
+                max_y += radius * passes;
+            }
+            catch( std::logic_error& e ) {
                 min_x -= margin;
                 max_x += margin;
                 min_y -= margin;
                 max_y += margin;
+            }
         }
 
         // board size calculated. create layers
