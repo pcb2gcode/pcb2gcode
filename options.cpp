@@ -7,6 +7,7 @@
   \version
  09.01.2015 - Nicola Corna - nicola@corna.info\n
  - Added zero-start option
+ - Added noconfigfile option
   
  04.12.2014 - Nicola Corna - nicola@corna.info\n
  - added preamble text option
@@ -96,7 +97,8 @@ void options::parse(int argc, char** argv) {
 
    po::notify(instance().vm);
 
-   parse_files();
+   if( !instance().vm["noconfigfile"].as<bool>() )
+	   parse_files();
 
    /*
     * this needs to be an extra step, as --basename modifies the default
@@ -173,7 +175,8 @@ options::options()
          : cli_options("command line only options"),
            cfg_options("generic options (CLI and config files)") {
 
-   cli_options.add_options()("help,?", "produce help message")("version", "\n");
+   cli_options.add_options()("noconfigfile", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+   "ignore any configuration file")("help,?", "produce help message")("version", "\n");
 
    cfg_options.add_options()("front", po::value<string>(),
                              "front side RS274-X .gbr")(

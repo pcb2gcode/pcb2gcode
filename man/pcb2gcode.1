@@ -234,7 +234,11 @@ will be between (0,0) and (max_x_value, max_y_value) (positive values)
 
 .PP
 The only options that can't be used in the \fImillproject\fP file are the
-common ones:
+common ones and noconfigfile:
+.TP
+.B \-\-noconfigfile
+Disable the parsing of the millproject file. Use this option if you want to
+manually pass all the arguments as command line parameters
 .TP
 .B \-?, \-\-help
 Show summary of options.
