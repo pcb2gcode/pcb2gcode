@@ -7,6 +7,9 @@ At the moment I do not have that much time to look into the code and tend to iss
 changes by "Corna" (Nicola Corna nicola@corna.info)
 - added bridge height option
 - added preamble text option
+- added zero-start option
+- added autoleveller (unstable and experimental)
+- Windows build
 
 changes by "erik74"
 Changes to original:
@@ -22,8 +25,6 @@ Changes to original:
 ToDo:
 - The Milldrill option does not work with metricoutput yet.
 - Why is no front+back side generated if a single pcb2gcode call is used?
-
-## ORIGINAL README:
 
 This is a complete rewrite of the original pcb2gcode in C++.
 
@@ -78,5 +79,12 @@ $ cd pcb2gcode
 $ ./git-build.sh
 $ sudo make install
 ```
+
+### Windows
+Building pcb2gcode in Windows isn't easy, you should download a precompiled release.
+If you really want to build it by yourself you'll need MinGW and a MSYS environment.
+You can find a good guide here http://ingar.satgnu.net/devenv/mingw32/index.html (follow
+the steps 1, 2 and 3, or follow the step 1 and download the precompiled packages here
+http://ingar.satgnu.net/devenv/mingw32/base.html#build)
 
 For further details, see INSTALL.

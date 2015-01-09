@@ -5,6 +5,9 @@
  \brief
 
  \version
+ 09.01.2015 - Nicola Corna - nicola@corna.info\n
+ - Added zero-start option
+ 
  20.11.2014 - Nicola Corna - nicola@corna.info\n
  - Added bridge height option
  - Enabled bridges when bOptimise=false
