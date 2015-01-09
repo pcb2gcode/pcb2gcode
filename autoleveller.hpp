@@ -82,7 +82,7 @@ protected:
 	xycoord lastChainPoint;
 	bool startNewChain;
 
-	vector< pair <xycoord, Axis> > splitLine ( xycoord startPoint, xycoord endPoint );
+	vector< pair <xycoord, Axis> > splitLine ( xycoord firstPoint, xycoord lastPoint );
 	string gcodeInterpolateAlignedPoint ( pair <xycoord, Axis> point, unsigned int variableNum );	
 	string gcodeInterpolateGenericPoint ( xycoord point, unsigned int variableNum );	
 	string getVarName( unsigned int i, unsigned int j );

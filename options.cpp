@@ -251,6 +251,8 @@ options::options()
             "execute this commands to disable the probe tool")(
             "dpi", po::value<int>()->default_value(1000),
             "virtual photoplot resolution")(
+            "zero-start", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+            "set the starting point of the project at (0,0)")(
             "g64", po::value<double>(),
             "maximum deviation from toolpath, overrides internal calculation")(
             "mirror-absolute", po::value<bool>()->zero_tokens(),

@@ -142,7 +142,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
  *  permit a good linear approximation of the milling surface
  */
 /******************************************************************************/
-vector< pair <autoleveller::xycoord, autoleveller::Axis> > autoleveller::splitLine ( autoleveller::xycoord startPoint, autoleveller::xycoord endPoint ) {
+vector< pair <autoleveller::xycoord, autoleveller::Axis> > autoleveller::splitLine ( autoleveller::xycoord firstPoint, autoleveller::xycoord lastPoint ) {
 	
 	vector< pair <xycoord, Axis> > splittedLine;
 	vector<xycoord> xpoints;
@@ -153,42 +153,42 @@ vector< pair <autoleveller::xycoord, autoleveller::Axis> > autoleveller::splitLi
 	double current;
 	
 	//Intersections with the X-axes
-	if( endPoint.second != startPoint.second )	//Don't do if it is horizontal
+	if( lastPoint.second != firstPoint.second )	//Don't do if it is horizontal
 	{
-		inclination = ( endPoint.first - startPoint.first ) / ( endPoint.second - startPoint.second );
+		inclination = ( lastPoint.first - firstPoint.first ) / ( lastPoint.second - firstPoint.second );
 
-		if( startPoint.second < endPoint.second )
-			for( current = ceil( startPoint.second / YProbeDist ) * YProbeDist; current < endPoint.second; current += YProbeDist )
-				xpoints.push_back( xycoord( startPoint.first + ( current - startPoint.second ) * inclination, current ) );
+		if( firstPoint.second < lastPoint.second )
+			for( current = ceil( firstPoint.second / YProbeDist ) * YProbeDist; current < lastPoint.second; current += YProbeDist )
+				xpoints.push_back( xycoord( firstPoint.first + ( current - firstPoint.second ) * inclination, current ) );
 		else
-			for( current = floor( startPoint.first / YProbeDist ) * YProbeDist; current > endPoint.first; current -= YProbeDist )
-				xpoints.push_back( xycoord( startPoint.first + ( current - startPoint.second ) * inclination, current ) );
+			for( current = floor( firstPoint.first / YProbeDist ) * YProbeDist; current > lastPoint.first; current -= YProbeDist )
+				xpoints.push_back( xycoord( firstPoint.first + ( current - firstPoint.second ) * inclination, current ) );
 	}
 	
 	//Intersections with the Y-axes
-	if( endPoint.first != startPoint.first )	//Don't do if it is vertical
+	if( lastPoint.first != firstPoint.first )	//Don't do if it is vertical
 	{
-		inclination = ( endPoint.second - startPoint.second ) / ( endPoint.first - startPoint.first );
+		inclination = ( lastPoint.second - firstPoint.second ) / ( lastPoint.first - firstPoint.first );
 	
-		if( startPoint.first < endPoint.first )
-			for( current = ceil( startPoint.first / XProbeDist ) * XProbeDist; current < endPoint.first; current += XProbeDist )
-				ypoints.push_back( xycoord( current, startPoint.second + ( current - startPoint.first ) * inclination ) );
+		if( firstPoint.first < lastPoint.first )
+			for( current = ceil( firstPoint.first / XProbeDist ) * XProbeDist; current < lastPoint.first; current += XProbeDist )
+				ypoints.push_back( xycoord( current, firstPoint.second + ( current - firstPoint.first ) * inclination ) );
 		else
-			for( current = floor( startPoint.first / XProbeDist ) * XProbeDist; current > endPoint.first; current -= XProbeDist )
-				ypoints.push_back( xycoord( current, startPoint.second + ( current - startPoint.first ) * inclination ) );
+			for( current = floor( firstPoint.first / XProbeDist ) * XProbeDist; current > lastPoint.first; current -= XProbeDist )
+				ypoints.push_back( xycoord( current, firstPoint.second + ( current - firstPoint.first ) * inclination ) );
 	}
 	
 	//We already know which vector capacity will be required, therefore we reserve now that space in order to prevent
 	//useless reallocations
 	splittedLine.reserve ( xpoints.size() + ypoints.size() + 2 );
 	
-	splittedLine.push_back( pair<xycoord,Axis>( startPoint, NOAXIS ) );
+	splittedLine.push_back( pair<xycoord,Axis>( firstPoint, NOAXIS ) );
 	
 	//Now we merge each vector, keeping them ordered. We use the Manhattan distance because it is easier to compute than the
 	//Euclidean distance and, for our needs, it doesn't have any drawback
 	mergeLinePoints( xpoints, ypoints, splittedLine );
 	
-	splittedLine.push_back( pair<xycoord,Axis>( endPoint, NOAXIS ) );
+	splittedLine.push_back( pair<xycoord,Axis>( lastPoint, NOAXIS ) );
 	
 	return splittedLine;
 }
@@ -246,9 +246,9 @@ string autoleveller::gcodeInterpolateAlignedPoint ( pair <autoleveller::xycoord,
 			
 			x_minus_x0 = ( point.first.first - startPoint.first ) - ( pointbeforeindex * XProbeDist );
 			
-			output << '#' << variableNum << '=' << getVarName( pointbeforeindex, alignedindex ) << "+[" << 
-						getVarName( pointafterindex, alignedindex ) << '-' << getVarName( pointbeforeindex, alignedindex ) << 
-						"]*" << x_minus_x0 / XProbeDist << endl;			
+			output << std::fixed << '#' << variableNum << "=[" << getVarName( pointbeforeindex, alignedindex ) << "+[" <<
+						getVarName( pointafterindex, alignedindex ) << '-' << getVarName( pointbeforeindex, alignedindex ) <<
+						"]*" << x_minus_x0 / XProbeDist << ']' << endl;
 			break;
 			
 		case YAXIS:
@@ -258,9 +258,9 @@ string autoleveller::gcodeInterpolateAlignedPoint ( pair <autoleveller::xycoord,
 			
 			x_minus_x0 = ( point.first.second - startPoint.second ) - ( pointbeforeindex * YProbeDist );
 			
-			output << '#' << variableNum << '=' << getVarName( alignedindex, pointbeforeindex ) << "+[" << 
-						getVarName( alignedindex, pointafterindex ) << '-' << getVarName( alignedindex, pointbeforeindex ) << 
-						"]*" << x_minus_x0 / YProbeDist << endl;			
+			output << std::fixed << '#' << variableNum << "=[" << getVarName( alignedindex, pointbeforeindex ) << "+[" <<
+						getVarName( alignedindex, pointafterindex ) << '-' << getVarName( alignedindex, pointbeforeindex ) <<
+						"]*" << x_minus_x0 / YProbeDist << ']' << endl;
 			break;
 	}
 	
@@ -279,8 +279,8 @@ string autoleveller::gcodeInterpolateGenericPoint ( autoleveller::xycoord point,
 	temp.first -= XProbeDist;
 	output += gcodeInterpolateAlignedPoint( pair<xycoord,Axis> ( temp, YAXIS ), variableNum + 1 );
 	
-	bilinear << '#' << variableNum << "=#" << variableNum + 1 << "+[#" << variableNum + 2 << "-#" <<
-						variableNum + 1 << "]*" << ( point.first - temp.first ) / XProbeDist << endl;
+	bilinear << std::fixed << '#' << variableNum << "=[#" << variableNum + 1 << "+[#" << variableNum + 2 << "-#" <<
+						variableNum + 1 << "]*" << ( point.first - temp.first ) / XProbeDist << ']' << endl;
 	
 	output += bilinear.str();
 	

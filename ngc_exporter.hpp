@@ -123,6 +123,9 @@ protected:
 	bool bBackAutoleveller;
 	string probeOnCommands;
 	string probeOffCommands;
+
+	double xoffset;
+	double yoffset;
 };
 
 #endif // NGCEXPORTER_H

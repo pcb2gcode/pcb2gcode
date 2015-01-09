@@ -96,6 +96,17 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    probeOnCommands = options["al-probe-on"].as<string>();
    probeOffCommands = options["al-probe-off"].as<string>();
 
+   if( options["zero-start"].as<bool>() )
+   {
+      xoffset = board->get_min_x();
+      yoffset = board->get_min_y();
+   }
+   else
+   {
+      xoffset = 0;
+      yoffset = 0;
+   }
+
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricoutput ? 25.4 : 1;
 
@@ -111,8 +122,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	     autolevellerSoftware = autoleveller::LINUXCNC;
     
       try {
-      	 leveller = new autoleveller ( board->get_min_x() * cfactor, board->get_min_y() * cfactor,
-      								 board->get_max_x() * cfactor, board->get_max_y() * cfactor,
+      	 leveller = new autoleveller ( ( board->get_min_x() - xoffset ) * cfactor, ( board->get_min_y() - yoffset ) * cfactor,
+      								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() -yoffset ) * cfactor,
       								 options["al-x"].as<double>(),
       								 options["al-y"].as<double>(),
       								 autolevellerSoftware );
@@ -235,8 +246,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       // retract, move to the starting point of the next contour
       of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
       of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
-      of << "G00 X" << path->begin()->first * cfactor << " Y"
-         << path->begin()->second * cfactor << " ( rapid move to begin. )\n";
+      of << "G00 X" << ( path->begin()->first - xoffset ) * cfactor << " Y"
+         << ( path->begin()->second - yoffset ) * cfactor << " ( rapid move to begin. )\n";
 
       //SVG EXPORTER
       if (bDoSVG) {
@@ -307,11 +318,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                   add_Bridge(of, bridgesZ, double(z * cfactor),
                            path->at(distance(path->begin(), last)),
                            path->at(distance(path->begin(), iter)));
-                  of << "X" << iter->first * cfactor << " Y"
-                     << iter->second * cfactor << endl;
+                  of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
+                     << ( iter->second - yoffset ) * cfactor << endl;
                } else {
-                  of << "X" << iter->first * cfactor << " Y"
-                     << iter->second * cfactor << endl;
+                  of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
+                     << ( iter->second - yoffset ) * cfactor << endl;
                }
                if (bDoSVG && bOptimise && bSvgOnce) {
                   svgexpo->line_to(iter->first, iter->second);
@@ -349,10 +360,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
                 ) {
                if( bAutolevelNow )
-                  leveller->addChainPoint(of, iter->first * cfactor, iter->second * cfactor);
+                  leveller->addChainPoint(of, ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor);
                else 
-	              of << "X" << iter->first * cfactor << " Y"
-	                 << iter->second * cfactor << endl;
+	              of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
+	                 << ( iter->second - yoffset ) * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
@@ -360,10 +371,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             }
             if (bOptimise) {
 		       if( bAutolevelNow )
-		          leveller->addChainPoint(of, iter->first * cfactor, iter->second * cfactor);
+		          leveller->addChainPoint(of, ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor);
 		       else 
-		          of << "X" << iter->first * cfactor << " Y"
-		             << iter->second * cfactor << endl;
+		          of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
+		             << ( iter->second - yoffset ) * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
@@ -485,13 +496,13 @@ void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
          //top to bottom
          if (cutting && y0 >= dBridgeymax && y1 <= dBridgeymax) {
             x = get_X_onLine(dBridgeymax, p0, p1);
-            of << "X" << x * cfactor << " Y" << dBridgeymax * cfactor << "\n";
+            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymax - yoffset ) * cfactor << "\n";
             of << "Z" << zsh << "\n";
             cutting = false;      //set flag
          }
          if (!cutting && y0 >= dBridgeymin && y1 <= dBridgeymin) {
             x = get_X_onLine(dBridgeymin, p0, p1);
-            of << "X" << x * cfactor << " Y" << dBridgeymin * cfactor << "\n";
+            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymin - yoffset ) * cfactor << "\n";
             of << "Z" << zcut << "\n";
             cutting = true;      //set flag
             state = bCutfront ? 3 : 1;      //set next state
@@ -502,13 +513,13 @@ void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
          //left to right
          if (cutting && x0 <= dBridgexmin && x1 >= dBridgexmin) {
             y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << dBridgexmin * cfactor << " Y" << y * cfactor << "\n";
+            of << "X" << ( dBridgexmin - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
             of << "Z" << zsh << "\n";
             cutting = false;      //set flag
          }
          if (!cutting && x0 <= dBridgexmax && x1 >= dBridgexmax) {
             y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << dBridgexmax * cfactor << " Y" << y * cfactor << "\n";
+            of << "X" << ( dBridgexmax - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
             of << "Z" << zcut << "\n";
             cutting = true;      //set flag
             state = bCutfront ? 0 : 2;      //set next state
@@ -519,13 +530,13 @@ void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
          //bottom to top
          if (cutting && y0 <= dBridgeymin && y1 >= dBridgeymin) {
             x = get_X_onLine(dBridgeymin, p0, p1);
-            of << "X" << x * cfactor << " Y" << dBridgeymin * cfactor << "\n";
+            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymin - yoffset ) * cfactor << "\n";
             of << "Z" << zsh << "\n";
             cutting = false;      //set flag
          }
          if (!cutting && y0 <= dBridgeymax && y1 >= dBridgeymax) {
             x = get_X_onLine(dBridgeymax, p0, p1);
-            of << "X" << x * cfactor << " Y" << dBridgeymax * cfactor << "\n";
+            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymax - yoffset ) * cfactor << "\n";
             of << "Z" << zcut << "\n";
             cutting = true;      //set flag
             state = bCutfront ? 1 : 3;      //set next state
@@ -536,13 +547,13 @@ void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
          //right to left
          if (cutting && x0 >= dBridgexmax && x1 <= dBridgexmax) {
             y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << dBridgexmax * cfactor << " Y" << y * cfactor << "\n";
+            of << "X" << ( dBridgexmax - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
             of << "Z" << zsh << "\n";
             cutting = false;      //set flag
          }
          if (!cutting && x0 >= dBridgexmin && x1 <= dBridgexmin) {
             y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << dBridgexmin * cfactor << " Y" << y * cfactor << "\n";
+            of << "X" << ( dBridgexmin - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
             of << "Z" << zcut << "\n";
             cutting = true;      //set flag
             state = bCutfront ? 2 : 0;      //set next state
