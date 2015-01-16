@@ -40,7 +40,7 @@ autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, d
  boardLenX( xmax - xmin ),
  boardLenY( ymax - ymin ),
  startPoint( xycoord(xmin, ymin) ),
- numXPoints( round ( boardLenX / XProbeDist ) > 1 ? round ( boardLenX / XProbeDist ) + 1 : 2 ),		//We need at least 2 probe points 
+ numXPoints( round ( boardLenX / XProbeDist ) > 1 ? round ( boardLenX / XProbeDist ) + 1 : 2 ),		//We need at least 2 probe points per axis
  numYPoints( round ( boardLenY / YProbeDist ) > 1 ? round ( boardLenY / YProbeDist ) + 1 : 2 ),
  XProbeDist( boardLenX / ( numXPoints - 1 ) ),
  YProbeDist( boardLenY / ( numYPoints - 1 ) ),
@@ -58,14 +58,13 @@ autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, d
 /******************************************************************************/
 string autoleveller::getVarName( unsigned int i, unsigned int j ) {
 	std::stringstream ss;
+
 #ifdef AUTOLEVELLER_NAMED_PARAMETERS
-	if ( software == MACH3 || software == TURBOCNC )
-		ss << '#' << i * numYPoints + j + 500;	//getVarName(10,8) returns (numYPoints=10) #180
-	else
+	if ( software == LINUXCNC )
 		ss << "#<_" << i << '_' << j << '>';	//getVarName(10,8) returns #<_10_8>	
-#else		
-	ss << '#' << i * numYPoints + j + 500;	
+	else
 #endif
+		ss << '#' << i * numYPoints + j + 500;	//getVarName(10,8) returns (numYPoints=10) #180
 
 	return ss.str();
 }
@@ -84,7 +83,15 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	   "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")",
 	   "( No probe log function available in turboCNC )" };
 	const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "( No probe log function available in turboCNC )" };
+#ifdef AUTOLEVELLER_NAMED_PARAMETERS
 	const char *parameterForm[] = { "parameter in the form #<_xprobenumber_yprobenumber>", "numbered parameter", "numbered parameter" };
+#else
+	const char *parameterForm[] = { "numbered parameter", "numbered parameter", "numbered parameter" };
+#endif
+
+//	const char *startSub = { "o%1% sub", "%1%", "%1%" };
+//	const char *endSub = { "o%1% endsub", "M99", "M99" };
+//	const char *callSub = { "o%1% call [%2%] [%3%] [%4%] [%5%] [%6%]", "G65 P%1% A%2% B%3% C%4% D%5% E%6%", "G65 P%1% A%2% B%3% C%4% D%5% E%6%" };
 
 	int i;
 	int j = 0;
@@ -299,9 +306,10 @@ void autoleveller::correctLine( std::ofstream &of, autoleveller::xycoord startPo
 	//	of << gcodeInterpolateAlignedPoint( *i, 1 );
 	//	of << "X" << i->first.first << " Y" << i->first.second << " Z[" << zdepth << "+#1]" << endl;
 	//}
-	 i = splittedLine.begin() + 1; //DELETEME
+	
 	//of << gcodeInterpolateGenericPoint( splittedLine.end()->first, 1 );
-	of << gcodeInterpolateGenericPoint( i->first, 1 ); //deleteme
+	i = splittedLine.begin() + 1; //DELETEME
+	of << gcodeInterpolateGenericPoint( i->first, 1 ); //DELETEME
 	of << "X" << i->first.first << " Y" << i->first.second << " Z[" << zdepth << "+#1]" << endl;
 	
 }
@@ -313,7 +321,8 @@ void autoleveller::setMillingParameters ( double zdepth, double zsafe, int feedr
 }
 
 void autoleveller::addChainPoint ( std::ofstream &of, double x, double y ) {
-	xycoord newPoint (x, y);
+
+	xycoord	newPoint (x, y);
 
 	if (startNewChain) {
 		startNewChain = false;
@@ -321,7 +330,7 @@ void autoleveller::addChainPoint ( std::ofstream &of, double x, double y ) {
 		of << "X" << x << " Y" << y << " Z[" << zdepth << "+#1]" << endl;
 	}
 	else
-		correctLine( of, lastChainPoint, newPoint );	
+		correctLine( of, lastChainPoint, newPoint );
 	
 	lastChainPoint = newPoint;
 }

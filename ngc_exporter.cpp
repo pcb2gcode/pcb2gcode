@@ -399,7 +399,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    // retract
    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
       << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n" << postamble
-      << "M9 ( Coolant off. )\n" << "M2 ( Program end. )" << endl;
+      << "M9 ( Coolant off. )\n" << "M2 ( Program end. )" << endl << endl;
    of.close();
 
    //SVG EXPORTER
