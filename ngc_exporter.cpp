@@ -123,7 +123,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	     autolevellerSoftware = autoleveller::MACH3;
 	  else
 	     autolevellerSoftware = autoleveller::LINUXCNC;
-    
+
       try {
       	 leveller = new autoleveller ( ( board->get_min_x() - xoffset ) * cfactor, ( board->get_min_y() - yoffset ) * cfactor,
       								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() -yoffset ) * cfactor,
@@ -132,7 +132,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
       								 autolevellerSoftware );
       } catch (autoleveller_exception &exc) {
       	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either autolevellerx or autolevellery" << std::endl;
-      	 exit(40);	//FIXME use the correct error code
+         exit(EXIT_FAILURE);
       }
 	}
 
@@ -149,7 +149,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
         bridgesZ = options["zsafe"].as<double>();	//Use zsafe as default value
    }
 
-   g64 = bMetricinput ? g64 / cfactor : g64;
+   if( bMetricinput && options.count("g64") )
+      g64 /= cfactor;
 
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
