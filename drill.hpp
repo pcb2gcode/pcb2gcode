@@ -5,6 +5,9 @@
  \brief  This file is part of pcb2gcode.
 
  \version
+  09.01.2015 - Nicola Corna - nicola@corna.info\n
+ - Added zero-start option
+
  2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Bugfix for preamble & postamble.
  - Changed x-coordinate calculation.
@@ -87,7 +90,8 @@ class drillbit {
 class ExcellonProcessor {
    public:
       ExcellonProcessor(const string drillfile, const ivalue_t board_width,
-                        const ivalue_t board_center, bool metricoutput);
+                        const ivalue_t board_center, bool metricoutput,
+                        double xoffset = 0, double yoffset = 0);
       ~ExcellonProcessor();
       void add_header(string);
       void set_preamble(string);
@@ -104,8 +108,8 @@ class ExcellonProcessor {
    private:
       void parse_holes();
       void parse_bits();
-      void millhole(std::ofstream &of, float x, float y,
-                    shared_ptr<Cutter> cutter, float holediameter);
+      void millhole(std::ofstream &of, double x, double y,
+                    shared_ptr<Cutter> cutter, double holediameter);
       void calc_dimensions();
       double get_xvalue(bool, bool, double);
 
@@ -128,6 +132,8 @@ class ExcellonProcessor {
       double width;           //!< distance between x_min and x_max
       double x_center;        //!< absolute center of drill coordinates
       bool   bMetricOutput;   //!< Flag to indicate metric output
+      double xoffset;
+      double yoffset;
 };
 
 #endif // DRILL_H

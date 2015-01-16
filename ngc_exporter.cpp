@@ -7,7 +7,7 @@
  \version
  09.01.2015 - Nicola Corna - nicola@corna.info\n
  - Added zero-start option
- 
+
  20.11.2014 - Nicola Corna - nicola@corna.info\n
  - Added bridge height option
  - Enabled bridges when bOptimise=false
@@ -310,8 +310,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                              && iter->first == peek->first)
                             || (last->second == iter->second
                                 && iter->second == peek->second)))) {
-                  of << "X" << iter->first * cfactor << " Y"
-                     << iter->second * cfactor << endl;
+                  of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
+                     << ( iter->second - yoffset ) * cfactor << endl;
                   if (bDoSVG) {
                      if (bSvgOnce)
                         svgexpo->line_to(iter->first, iter->second);

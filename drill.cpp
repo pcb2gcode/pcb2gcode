@@ -5,6 +5,9 @@
  \brief  Generate the g-code file for drilling.
 
  \version
+  09.01.2015 - Nicola Corna - nicola@corna.info\n
+ - Added zero-start option
+
  1.1.4dev 2013 - Erik Schuster - erik@muenchen-ist-toll.de\n
  - Bugfix for postamble: The postamble is now inserted in the output file.
  - Preamble: The optional external file does not substitute the internal preamble anymore.
@@ -66,9 +69,12 @@ using std::pair;
 ExcellonProcessor::ExcellonProcessor(string drillfile,
                                      const ivalue_t board_width,
                                      const ivalue_t board_center,
-                                     bool _metricoutput)
+                                     bool _metricoutput,
+                                     double xoffset,
+                                     double yoffset)
          : board_center(board_center), board_width(board_width),
-           bMetricOutput(_metricoutput) {
+           bMetricOutput(_metricoutput), xoffset(xoffset),
+           yoffset(yoffset) {
 
    bDoSVG = false;      //clear flag for SVG export
    project = gerbv_create_project();
@@ -270,16 +276,16 @@ void ExcellonProcessor::export_ngc(const string of_name,
 
       of << "G81 R" << driller->zsafe * cfactor << " Z"
          << driller->zwork * cfactor << " F" << driller->feed * cfactor << " X"
-         << get_xvalue(drillfront, mirror_absolute, coord_iter->first) * cfactor
-         << " Y" << (coord_iter->second * cfactor) << "\n";
+         << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset ) * cfactor
+         << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
 
       ++coord_iter;
 
       while (coord_iter != drill_coords.end()) {
          of << "X"
-            << get_xvalue(drillfront, mirror_absolute, coord_iter->first)
+            << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset )
                * cfactor
-            << " Y" << (coord_iter->second * cfactor) << "\n";
+            << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
          //SVG EXPORTER
          if (bDoSVG) {
             svgexpo->circle((double_mirror_axis - coord_iter->first),
@@ -303,9 +309,9 @@ void ExcellonProcessor::export_ngc(const string of_name,
  *  \brief  mill one circle
  */
 /******************************************************************************/
-void ExcellonProcessor::millhole(std::ofstream &of, float x, float y,
+void ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
                                  shared_ptr<Cutter> cutter,
-                                 float holediameter) {
+                                 double holediameter) {
 
    g_assert(cutter);
    double cutdiameter = cutter->tool_diameter;
@@ -404,14 +410,14 @@ void ExcellonProcessor::export_ngc(const string outputname,
       const icoords drill_coords = holes->at(it->first);
       icoords::const_iterator coord_iter = drill_coords.begin();
 
-      millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first),
-               coord_iter->second, target, diameter);
+      millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first) - xoffset,
+               coord_iter->second - yoffset, target, diameter);
       ++coord_iter;
 
       while (coord_iter != drill_coords.end()) {
 
-         millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first), coord_iter->second,
-                  target, diameter);
+         millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first) - xoffset,
+         	   coord_iter->second - yoffset, target, diameter);
          ++coord_iter;
       }
    }

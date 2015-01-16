@@ -5,6 +5,9 @@
  \brief      Main module of pcb2gcode.
 
  \version
+  09.01.2015 - Nicola Corna - nicola@corna.info\n
+ - Added zero-start option
+
  04.12.2014 - Nicola Corna - nicola@corna.info\n
  - added preamble text option
  
@@ -346,7 +349,9 @@ int main(int argc, char* argv[]) {
                   vm["drill"].as<string>(),
                   board->get_width(),
                   board->get_min_x() + board->get_width() / 2,
-                  vm["metricoutput"].as<bool>());
+                  vm["metricoutput"].as<bool>(),
+                  vm["zero-start"].as<bool>() ? board->get_min_x() : 0,
+                  vm["zero-start"].as<bool>() ? board->get_min_y() : 0 ) ;
 
          ep.add_header(PACKAGE_STRING);
 
