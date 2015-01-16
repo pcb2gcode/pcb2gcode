@@ -203,7 +203,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    	   ( bBackAutoleveller && layername == "back" ) ) {
    	  bAutolevelNow = true;
    	  leveller->setMillingParameters( mill->zwork * cfactor, mill->zsafe * cfactor, mill->feed * cfactor );
-      leveller->newChain();
    }
    else
       bAutolevelNow = false;
@@ -364,7 +363,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
                 ) {
                if( bAutolevelNow )
-                  leveller->addChainPoint(of, ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor);
+               {
+		       	  of << leveller->interpolatePoint( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) << endl;
+		          of << "X" << ( iter->first - xoffset ) * cfactor
+		          	 << " Y" << ( iter->second - yoffset ) * cfactor
+		          	 << " Z[" << mill->zwork * cfactor << "+#100]" << endl;
+		       }
                else 
 	              of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
 	                 << ( iter->second - yoffset ) * cfactor << endl;
@@ -375,10 +379,15 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             }
             if (bOptimise) {
 		       if( bAutolevelNow )
-		          leveller->addChainPoint(of, ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor);
+		       {
+		       	  of << leveller->interpolatePoint( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) << endl;
+		          of << "X" << ( iter->first - xoffset ) * cfactor
+		          	 << " Y" << ( iter->second - yoffset ) * cfactor
+		          	 << " Z[" << mill->zwork * cfactor << "+#100]" << endl;
+		       }
 		       else 
 		          of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-		             << ( iter->second - yoffset ) * cfactor << endl;
+		          << ( iter->second - yoffset ) * cfactor;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)

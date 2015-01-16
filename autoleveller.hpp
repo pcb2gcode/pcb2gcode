@@ -30,6 +30,9 @@
 // Define this if you want named parameters (only in linuxcnc, easier debug)
 #define AUTOLEVELLER_NAMED_PARAMETERS
 
+//This define controls the number of the bilinear interpolation macro (the "O" code)
+#define BILINEAR_INTERPOLATION_MACRO_NUMBER 1000
+
 #include <string>
 using std::string;
 
@@ -49,22 +52,18 @@ class autoleveller_exception: virtual std::exception, virtual boost::exception {
  */
 /******************************************************************************/
 class autoleveller {
-protected: typedef pair<double,double> xycoord;
 public:
 	enum Software { LINUXCNC = 0, MACH3 = 1, TURBOCNC = 2 };
 
 	autoleveller( double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, Software software );
 	void probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
 	void setMillingParameters ( double zdepth, double zsafe, int feedrate );
-	
-	void addChainPoint ( std::ofstream &of, double x, double y );
-	inline void newChain () {
-		startNewChain = true;
-	}
+	string interpolatePoint ( double x, double y );
 	
 	const double boardLenX;
 	const double boardLenY;
-	const xycoord startPoint;
+	const double startPointX;
+	const double startPointY;
 	const unsigned int numXPoints;
 	const unsigned int numYPoints;
 	const double XProbeDist;
@@ -72,24 +71,14 @@ public:
 	const Software software;
 
 protected:
-	enum Axis { XAXIS, YAXIS, NOAXIS };
-
+	static const char *callSub[];
+	
 	double zdepth;
 	double zsafe;
 	int feedrate;
 	double cfactor;
 
-	xycoord lastChainPoint;
-	bool startNewChain;
-
-	vector< pair <xycoord, Axis> > splitLine ( xycoord firstPoint, xycoord lastPoint );
-	string gcodeInterpolateAlignedPoint ( pair <xycoord, Axis> point, unsigned int variableNum );	
-	string gcodeInterpolateGenericPoint ( xycoord point, unsigned int variableNum );	
 	string getVarName( unsigned int i, unsigned int j );
-	void correctLine( std::ofstream &of, xycoord startPoint, xycoord endPoint );
-
-	static void mergeLinePoints (vector<xycoord> vector1, vector<xycoord> vector2, vector< pair <xycoord, Axis> > &result);
-	static double manhattanDistance (xycoord a, xycoord b);
 };
 
 #endif // NGCEXPORTER_H

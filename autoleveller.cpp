@@ -29,7 +29,30 @@
 #include <sstream>
 #include <cmath>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/format.hpp>
 
+/*	^ y
+ *	|
+ *	|	A	B
+ *	|
+ *	|	C	D
+ *	|		    x
+ *	+----------->
+ *
+ * This string calls the o-th macro. The order of the argument is:
+ * 1 - number of the macro
+ * 2 - point A
+ * 3 - point B
+ * 4 - point C
+ * 5 - point D
+ * 6 - distance between the y coordinate of the point and the y coordinate of C/D
+ * 6 - distance between the x coordinate of the point and the x coordinate of A/C
+ */
+
+const char *autoleveller::callSub[] = { "o%1$s call [%2$s] [%3$s] [%4$s] [%5$s] [%6$.5f] [%7$.5f]",
+					 	  				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f",
+						 				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f" };
+						 				  
 /******************************************************************************/
 /*	
  *  Constructor, throws an exception if the number of required variables (probe
@@ -39,13 +62,13 @@
 autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, Software software) :
  boardLenX( xmax - xmin ),
  boardLenY( ymax - ymin ),
- startPoint( xycoord(xmin, ymin) ),
+ startPointX( xmin ),
+ startPointY( ymin ),
  numXPoints( round ( boardLenX / XProbeDist ) > 1 ? round ( boardLenX / XProbeDist ) + 1 : 2 ),		//We need at least 2 probe points per axis
  numYPoints( round ( boardLenY / YProbeDist ) > 1 ? round ( boardLenY / YProbeDist ) + 1 : 2 ),
  XProbeDist( boardLenX / ( numXPoints - 1 ) ),
  YProbeDist( boardLenY / ( numYPoints - 1 ) ),
- software( software ),
- startNewChain( true )
+ software( software )
 {
 	if( numXPoints * numYPoints > 500 )
 		throw autoleveller_exception();
@@ -89,9 +112,8 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	const char *parameterForm[] = { "numbered parameter", "numbered parameter", "numbered parameter" };
 #endif
 
-//	const char *startSub = { "o%1% sub", "%1%", "%1%" };
-//	const char *endSub = { "o%1% endsub", "M99", "M99" };
-//	const char *callSub = { "o%1% call [%2%] [%3%] [%4%] [%5%] [%6%]", "G65 P%1% A%2% B%3% C%4% D%5% E%6%", "G65 P%1% A%2% B%3% C%4% D%5% E%6%" };
+	const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d" };
+	const char *endSub[] = { "o%1$d endsub", "M99 ( end of sub number %1$d )", "M99  ( end of sub number %1$d )" };
 
 	int i;
 	int j = 0;
@@ -100,10 +122,16 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	boost::replace_all(probeOn, "$", "\n");
 	boost::replace_all(probeOff, "$", "\n");
 
+	of << boost::format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
+	of << "#7=[#3+[#1-#3]*#5] ( Linear interpolation of the x-min elements )" << endl;
+	of << "#8=[#4+[#2-#4]*#5] ( Linear interpolation of the x-max elements )" << endl;
+	of << "#100=[#7+[#8-#7]*#6] ( Linear interpolation of previously interpolated points )" << endl;
+	of << boost::format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
+	of << endl;
 	if( !probeOn.empty() )
 		of << probeOn << endl;
 	of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
-	of << "G0 X" << startPoint.first << " Y" << startPoint.second << " ( Move XY to start point )" << endl;
+	of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
 	of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
 	of << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Z-probe )" << endl;
 	of << setZero[software] << " ( Set the current Z as zero-value )" << endl;
@@ -122,7 +150,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	for( int i = 0; i < numXPoints; i++ ) {
 		while( j >= 0 && j < numYPoints ) {
 			of << "G0 Z" << zprobe << endl;			//Move Z to probe height
-			of << "X" << i * XProbeDist + startPoint.first << " Y" << j * YProbeDist + startPoint.second << endl;		//Move to the XY coordinate
+			of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << endl;		//Move to the XY coordinate
 			of << probeCode[software] << " Z" << zfail << " F" << feedrate << endl;	//Z-probe
 			of << getVarName(i, j) << "=" << zProbeResultVar[software] << endl;	//Save the Z-value
 
@@ -142,195 +170,27 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << endl;
 }
 
-/******************************************************************************/
-/*
- *  This function spits each straight line into smaller pieces. Each segment is
- *  between one X or Y intersection with the original straight line. This splitting
- *  permit a good linear approximation of the milling surface
- */
-/******************************************************************************/
-vector< pair <autoleveller::xycoord, autoleveller::Axis> > autoleveller::splitLine ( autoleveller::xycoord firstPoint, autoleveller::xycoord lastPoint ) {
-	
-	vector< pair <xycoord, Axis> > splittedLine;
-	vector<xycoord> xpoints;
-	vector<xycoord> ypoints;		
-	double xdistancesquare;
-	double ydistancesquare;
-	double inclination;
-	double current;
-	
-	//Intersections with the X-axes
-	if( lastPoint.second != firstPoint.second )	//Don't do if it is horizontal
-	{
-		inclination = ( lastPoint.first - firstPoint.first ) / ( lastPoint.second - firstPoint.second );
-
-		if( firstPoint.second < lastPoint.second )
-			for( current = ceil( firstPoint.second / YProbeDist ) * YProbeDist; current < lastPoint.second; current += YProbeDist )
-				xpoints.push_back( xycoord( firstPoint.first + ( current - firstPoint.second ) * inclination, current ) );
-		else
-			for( current = floor( firstPoint.first / YProbeDist ) * YProbeDist; current > lastPoint.first; current -= YProbeDist )
-				xpoints.push_back( xycoord( firstPoint.first + ( current - firstPoint.second ) * inclination, current ) );
-	}
-	
-	//Intersections with the Y-axes
-	if( lastPoint.first != firstPoint.first )	//Don't do if it is vertical
-	{
-		inclination = ( lastPoint.second - firstPoint.second ) / ( lastPoint.first - firstPoint.first );
-	
-		if( firstPoint.first < lastPoint.first )
-			for( current = ceil( firstPoint.first / XProbeDist ) * XProbeDist; current < lastPoint.first; current += XProbeDist )
-				ypoints.push_back( xycoord( current, firstPoint.second + ( current - firstPoint.first ) * inclination ) );
-		else
-			for( current = floor( firstPoint.first / XProbeDist ) * XProbeDist; current > lastPoint.first; current -= XProbeDist )
-				ypoints.push_back( xycoord( current, firstPoint.second + ( current - firstPoint.first ) * inclination ) );
-	}
-	
-	//We already know which vector capacity will be required, therefore we reserve now that space in order to prevent
-	//useless reallocations
-	splittedLine.reserve ( xpoints.size() + ypoints.size() + 2 );
-	
-	splittedLine.push_back( pair<xycoord,Axis>( firstPoint, NOAXIS ) );
-	
-	//Now we merge each vector, keeping them ordered. We use the Manhattan distance because it is easier to compute than the
-	//Euclidean distance and, for our needs, it doesn't have any drawback
-	mergeLinePoints( xpoints, ypoints, splittedLine );
-	
-	splittedLine.push_back( pair<xycoord,Axis>( lastPoint, NOAXIS ) );
-	
-	return splittedLine;
-}
-
-/******************************************************************************/
-/*
- *  Merge two ordered vectors into an ordered vector. The result vector must have 
- *  at least one element. The first element of result is used as "base point" 
- *  for the distance computation
- */
-/******************************************************************************/
-void autoleveller::mergeLinePoints (vector<autoleveller::xycoord> vector1, vector<autoleveller::xycoord> vector2, vector< pair <autoleveller::xycoord, autoleveller::Axis> > &result)
-{
-	vector<xycoord>::iterator iter1 = vector1.begin();
-	vector<xycoord>::iterator iter2 = vector2.begin();	
-	vector< pair <xycoord, Axis> >::iterator resultIter = result.end();
-
-	while (true) {
-		
-		if ( iter1 == vector1.end() ) {
-			while ( iter2 <= vector2.end() && vector2.size() != 0 )
-				result.push_back ( pair<xycoord,Axis>( *iter2++, YAXIS ) );
-			return;	
-		}
-		
-		if ( iter2 == vector2.end() && vector1.size() != 0 ) {
-			while ( iter1 <= vector1.end() )
-				result.push_back ( pair<xycoord,Axis>( *iter1++, XAXIS ) );		
-			return;
-		}
-		
-		if ( manhattanDistance ( *iter2, result[0].first ) < manhattanDistance ( *iter1, result[0].first ) )	//TODO: don't merge points too close
-			*resultIter++ = pair<xycoord,Axis>( *iter2++, YAXIS );
-		else
-			*resultIter++ = pair<xycoord,Axis>( *iter1++, XAXIS );
-	}
-}
-
-double autoleveller::manhattanDistance (autoleveller::xycoord a, autoleveller::xycoord b) {
-	return abs( a.first - b.first ) + abs( a.second - b.second );
-}
-
-string autoleveller::gcodeInterpolateAlignedPoint ( pair <autoleveller::xycoord, autoleveller::Axis> point, unsigned int variableNum ) {
-	std::stringstream output;
-	int pointbeforeindex;
-	int pointafterindex;
-	int alignedindex;
+string autoleveller::interpolatePoint ( double x, double y ) {
+	int xminindex;
+	int yminindex;
 	double x_minus_x0;
+	double y_minus_y0;
 	
-	switch ( point.second ) {
-		case XAXIS:
-			pointbeforeindex = floor ( ( point.first.first - startPoint.first ) / XProbeDist );
-			pointafterindex = ceil ( ( point.first.first - startPoint.first ) / XProbeDist );
-			alignedindex = round ( ( point.first.second - startPoint.second ) / YProbeDist );
-			
-			x_minus_x0 = ( point.first.first - startPoint.first ) - ( pointbeforeindex * XProbeDist );
-			
-			output << std::fixed << '#' << variableNum << "=[" << getVarName( pointbeforeindex, alignedindex ) << "+[" <<
-						getVarName( pointafterindex, alignedindex ) << '-' << getVarName( pointbeforeindex, alignedindex ) <<
-						"]*" << x_minus_x0 / XProbeDist << ']' << endl;
-			break;
-			
-		case YAXIS:
-			pointbeforeindex = floor ( ( point.first.second - startPoint.second ) / YProbeDist );
-			pointafterindex = ceil ( ( point.first.second - startPoint.second ) / YProbeDist );
-			alignedindex = round ( ( point.first.first - startPoint.first ) / XProbeDist );
-			
-			x_minus_x0 = ( point.first.second - startPoint.second ) - ( pointbeforeindex * YProbeDist );
-			
-			output << std::fixed << '#' << variableNum << "=[" << getVarName( alignedindex, pointbeforeindex ) << "+[" <<
-						getVarName( alignedindex, pointafterindex ) << '-' << getVarName( alignedindex, pointbeforeindex ) <<
-						"]*" << x_minus_x0 / YProbeDist << ']' << endl;
-			break;
-	}
+	xminindex = floor ( ( x - startPointX ) / XProbeDist );
+	yminindex = floor ( ( y - startPointY ) / YProbeDist );
+	x_minus_x0 = x - startPointX - xminindex * XProbeDist;
+	y_minus_y0 = y - startPointY - yminindex * YProbeDist;
 	
-	return output.str();
-}
-
-string autoleveller::gcodeInterpolateGenericPoint ( autoleveller::xycoord point, unsigned int variableNum ) {
-	string output;
-	std::stringstream bilinear;
-	xycoord temp;
-	
-	temp.first = ceil ( ( point.first - startPoint.first ) / XProbeDist ) * XProbeDist + startPoint.first;
-	temp.second = point.second;
-	output += gcodeInterpolateAlignedPoint( pair<xycoord,Axis> ( temp, YAXIS ), variableNum + 2 );
-	
-	temp.first -= XProbeDist;
-	output += gcodeInterpolateAlignedPoint( pair<xycoord,Axis> ( temp, YAXIS ), variableNum + 1 );
-	
-	bilinear << std::fixed << '#' << variableNum << "=[#" << variableNum + 1 << "+[#" << variableNum + 2 << "-#" <<
-						variableNum + 1 << "]*" << ( point.first - temp.first ) / XProbeDist << ']' << endl;
-	
-	output += bilinear.str();
-	
-	return output;
-}
-
-void autoleveller::correctLine( std::ofstream &of, autoleveller::xycoord startPoint, autoleveller::xycoord endPoint ) {	//FIXME
-	
-	vector< pair <xycoord, Axis> > splittedLine = splitLine ( startPoint, endPoint );
-	vector< pair <xycoord, Axis> >::iterator i;
-	
-	//of << gcodeInterpolateGenericPoint( splittedLine.begin()->first, 1 );
-	//of << "X" << i->first.first << " Y" << i->first.second << " Z[" << zdepth << "+#1]" << endl;
-
-	//for( i = splittedLine.begin() + 1 ; i < splittedLine.end(); i++ ) {	
-	//	of << gcodeInterpolateAlignedPoint( *i, 1 );
-	//	of << "X" << i->first.first << " Y" << i->first.second << " Z[" << zdepth << "+#1]" << endl;
-	//}
-	
-	//of << gcodeInterpolateGenericPoint( splittedLine.end()->first, 1 );
-	i = splittedLine.begin() + 1; //DELETEME
-	of << gcodeInterpolateGenericPoint( i->first, 1 ); //DELETEME
-	of << "X" << i->first.first << " Y" << i->first.second << " Z[" << zdepth << "+#1]" << endl;
-	
+	return str ( boost::format( callSub[software] ) % BILINEAR_INTERPOLATION_MACRO_NUMBER %
+													  getVarName( xminindex, yminindex + 1 ) %
+												      getVarName( xminindex + 1, yminindex + 1 ) %
+												      getVarName( xminindex, yminindex ) %
+												      getVarName( xminindex + 1, yminindex ) %
+												      y_minus_y0 % x_minus_x0 );
 }
 
 void autoleveller::setMillingParameters ( double zdepth, double zsafe, int feedrate ) {
 	this->zdepth = zdepth;
 	this->zsafe = zsafe;
 	this->feedrate = feedrate;
-}
-
-void autoleveller::addChainPoint ( std::ofstream &of, double x, double y ) {
-
-	xycoord	newPoint (x, y);
-
-	if (startNewChain) {
-		startNewChain = false;
-		of << gcodeInterpolateGenericPoint( newPoint, 1 );
-		of << "X" << x << " Y" << y << " Z[" << zdepth << "+#1]" << endl;
-	}
-	else
-		correctLine( of, lastChainPoint, newPoint );
-	
-	lastChainPoint = newPoint;
 }
