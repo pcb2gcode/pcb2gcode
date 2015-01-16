@@ -92,7 +92,7 @@ void options::parse(int argc, char** argv) {
       cerr << "Error: You've supplied an invalid parameter.\n"
            << "Note that spindle speeds are integers!\n" << "Details: "
            << e.what() << endl;
-      exit(101);
+      exit(ERR_UNKNOWNPARAMETER);
    }
 
    po::notify(instance().vm);
@@ -333,7 +333,7 @@ static void check_generic_parameters(po::variables_map const& vm) {
 
    if (!vm.count("zsafe")) {
       cerr << "Error: Safety height not specified.\n";
-      exit(5);
+      exit(ERR_NOZSAFE);
    }
 
    //---------------------------------------------------------------------------
@@ -341,7 +341,7 @@ static void check_generic_parameters(po::variables_map const& vm) {
 
    if (!vm.count("zchange")) {
       cerr << "Error: Tool changing height not specified.\n";
-      exit(15);
+      exit(ERR_NOZCHANGE);
    }
    
    //---------------------------------------------------------------------------
@@ -353,22 +353,22 @@ static void check_generic_parameters(po::variables_map const& vm) {
    	  		  boost::iequals( vm["software"].as<string>(), "mach3" ) &&
    	  		  boost::iequals( vm["software"].as<string>(), "turbocnc" ) ) ) {
          cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3 or turbocnc).\n";
-      	 exit(28);
+      	 exit(ERR_NOSOFTWARE);
       }
       
       if (!vm.count("al-x")) {
       	 cerr << "Error: autoleveller probe width x not specified.\n";
-         exit(29);
+         exit(ERR_NOALX);
       }
        
       if (!vm.count("al-y")) {
       	 cerr << "Error: autoleveller probe width y not specified.\n";
-         exit(30);
+         exit(ERR_NOALY);
       }
       
       if (!vm.count("al-probefeed")) {
       	 cerr << "Error: autoleveller probe feed rate not specified.\n";
-         exit(31);
+         exit(ERR_NOALPROBEFEED);
       }
    }
 }
@@ -383,7 +383,7 @@ static void check_milling_parameters(po::variables_map const& vm) {
 
       if (!vm.count("zwork")) {
          cerr << "Error: --zwork not specified.\n";
-         exit(1);
+         exit(ERR_NOZWORK);
       } else
          if (vm["zwork"].as<double>() > 0) {
             cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
@@ -391,34 +391,34 @@ static void check_milling_parameters(po::variables_map const& vm) {
 
       if (!vm.count("offset")) {
          cerr << "Error: Engraving --offset not specified.\n";
-         exit(4);
+         exit(ERR_NOOFFSET);
       }
 
       if (!vm.count("mill-feed")) {
          cerr << "Error: Milling feed [ipm] not specified.\n";
-         exit(13);
+         exit(ERR_NOMILLFEED);
       }
 
       if (!vm.count("mill-speed")) {
          cerr << "Error: Milling speed [rpm] not specified.\n";
-         exit(14);
+         exit(ERR_NOMILLSPEED);
       }
 
       // required parameters present. check for validity.
       if (vm["zsafe"].as<double>() <= vm["zwork"].as<double>()) {
          cerr << "Error: The safety height --zsafe is lower than the milling "
               << "height --zwork. Are you sure this is correct?\n";
-         exit(15);
+         exit(ERR_ZSAFELOWERZWORK);
       }
 
       if (vm["mill-feed"].as<double>() < 0) {
          cerr << "Error: Negative milling feed (--mill-feed).\n";
-         exit(17);
+         exit(ERR_NEGATIVEMILLFEED);
       }
 
       if (vm["mill-speed"].as<int>() < 0) {
          cerr << "Error: --mill-speed < 0.\n";
-         exit(16);
+         exit(ERR_NEGATIVEMILLSPEED);
       }
    }
 }
@@ -434,41 +434,41 @@ static void check_drilling_parameters(po::variables_map const& vm) {
 
       if (!vm.count("zdrill")) {
          cerr << "Error: Drilling depth (--zdrill) not specified.\n";
-         exit(9);
+         exit(ERR_NOZDRILL);
       }
 
       if (vm["zsafe"].as<double>() <= vm["zdrill"].as<double>()) {
          cerr << "Error: The safety height --zsafe is lower than the drilling "
               << "height --zdrill!\n";
-         exit(18);
+         exit(ERR_ZSAFELOWERZDRILL);
       }
 
       if (!vm.count("zchange")) {
          cerr << "Error: Drill bit changing height (--zchange) not specified.\n";
-         exit(10);
+         exit(ERR_NOZCHANGE);
       } else
          if (vm["zchange"].as<double>() <= vm["zdrill"].as<double>()) {
             cerr << "Error: The safety height --zsafe is lower than the tool "
                  << "change height --zchange!\n";
-            exit(19);
+            exit(ERR_ZSAFELOWERZCHANGE);
          }
 
       if (!vm.count("drill-feed")) {
          cerr << "Error:: Drilling feed (--drill-feed) not specified.\n";
-         exit(11);
+         exit(ERR_NODRILLFEED);
       } else
          if (vm["drill-feed"].as<double>() <= 0) {
             cerr << "Error: The drilling feed --drill-feed is <= 0.\n";
-            exit(20);
+            exit(ERR_NEGATIVEDRILLFEED);
          }
 
       if (!vm.count("drill-speed")) {
          cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
-         exit(12);
+         exit(ERR_NODRILLSPEED);
       } else
          if (vm["drill-speed"].as<int>() < 0) {      //no need to support both directions?
             cerr << "Error: --drill-speed < 0.\n";
-            exit(17);
+            exit(ERR_NEGATIVEDRILLSPEED);
          }
 
    }
@@ -487,16 +487,16 @@ static void check_cutting_parameters(po::variables_map const& vm) {
          if (vm.count("fill-outline")) {
             if (!vm.count("outline-width")) {
                cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
-               exit(25);
+               exit(ERR_NOOUTLINEWIDTH);
             } else {
                double outline_width = vm["outline-width"].as<double>();
                if (outline_width < 0) {
                   cerr << "Error: Specified outline width is less than zero!\n";
-                  exit(26);
+                  exit(ERR_NEGATIVEOUTLINEWIDTH);
                } else
                   if (outline_width == 0) {
                      cerr << "Error. Specified outline width is zero!\n";
-                     exit(27);
+                     exit(ERR_ZEROOUTLINEWIDTH);
                   } else {
                      std::stringstream width_sb;
                      if ((vm.count("metric") && outline_width >= 10)
@@ -513,48 +513,48 @@ static void check_cutting_parameters(po::variables_map const& vm) {
 
       if (!vm.count("zcut")) {
          cerr << "Error: Board cutting depth (--zcut) not specified.\n";
-         exit(5);
+         exit(ERR_NOZCUT);
       }
 
       if (!vm.count("cutter-diameter")) {
          cerr << "Error: Cutter diameter not specified.\n";
-         exit(15);
+         exit(ERR_NOCUTTERDIAMETER);
       }
 
       if (!vm.count("cut-feed")) {
          cerr << "Error: Board cutting feed (--cut-feed) not specified.\n";
-         exit(6);
+         exit(ERR_NOCUTFEED);
       }
 
       if (!vm.count("cut-speed")) {
          cerr << "Error: Board cutting spindle RPM (--cut-speed) not specified.\n";
-         exit(7);
+         exit(ERR_NOCUTSPEED);
       }
 
       if (!vm.count("cut-infeed")) {
          cerr << "Error: Board cutting infeed (--cut-infeed) not specified.\n";
-         exit(8);
+         exit(ERR_NOCUTINFEED);
       }
 
       if (vm["zsafe"].as<double>() <= vm["zcut"].as<double>()) {
          cerr << "Error: The safety height --zsafe is lower than the cutting "
               << "height --zcut!\n";
-         exit(21);
+         exit(ERR_ZSAFELOWERZCUT);
       }
 
       if (vm["cut-feed"].as<double>() <= 0) {
          cerr << "Error: The cutting feed --cut-feed is <= 0.\n";
-         exit(22);
+         exit(ERR_NEGATIVECUTFEED);
       }
 
       if (vm["cut-speed"].as<int>() < 0) {      //no need to support both directions?
          cerr << "Error: The cutting spindle speed --cut-speed is lower than 0.\n";
-         exit(23);
+         exit(ERR_NEGATIVESPINDLESPEED);
       }
 
       if (vm["cut-infeed"].as<double>() < 0.001) {
          cerr << "Error: The cutting infeed --cut-infeed. seems too low.\n";
-         exit(24);
+         exit(ERR_LOWCUTINFEED);
       }
    }
 }
@@ -574,6 +574,6 @@ void options::check_parameters() {
       check_drilling_parameters(vm);
    } catch (std::runtime_error& re) {
       cerr << "Error: Invalid parameter. :-(\n";
-      exit(100);
+      exit(ERR_INVALIDPARAMETER);
    }
 }

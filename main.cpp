@@ -89,12 +89,12 @@ int main(int argc, char* argv[]) {
 
    if (vm.count("version")) {      //return version and quit
       cout << PACKAGE_VERSION << endl;
-      exit(0);
+      exit(EXIT_SUCCESS);
    }
 
    if (vm.count("help")) {      //return help and quit
       cout << options::help();
-      exit(0);
+      exit(EXIT_SUCCESS);
    }
 
    options::check_parameters();      //check the cli parameters
@@ -160,7 +160,7 @@ int main(int argc, char* argv[]) {
 
       if (!in.good()) {
          cerr << "Cannot read preamble-text file \"" << name << "\"" << endl;
-         exit(1);
+         exit(EXIT_FAILURE);
       }
 
       string tmp ((std::istreambuf_iterator<char>(in)),
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
 
       if (!in.good()) {
          cerr << "Cannot read preamble file \"" << name << "\"" << endl;
-         exit(1);
+         exit(EXIT_FAILURE);
       }
 
       string tmp((std::istreambuf_iterator<char>(in)),
@@ -202,7 +202,7 @@ int main(int argc, char* argv[]) {
 
       if (!in.good()) {
          cerr << "Cannot read postamble file \"" << name << "\"" << endl;
-         exit(1);
+         exit(EXIT_FAILURE);
       }
 
       string tmp((std::istreambuf_iterator<char>(in)),
