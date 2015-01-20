@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2015-01-09"
+.TH PCB2GCODE 1 "2015-01-20"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -169,7 +169,24 @@ add four bridges with the given width to the outline cut
 bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
 
 .PP
-<AUTOLEVELLER DESCRIPTION HERE>
+The autoleveller feature allows you to mill your project on a surface that
+isn't at exactly the same height in every point. To use the autoleveller
+feature you need a probe tool connected to your machine. The autoleveller
+process is composed by two parts:
+.IP \[bu] 2
+Initial probing, where the machine "probes" a grid of points and save
+their heights
+.IP \[bu]
+Actual milling, identical to the standard process, but with an additional
+Z-correction (based on a bilinear interpolation of the probed points)
+.PP
+Unfortunately each software (LinuxCNC, Mach3, ...) uses different gcodes
+for the probing, the parameters and the macros, therefore the output gcode
+won't be software-independent, and you have to choose the used software with
+the proper argument.
+The autoleveller feature is currently (20/01/2014) EXPERIMENTAL, especially
+the Mach3 and TurboCNC softwares, which are also UNTESTED. Please provide a
+feedback on the software page.
 .TP
 \fB\-\-al-front\fP
 enable the autoleveller for the front side
