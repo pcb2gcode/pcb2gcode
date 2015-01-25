@@ -91,41 +91,49 @@ void Board::createLayers() {
 	min_y = INFINITY;
 	max_y = -INFINITY;
 
-	// calculate room needed by the PCB traces
-	for (map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++) {
-		shared_ptr<LayerImporter> importer = it->second.get<0>();
-		float t;
-		t = importer->get_min_x();
-		if (min_x > t)
-			min_x = t;
-		t = importer->get_max_x();
-		if (max_x < t)
-			max_x = t;
-		t = importer->get_min_y();
-		if (min_y > t)
-			min_y = t;
-		t = importer->get_max_y();
-		if (max_y < t)
-			max_y = t;
-	}
+    // calculate room needed by the PCB traces
+    for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ ) {
+            shared_ptr<LayerImporter> importer = it->second.get<0>();
+            float t;
+            t = importer->get_min_x();
+            if(min_x > t) min_x = t;
+            t = importer->get_max_x();
+            if(max_x < t) max_x = t;
+            t = importer->get_min_y();
+            if(min_y > t) min_y = t;
+            t = importer->get_max_y();
+            if(max_y < t) max_y = t;
+    }
 
-	// if there's no pcb outline, add the specified margins
-	try {
-		shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
-		ivalue_t radius = outline_mill->tool_diameter / 2;
-		min_x -= radius;
-		max_x += radius;
-		min_y -= radius;
-		max_y += radius;
-	} catch (std::logic_error& e) {
-		min_x -= margin;
-		max_x += margin;
-		min_y -= margin;
-		max_y += margin;
-	}
+    // if there's no pcb outline, add the specified margins
+    try {
+        shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
+        ivalue_t radius = outline_mill->tool_diameter / 2;
+        min_x -= radius;
+        max_x += radius;
+        min_y -= radius;
+        max_y += radius;
+    }
+    catch( std::logic_error& e ) {
+        try {
+            shared_ptr<Isolator> trace_mill = boost::static_pointer_cast<Isolator>(prepared_layers.at("front").get<1>());
+            ivalue_t radius = trace_mill->tool_diameter / 2;
+            int passes = trace_mill->extra_passes + 1;
+            min_x -= radius * passes;
+            max_x += radius * passes;
+            min_y -= radius * passes;
+            max_y += radius * passes;
+        }
+        catch( std::logic_error& e ) {
+            min_x -= margin;
+            max_x += margin;
+            min_y -= margin;
+            max_y += margin;
+        }
+    }
 
-	// board size calculated. create layers
-	for (map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++) {
+    // board size calculated. create layers
+    for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ ) {
 		// prepare the surface
 		shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y));
 		shared_ptr<LayerImporter> importer = it->second.get<0>();
