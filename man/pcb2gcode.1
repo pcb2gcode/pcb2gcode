@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2015-01-20"
+.TH PCB2GCODE 1 "2015-01-25"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -29,7 +29,7 @@ stored in a file named \fImillproject\fP. There, options are given one per line
 as \fIoption\fP=\fIvalue\fP pairs (without the two dashes), and can be
 separated by blank lines and commented (everything after a `#` character is
 treated as a comment). Options that don't take an argument (like
-\fB\-\-metric\fP) are entered as \fIoption\fP=1 there.
+\fB\-\-metric\fP) are entered as \fIoption\fP=true or \fIoption\fP=1 there.
 
 Unless configured otherwise, numeric values are in units of inch and
 inch/minute. When the \fB\-\-metric\fP option is given, they are in mm and

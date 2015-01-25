@@ -128,8 +128,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << "#100=[#7+[#8-#7]*#6] ( Linear interpolation of previously interpolated points )" << endl;
 	of << boost::format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
 	of << endl;
-	if( !probeOn.empty() )
-		of << probeOn << endl;
+	of << probeOn << endl;
 	of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
 	of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
 	of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
@@ -163,10 +162,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
 	of << logFileClose[software] << " ( Close the probe log file )" << endl;
 	of << "( Probing has ended, each Z-coordinate will be corrected with a bilinear interpolation )" << endl;
-	if( probeOff.empty() )
-		of << "M0 ( Remove the probe tool )" << endl;
-	else
-		of << probeOff << endl;
+	of << probeOff << endl;
 	of << endl;
 }
 

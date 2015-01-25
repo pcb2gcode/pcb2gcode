@@ -119,8 +119,7 @@ int main(int argc, char* argv[]) {
       isolator->feed = vm["mill-feed"].as<double>() * unit;
       isolator->speed = vm["mill-speed"].as<int>();
       isolator->zchange = vm["zchange"].as<double>() * unit;
-      isolator->extra_passes =
-               vm.count("extra-passes") ? vm["extra-passes"].as<int>() : 0;
+      isolator->extra_passes = vm["extra-passes"].as<int>();
    }
 
    shared_ptr<Cutter> cutter;
@@ -216,8 +215,8 @@ int main(int argc, char* argv[]) {
    shared_ptr<Board> board(
             new Board(
                      vm["dpi"].as<int>(),
-                     vm.count("fill-outline"),
-                     vm.count("fill-outline") ?
+                     vm["fill-outline"].as<bool>(),
+                     vm["fill-outline"].as<bool>() ?
                               vm["outline-width"].as<double>() * unit :
                               INFINITY));
 
@@ -239,7 +238,7 @@ int main(int argc, char* argv[]) {
          boost::shared_ptr<LayerImporter> importer(
                   new GerberImporter(frontfile));
          board->prepareLayer("front", importer, isolator, false,
-                             vm.count("mirror-absolute"));
+                             vm["mirror-absolute"].as<bool>());
          cout << "DONE.\n";
       } catch (import_exception& i) {
          cout << "ERROR.\n";
@@ -255,7 +254,7 @@ int main(int argc, char* argv[]) {
          boost::shared_ptr<LayerImporter> importer(
                   new GerberImporter(backfile));
          board->prepareLayer("back", importer, isolator, true,
-                             vm.count("mirror-absolute"));
+                             vm["mirror-absolute"].as<bool>());
          cout << "DONE.\n";
       } catch (import_exception& i) {
          cout << "ERROR.\n";
@@ -266,17 +265,11 @@ int main(int argc, char* argv[]) {
       //-----------------------------------------------------------------------
       cout << "Importing outline... ";
 
-      //outline from front or back side:
-      bool flip_outline = false;
-      flip_outline =
-               vm.count("cut-front") ? !vm["cut-front"].as<bool>() :
-                                       !vm.count("front");           //ERROR??
-
       try {
          string outline = vm["outline"].as<string>();                               //Filename
          boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-         board->prepareLayer("outline", importer, cutter, flip_outline,
-                             vm.count("mirror-absolute"));
+         board->prepareLayer("outline", importer, cutter, vm["cut-front"].as<bool>(),
+                             vm["mirror-absolute"].as<bool>());
 
          cout << "DONE.\n";
       } catch (import_exception& i) {
@@ -370,13 +363,13 @@ int main(int argc, char* argv[]) {
 
          cout << "DONE.\n";
 
-         if (vm.count("milldrill")) {
+         if (vm["milldrill"].as<bool>()) {
             ep.export_ngc(vm["drill-output"].as<string>(), cutter,
-                          !vm.count("drill-front"), vm.count("mirror-absolute"),
+                          !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                           vm["onedrill"].as<bool>());
          } else {
             ep.export_ngc(vm["drill-output"].as<string>(), driller,
-                          vm.count("drill-front"), vm.count("mirror-absolute"),
+                          vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                           vm["onedrill"].as<bool>());
          }
 

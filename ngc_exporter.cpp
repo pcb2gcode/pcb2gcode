@@ -88,12 +88,12 @@ void NGC_Exporter::add_header(string header) {
 void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
    autoleveller::Software autolevellerSoftware;
-   g64 = options.count("g64") ? options["g64"].as<double>() : 1;      //set g64 value
+   g64 = options["g64"].as<double>();      //set g64 value
    bMetricinput = options["metric"].as<bool>();      //set flag for metric input
    bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
    bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
-   bMirrored = options.count("mirror-absolute") ? true : false;      //set flag
-   bCutfront = options.count("cut-front") ? true : false;      //set flag
+   bMirrored = options["mirror-absolute"].as<bool>();      //set flag
+   bCutfront = options["cut-front"].as<bool>();      //set flag
    bFrontAutoleveller = options["al-front"].as<bool>();
    bBackAutoleveller = options["al-back"].as<bool>();
    probeOnCommands = options["al-probe-on"].as<string>();
@@ -126,7 +126,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
       try {
       	 leveller = new autoleveller ( ( board->get_min_x() - xoffset ) * cfactor, ( board->get_min_y() - yoffset ) * cfactor,
-      								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() -yoffset ) * cfactor,
+      								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() - yoffset ) * cfactor,
       								 options["al-x"].as<double>(),
       								 options["al-y"].as<double>(),
       								 autolevellerSoftware );
