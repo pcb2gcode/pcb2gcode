@@ -1,31 +1,3 @@
-This is a fork of `git://pcb2gcode.git.sourceforge.net/gitroot/pcb2gcode/pcb2gcode` by Patrick Kanzler (patkan).
-I forked the project since the original is not under active development anymore.
-At the moment I do not have that much time to look into the code and tend to issues, but I will try to merge pull requests.
-
-------------------------------------------------------------------------------------
-
-changes by "Corna" (Nicola Corna nicola@corna.info)
-- added bridge height option
-- added preamble text option
-- added zero-start option
-- added autoleveller (unstable and experimental)
-- Windows build
-
-changes by "erik74"
-Changes to original:
-- additional option "optimise" reduces the g-code file size up to 40%.
-- additional option "bridges" adds four bridges to the outline cut.
-- additional option "g64" to manually set the g64 value.
-- additional option "metric output".
-- additional option "cut front" for outline cutting from top layer.
-- additional option "onedrill" to skip the tool change when drilling.
-- reformatted the code with Eclipse code styler (K&R).
-- started documenting the code.
-
-ToDo:
-- The Milldrill option does not work with metricoutput yet.
-- Why is no front+back side generated if a single pcb2gcode call is used?
-
 This is a complete rewrite of the original pcb2gcode in C++.
 
 ### Quick Installation

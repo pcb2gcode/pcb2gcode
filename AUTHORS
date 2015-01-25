@@ -1,5 +1,3 @@
-
-
 Cynbe ru Taren (Jeff Prothero)
 Core algorithm, original (pre 1.0) version: http://cynbe.us/~cynbe/gcoder/
 
@@ -15,6 +13,8 @@ Bernhard Kubicek (Metalab Vienna)
 Pierre Doucet
 Arch Linux packages
 
+Nicola Corna
+Autoleveller, Windows build, --zero-start, GUI, code cleaning, etc.
 
 Further Development:
 Andrew Jessop
