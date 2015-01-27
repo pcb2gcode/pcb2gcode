@@ -216,7 +216,7 @@ options::options()
             "enable the z autoleveller for the front layer")(
 			"al-back", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
             "enable the z autoleveller for the back layer")(
-			"software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3 and turbocnc")(
+			"software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3, mach4 and turbocnc")(
 			"al-x", po::value<double>(), "width of the x probes")( 
 			"al-y", po::value<double>(), "width of the y probes")(           
 			"al-probefeed", po::value<double>(), "speed during the probing")(
@@ -306,8 +306,9 @@ static void check_generic_parameters(po::variables_map const& vm) {
    	  if (!vm.count("software") || 
    	  		( boost::iequals( vm["software"].as<string>(), "linuxcnc" ) &&	//boost::iequals is case insensitive
    	  		  boost::iequals( vm["software"].as<string>(), "mach3" ) &&
+   	  		  boost::iequals( vm["software"].as<string>(), "mach4" ) &&
    	  		  boost::iequals( vm["software"].as<string>(), "turbocnc" ) ) ) {
-         cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3 or turbocnc).\n";
+         cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3, mach4 or turbocnc).\n";
       	 exit(ERR_NOSOFTWARE);
       }
       

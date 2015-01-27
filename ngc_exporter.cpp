@@ -121,6 +121,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	     autolevellerSoftware = autoleveller::TURBOCNC;
 	  else if( boost::iequals( options["software"].as<string>(), "mach3" ) )
 	     autolevellerSoftware = autoleveller::MACH3;
+   	  else if( boost::iequals( options["software"].as<string>(), "mach4" ) )
+	     autolevellerSoftware = autoleveller::MACH4;
 	  else
 	     autolevellerSoftware = autoleveller::LINUXCNC;
 
@@ -129,9 +131,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
       								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() - yoffset ) * cfactor,
       								 options["al-x"].as<double>(),
       								 options["al-y"].as<double>(),
+      								 options["zwork"].as<double>(),
       								 autolevellerSoftware );
       } catch (autoleveller_exception &exc) {
-      	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either autolevellerx or autolevellery" << std::endl;
+      	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either al-x or al-y" << std::endl;
          exit(EXIT_FAILURE);
       }
 	}
@@ -202,7 +205,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    if( ( bFrontAutoleveller && layername == "front" ) ||
    	   ( bBackAutoleveller && layername == "back" ) ) {
    	  bAutolevelNow = true;
-   	  leveller->setMillingParameters( mill->zwork * cfactor, mill->zsafe * cfactor, mill->feed * cfactor );
    }
    else
       bAutolevelNow = false;
@@ -348,6 +350,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          of << "G01 Z" << mill->zwork * cfactor << "\n";
          of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
+		 leveller->startNewChain();
+
          icoords::iterator iter = path->begin();
          icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
          icoords::iterator peek;
@@ -363,12 +367,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
                 ) {
                if( bAutolevelNow )
-               {
-		       	  of << leveller->interpolatePoint( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) << endl;
-		          of << "X" << ( iter->first - xoffset ) * cfactor
-		          	 << " Y" << ( iter->second - yoffset ) * cfactor
-		          	 << " Z[" << mill->zwork * cfactor << "+#100]" << endl;
-		       }
+		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
                else 
 	              of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
 	                 << ( iter->second - yoffset ) * cfactor << endl;
@@ -379,12 +378,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             }
             if (bOptimise) {
 		       if( bAutolevelNow )
-		       {
-		       	  of << leveller->interpolatePoint( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) << endl;
-		          of << "X" << ( iter->first - xoffset ) * cfactor
-		          	 << " Y" << ( iter->second - yoffset ) * cfactor
-		          	 << " Z[" << mill->zwork * cfactor << "+#100]" << endl;
-		       }
+		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
 		       else 
 		          of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
 		          << ( iter->second - yoffset ) * cfactor;

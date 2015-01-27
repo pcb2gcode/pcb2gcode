@@ -49,17 +49,20 @@
  * 6 - distance between the x coordinate of the point and the x coordinate of A/C
  */
 
-const char *autoleveller::callSub[] = { "o%1$s call [%2$s] [%3$s] [%4$s] [%5$s] [%6$.5f] [%7$.5f]",
-					 	  				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f",
-						 				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f" };
-						 				  
+const char *autoleveller::callSub[] = { "o%1$s call [%2$s] [%3$s] [%4$s] [%5$s] [%6$.5f] [%7$.5f]\n",
+					 	  				"#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#100=[#1+[#2-#1]*%7$s]\n",
+					 	  				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f\n",
+					 	  				"#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#100=[#1+[#2-#1]*%7$s]\n" };
+
+const char *autoleveller::correctedPoint = "X%1$.5f Y%2$.5f Z[%3$.5f+#100]\n";
+
 /******************************************************************************/
 /*	
  *  Constructor, throws an exception if the number of required variables (probe
  *  points) exceeds the maximum number of variables (unlimited for linuxCNC)
  */
 /******************************************************************************/
-autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, Software software) :
+autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, double zwork, Software software) :
  boardLenX( xmax - xmin ),
  boardLenY( ymax - ymin ),
  startPointX( xmin ),
@@ -68,7 +71,10 @@ autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, d
  numYPoints( round ( boardLenY / YProbeDist ) > 1 ? round ( boardLenY / YProbeDist ) + 1 : 2 ),
  XProbeDist( boardLenX / ( numXPoints - 1 ) ),
  YProbeDist( boardLenY / ( numYPoints - 1 ) ),
- software( software )
+ averageProbeDist( ( XProbeDist + YProbeDist ) / 2 ),
+ zwork( zwork ),
+ software( software ),
+ newChain( true )
 {
 	if( numXPoints * numYPoints > 500 )
 		throw autoleveller_exception();
@@ -98,22 +104,23 @@ string autoleveller::getVarName( unsigned int i, unsigned int j ) {
  */
 /******************************************************************************/
 void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn, std::string probeOff ) {
-	const char *probeCode[] = { "G38.2", "G31", "G31" };
-	const char *setZero[] = { "G10 L20 P0 Z0", "G92 Z0", "G92 Z0" };
-	const char *zProbeResultVar[] = { "#5063", "#2002", "#2002" };
+	const char *probeCode[] = { "G38.2", "G31", "G31", "G31" };
+	const char *setZero[] = { "G10 L20 P0 Z0", "G92 Z0", "G92 Z0", "G92 Z0" };
+	const char *zProbeResultVar[] = { "#5063", "#2002", "#2002", "#2002" };
 	const char *logFileOpenAndComment[] =
 	 { "(PROBEOPEN RawProbeLog.txt) ( Record all probes in RawProbeLog.txt )",
 	   "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")",
+	   "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")",
 	   "( No probe log function available in turboCNC )" };
-	const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "( No probe log function available in turboCNC )" };
+	const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41", "( No probe log function available in turboCNC )" };
 #ifdef AUTOLEVELLER_NAMED_PARAMETERS
-	const char *parameterForm[] = { "parameter in the form #<_xprobenumber_yprobenumber>", "numbered parameter", "numbered parameter" };
+	const char *parameterForm[] = { "parameter in the form #<_xprobenumber_yprobenumber>", "numbered parameter", "numbered parameter", "numbered parameter" };
 #else
-	const char *parameterForm[] = { "numbered parameter", "numbered parameter", "numbered parameter" };
+	const char *parameterForm[] = { "numbered parameter", "numbered parameter", "numbered parameter", "numbered parameter" };
 #endif
 
-	const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d" };
-	const char *endSub[] = { "o%1$d endsub", "M99 ( end of sub number %1$d )", "M99  ( end of sub number %1$d )" };
+	const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d", "O%1$d" };
+	const char *endSub[] = { "o%1$d endsub", "M99 ( end of sub number %1$d )", "M99 ( end of sub number %1$d )", "M99  ( end of sub number %1$d )" };
 
 	int i;
 	int j = 0;
@@ -166,18 +173,23 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << endl;
 }
 
-string autoleveller::interpolatePoint ( double x, double y ) {
+/******************************************************************************/
+/*
+ *  Find the correct rectangle and write the bilinear interpolation of the point
+ */
+/******************************************************************************/
+string autoleveller::interpolatePoint ( icoordpair point ) {
 	int xminindex;
 	int yminindex;
 	double x_minus_x0;
 	double y_minus_y0;
 	
-	xminindex = floor ( ( x - startPointX ) / XProbeDist );
-	yminindex = floor ( ( y - startPointY ) / YProbeDist );
-	x_minus_x0 = x - startPointX - xminindex * XProbeDist;
-	y_minus_y0 = y - startPointY - yminindex * YProbeDist;
+	xminindex = floor ( ( point.first - startPointX ) / XProbeDist );
+	yminindex = floor ( ( point.second - startPointY ) / YProbeDist );
+	x_minus_x0 = point.first - startPointX - xminindex * XProbeDist;
+	y_minus_y0 = point.second - startPointY - yminindex * YProbeDist;
 	
-	return str ( boost::format( callSub[software] ) % BILINEAR_INTERPOLATION_MACRO_NUMBER %
+	return str( boost::format( callSub[software] ) % BILINEAR_INTERPOLATION_MACRO_NUMBER %
 													  getVarName( xminindex, yminindex + 1 ) %
 												      getVarName( xminindex + 1, yminindex + 1 ) %
 												      getVarName( xminindex, yminindex ) %
@@ -185,8 +197,60 @@ string autoleveller::interpolatePoint ( double x, double y ) {
 												      y_minus_y0 % x_minus_x0 );
 }
 
-void autoleveller::setMillingParameters ( double zdepth, double zsafe, int feedrate ) {
-	this->zdepth = zdepth;
-	this->zsafe = zsafe;
-	this->feedrate = feedrate;
+/******************************************************************************/
+/*
+ *  Interpolate a point and eventually add intermediate points
+ */
+/******************************************************************************/
+string autoleveller::addChainPoint ( icoordpair point ) {
+	string outputStr;
+	icoords subsegments;
+	icoords::const_iterator i;
+
+	if( newChain ) {
+		newChain = false;
+		outputStr += interpolatePoint( point );
+		outputStr += str( boost::format( correctedPoint ) % point.first % point.second % zwork );
+	}
+	else {
+		subsegments = splitSegment( point, numOfSubsegments( point ) );
+		
+		for( i = subsegments.begin(); i != subsegments.end(); i++ ) {
+			outputStr += interpolatePoint( *i );
+			outputStr += str( boost::format( correctedPoint ) % i->first % i->second % zwork );
+		}
+	}
+	
+	lastPoint = point;
+	return outputStr;
+}
+
+double autoleveller::pointDistance ( icoordpair p0, icoordpair p1 ) {
+	double x1_x0 = p1.first - p0.first;
+	double y1_y0 = p1.second - p0.second;
+	
+	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
+}
+
+unsigned int autoleveller::numOfSubsegments ( icoordpair point ) {
+
+	if( abs( lastPoint.first - point.first ) <= 0.001 )	//The two points are X-aligned
+		return ceil( pointDistance( lastPoint, point ) / YProbeDist );
+		
+	else if( abs( lastPoint.second - point.second ) <= 0.001 )	//The two points are Y-aligned
+		return ceil( pointDistance( lastPoint, point ) / XProbeDist );
+		
+	else	//The two points aren't aligned
+		return ceil( pointDistance( lastPoint, point ) / averageProbeDist );
+}
+
+icoords autoleveller::splitSegment ( const icoordpair point, const unsigned int n ) {
+	icoords splittedSegment;
+	
+	for( unsigned int i = 1; i <= n; i++ )
+		splittedSegment.push_back( icoordpair( lastPoint.first + ( point.first - lastPoint.first ) * i / n,
+											   lastPoint.second + ( point.second - lastPoint.second ) * i / n ) );
+	
+	return splittedSegment;
+	
 }

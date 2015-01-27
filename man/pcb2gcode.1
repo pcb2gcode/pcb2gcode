@@ -180,13 +180,15 @@ their heights
 Actual milling, identical to the standard process, but with an additional
 Z-correction (based on a bilinear interpolation of the probed points)
 .PP
-Unfortunately each software (LinuxCNC, Mach3, ...) uses different gcodes
-for the probing, the parameters and the macros, therefore the output gcode
-won't be software-independent, and you have to choose the used software with
-the proper argument.
-The autoleveller feature is currently (20/01/2014) EXPERIMENTAL, especially
-the Mach3 and TurboCNC softwares, which are also UNTESTED. Please provide a
-feedback on the software page.
+Unfortunately each control software (LinuxCNC, Mach3, ...) uses different
+gcodes for the probing, the parameters and the macros, therefore the output
+gcode won't be software-independent, and you have to choose the used software
+with the proper argument.
+The autoleveller feature is currently (27/01/2014) EXPERIMENTAL, especially
+the Mach3, Mach4 and TurboCNC softwares, which are also UNTESTED. Please
+provide a feedback on the software page.
+Mach4 and LinuxCNC support macro calls, therefore the corrisponding gcode is
+~30% smaller.
 .TP
 \fB\-\-al-front\fP
 enable the autoleveller for the front side
@@ -197,7 +199,7 @@ enable the autoleveller for the back side
 \fB\-\-software\fP \fIsoftware\fP
 the height probing commands are different from software to software. Use this
 option to select the used software; currently supported softwares are LinuxCNC,
-Mach3 and TurboCNC
+Mach3, Mach4 and TurboCNC
 .TP
 \fB\-\-al-x\fP \fIunit\fP
 the width of the probing on the X axis. Higher values increase the levelling 

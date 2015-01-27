@@ -43,6 +43,8 @@ using std::endl;
 using std::vector;
 using std::pair;
 
+#include "coord.hpp"
+
 #include <boost/exception/all.hpp>
 class autoleveller_exception: virtual std::exception, virtual boost::exception {
 };
@@ -53,12 +55,15 @@ class autoleveller_exception: virtual std::exception, virtual boost::exception {
 /******************************************************************************/
 class autoleveller {
 public:
-	enum Software { LINUXCNC = 0, MACH3 = 1, TURBOCNC = 2 };
+	enum Software { LINUXCNC = 0, MACH3 = 1, MACH4 = 2, TURBOCNC = 3 };
 
-	autoleveller( double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, Software software );
+	autoleveller( double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, double zwork, Software software );
 	void probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
-	void setMillingParameters ( double zdepth, double zsafe, int feedrate );
-	string interpolatePoint ( double x, double y );
+	void setMillingParameters ( double zwork, double zsafe, int feedrate );
+	string addChainPoint ( icoordpair point );
+	inline void startNewChain () {
+		newChain = true;
+	}
 	
 	const double boardLenX;
 	const double boardLenY;
@@ -68,17 +73,23 @@ public:
 	const unsigned int numYPoints;
 	const double XProbeDist;
 	const double YProbeDist;
+	const double averageProbeDist;
+	const double zwork;	
 	const Software software;
 
 protected:
 	static const char *callSub[];
+	static const char *correctedPoint;
 	
-	double zdepth;
-	double zsafe;
-	int feedrate;
 	double cfactor;
+	bool newChain;
+	icoordpair lastPoint;
 
 	string getVarName( unsigned int i, unsigned int j );
+	static double pointDistance ( icoordpair p0, icoordpair p1 );
+	string interpolatePoint ( icoordpair point );
+	unsigned int numOfSubsegments ( icoordpair point );
+	icoords splitSegment ( const icoordpair point, const unsigned int n );
 };
 
 #endif // NGCEXPORTER_H
