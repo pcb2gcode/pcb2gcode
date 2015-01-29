@@ -289,6 +289,15 @@ int main(int argc, char* argv[]) {
    //SVG EXPORTER
 
    shared_ptr<SVG_Exporter> svgexpo(new SVG_Exporter(board));
+   string outputdir = vm["output-dir"].as<string>();
+
+#ifdef __unix__
+   if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
+      outputdir += '/';
+#else
+   if ( !outputdir.empty() && *outputdir.rbegin() != '/' && *outputdir.rbegin() != '\\' )
+      outputdir += '\\';
+#endif
 
    try {
 
@@ -296,7 +305,7 @@ int main(int argc, char* argv[]) {
 
       if (vm.count("svg")) {
          cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
-         svgexpo->create_svg(vm["svg"].as<string>());
+         svgexpo->create_svg(outputdir + vm["svg"].as<string>());
       }
 
       shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
@@ -364,11 +373,11 @@ int main(int argc, char* argv[]) {
          cout << "DONE.\n";
 
          if (vm["milldrill"].as<bool>()) {
-            ep.export_ngc(vm["drill-output"].as<string>(), cutter,
+            ep.export_ngc(outputdir + vm["drill-output"].as<string>(), cutter,
                           !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                           vm["onedrill"].as<bool>());
          } else {
-            ep.export_ngc(vm["drill-output"].as<string>(), driller,
+            ep.export_ngc(outputdir + vm["drill-output"].as<string>(), driller,
                           vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                           vm["onedrill"].as<bool>());
          }

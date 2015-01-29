@@ -226,6 +226,7 @@ options::options()
             "zero-start", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "set the starting point of the project at (0,0)")(
             "g64", po::value<double>()->default_value(1), "maximum deviation from toolpath, overrides internal calculation")(
             "mirror-absolute", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
+            "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
             "back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")(
