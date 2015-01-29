@@ -359,7 +359,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          of << "G01 Z" << mill->zwork * cfactor << "\n";
          of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
-		 leveller->startNewChain();
+		 if( bAutolevelNow )
+		 	leveller->startNewChain();
 
          icoords::iterator iter = path->begin();
          icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
