@@ -36,12 +36,15 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int _dpi, bool _fill_outline, double _outline_width) {
-	margin = 0.0;
-	dpi = _dpi;
-	fill_outline = _fill_outline;
-	outline_width = _outline_width;
-}
+Board::Board(int _dpi, bool _fill_outline, double _outline_width, string outputdir) : 
+  margin(0.0),
+  dpi(_dpi),
+  fill_outline(_fill_outline),
+  outline_width(_outline_width),
+  outputdir(outputdir)
+	{
+
+	}
 
 /******************************************************************************/
 /*
@@ -135,7 +138,7 @@ void Board::createLayers() {
     // board size calculated. create layers
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ ) {
 		// prepare the surface
-		shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y));
+		shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y, outputdir));
 		shared_ptr<LayerImporter> importer = it->second.get<0>();
 		surface->render(importer);
 

@@ -63,10 +63,10 @@ using std::endl;
  */
 /******************************************************************************/
 Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-		ivalue_t max_y) :
+		ivalue_t max_y, string outputdir) :
 		dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
 				-min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
-				-min_y * (ivalue_t) dpi + (ivalue_t) procmargin), clr(32) {
+				-min_y * (ivalue_t) dpi + (ivalue_t) procmargin), clr(32), outputdir(outputdir) {
 	guint8* pixels;
 	int stride;
 	make_the_surface((max_x - min_x) * dpi + 2 * procmargin,
@@ -649,7 +649,7 @@ void Surface::save_debug_image(string message) {
 	static uint debug_image_index = 0;
 
 	opacify(pixbuf);
-	pixbuf->save(
+	pixbuf->save(outputdir +
 			(boost::format("outp%1%_%2%.png") % debug_image_index % message).str(),
 			"png");
 	debug_image_index++;

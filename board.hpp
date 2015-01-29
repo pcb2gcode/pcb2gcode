@@ -69,7 +69,7 @@ using boost::tuple;
 /******************************************************************************/
 class Board {
 public:
-	Board(int dpi, bool fill_outline, double outline_width);
+	Board(int dpi, bool fill_outline, double outline_width, string outputdir);
 
 	void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
 			shared_ptr<RoutingMill> manufacturer, bool topside,
@@ -91,9 +91,10 @@ public:
 
 private:
 	ivalue_t margin;
-	uint dpi;
-	bool fill_outline;
-	double outline_width;
+	const uint dpi;
+	const bool fill_outline;
+	const double outline_width;
+	const string outputdir;
 	ivalue_t min_x;
 	ivalue_t max_x;
 	ivalue_t min_y;

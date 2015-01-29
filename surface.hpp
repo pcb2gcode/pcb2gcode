@@ -57,7 +57,7 @@ struct surface_exception: virtual std::exception, virtual boost::exception {
 class Surface: virtual public boost::noncopyable {
 public:
 	Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-			ivalue_t max_y);
+			ivalue_t max_y, string outputdir);
 	void render(boost::shared_ptr<LayerImporter> importer)
 			throw (import_exception);
 
@@ -88,6 +88,7 @@ protected:
 	const ivalue_t dpi;
 	const ivalue_t min_x, max_x, min_y, max_y;
 	const int zero_x, zero_y;
+	const string outputdir;
 
 	void make_the_surface(uint width, uint height);
 

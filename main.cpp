@@ -107,6 +107,19 @@ int main(int argc, char* argv[]) {
    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
 
    //---------------------------------------------------------------------------
+   //add trailing /
+
+   string outputdir = vm["output-dir"].as<string>();
+
+#ifdef __unix__
+   if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
+      outputdir += '/';
+#else
+   if ( !outputdir.empty() && *outputdir.rbegin() != '/' && *outputdir.rbegin() != '\\' )
+      outputdir += '\\';
+#endif
+
+   //---------------------------------------------------------------------------
    //prepare environment:
 
    shared_ptr<Isolator> isolator;
@@ -218,7 +231,8 @@ int main(int argc, char* argv[]) {
                      vm["fill-outline"].as<bool>(),
                      vm["fill-outline"].as<bool>() ?
                               vm["outline-width"].as<double>() * unit :
-                              INFINITY));
+                              INFINITY,
+                     outputdir));
 
    // this is currently disabled, use --outline instead
    if (vm.count("margins")) {
@@ -289,15 +303,6 @@ int main(int argc, char* argv[]) {
    //SVG EXPORTER
 
    shared_ptr<SVG_Exporter> svgexpo(new SVG_Exporter(board));
-   string outputdir = vm["output-dir"].as<string>();
-
-#ifdef __unix__
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
-      outputdir += '/';
-#else
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' && *outputdir.rbegin() != '\\' )
-      outputdir += '\\';
-#endif
 
    try {
 
