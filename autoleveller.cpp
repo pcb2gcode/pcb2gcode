@@ -126,8 +126,8 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	int j = 0;
 	int incr_decr = 1;
 
-	boost::replace_all(probeOn, "$", "\n");
-	boost::replace_all(probeOff, "$", "\n");
+	boost::replace_all(probeOn, "@", "\n");
+	boost::replace_all(probeOff, "@", "\n");
 
 	of << boost::format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
 	of << "#7=[#3+[#1-#3]*#5] ( Linear interpolation of the x-min elements )" << endl;
