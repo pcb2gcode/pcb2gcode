@@ -224,7 +224,7 @@ options::options()
 			"al-probe-off", po::value<string>()->default_value("(MSG, detach the probe tool)$M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
             "zero-start", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "set the starting point of the project at (0,0)")(
-            "g64", po::value<double>()->default_value(1), "maximum deviation from toolpath, overrides internal calculation")(
+            "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
             "mirror-absolute", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(

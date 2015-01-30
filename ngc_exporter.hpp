@@ -85,7 +85,6 @@ public:
 	void set_postamble(string);
 
 protected:
-	double get_tolerance(void);
 	void export_layer(shared_ptr<Layer> layer, string of_name);
 
 	void optimise_Path(shared_ptr<icoords>);
@@ -103,7 +102,7 @@ protected:
     string preamble;        //!< Preamble from command line (user file)
     string postamble;       //!< Postamble from command line (user file)
 
-	double g64;             //!< maximum deviation from commanded toolpath [inch]
+	double g64;             //!< maximum deviation from commanded toolpath
 	double cfactor;         //!< imperial/metric conversion factor for output file
 	bool bMetricinput;      //!< if true, input parameters are in metric units
 	bool bMetricoutput;     //!< if true, metric g-code output

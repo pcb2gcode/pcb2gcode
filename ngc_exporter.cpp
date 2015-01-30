@@ -41,9 +41,6 @@
  You should have received a copy of the GNU General Public License
  along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
 
- \todo
- re-think g64+get_tolerance
-
  \ingroup    NGC_EXPORTER
  */
 /******************************************************************************/
@@ -88,7 +85,6 @@ void NGC_Exporter::add_header(string header) {
 void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
    autoleveller::Software autolevellerSoftware;
-   g64 = options["g64"].as<double>();      //set g64 value
    bMetricinput = options["metric"].as<bool>();      //set flag for metric input
    bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
    bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
@@ -100,6 +96,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    probeOffCommands = options["al-probe-off"].as<string>();
    string outputdir = options["output-dir"].as<string>();
 
+   //set imperial/metric conversion factor for output coordinates depending on metricoutput option
+   cfactor = bMetricoutput ? 25.4 : 1;
+   
 #ifdef __unix__
    if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
       outputdir += '/';
@@ -119,9 +118,11 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
       yoffset = 0;
    }
 
-   //set imperial/metric conversion factor for output coordinates depending on metricoutput option
-   cfactor = bMetricoutput ? 25.4 : 1;
-
+   if( options.count("g64") )
+       g64 = options["g64"].as<double>();
+   else
+	   g64 = ( 5.0 / this->board->get_dpi() ) * cfactor;      // set maximum deviation to 5 pixels to ensure smooth movement
+   
    if( bFrontAutoleveller || bBackAutoleveller ) {
       autolevellerFeed = options["al-probefeed"].as<double>();
 	  autolevellerFailDepth = AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor;	//Fixed (by now) 
@@ -161,9 +162,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
         bridgesZ = options["zsafe"].as<double>();	//Use zsafe as default value
    }
 
-   if( bMetricinput && options.count("g64") )
-      g64 /= cfactor;
-
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
       option_name << layername << "-output";
@@ -174,20 +172,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
            << (bMetricoutput ? "mm" : "in") << " Width: "
            << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
            << ")" << endl;
-   }
-}
-
-/******************************************************************************/
-/*
- \brief  Returns the maximum allowed tolerance for the commanded toolpath
- \retval Maximum allowed tolerance in Inches.
- */
-/******************************************************************************/
-double NGC_Exporter::get_tolerance(void) {
-   if (g64 < 1) {
-      return g64;      // return g64 value if plausible value (more or less) is given.
-   } else {
-      return 5.0 / this->board->get_dpi();      // set maximum deviation to 5 pixels to ensure smooth movement
    }
 }
 
@@ -237,7 +221,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << mill->feed * cfactor << "\n"
       << "M3      ( Spindle on clockwise.        )\n\n";
 
-   of << "G64 P" << get_tolerance() * cfactor
+   of << "G64 P" << g64
       << " ( set maximum deviation from commanded toolpath )\n\n";
 
    if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) )
