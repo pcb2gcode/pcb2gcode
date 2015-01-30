@@ -85,8 +85,24 @@ autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, d
  *  Returns the ij-th variable name (based on software)
  */
 /******************************************************************************/
-string autoleveller::getVarName( unsigned int i, unsigned int j ) {
+string autoleveller::getVarName( int i, int j ) {
 	std::stringstream ss;
+
+	//Safety check: if i/j exceeds the maximum/minimum value, the maximum/minimum value
+	//will be returned. The corresponding bilinear interpolation will become a linear
+	//interpolation applied on the border points, the best approximation that can be
+	//provided.
+	if( i < 0 )
+		i = 0;
+	else
+		if( i >= numXPoints )
+			i = numXPoints - 1;
+
+	if( j < 0 )
+		j = 0;
+	else
+		if( j >= numYPoints )
+			j = numYPoints - 1;
 
 #ifdef AUTOLEVELLER_NAMED_PARAMETERS
 	if ( software == LINUXCNC )

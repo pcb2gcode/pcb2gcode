@@ -27,7 +27,7 @@
 #ifndef AUTOLEVELLER_H
 #define AUTOLEVELLER_H
 
-// Define this if you want named parameters (only in linuxcnc, easier debug)
+// Define this if you want named parameters (only in linuxcnc, easier debug but larger output gcode)
 #define AUTOLEVELLER_NAMED_PARAMETERS
 
 //This define controls the number of the bilinear interpolation macro (the "O" code)
@@ -38,10 +38,6 @@ using std::string;
 
 #include <fstream>
 using std::endl;
-
-#include <vector>
-using std::vector;
-using std::pair;
 
 #include "coord.hpp"
 
@@ -81,15 +77,14 @@ protected:
 	static const char *callSub[];
 	static const char *correctedPoint;
 	
-	double cfactor;
 	bool newChain;
 	icoordpair lastPoint;
 
-	string getVarName( unsigned int i, unsigned int j );
+	string getVarName( int i, int j );
 	static double pointDistance ( icoordpair p0, icoordpair p1 );
 	string interpolatePoint ( icoordpair point );
 	unsigned int numOfSubsegments ( icoordpair point );
 	icoords splitSegment ( const icoordpair point, const unsigned int n );
 };
 
-#endif // NGCEXPORTER_H
+#endif // AUTOLEVELLER_H
