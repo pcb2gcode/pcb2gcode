@@ -68,7 +68,6 @@ using Glib::ustring;
 
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
-#include <boost/regex.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <fstream>
@@ -175,15 +174,22 @@ int main(int argc, char* argv[]) {
          exit(EXIT_FAILURE);
       }
 
-      string tmp ((std::istreambuf_iterator<char>(in)),
-                   std::istreambuf_iterator<char>());
-      boost::regex re ( "\\( *\\)" );
+      string line;
+      string tmp;
 
-      boost::replace_all ( tmp, "(", "<" );       //Substitute round parenthesis with angled parenthesis
-      boost::replace_all ( tmp, ")", ">" );
-      boost::replace_all ( tmp, "\n", " )\n( " ); //Set the text as comment by adding round parenthesis
+      while (std::getline(in, line)) {
+          tmp = line;
+          boost::erase_all(tmp, " ");
+          boost::erase_all(tmp, "\t");
 
-      preamble += boost::regex_replace( "( " + tmp + " )\n\n" , re, "");    //Remove empty comment blocks
+          if( tmp.empty() )		//If there's nothing but spaces and \t
+              preamble += '\n';
+          else {
+              boost::replace_all ( line, "(", "<" );       //Substitute round parenthesis with angled parenthesis
+              boost::replace_all ( line, ")", ">" );
+              preamble += "( " + line + " )\n";
+          }
+     }
 
       cout << "DONE\n";
    }
