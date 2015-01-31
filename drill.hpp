@@ -97,7 +97,7 @@ class ExcellonProcessor {
       void set_preamble(string);
       void set_postamble(string);
       void export_ngc(const string of_name, shared_ptr<Driller> target,
-                      bool mirrored, bool mirror_absolute, bool onedrill);
+                      bool mirrored, bool mirror_absolute, bool onedrill, bool nog81);
       void export_ngc(const string of_name, shared_ptr<Cutter> target,
                       bool mirrored, bool mirror_absolute, bool onedrill);
       void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);

@@ -384,7 +384,7 @@ int main(int argc, char* argv[]) {
          } else {
             ep.export_ngc(outputdir + vm["drill-output"].as<string>(), driller,
                           vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
-                          vm["onedrill"].as<bool>());
+                          vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
          }
 
       } catch (drill_exception& e) {

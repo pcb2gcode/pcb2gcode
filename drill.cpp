@@ -205,7 +205,7 @@ double ExcellonProcessor::get_xvalue(bool drillfront, bool mirror_absolute,
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_name,
                                    shared_ptr<Driller> driller, bool drillfront,
-                                   bool mirror_absolute, bool onedrill) {
+                                   bool mirror_absolute, bool onedrill, bool nog81) {
 
    ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
 
@@ -274,18 +274,30 @@ void ExcellonProcessor::export_ngc(const string of_name,
          svgexpo->stroke();
       }
 
-      of << "G81 R" << driller->zsafe * cfactor << " Z"
-         << driller->zwork * cfactor << " F" << driller->feed * cfactor << " X"
-         << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset ) * cfactor
-         << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
-
-      ++coord_iter;
+	  if( nog81 )
+		 of << "F" << driller->feed * cfactor << endl;
+	  else {
+		 of << "G81 R" << driller->zsafe * cfactor << " Z"
+			 << driller->zwork * cfactor << " F" << driller->feed * cfactor << " X"
+			 << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset ) * cfactor
+			 << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
+		 ++coord_iter;
+	  }
 
       while (coord_iter != drill_coords.end()) {
-         of << "X"
-            << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset )
-               * cfactor
-            << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
+         if( nog81 ) {
+			 of << "G0 X"
+				 << ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset ) * cfactor
+				 << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
+			 of << "G1 Z" << driller->zwork * cfactor << endl;
+			 of << "G1 Z" << driller->zsafe * cfactor << endl;
+		 }
+		 else {
+			 of << "X"
+				<< ( get_xvalue(drillfront, mirror_absolute, coord_iter->first) - xoffset )
+				   * cfactor
+				<< " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
+		 }
          //SVG EXPORTER
          if (bDoSVG) {
             svgexpo->circle((double_mirror_axis - coord_iter->first),
