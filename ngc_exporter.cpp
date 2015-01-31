@@ -209,17 +209,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    of << "\n" << preamble;       //insert external preamble
 
    if (bMetricoutput) {
-      of << "G94     ( Millimeters per minute feed rate. )\n"
-         << "G21     ( Units == Millimeters. )\n\n";
+      of << "G94 ( Millimeters per minute feed rate. )\n"
+         << "G21 ( Units == Millimeters. )\n\n";
    } else {
-      of << "G94     ( Inches per minute feed rate. )\n"
-         << "G20     ( Units == INCHES. )\n\n";
+      of << "G94 ( Inches per minute feed rate. )\n"
+         << "G20 ( Units == INCHES. )\n\n";
    }
 
-   of << "G90     ( Absolute coordinates.        )\n" << "S" << left
-      << mill->speed << "  ( RPM spindle speed.           )\n" << "F"
-      << mill->feed * cfactor << "\n"
-      << "M3      ( Spindle on clockwise.        )\n\n";
+   of << "G90 ( Absolute coordinates. )\n" << "S" << left
+      << mill->speed << " ( RPM spindle speed. )\n" << "F"
+      << mill->feed * cfactor << " ( Feedrate. )\n";
 
    of << "G64 P" << g64
       << " ( set maximum deviation from commanded toolpath )\n\n";
@@ -227,6 +226,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) )
       leveller->probeHeader( of, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
       						  autolevellerFeed, probeOnCommands, probeOffCommands );
+
+	of << "M3 ( Spindle on clockwise. )\n";
 
    //SVG EXPORTER
    if (bDoSVG) {
@@ -397,7 +398,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    // retract
    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
       << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n" << postamble
-      << "M9 ( Coolant off. )\n" << "M2 ( Program end. )" << endl << endl;
+      << "M5 ( Spindle off. )\n" << "M9 ( Coolant off. )\n" << "M2 ( Program end. )"
+	  << endl << endl;
    of.close();
 
    //SVG EXPORTER
