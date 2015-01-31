@@ -84,6 +84,8 @@ void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, s
  */
 /******************************************************************************/
 void Board::createLayers() {
+	const double quantization_error = 2.0 / dpi;
+
 	if (!prepared_layers.size())
 		throw std::logic_error("No layers prepared.");
 
@@ -135,6 +137,11 @@ void Board::createLayers() {
         }
     }
 
+	min_x -= quantization_error;
+	max_x += quantization_error;
+	min_y -= quantization_error;
+	max_y += quantization_error;
+	
     // board size calculated. create layers
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ ) {
 		// prepare the surface
