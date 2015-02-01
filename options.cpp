@@ -439,34 +439,32 @@ static void check_drilling_parameters(po::variables_map const& vm) {
 /******************************************************************************/
 static void check_cutting_parameters(po::variables_map const& vm) {
 
-   //only check the parameters if an outline file is given
-   if (vm.count("outline")) {
-      if ((vm.count("drill") || vm.count("milldrill"))) {
-         if (vm["fill-outline"].as<bool>()) {
-            if (!vm.count("outline-width")) {
-               cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
-               exit(ERR_NOOUTLINEWIDTH);
-            } else {
-               double outline_width = vm["outline-width"].as<double>();
-               if (outline_width < 0) {
-                  cerr << "Error: Specified outline width is less than zero!\n";
-                  exit(ERR_NEGATIVEOUTLINEWIDTH);
-               } else
-                  if (outline_width == 0) {
-                     cerr << "Error. Specified outline width is zero!\n";
-                     exit(ERR_ZEROOUTLINEWIDTH);
-                  } else {
-                     std::stringstream width_sb;
-                     if ((vm["metric"].as<bool>() && outline_width >= 10)
-                         || (!vm["metric"].as<bool>() && outline_width >= 0.4)) {
-                        width_sb << outline_width
-                                 << (vm["metric"].as<bool>() ? " mm" : " inch");
-                        cerr << "Warning: You specified an outline-width of "
-                             << width_sb.str() << "!\n";
-                     }
-                  }
-            }
-         }
+   //only check the parameters if an outline file is given or milldrill is enabled
+   if (vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
+	 if (vm["fill-outline"].as<bool>()) {
+		if (!vm.count("outline-width")) {
+		   cerr << "Error: For outline filling, a width (--outline-width) has to be specified.\n";
+		   exit(ERR_NOOUTLINEWIDTH);
+		} else {
+		   double outline_width = vm["outline-width"].as<double>();
+		   if (outline_width < 0) {
+			  cerr << "Error: Specified outline width is less than zero!\n";
+			  exit(ERR_NEGATIVEOUTLINEWIDTH);
+		   } else
+			  if (outline_width == 0) {
+				 cerr << "Error. Specified outline width is zero!\n";
+				 exit(ERR_ZEROOUTLINEWIDTH);
+			  } else {
+				 std::stringstream width_sb;
+				 if ((vm["metric"].as<bool>() && outline_width >= 10)
+					 || (!vm["metric"].as<bool>() && outline_width >= 0.4)) {
+					width_sb << outline_width
+							 << (vm["metric"].as<bool>() ? " mm" : " inch");
+					cerr << "Warning: You specified an outline-width of "
+						 << width_sb.str() << "!\n";
+				 }
+			  }
+		}
       }
 
       if (!vm.count("zcut")) {
