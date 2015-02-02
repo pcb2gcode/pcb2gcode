@@ -33,6 +33,9 @@
 //This define controls the number of the bilinear interpolation macro (the "O" code)
 #define BILINEAR_INTERPOLATION_MACRO_NUMBER 1000
 
+//This define controls the number of the variable where the interpolation result is saved
+#define BILINEAR_INTERPOLATION_RESULT_VAR "100"
+
 #include <string>
 using std::string;
 
@@ -57,8 +60,9 @@ public:
 	void probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
 	void setMillingParameters ( double zwork, double zsafe, int feedrate );
 	string addChainPoint ( icoordpair point );
-	inline void startNewChain () {
-		newChain = true;
+	string g01Corrected ( icoordpair point );
+	inline void setLastChainPoint ( icoordpair lastPoint ) {
+		this->lastPoint = lastPoint;
 	}
 	
 	const double boardLenX;
@@ -70,14 +74,13 @@ public:
 	const double XProbeDist;
 	const double YProbeDist;
 	const double averageProbeDist;
-	const double zwork;	
+	const string zwork;		//Since zwork is only substituted where is necessary, saving it as a string saves lots of double->string conversions
 	const Software software;
 
 protected:
 	static const char *callSub[];
 	static const char *correctedPoint;
 	
-	bool newChain;
 	icoordpair lastPoint;
 
 	string getVarName( int i, int j );

@@ -341,15 +341,21 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          //optimise_Path(path,"test_iso.ngc");
          //--------------------------------------------------------------------
          // isolating (front/backside)
-         of << "G01 Z" << mill->zwork * cfactor << "\n";
-         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+         if( bAutolevelNow ) {
+            leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffset ) * cfactor,
+										             ( path->begin()->second - yoffset ) * cfactor ) );
+            of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffset ) * cfactor,
+										              ( path->begin()->second - yoffset ) * cfactor ) );
+         }
+		 else
+            of << "G01 Z" << mill->zwork * cfactor << "\n";
 
-		 if( bAutolevelNow )
-		 	leveller->startNewChain();
+         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
 
          icoords::iterator iter = path->begin();
          icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
          icoords::iterator peek;
+
          while (iter != path->end()) {
             peek = iter + 1;
             if (!bOptimise

@@ -50,11 +50,11 @@
  */
 
 const char *autoleveller::callSub[] = { "o%1$s call [%2$s] [%3$s] [%4$s] [%5$s] [%6$.5f] [%7$.5f]\n",
-					 	  				"#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#100=[#1+[#2-#1]*%7$s]\n",
-					 	  				"G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f\n",
-					 	  				"#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#100=[#1+[#2-#1]*%7$s]\n" };
+                                        "#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#" BILINEAR_INTERPOLATION_RESULT_VAR "=[#1+[#2-#1]*%7$s]\n",
+                                        "G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f\n",
+                                        "#1=[%4$s+[%2$s-%4$s]*%6$s]\n#2=[%5$s+[%3$s-%5$s]*%6$s]\n#" BILINEAR_INTERPOLATION_RESULT_VAR "=[#1+[#2-#1]*%7$s]\n" };
 
-const char *autoleveller::correctedPoint = "X%1$.5f Y%2$.5f Z[%3$.5f+#100]\n";
+const char *autoleveller::correctedPoint = "X%1$.5f Y%2$.5f Z[%3$s+#" BILINEAR_INTERPOLATION_RESULT_VAR "]\n";
 
 /******************************************************************************/
 /*	
@@ -72,9 +72,8 @@ autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, d
  XProbeDist( boardLenX / ( numXPoints - 1 ) ),
  YProbeDist( boardLenY / ( numYPoints - 1 ) ),
  averageProbeDist( ( XProbeDist + YProbeDist ) / 2 ),
- zwork( zwork ),
- software( software ),
- newChain( true )
+ zwork( str( boost::format("%.3f") % zwork ) ),
+ software( software )
 {
 	if( numXPoints * numYPoints > 500 )
 		throw autoleveller_exception();
@@ -148,7 +147,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << boost::format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
 	of << "#7=[#3+[#1-#3]*#5] ( Linear interpolation of the x-min elements )" << endl;
 	of << "#8=[#4+[#2-#4]*#5] ( Linear interpolation of the x-max elements )" << endl;
-	of << "#100=[#7+[#8-#7]*#6] ( Linear interpolation of previously interpolated points )" << endl;
+	of << "#" BILINEAR_INTERPOLATION_RESULT_VAR "=[#7+[#8-#7]*#6] ( Linear interpolation of previously interpolated points )" << endl;
 	of << boost::format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
 	of << endl;
 	of << probeOn << endl;
@@ -223,22 +222,19 @@ string autoleveller::addChainPoint ( icoordpair point ) {
 	icoords subsegments;
 	icoords::const_iterator i;
 
-	if( newChain ) {
-		newChain = false;
-		outputStr += interpolatePoint( point );
-		outputStr += str( boost::format( correctedPoint ) % point.first % point.second % zwork );
+	subsegments = splitSegment( point, numOfSubsegments( point ) );
+
+	for( i = subsegments.begin(); i != subsegments.end(); i++ ) {
+		outputStr += interpolatePoint( *i );
+		outputStr += str( boost::format( correctedPoint ) % i->first % i->second % zwork );
 	}
-	else {
-		subsegments = splitSegment( point, numOfSubsegments( point ) );
-		
-		for( i = subsegments.begin(); i != subsegments.end(); i++ ) {
-			outputStr += interpolatePoint( *i );
-			outputStr += str( boost::format( correctedPoint ) % i->first % i->second % zwork );
-		}
-	}
-	
+
 	lastPoint = point;
 	return outputStr;
+}
+
+string autoleveller::g01Corrected ( icoordpair point ) {
+	return interpolatePoint( point ) + "G01 Z[" + zwork + "+#" BILINEAR_INTERPOLATION_RESULT_VAR "]\n";
 }
 
 double autoleveller::pointDistance ( icoordpair p0, icoordpair p1 ) {
