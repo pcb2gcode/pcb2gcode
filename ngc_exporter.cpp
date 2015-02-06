@@ -121,7 +121,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    if( options.count("g64") )
        g64 = options["g64"].as<double>();
    else
-	   g64 = ( 5.0 / this->board->get_dpi() ) * cfactor;      // set maximum deviation to 5 pixels to ensure smooth movement
+	   g64 = ( 2.0 / this->board->get_dpi() ) * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
    
    if( bFrontAutoleveller || bBackAutoleveller ) {
       autolevellerFeed = options["al-probefeed"].as<double>();
@@ -382,7 +382,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
 		       else 
 		          of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-		          << ( iter->second - yoffset ) * cfactor;
+		          << ( iter->second - yoffset ) * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
