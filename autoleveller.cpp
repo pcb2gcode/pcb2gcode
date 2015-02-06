@@ -196,20 +196,20 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 string autoleveller::interpolatePoint ( icoordpair point ) {
 	int xminindex;
 	int yminindex;
-	double x_minus_x0;
-	double y_minus_y0;
+	double x_minus_x0_rel;
+	double y_minus_y0_rel;
 	
 	xminindex = floor ( ( point.first - startPointX ) / XProbeDist );
 	yminindex = floor ( ( point.second - startPointY ) / YProbeDist );
-	x_minus_x0 = point.first - startPointX - xminindex * XProbeDist;
-	y_minus_y0 = point.second - startPointY - yminindex * YProbeDist;
+	x_minus_x0_rel = ( point.first - startPointX - xminindex * XProbeDist ) / XProbeDist;
+	y_minus_y0_rel = ( point.second - startPointY - yminindex * YProbeDist ) / YProbeDist;
 	
 	return str( boost::format( callSub[software] ) % BILINEAR_INTERPOLATION_MACRO_NUMBER %
 													  getVarName( xminindex, yminindex + 1 ) %
 												      getVarName( xminindex + 1, yminindex + 1 ) %
 												      getVarName( xminindex, yminindex ) %
 												      getVarName( xminindex + 1, yminindex ) %
-												      y_minus_y0 % x_minus_x0 );
+												      y_minus_y0_rel % x_minus_x0_rel );
 }
 
 /******************************************************************************/
