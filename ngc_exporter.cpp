@@ -87,7 +87,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    autoleveller::Software autolevellerSoftware;
    bMetricinput = options["metric"].as<bool>();      //set flag for metric input
    bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
-   bOptimise = options["optimise"].as<bool>();       //set flag for optimisation
    bMirrored = options["mirror-absolute"].as<bool>();      //set flag
    bCutfront = options["cut-front"].as<bool>();      //set flag
    bFrontAutoleveller = options["al-front"].as<bool>();
@@ -238,10 +237,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    // contours
    BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() ) {
 
-      if (bOptimise) {
-         optimise_Path(path);
-      }
-
       // retract, move to the starting point of the next contour
       of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
       of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
@@ -299,13 +294,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             while (iter != path->end()) {
                peek = iter + 1;
 
-               if (!bOptimise
-                   && (last == path->end()
+               if (last == path->end()
                        || peek == path->end()
                        || !((last->first == iter->first
                              && iter->first == peek->first)
                             || (last->second == iter->second
-                                && iter->second == peek->second)))) {
+                                && iter->second == peek->second))) {
                   of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
                      << ( iter->second - yoffset ) * cfactor << endl;
                   if (bDoSVG) {
@@ -323,9 +317,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                   of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
                      << ( iter->second - yoffset ) * cfactor << endl;
                }
-               if (bDoSVG && bOptimise && bSvgOnce) {
-                  svgexpo->line_to(iter->first, iter->second);
-               }
 
                last = iter;
                ++iter;
@@ -338,7 +329,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             z -= z_step;
          }
       } else {
-         //optimise_Path(path,"test_iso.ngc");
          //--------------------------------------------------------------------
          // isolating (front/backside)
          if( bAutolevelNow ) {
@@ -358,31 +348,18 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
          while (iter != path->end()) {
             peek = iter + 1;
-            if (!bOptimise
-                && (last == path->end()
+            if (last == path->end()
                     || peek == path->end()
                     || !((last->first == iter->first
                           && iter->first == peek->first)
                          || (last->second == iter->second
-                             && iter->second == peek->second)))
+                             && iter->second == peek->second))) {
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
-                ) {
                if( bAutolevelNow )
 		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
                else 
 	              of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
 	                 << ( iter->second - yoffset ) * cfactor << endl;
-               //SVG EXPORTER
-               if (bDoSVG)
-                  if (bSvgOnce)
-                     svgexpo->line_to(iter->first, iter->second);
-            }
-            if (bOptimise) {
-		       if( bAutolevelNow )
-		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
-		       else 
-		          of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-		          << ( iter->second - yoffset ) * cfactor << endl;
                //SVG EXPORTER
                if (bDoSVG)
                   if (bSvgOnce)
@@ -428,54 +405,6 @@ void NGC_Exporter::set_preamble(string _preamble) {
 /******************************************************************************/
 void NGC_Exporter::set_postamble(string _postamble) {
    postamble = _postamble;
-}
-
-/******************************************************************************/
-/*
- \brief        Optimise the tool path
- \description  Simple path optimisation (no fancy algorithm).
- Reduces the file size by approx. 20-40%.
- Loss of precision is less than the dpi value.
- */
-/******************************************************************************/
-void NGC_Exporter::optimise_Path(shared_ptr<icoords> path) {
-
-   icoords::iterator p0;
-   icoords::iterator p1;
-   icoords::iterator p2;
-   double smax, s02, m01, m02, m12;
-
-   p0 = path->begin();
-   smax = 1.01 / board->get_dpi() * sqrt(2);
-   while (p0 < path->end() - 2) {
-      p1 = p0 + 1;
-      p2 = p1 + 1;
-      m02 = get_SlopeOfLine(path->at(distance(path->begin(), p0)),
-                   path->at(distance(path->begin(), p2)));
-      m02 = fabs(m02);
-      s02 = get_D_PointToPoint(path->at(distance(path->begin(), p0)),
-                            path->at(distance(path->begin(), p2)));
-      if ((m02 > 0.95 && m02 < 1.05 && s02 <= smax)) {
-         path->erase(p1);
-      } else {
-         p0++;
-      }
-   }
-
-   p0 = path->begin();
-   while (p0 < path->end() - 2) {
-      p1 = p0 + 1;
-      p2 = p1 + 1;
-      m01 = get_SlopeOfLine(path->at(distance(path->begin(), p0)),
-                   path->at(distance(path->begin(), p1)));
-      m12 = get_SlopeOfLine(path->at(distance(path->begin(), p1)),
-                   path->at(distance(path->begin(), p2)));
-      if (m01 == m12) {
-         path->erase(p1);
-      } else {
-         p0++;
-      }
-   }
 }
 
 /******************************************************************************/

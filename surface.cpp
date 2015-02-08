@@ -224,8 +224,9 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 								min_y + max_y - ypt2i(c.second)));
 			}
 
-			if (0)
-				simplifypath(outline, 0.005);
+			if (mill->optimise)
+				simplifypath(outline, 2.0 / dpi );
+
 			outside.clear();
 			toolpath.push_back(outline);
 		}

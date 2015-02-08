@@ -132,6 +132,7 @@ int main(int argc, char* argv[]) {
       isolator->speed = vm["mill-speed"].as<int>();
       isolator->zchange = vm["zchange"].as<double>() * unit;
       isolator->extra_passes = vm["extra-passes"].as<int>();
+      isolator->optimise = vm["optimise"].as<bool>();
    }
 
    shared_ptr<Cutter> cutter;
@@ -146,6 +147,7 @@ int main(int argc, char* argv[]) {
       cutter->zchange = vm["zchange"].as<double>() * unit;
       cutter->do_steps = true;
       cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
+      cutter->optimise = vm["optimise"].as<bool>();
    }
 
    shared_ptr<Driller> driller;
