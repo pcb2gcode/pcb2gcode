@@ -88,11 +88,8 @@ protected:
 	void export_layer(shared_ptr<Layer> layer, string of_name);
 
 	void add_Bridge(std::ofstream&, double, double, icoordpair, icoordpair);
-	double get_SlopeOfLine(icoordpair, icoordpair);
-	double get_D_PointToLine(icoordpair, icoordpair, icoordpair);
-	double get_D_PointToPoint(icoordpair, icoordpair);
-	double get_Y_onLine(double, icoordpair, icoordpair);
-	double get_X_onLine(double, icoordpair, icoordpair);
+	static double get_Y_onLine(double, icoordpair, icoordpair);
+	static double get_X_onLine(double, icoordpair, icoordpair);
 
 	bool bDoSVG;            //!< if true, export svg
 	shared_ptr<SVG_Exporter> svgexpo;
