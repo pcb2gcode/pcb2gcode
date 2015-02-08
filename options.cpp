@@ -175,7 +175,7 @@ options::options()
          : cli_options("command line only options"), cfg_options("generic options (CLI and config files)") {
 
    cli_options.add_options()(
-			"noconfigfile", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "ignore any configuration file")(
+			"noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")(
 			"help,?", "produce help message")(
 			"version", "show the current software version");
 
@@ -191,31 +191,31 @@ options::options()
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
-            "milldrill", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "drill using the mill head")(
-            "nog81", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "replace G81 with G0+G1")(
+            "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
+            "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
             "extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")(
-            "fill-outline", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "accept a contour instead of a polygon as outline (you likely want to enable this one)")(
+            "fill-outline", po::value<bool>()->default_value(false)->implicit_value(true), "accept a contour instead of a polygon as outline (you likely want to enable this one)")(
             "outline-width", po::value<double>(), "width of the outline")(
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
             "zcut", po::value<double>(), "PCB cutting depth in inches")(
             "cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")(
 			"cut-speed", po::value<int>(), "spindle rpm when cutting")(
             "cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")(
-            "cut-front", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "cut from front side. Default is back side.")(
+            "cut-front", po::value<bool>()->default_value(false)->implicit_value(true), "cut from front side. Default is back side.")(
 			"zdrill", po::value<double>(), "drill depth")(
             "zchange", po::value<double>(), "tool changing height")(
             "drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")(
             "drill-speed", po::value<int>(), "spindle rpm when drilling")(
-            "drill-front", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "drill through the front side of board")(
-            "onedrill", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "use only one drill bit size")(
-            "metric", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
-            "metricoutput", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "use metric units for output")(
-            "optimise", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
+            "drill-front", po::value<bool>()->default_value(false)->implicit_value(true), "drill through the front side of board")(
+            "onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")(
+            "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
+            "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
+            "optimise", po::value<bool>()->default_value(false)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
             "bridges", po::value<double>()->default_value(0), "add four bridges with the given width to the outline cut")(
             "zbridges", po::value<double>(), "bridges heigth (Z-coordinates while engraving bridges, default to zsafe) ")(
-			"al-front", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+			"al-front", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the front layer")(
-			"al-back", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true),
+			"al-back", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the back layer")(
 			"software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3, mach4 and turbocnc")(
 			"al-x", po::value<double>(), "width of the x probes")( 
@@ -224,9 +224,9 @@ options::options()
 			"al-probe-on", po::value<string>()->default_value("(MSG, attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
 			"al-probe-off", po::value<string>()->default_value("(MSG, detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
-            "zero-start", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "set the starting point of the project at (0,0)")(
+            "zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")(
             "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
-            "mirror-absolute", po::value<bool>()->default_value(false)->zero_tokens()->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
+            "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
