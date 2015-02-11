@@ -39,6 +39,8 @@ vector<unsigned int> outline_bridges::makeBridges ( shared_ptr<icoords> &path ) 
     return insertBridges( path, findLongestSegments( path ) );
 }
 
+//This function finds the longest segments and returns a vector of pair containing the index of path where the segment
+//starts and its length. If no segments longer than "length" can be found, it throws outline_bridges_exception
 vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( const shared_ptr<icoords> path ) {
     vector< pair< unsigned int, double > >::iterator element;
     vector< pair< unsigned int, double > > distances;
@@ -64,6 +66,8 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
     return output;
 }
 
+//This function takes the segments where the bridges must be built (in the form of vector<pair<uint,double>>, see findLongestSegments),
+//inserts them in the path and returns an array containing the indexes of each bridge's start
 vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments ) {
     vector<unsigned int> output;
     icoords temp;
@@ -83,6 +87,7 @@ vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, 
     return output;
 }
 
+//This function compute the distance between two points
 double outline_bridges::pointDistance( icoordpair p0, icoordpair p1 ) {
 	double x1_x0 = p1.first - p0.first;
 	double y1_y0 = p1.second - p0.second;
@@ -90,6 +95,8 @@ double outline_bridges::pointDistance( icoordpair p0, icoordpair p1 ) {
 	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
 }
 
+//This function returns the intermediate point between p0 and p1. With position=0 it returns p0, with position=1 it returns p1,
+//with values between 0 and 1 it returns the relative position between p0 and p1
 icoordpair outline_bridges::intermediatePoint( icoordpair p0, icoordpair p1, double position ) {
     return icoordpair( p0.first + ( p1.first - p0.first ) * position, p0.second + ( p1.second - p0.second ) * position );
 }
