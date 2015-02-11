@@ -148,18 +148,13 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
       }
 	}
 
-   if (options["bridges"].as<double>() == 0) {
-      bBridges = false;
-      dBridgewidth = 0;
-      bridgesZ = options["zsafe"].as<double>();
-   } else {
-      bBridges = true;
-      dBridgewidth = options["bridges"].as<double>() / cfactor;
-      if (options.count("zbridges"))
-        bridgesZ = options["zbridges"].as<double>();
-      else
-        bridgesZ = options["zsafe"].as<double>();	//Use zsafe as default value
+   if (options["bridges"].as<double>() != 0 && options["bridgesnum"].as<unsigned int>() != 0) {
+      bridges = new outline_bridges( options["bridgesnum"].as<unsigned int>(),
+                                     ( options["bridges"].as<double>() + options["cutter-diameter"].as<double>() ) / cfactor,
+                                     options.count("zbridges")? options["zbridges"].as<double>() : options["zsafe"].as<double>() );
    }
+   else
+       bridges = NULL;
 
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
@@ -184,6 +179,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    shared_ptr<RoutingMill> mill = layer->get_manufacturer();
    bool bSvgOnce = TRUE;
    bool bAutolevelNow;
+   vector<unsigned int> bridgesIndexes;
+   vector<unsigned int>::const_iterator currentBridge;
 
    // open output file
    std::ofstream of;
@@ -255,24 +252,14 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
 
       if (cutter && cutter->do_steps) {
-
-         if( bBridges ) {
-            dBridgewidth += mill->tool_diameter;
-            if (!bMirrored) {
-               dBridgexmin = (board->get_width() / 2 + board->get_min_x())
-                             - dBridgewidth / 2;
-               dBridgexmax = dBridgexmin + dBridgewidth;
-               dBridgeymin = (board->get_height() / 2 + board->get_min_y())
-                             - dBridgewidth / 2;
-               dBridgeymax = dBridgeymin + dBridgewidth;
-            } else {
-               dBridgexmax = (board->get_width() / 2 + board->get_min_x())
-                             - dBridgewidth / 2;
-               dBridgexmax *= -1;
-               dBridgexmin = dBridgexmax - dBridgewidth;
-               dBridgeymin = (board->get_height() / 2 + board->get_min_y())
-                             - dBridgewidth / 2;
-               dBridgeymax = dBridgeymin + dBridgewidth;
+         if( bridges ) {
+            try {
+                bridgesIndexes = bridges->makeBridges( path );
+                currentBridge = bridgesIndexes.begin();
+                if ( bridgesIndexes.size() != bridges->number )
+                    cerr << "Can't create " << bridges->number << " bridges on this layer, only " << bridgesIndexes.size() << " will be created." << endl;
+            } catch ( outline_bridges_exception &exc ) {
+                cerr << "Error while adding outline bridges. Outline bridges on this path won't be created." << endl;
             }
          }
 
@@ -306,16 +293,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                      if (bSvgOnce)
                         svgexpo->line_to(iter->first, iter->second);
                   }
-               }
-               if (bBridges && last != path->end() && peek != path->end()) {
-                  add_Bridge(of, bridgesZ, double(z * cfactor),
-                           path->at(distance(path->begin(), last)),
-                           path->at(distance(path->begin(), iter)));
-                  of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-                     << ( iter->second - yoffset ) * cfactor << endl;
-               } else {
-                  of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-                     << ( iter->second - yoffset ) * cfactor << endl;
+                  if( bridges && currentBridge != bridgesIndexes.end() && *currentBridge == iter - path->begin() )
+                     of << "Z" << bridges->height << endl;
+                  else if( bridges && currentBridge != bridgesIndexes.end() && *currentBridge == last - path->begin() ) {
+                     of << "Z" << z * cfactor << endl;
+                     ++currentBridge;
+                  }
                }
 
                last = iter;
@@ -405,129 +388,4 @@ void NGC_Exporter::set_preamble(string _preamble) {
 /******************************************************************************/
 void NGC_Exporter::set_postamble(string _postamble) {
    postamble = _postamble;
-}
-
-/******************************************************************************/
-/*
- \brief        Add ridges to the outline cut
- \description  Works for "normal" shaped pcb only.
- \param        of = output file
- \param        zsh = saftey height
- \param        zcut = cut depth
- \param        p0 = last point
- \param        p1 = current point
- */
-/******************************************************************************/
-void NGC_Exporter::add_Bridge(std::ofstream& of, double zsh, double zcut,
-                            icoordpair p0, icoordpair p1) {
-   static unsigned char state = 0;      //state of statemachine
-   static bool cutting = true;      //if true, cutting, else on saftey height
-   double x0 = p0.first;
-   double x1 = p1.first;
-   double y0 = p0.second;
-   double y1 = p1.second;
-   double x, y;
-
-   switch (state) {
-
-      case 0:
-         //top to bottom
-         if (cutting && y0 >= dBridgeymax && y1 <= dBridgeymax) {
-            x = get_X_onLine(dBridgeymax, p0, p1);
-            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymax - yoffset ) * cfactor << "\n";
-            of << "Z" << zsh << "\n";
-            cutting = false;      //set flag
-         }
-         if (!cutting && y0 >= dBridgeymin && y1 <= dBridgeymin) {
-            x = get_X_onLine(dBridgeymin, p0, p1);
-            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymin - yoffset ) * cfactor << "\n";
-            of << "Z" << zcut << "\n";
-            cutting = true;      //set flag
-            state = bCutfront ? 3 : 1;      //set next state
-         }
-         break;
-
-      case 1:
-         //left to right
-         if (cutting && x0 <= dBridgexmin && x1 >= dBridgexmin) {
-            y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << ( dBridgexmin - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
-            of << "Z" << zsh << "\n";
-            cutting = false;      //set flag
-         }
-         if (!cutting && x0 <= dBridgexmax && x1 >= dBridgexmax) {
-            y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << ( dBridgexmax - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
-            of << "Z" << zcut << "\n";
-            cutting = true;      //set flag
-            state = bCutfront ? 0 : 2;      //set next state
-         }
-         break;
-
-      case 2:
-         //bottom to top
-         if (cutting && y0 <= dBridgeymin && y1 >= dBridgeymin) {
-            x = get_X_onLine(dBridgeymin, p0, p1);
-            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymin - yoffset ) * cfactor << "\n";
-            of << "Z" << zsh << "\n";
-            cutting = false;      //set flag
-         }
-         if (!cutting && y0 <= dBridgeymax && y1 >= dBridgeymax) {
-            x = get_X_onLine(dBridgeymax, p0, p1);
-            of << "X" << ( x - xoffset ) * cfactor << " Y" << ( dBridgeymax - yoffset ) * cfactor << "\n";
-            of << "Z" << zcut << "\n";
-            cutting = true;      //set flag
-            state = bCutfront ? 1 : 3;      //set next state
-         }
-         break;
-
-      case 3:
-         //right to left
-         if (cutting && x0 >= dBridgexmax && x1 <= dBridgexmax) {
-            y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << ( dBridgexmax - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
-            of << "Z" << zsh << "\n";
-            cutting = false;      //set flag
-         }
-         if (!cutting && x0 >= dBridgexmin && x1 <= dBridgexmin) {
-            y = get_Y_onLine(dBridgexmax, p0, p1);
-            of << "X" << ( dBridgexmin - xoffset ) * cfactor << " Y" << ( y - yoffset ) * cfactor << "\n";
-            of << "Z" << zcut << "\n";
-            cutting = true;      //set flag
-            state = bCutfront ? 2 : 0;      //set next state
-         }
-         break;
-   }
-}
-
-/******************************************************************************/
-/*
- \brief   Get the y value with given x value and a line between p1 and p2
- \param   x = x-value on the line
- \param   p1,p2 = points of the line
- \retval  y-value
- */
-/******************************************************************************/
-double NGC_Exporter::get_Y_onLine(double x, icoordpair p1, icoordpair p2) {
-   double x1 = p1.first;
-   double y1 = p1.second;
-   double x2 = p2.first;
-   double y2 = p2.second;
-   return (y2 - y1) / (x2 - x1) * x + (x2 * y1 - x1 * y2) / (x2 - x1);
-}
-
-/******************************************************************************/
-/*
- \brief   Get the x value with given y value and a line between p1 and p2
- \param   y = y-value on the line
- \param   p1,p2 = points of the line
- \retval  x-value
- */
-/******************************************************************************/
-double NGC_Exporter::get_X_onLine(double y, icoordpair p1, icoordpair p2) {
-   double x1 = p1.first;
-   double y1 = p1.second;
-   double x2 = p2.first;
-   double y2 = p2.second;
-   return (y * (x1 - x1) - (x2 * y1 - x1 * y2)) / (y2 - y1);
 }

@@ -211,7 +211,8 @@ options::options()
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
             "optimise", po::value<bool>()->default_value(false)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
-            "bridges", po::value<double>()->default_value(0), "add four bridges with the given width to the outline cut")(
+            "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
+            "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges heigth (Z-coordinates while engraving bridges, default to zsafe) ")(
 			"al-front", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the front layer")(
@@ -511,6 +512,16 @@ static void check_cutting_parameters(po::variables_map const& vm) {
       if (vm["cut-infeed"].as<double>() < 0.001) {
          cerr << "Error: The cutting infeed --cut-infeed. seems too low.\n";
          exit(ERR_LOWCUTINFEED);
+      }
+
+      if (vm["bridges"].as<double>() < 0) {
+          cerr << "Error: negative bridge value.\n";
+          exit(ERR_NEGATIVEBRIDGE);
+      }
+
+      if (vm["bridges"].as<double>() > 0 && !vm["optimise"].as<bool>() ) {
+          cerr << "Error: \"bridges\" requires \"optimise\".\n";
+          exit(ERR_BRIDGENOOPTIMISE);
       }
    }
 }

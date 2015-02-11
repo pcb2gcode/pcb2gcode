@@ -169,10 +169,16 @@ thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given
 cut from the front side. Default is from the back side
 .TP
 \fB\-\-bridges \fIunit\fP
-add four bridges with the given width to the outline cut
+add bridges with the given width to the outline cut.
+\fB\-\-bridgesnum\fP bridges will be created for each outline closed line. This
+option requires \fB\-\-optimise\fP
 .TP
 \fB\-\-zbridges \fIunit\fP
 bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
+.TP
+\fB\-\-bridgesnum \fInumber\fP
+sets the numer of bridges to be created (\fB\-\-bridgesnum\fP bridges for each
+closed line)
 
 .PP
 The autoleveller feature allows you to mill your project on a surface that

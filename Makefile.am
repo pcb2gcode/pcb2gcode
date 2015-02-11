@@ -27,6 +27,8 @@ pcb2gcode_SOURCES = \
 	surface.cpp \
 	options.hpp \
 	options.cpp \
+    outline_bridges.hpp \
+    outline_bridges.cpp \
 	config.h \
 	main.cpp
 

@@ -66,6 +66,7 @@ using boost::shared_ptr;
 #include "exporter.hpp"
 #include "svg_exporter.hpp"
 #include "autoleveller.hpp"
+#include "outline_bridges.hpp"
 
 #define AUTOLEVELLER_FIXED_FAIL_DEPTH ( -0.03937 )
 
@@ -87,10 +88,6 @@ public:
 protected:
 	void export_layer(shared_ptr<Layer> layer, string of_name);
 
-	void add_Bridge(std::ofstream&, double, double, icoordpair, icoordpair);
-	static double get_Y_onLine(double, icoordpair, icoordpair);
-	static double get_X_onLine(double, icoordpair, icoordpair);
-
 	bool bDoSVG;            //!< if true, export svg
 	shared_ptr<SVG_Exporter> svgexpo;
 	shared_ptr<Board> board;
@@ -105,13 +102,7 @@ protected:
 	bool bMirrored;         //!< if true, mirrored along y axis
 	bool bCutfront;         //!< if true, the outline will be cut from front
 
-	bool bBridges;          //!< if true, bridges are added to the outline cut
-	double dBridgewidth;    //!< width of the bridges
-	double dBridgexmin;     //!< minimum x threshold of the bridges
-	double dBridgexmax;     //!< maximum x threshold of the bridges
-	double dBridgeymin;     //!< minimum y threshold of the bridges
-	double dBridgeymax;     //!< maximum y threshold of the bridges
-	double bridgesZ;	//!< z-coordinate of the bridges
+	outline_bridges *bridges;
 	
 	autoleveller *leveller;
 	double autolevellerFeed;
