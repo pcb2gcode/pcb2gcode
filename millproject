@@ -1,37 +1,62 @@
-# this is an example config file for pcb2gcode.
-# place this in the same directory as your gerber files to save typing
+# This is an example config file for pcb2gcode.
+# Place this in the same directory as your gerber files to save typing
+# <option>=false is implicit, it is present just for clearness
 
-
-# You may want to uncomment and change those in local project files
+# You may want to uncomment and change those in local project files (or you
+# can specify them directly as command line arguments)
 #front=board.front.gbr
 #back=board.back.gbr
 #outline=board.outline.gbr
-#drill=board.plated-drill.cnc
+#drill=board.plated-drill.drl
+#preamble=preamble.ngc
+#preamble-text=preamble_text.txt
+#postamble=postamble.ngc
 
+# Common options
+dpi=1000
+metric=true
+metricoutput=true
+mirror-absolute=false
+optimise=true
+zchange=10.0000
+zero-start=true
+zsafe=5.0000
 
-# The board outline is 10mil wide, no holes
-fill-outline = yes
-outline-width = 0.010
+# Mill options
+extra-passes=0
+mill-feed=600
+mill-speed=10000
+offset=0.1000
+#offset=20  # Uncomment (and comment the previous line) for voronoi regions
+zwork=-0.0500
 
-# parameters for isolation routing / engraving / etching
-#offset=1			# uncomment for voronoi regions
-#offset=0.010		# uncomment for 20mil isolator
-zwork=-0.008
-zsafe=0.08
-mill-feed=6
-mill-speed=30000
+# Drill options
+drill-feed=1000
+drill-front=true
+drill-speed=10000
+milldrill=false
+nog81=false
+onedrill=false
+zdrill=-2.5000
 
+# Outline options
+bridges=0.5000
+bridgesnum=2
+cut-feed=600
+cut-front=true
+cut-infeed=10.0000
+cut-speed=10000
+cutter-diameter=3.0000
+fill-outline=true
+outline-width=0.2000
+zbridges=-0.6000
+zcut=-2.5000
 
-# parameters for cutting out boards
-cutter-diameter=0.03937
-zcut=-0.08
-cut-feed=3
-cut-speed=20000
-cut-infeed=0.1
+# Autoleveller options
+al-back=false
+al-front=false
+al-probefeed=100
+al-x=15.0000
+al-y=15.0000
+software=LinuxCNC
 
-
-# drilling parameters
-zdrill=-0.08
-zchange=0.8
-drill-feed=3
-drill-speed=20000

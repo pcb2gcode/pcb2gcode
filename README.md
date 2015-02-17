@@ -8,7 +8,7 @@ This development version of pcb2gcode does not get into repositories of distros.
 * pcb2gcode git 1.1.4 -> `https://aur.archlinux.org/packages.php?ID=55198`
 
 #### Fedora:
-* Download the latest tarball from https://sourceforge.net/projects/pcb2gcode/files/pcb2gcode/
+* Download the latest tarball from https://github.com/pcb2gcode/pcb2gcode/releases
 * Open a terminal and cd to the extracted tarball
 * type the following:
 
@@ -50,7 +50,7 @@ or, if you use Fedora
 
 Then you can download it from git, build and install it
 
-    $ git clone git://git.code.sf.net/p/pcb2gcode/code pcb2gcode-code
+    $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode
     $ ./git-build.sh
     $ sudo make install
