@@ -105,7 +105,9 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
    preamble += "G90       (Absolute coordinates.)\n";
 
    //set postamble
-   postamble = string("M9      (Coolant off.)\n") + "M2      (Program end.)\n";
+   postamble = string("M5      (Spindle off.)\n") +
+                      "M9      (Coolant off.)\n" + 
+                      "M2      (Program end.)\n";
 }
 
 /******************************************************************************/
