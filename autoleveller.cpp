@@ -138,7 +138,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	const char *endSub[] = { "o%1$d endsub", "M99 ( end of sub number %1$d )", "M99 ( end of sub number %1$d )", "M99  ( end of sub number %1$d )" };
 
 	int i;
-	int j = 0;
+	int j = 1;	//Skip the first probe point
 	int incr_decr = 1;
 
 	boost::replace_all(probeOn, "@", "\n");
@@ -159,6 +159,7 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
 	of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
 	of << probeCode[software] << " Z" << zfail << " F" << feedrate / 2 << " ( Z-probe again, half speed )" << endl;
 	of << setZero[software] << " ( Set the current Z as zero-value )" << endl;
+	of << getVarName(0, 0) << "=0 ( Use the first probe point as zero )" << endl;
 	of << logFileOpenAndComment[software] << endl;
 	of << endl;
 	of << "( We now start the real probing: move the Z axis to the probing height, move to )" << endl;

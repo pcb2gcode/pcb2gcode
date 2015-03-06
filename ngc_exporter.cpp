@@ -212,18 +212,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          << "G20 ( Units == INCHES. )\n\n";
    }
 
-   of << "G90 ( Absolute coordinates. )\n" << "S" << left
-      << mill->speed << " ( RPM spindle speed. )\n" << "F"
-      << mill->feed * cfactor << " ( Feedrate. )\n";
-
-   of << "G64 P" << g64
-      << " ( set maximum deviation from commanded toolpath )\n\n";
+   of << "G90 ( Absolute coordinates. )\n"
+      << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
+      << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n\n";
 
    if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) )
       leveller->probeHeader( of, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
       						  autolevellerFeed, probeOnCommands, probeOffCommands );
 
-	of << "M3 ( Spindle on clockwise. )\n";
+	of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
+	   << "M3 ( Spindle on clockwise. )\n";
 
    //SVG EXPORTER
    if (bDoSVG) {

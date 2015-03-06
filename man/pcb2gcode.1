@@ -244,7 +244,9 @@ optimise output gcode, reducing its output size up to 95%, while accepting a
 very little loss of precision
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
-resolution used internally (defaults to 1000)
+resolution used internally (defaults to 1000). If the software freezes during
+the layer exporting, try to increase the dpi value. Sane values for dpi are
+1000/2000 for DIP PCBs and 2000/4000 dpi for SMD PCBs.
 .TP
 \fB\-\-mirror\-absolute\fP
 mirror operations on the back side along the Y axis instead of the board
