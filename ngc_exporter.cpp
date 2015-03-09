@@ -193,10 +193,13 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
    if( ( bFrontAutoleveller && layername == "front" ) ||
    	   ( bBackAutoleveller && layername == "back" ) ) {
-   	  bAutolevelNow = true;
+   	  of << "( Gcode for " << leveller->getSoftware() << " )\n";
+  	  bAutolevelNow = true;
    }
-   else
+   else {
+      of << "( Software-independent Gcode )\n";
       bAutolevelNow = false;
+    }
 
    of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
    of.precision(5);              //Set floating-point decimal precision

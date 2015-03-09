@@ -27,14 +27,54 @@
 #ifndef AUTOLEVELLER_H
 #define AUTOLEVELLER_H
 
-// Define this if you want named parameters (only in linuxcnc, easier debug but larger output gcode)
-#define AUTOLEVELLER_NAMED_PARAMETERS
+//Number of the bilinear interpolation macro
+#define BILINEAR_INTERPOLATION_MACRO_NUMBER 4
 
-//This define controls the number of the bilinear interpolation macro (the "O" code)
-#define BILINEAR_INTERPOLATION_MACRO_NUMBER 1000
+//Number of the getVar macro
+#define GETVAR_MACRO_NUMBER 5
 
-//This define controls the number of the variable where the interpolation result is saved
-#define BILINEAR_INTERPOLATION_RESULT_VAR "100"
+//Number of the correction factor subroutine
+#define CORRECTION_FACTOR_SUB_NUMBER 6
+
+//Number of the g01 interpolated macro (just a shortcut for CORRECTION_FACTOR_SUB_NUMBER + G01 X Y)
+#define G01_INTERPOLATED_MACRO_NUMBER 7
+
+//Number of the Y probe subroutine
+#define YPROBE_SUB_NUMBER 8
+
+//Number of the X probe subroutine
+#define XPROBE_SUB_NUMBER 9
+
+//Number of the mach3 X-limit check subroutine (workaround for IF)
+#define MACH3_XLIMIT_SUB_NUMBER 10
+
+//Number of the mach3 Y-limit check subroutine (workaround for IF)
+#define MACH3_YLIMIT_SUB_NUMBER 13
+
+//Number of the "repeat" N-code (turboCNC) or O-code (LinuxCNC) - also
+//REPEAT_CODE + 10, REPEAT_CODE + 200 and REPEAT_CODE + 210 will be used
+#define REPEAT_CODE 555
+
+//Name of the variable where the interpolation result is saved (string)
+#define RESULT_VAR "100"
+
+//Name of the 1st usable global variable (string)
+#define GLOB_VAR_0 "110"
+
+//Name of the 2nd usable global variable (string)
+#define GLOB_VAR_1 "111"
+
+//Name of the 3rd usable global variable (string)
+#define GLOB_VAR_2 "112"
+
+//Name of the 4th usable global variable (string)
+#define GLOB_VAR_3 "113"
+
+//Name of the 5th usable global variable (string)
+#define GLOB_VAR_4 "114"
+
+//Name of the 6th usable global variable (string)
+#define GLOB_VAR_5 "115"
 
 #include <string>
 using std::string;
@@ -54,7 +94,7 @@ class autoleveller_exception: virtual std::exception, virtual boost::exception {
 /******************************************************************************/
 class autoleveller {
 public:
-	enum Software { LINUXCNC = 0, MACH3 = 1, MACH4 = 2, TURBOCNC = 3 };
+	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, TURBOCNC = 3 };
 
 	autoleveller( double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, double zwork, Software software );
 	void probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
@@ -64,6 +104,7 @@ public:
 	inline void setLastChainPoint ( icoordpair lastPoint ) {
 		this->lastPoint = lastPoint;
 	}
+	string getSoftware();
 	
 	const double boardLenX;
 	const double boardLenY;
@@ -78,8 +119,8 @@ public:
 	const Software software;
 
 protected:
-	static const char *callSub[];
-	static const char *correctedPoint;
+	static const char *callSub2[];
+    static const char *callInterpolationMacro[];
 	
 	icoordpair lastPoint;
 
