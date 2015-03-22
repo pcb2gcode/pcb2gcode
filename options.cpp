@@ -222,8 +222,8 @@ options::options()
 			"al-x", po::value<double>(), "width of the x probes")( 
 			"al-y", po::value<double>(), "width of the y probes")(           
 			"al-probefeed", po::value<double>(), "speed during the probing")(
-			"al-probe-on", po::value<string>()->default_value("(MSG, attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
-			"al-probe-off", po::value<string>()->default_value("(MSG, detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
+			"al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
+			"al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
             "zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")(
             "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(

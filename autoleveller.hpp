@@ -28,10 +28,7 @@
 #define AUTOLEVELLER_H
 
 //Number of the bilinear interpolation macro
-#define BILINEAR_INTERPOLATION_MACRO_NUMBER 4
-
-//Number of the getVar macro
-#define GETVAR_MACRO_NUMBER 5
+#define BILINEAR_INTERPOLATION_MACRO_NUMBER 5
 
 //Number of the correction factor subroutine
 #define CORRECTION_FACTOR_SUB_NUMBER 6
@@ -44,12 +41,6 @@
 
 //Number of the X probe subroutine
 #define XPROBE_SUB_NUMBER 9
-
-//Number of the mach3 X-limit check subroutine (workaround for IF)
-#define MACH3_XLIMIT_SUB_NUMBER 10
-
-//Number of the mach3 Y-limit check subroutine (workaround for IF)
-#define MACH3_YLIMIT_SUB_NUMBER 13
 
 //Number of the "repeat" N-code (turboCNC) or O-code (LinuxCNC) - also
 //REPEAT_CODE + 10, REPEAT_CODE + 200 and REPEAT_CODE + 210 will be used
@@ -96,29 +87,39 @@ class autoleveller {
 public:
 	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, TURBOCNC = 3 };
 
-	autoleveller( double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, double zwork, Software software );
-	void probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
+	autoleveller( double XProbeDist, double YProbeDist, double zwork, Software software );
+	void probeHeader( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
 	void setMillingParameters ( double zwork, double zsafe, int feedrate );
 	string addChainPoint ( icoordpair point );
 	string g01Corrected ( icoordpair point );
+	string getSoftware();
+	
 	inline void setLastChainPoint ( icoordpair lastPoint ) {
 		this->lastPoint = lastPoint;
 	}
-	string getSoftware();
+	inline unsigned int maxProbePoints() {
+	    return software == LINUXCNC ? 4501 : 500;
+	}
+	inline unsigned int requiredProbePoints() {
+	    return numXPoints * numYPoints;
+	}
 	
-	const double boardLenX;
-	const double boardLenY;
-	const double startPointX;
-	const double startPointY;
-	const unsigned int numXPoints;
-	const unsigned int numYPoints;
-	const double XProbeDist;
-	const double YProbeDist;
-	const double averageProbeDist;
+	const double XProbeDistRequired;
+	const double YProbeDistRequired;	
 	const string zwork;		//Since zwork is only substituted where is necessary, saving it as a string saves lots of double->string conversions
 	const Software software;
 
 protected:
+    double workareaLenX;
+	double workareaLenY;
+	double startPointX;
+	double startPointY;
+	unsigned int numXPoints;
+	unsigned int numYPoints;
+	double XProbeDist;
+	double YProbeDist;
+    double averageProbeDist;
+
 	static const char *callSub2[];
     static const char *callInterpolationMacro[];
 	

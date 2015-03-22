@@ -48,6 +48,7 @@
 #include "ngc_exporter.hpp"
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/bind.hpp>
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -57,7 +58,7 @@ using namespace std;
  */
 /******************************************************************************/
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-         : Exporter(board) {
+         : Exporter(board), dpi(board->get_dpi()) {
    this->board = board;
    bDoSVG = false;
 }
@@ -135,17 +136,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	  else
 	     autolevellerSoftware = autoleveller::LINUXCNC;
 
-      try {
-      	 leveller = new autoleveller ( ( board->get_min_x() - xoffset ) * cfactor, ( board->get_min_y() - yoffset ) * cfactor,
-      								 ( board->get_max_x() - xoffset ) * cfactor, ( board->get_max_y() - yoffset ) * cfactor,
-      								 options["al-x"].as<double>(),
-      								 options["al-y"].as<double>(),
-      								 options["zwork"].as<double>(),
-      								 autolevellerSoftware );
-      } catch (autoleveller_exception &exc) {
-      	 std::cerr << "Number of probe points exceeds the maximum value (500). Reduce either al-x or al-y" << std::endl;
-         exit(EXIT_FAILURE);
-      }
+   	  leveller = new autoleveller ( options["al-x"].as<double>(),
+  		 						 options["al-y"].as<double>(),
+  								 options["zwork"].as<double>(),
+  								 autolevellerSoftware );
 	}
 
    if (options["bridges"].as<double>() != 0 && options["bridgesnum"].as<unsigned int>() != 0) {
@@ -181,6 +175,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    bool bAutolevelNow;
    vector<unsigned int> bridgesIndexes;
    vector<unsigned int>::const_iterator currentBridge;
+   std::pair<icoordpair, icoordpair> workarea;
+   const double quantization_error = 2.0 / dpi;
+   vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
 
    // open output file
    std::ofstream of;
@@ -219,9 +216,41 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
       << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n\n";
 
-   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) )
-      leveller->probeHeader( of, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
-      						  autolevellerFeed, probeOnCommands, probeOffCommands );
+   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) ) {
+      workarea.first.first = INFINITY;
+      workarea.first.second = INFINITY;
+      workarea.second.first = -INFINITY;
+      workarea.second.second = -INFINITY;
+
+      BOOST_FOREACH( shared_ptr<icoords> path, toolpaths ) {
+         workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
+                                 boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first * cfactor );
+
+         workarea.first.second = std::min(workarea.first.second, std::min_element( path->begin(), path->end(),
+                                  boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second * cfactor );
+
+         workarea.second.first = std::max(workarea.second.first, std::max_element( path->begin(), path->end(),
+                                  boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first * cfactor );
+
+         workarea.second.second = std::max(workarea.second.second, std::max_element( path->begin(), path->end(),
+                                   boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second * cfactor );
+      }
+
+      workarea.first.first -= xoffset * cfactor + quantization_error;
+      workarea.first.second -= yoffset * cfactor + quantization_error;
+      workarea.second.first -= xoffset * cfactor - quantization_error;
+      workarea.second.second -= yoffset * cfactor - quantization_error;
+
+      try {
+         leveller->probeHeader( of, workarea, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
+                                autolevellerFeed, probeOnCommands, probeOffCommands );
+      } catch (autoleveller_exception &exc) {
+         std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
+                      ") exceeds the maximum number (" << leveller->maxProbePoints() << "). "
+                      "Reduce either al-x or al-y." << std::endl;
+         exit(EXIT_FAILURE);
+      }
+    }
 
 	of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
 	   << "M3 ( Spindle on clockwise. )\n";
@@ -233,7 +262,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    }
 
    // contours
-   BOOST_FOREACH( shared_ptr<icoords> path, layer->get_toolpaths() ) {
+   BOOST_FOREACH( shared_ptr<icoords> path, toolpaths ) {
 
       // retract, move to the starting point of the next contour
       of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";

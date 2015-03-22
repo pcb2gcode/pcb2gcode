@@ -187,7 +187,8 @@ feature you need a probe tool connected to your machine. The autoleveller
 process is composed by two parts:
 .IP \[bu] 2
 Initial probing, where the machine "probes" a grid of points and save
-their heights
+their heights. In order to save probing time, only the area where the PCB
+must be milled will be probed.
 .IP \[bu]
 Actual milling, identical to the standard process, but with an additional
 Z-correction (based on a bilinear interpolation of the probed points)

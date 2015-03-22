@@ -77,24 +77,19 @@ boost::format silent_format(const string &f_string) {
  *  points) exceeds the maximum number of variables
  */
 /******************************************************************************/
-autoleveller::autoleveller(double xmin, double ymin, double xmax, double ymax, double XProbeDist, double YProbeDist, double zwork, Software software) :
- boardLenX( xmax - xmin ),
- boardLenY( ymax - ymin ),
- startPointX( xmin ),
- startPointY( ymin ),
- numXPoints( round ( boardLenX / XProbeDist ) > 1 ? round ( boardLenX / XProbeDist ) + 1 : 2 ),		//We need at least 2 probe points per axis
- numYPoints( round ( boardLenY / YProbeDist ) > 1 ? round ( boardLenY / YProbeDist ) + 1 : 2 ),
- XProbeDist( boardLenX / ( numXPoints - 1 ) ),
- YProbeDist( boardLenY / ( numYPoints - 1 ) ),
- averageProbeDist( ( XProbeDist + YProbeDist ) / 2 ),
+autoleveller::autoleveller(double XProbeDist, double YProbeDist, double zwork, Software software) :
+ XProbeDistRequired( XProbeDist ),
+ YProbeDistRequired( YProbeDist ),
  zwork( str( format("%.3f") % zwork ) ),
  software( software )
 {
-	if( ( software == LINUXCNC && numXPoints * numYPoints > 4501 ) ||
-	      software != LINUXCNC && numXPoints * numYPoints > 500 )
-		throw autoleveller_exception();
+
 }
 
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
 string autoleveller::getSoftware() {
     switch( software ) {
         case LINUXCNC:  return "LinuxCNC";
@@ -112,22 +107,6 @@ string autoleveller::getSoftware() {
 string autoleveller::getVarName( int i, int j ) {
 	std::stringstream ss;
 
-	//Safety check: if i/j exceeds the maximum/minimum value, the maximum/minimum value
-	//will be returned. The corresponding bilinear interpolation will become a linear
-	//interpolation applied on the border points, the best approximation that can be
-	//provided.
-	if( i < 0 )
-		i = 0;
-	else
-		if( i >= numXPoints )
-			i = numXPoints - 1;
-
-	if( j < 0 )
-		j = 0;
-	else
-		if( j >= numYPoints )
-			j = numYPoints - 1;
-
     ss << '#' << i * numYPoints + j + 500;	//getVarName(10,8) returns (numYPoints=10) #180
 
 	return ss.str();
@@ -138,7 +117,7 @@ string autoleveller::getVarName( int i, int j ) {
  *  Generate the gcode probe header
  */
 /******************************************************************************/
-void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn, std::string probeOff ) {
+void autoleveller::probeHeader( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn, std::string probeOff ) {
 	const char *probeCode[] = { "G38.2", "G31", "G31", "G31" };
 	const char *setZero[] = { "G10 L20 P0 Z0", "G92 Z0", "G92 Z0", "G92 Z0" };
 	const char *zProbeResultVar[] = { "#5063", "#2002", "#2002", "#2002" };
@@ -155,102 +134,56 @@ void autoleveller::probeHeader( std::ofstream &of, double zprobe, double zsafe, 
     const char *callSubSub2[] = { "o%1$s call [%2$s] [%3$s]\n", "G65 P%1$s A%2$s B%3$s\n", "M98 P%1$s\n", "M98 O%1$s\n" };
     const char *var1[] = { "1", "1", GLOB_VAR_0, GLOB_VAR_0 };
     const char *var2[] = { "2", "2", GLOB_VAR_1, GLOB_VAR_1 };
+    const char *var3[] = { "3", "3", GLOB_VAR_2, GLOB_VAR_2 };
+    const char *var4[] = { "4", "4", GLOB_VAR_3, GLOB_VAR_3 };
+    const char *var5[] = { "5", "5", GLOB_VAR_4, GLOB_VAR_4 };
+    const char *var6[] = { "6", "6", GLOB_VAR_5, GLOB_VAR_5 };
+    int temp;
 
 	replace_all(probeOn, "@", "\n");
 	replace_all(probeOff, "@", "\n");
 
+    workareaLenX = workarea.second.first - workarea.first.first;
+    workareaLenY = workarea.second.second - workarea.first.second;
+    startPointX = workarea.first.first;
+    startPointY = workarea.first.second;
+    
+    temp = round ( workareaLenX / XProbeDistRequired );    //We need at least 2 probe points
+    if( temp > 1 )
+        numXPoints = temp + 1;
+    else
+        numXPoints = 2;
+
+    temp = round ( workareaLenY / YProbeDistRequired );    //We need at least 2 probe points
+    if( temp > 1 )
+        numYPoints = temp + 1;
+    else
+        numYPoints = 2;
+
+    XProbeDist = workareaLenX / ( numXPoints - 1 );
+    YProbeDist = workareaLenY / ( numYPoints - 1 );
+    averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
+    
+    if( ( software == LINUXCNC && numXPoints * numYPoints > 4501 ) ||
+          software != LINUXCNC && numXPoints * numYPoints > 500 )
+        throw autoleveller_exception();
+
     if( software == LINUXCNC || software == MACH4 || software == MACH3 ) {
-        if ( software == MACH3 ) {
-      	    of << format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
-	        of << "    #7=[#" GLOB_VAR_2 "+[#" GLOB_VAR_0 "-#" GLOB_VAR_2 "]*#" GLOB_VAR_4 "] ( Linear interpolation of the x-min elements )" << endl;
-	        of << "    #8=[#" GLOB_VAR_3 "+[#" GLOB_VAR_2 "-#" GLOB_VAR_3 "]*#" GLOB_VAR_4 "] ( Linear interpolation of the x-max elements )" << endl;
-	        of << "    #" RESULT_VAR "=[#7+[#8-#7]*#" GLOB_VAR_5 "] ( Linear interpolation of previously interpolated points )" << endl;
-	        of << silent_format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
-        }
-        else {
-	        of << format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
-	        of << "    #7=[#3+[#1-#3]*#5] ( Linear interpolation of the x-min elements )" << endl;
-	        of << "    #8=[#4+[#2-#4]*#5] ( Linear interpolation of the x-max elements )" << endl;
-	        of << "    #" RESULT_VAR "=[#7+[#8-#7]*#6] ( Linear interpolation of previously interpolated points )" << endl;
-	        of << silent_format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
-        }
-        of << endl;
-        
-        if( software == LINUXCNC ) {
-            of << format(startSub[software]) % GETVAR_MACRO_NUMBER << " ( Variable number macro )" << endl;
-            of << "    o100 if [#1 LT 0]" << endl;
-            of << "        #1=0" << endl;
-            of << "    o100 elseif [#1 GT " << numXPoints - 1 << ']' << endl;
-            of << "        #1=" << numXPoints - 1 << endl;
-            of << "    o100 endif" << endl;
-            of << "    o200 if [#2 LT 0]" << endl;
-            of << "        #2=0" << endl;
-            of << "    o200 elseif [#2 GT " << numYPoints - 1 << ']' << endl;
-            of << "        #2=" << numYPoints - 1 << endl;
-            of << "    o200 endif" << endl;
-            of << "    #" << RESULT_VAR << "=[#1 * " << numYPoints << " + #2 + 500]" << endl;
-            of << silent_format(endSub[software]) % GETVAR_MACRO_NUMBER << endl;
-        }
-        else if ( software == MACH4 ) {
-            of << format(startSub[software]) % GETVAR_MACRO_NUMBER << " ( Variable number macro )" << endl;
-            of << "    IF [#1 LT 0] THEN #1=0" << endl;
-            of << "    IF [#1 GT " << numXPoints - 1 << "] THEN #1=" << numXPoints - 1 << endl;
-            of << "    IF [#2 LT 0] THEN #2=0" << endl;
-            of << "    IF [#2 GT " << numYPoints - 1 << "] THEN #2=" << numYPoints - 1 << endl;
-            of << "    #" << RESULT_VAR << "=[#1 * " << numYPoints << " + #2 + 500]" << endl;
-            of << silent_format(endSub[software]) % GETVAR_MACRO_NUMBER << endl;
-        }
-        else {
-            of << "( Mach3 does not supports conditional gcode; the next 6 subroutines are )" << endl;
-            of << "( a workaround to implement a if-like behaviour to be sure that the variable )" << endl;
-            of << "( indexes are within the permitted range )" << endl;
-            of << endl;
-            of << format(startSub[software]) % MACH3_XLIMIT_SUB_NUMBER << " ( X lower limit )" << endl;
-            of << "    #" << RESULT_VAR << "=0" << endl;
-            of << silent_format(endSub[software]) % MACH3_XLIMIT_SUB_NUMBER << endl;
-            of << endl;
-            of << format(startSub[software]) % ( MACH3_XLIMIT_SUB_NUMBER + 1 ) << " ( valid X )" << endl;
-            of << "    #" << RESULT_VAR << "=#" << GLOB_VAR_2 << endl;
-            of << silent_format(endSub[software]) % ( MACH3_XLIMIT_SUB_NUMBER + 1 ) << endl;
-            of << endl;
-            of << format(startSub[software]) % ( MACH3_XLIMIT_SUB_NUMBER + 2 ) << " ( X upper limit )" << endl;
-            of << "    #" << RESULT_VAR << '=' << numXPoints - 1 << endl;
-            of << silent_format(endSub[software]) % ( MACH3_XLIMIT_SUB_NUMBER + 2 ) << endl;
-            of << endl;
-            of << format(startSub[software]) % MACH3_YLIMIT_SUB_NUMBER << " ( Y lower limit )" << endl;
-            of << "    #" << RESULT_VAR << "=0" << endl;
-            of << silent_format(endSub[software]) % MACH3_YLIMIT_SUB_NUMBER << endl;
-            of << endl;
-            of << format(startSub[software]) % ( MACH3_YLIMIT_SUB_NUMBER + 1 ) << " ( valid Y )" << endl;
-            of << "    #" << RESULT_VAR << "=#" << GLOB_VAR_1 << endl;
-            of << silent_format(endSub[software]) % ( MACH3_YLIMIT_SUB_NUMBER + 1 ) << endl;
-            of << endl;
-            of << format(startSub[software]) % ( MACH3_YLIMIT_SUB_NUMBER + 2 ) << " ( Y upper limit )" << endl;
-            of << "    #" << RESULT_VAR << '=' << numYPoints - 1 << endl;
-            of << silent_format(endSub[software]) % ( MACH3_YLIMIT_SUB_NUMBER + 2 ) << endl;
-            of << endl;
-            of << format(startSub[software]) % GETVAR_MACRO_NUMBER << " ( Variable number macro )" << endl;
-            of << "    #1=[FUP[#" << GLOB_VAR_0 << '/' << numXPoints << "]+" << MACH3_XLIMIT_SUB_NUMBER << "]" << endl;
-            of << "    " << silent_format( callSubRepeat[software] ) % "#1" % 1;
-            of << "    #2=" << RESULT_VAR << endl;
-            of << "    #1=[FUP[#" << GLOB_VAR_1 << '/' << numYPoints << "]+" << MACH3_YLIMIT_SUB_NUMBER << "]" << endl;
-            of << "    " << silent_format( callSubRepeat[software] ) % "#1" % 1;
-            of << "    #" << RESULT_VAR << "=[#" << RESULT_VAR << " * " << numYPoints << " + #2 + 500]" << endl;
-            of << silent_format(endSub[software]) % GETVAR_MACRO_NUMBER << endl;
-        }
-        
+   	    of << format(startSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << " ( Bilinear interpolation macro )" << endl;
+        of << "    #7=[#" << var3[software] << "+[#" << var1[software] << "-#" << var3[software]
+           << "]*#" << var5[software] << "] ( Linear interpolation of the x-min elements )" << endl;
+        of << "    #8=[#" << var4[software] << "+[#" << var2[software] << "-#" << var4[software]
+           << "]*#" << var5[software] << "] ( Linear interpolation of the x-max elements )" << endl;
+        of << "    #" RESULT_VAR "=[#7+[#8-#7]*#" << var6[software] << "] ( Linear interpolation of previously interpolated points )" << endl;
+        of << silent_format(endSub[software]) % BILINEAR_INTERPOLATION_MACRO_NUMBER << endl;
         of << endl;
         of << format(startSub[software]) % CORRECTION_FACTOR_SUB_NUMBER << " ( Z-correction subroutine )" << endl;
         of << "    #3=[FIX[[#" << var1[software] << '-' << startPointX << "]/" << XProbeDist << "]]" << endl;
         of << "    #4=[FIX[[#" << var2[software] << '-' << startPointY << "]/" << YProbeDist << "]]" << endl;
-        of << "    " << str( silent_format( callSub2[software] ) % GETVAR_MACRO_NUMBER % "#3" % "[#4+1]" % "    " );
-        of << "    #5=#" << RESULT_VAR << endl;
-        of << "    " << str( silent_format( callSub2[software] ) % GETVAR_MACRO_NUMBER % "[#3+1]" % "[#4+1]" % "    " );
-        of << "    #6=#" << RESULT_VAR << endl;
-        of << "    " << str( silent_format( callSub2[software] ) % GETVAR_MACRO_NUMBER % "#3" % "#4" % "    " );
-        of << "    #7=#" << RESULT_VAR << endl;
-        of << "    " << str( silent_format( callSub2[software] ) % GETVAR_MACRO_NUMBER % "[#3+1]" % "#4" % "    " );
-        of << "    #8=#" << RESULT_VAR << endl;
+        of << "    #5=[#3*" << numYPoints << "+[#4+1]+500]" << endl;
+        of << "    #6=[[#3+1]*" << numYPoints << "+[#4+1]+500]" << endl;
+        of << "    #7=[#3*" << numYPoints << "+#4+500]" << endl;
+        of << "    #8=[[#3+1]*" << numYPoints << "+#4+500]" << endl;
         of << "    #9=[[#" << var2[software] << '-' << startPointY << "-#4*" << YProbeDist << "]/" << YProbeDist << ']' << endl;
         of << "    #10=[[#" << var1[software] << '-' << startPointX << "-#3*" << XProbeDist << "]/" << XProbeDist << ']' << endl;
         of << "    " << str( silent_format( callInterpolationMacro[software] ) % BILINEAR_INTERPOLATION_MACRO_NUMBER %
