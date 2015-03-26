@@ -87,11 +87,11 @@ public:
 	vector<shared_ptr<icoords> > get_toolpath(string layername);
 
 	void createLayers(); // should be private
-	uint get_dpi();
+	unsigned int get_dpi();
 
 private:
 	ivalue_t margin;
-	const uint dpi;
+	const unsigned int dpi;
 	const bool fill_outline;
 	const double outline_width;
 	const string outputdir;

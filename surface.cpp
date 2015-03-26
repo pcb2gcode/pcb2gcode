@@ -44,7 +44,7 @@ using std::pair;
 /*
  */
 /******************************************************************************/
-void Surface::make_the_surface(uint width, uint height) {
+void Surface::make_the_surface(unsigned int width, unsigned int height) {
 	pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, true, 8, width, height);
 
 	cairo_surface = Cairo::ImageSurface::create(pixbuf->get_pixels(),
@@ -591,11 +591,11 @@ guint Surface::grow_a_component(int x, int y, int& contentions) {
 	guint8* pixels = cairo_surface->get_data();
 	int stride = cairo_surface->get_stride();
 
-	uint pixels_changed = 0;
+	unsigned int pixels_changed = 0;
 
 	guint32 ownclr = PRC(pixels + x*4 + y*stride);
 
-	for (uint i = 0; i < outside.size(); i++) {
+	for (unsigned int i = 0; i < outside.size(); i++) {
 		pair<int, int> coord = outside[i];
 
 		if (allow_grow(coord.first, coord.second, ownclr)) {
@@ -647,7 +647,7 @@ void Surface::add_mask(shared_ptr<Surface> mask_surface) {
  */
 /******************************************************************************/
 void Surface::save_debug_image(string message) {
-	static uint debug_image_index = 0;
+	static unsigned int debug_image_index = 0;
 
 	opacify(pixbuf);
 	pixbuf->save(outputdir +

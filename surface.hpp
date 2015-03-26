@@ -90,7 +90,7 @@ protected:
 	const int zero_x, zero_y;
 	const string outputdir;
 
-	void make_the_surface(uint width, uint height);
+	void make_the_surface(unsigned int width, unsigned int height);
 
 	// Image Processing Methods
 
@@ -110,7 +110,7 @@ protected:
 
 	std::vector<std::pair<int, int> > fill_all_components();
 	void fill_a_component(int x, int y, guint32 argb);
-	uint grow_a_component(int x, int y, int& contentions);
+	unsigned int grow_a_component(int x, int y, int& contentions);
 	inline bool allow_grow(int x, int y, guint32 ownclr);
 
 	void run_to_border(int& x, int& y);
