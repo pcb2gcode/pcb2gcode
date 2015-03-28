@@ -350,57 +350,78 @@ int main(int argc, char* argv[]) {
 
    cout << "Importing drill... ";
 
-   if (vm.count("drill")) {
-      try {
-         /*
-         ExcellonProcessor ep(
-                  vm["drill"].as<string>(),
-                  board->get_max_x() - board->get_min_x(),
-                  board->get_min_x()
-                  + (board->get_max_x() - board->get_min_x()) / 2,
-                  vm["metricoutput"].as<bool>());
-*/
-         ExcellonProcessor ep(
-                  vm["drill"].as<string>(),
-                  board->get_width(),
-                  board->get_min_x() + board->get_width() / 2,
-                  vm["metricoutput"].as<bool>(),
-                  vm["zero-start"].as<bool>() ? board->get_min_x() : 0,
-                  vm["zero-start"].as<bool>() ? board->get_min_y() : 0 ) ;
+   try {
+      string drill = vm["drill"].as<string>();
+      double board_min_x;
+      double board_min_y;
+      double board_width;
 
-         ep.add_header(PACKAGE_STRING);
-
-         if (vm.count("preamble") || vm.count("preamble-text")) {
-            ep.set_preamble(preamble);
-         }
-
-         if (vm.count("postamble")) {
-            ep.set_postamble(postamble);
-         }
-
-         //SVG EXPORTER
-         if (vm.count("svg")) {
-            ep.set_svg_exporter(svgexpo);
-         }
-
-         cout << "DONE.\n";
-
-         if (vm["milldrill"].as<bool>()) {
-            ep.export_ngc(outputdir + vm["drill-output"].as<string>(), cutter,
-                          !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
-                          vm["onedrill"].as<bool>());
-         } else {
-            ep.export_ngc(outputdir + vm["drill-output"].as<string>(), driller,
-                          vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
-                          vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
-         }
-
-      } catch (drill_exception& e) {
-         cout << "ERROR.\n";
+      //Check if there are layers in "board"; if not, we have to compute
+      //the size of the board now, based only on the size of the drill layer
+      //(the resuling drill gcode will be probably disaligned, but this is the
+      //best we can do)
+      if(board->get_layersnum() == 0) {
+         boost::shared_ptr<LayerImporter> importer(new GerberImporter(drill));
+         board_min_x = importer->get_min_x();
+         board_min_y = importer->get_min_y();
+         board_width = importer->get_width();
       }
-   } else {
+      else {
+         board_min_x = board->get_min_x();
+         board_min_y = board->get_min_y();
+         board_width = board->get_width();
+      }
+
+      /*
+      ExcellonProcessor ep(
+               vm["drill"].as<string>(),
+               board_max_x - board_min_x,
+               board_min_x + (board_max_x - board_min_x) / 2,
+               vm["metricoutput"].as<bool>());*/
+
+      ExcellonProcessor ep(
+               drill,
+               board_width,
+               board_min_x + board_width / 2,
+               vm["metricoutput"].as<bool>(),
+               vm["zero-start"].as<bool>() ? board_min_x : 0,
+               vm["zero-start"].as<bool>() ? board_min_y : 0 ) ;
+
+      ep.add_header(PACKAGE_STRING);
+
+      if (vm.count("preamble") || vm.count("preamble-text")) {
+         ep.set_preamble(preamble);
+      }
+
+      if (vm.count("postamble")) {
+         ep.set_postamble(postamble);
+      }
+
+      //SVG EXPORTER
+      if (vm.count("svg")) {
+         ep.set_svg_exporter(svgexpo);
+      }
+
+      cout << "DONE.\n";
+
+      if (vm["milldrill"].as<bool>()) {
+         ep.export_ngc(outputdir + vm["drill-output"].as<string>(), cutter,
+                       !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
+                       vm["onedrill"].as<bool>());
+      } else {
+         ep.export_ngc(outputdir + vm["drill-output"].as<string>(), driller,
+                       vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
+                       vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
+      }
+
+   } catch (drill_exception& e) {
+      cout << "ERROR.\n";
+   } catch (import_exception& i) {
+      cout << "ERROR.\n";
+   } catch (boost::exception& e) {
       cout << "not specified.\n";
    }
+  
    cout << "END." << endl;
 
 }

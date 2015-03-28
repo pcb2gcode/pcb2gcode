@@ -281,9 +281,8 @@ static void check_generic_parameters(po::variables_map const& vm) {
    //Check for available board dimensions:
 
    if (vm.count("drill")
-       && !(vm.count("front") || vm.count("back") || vm.count("outline"))
-       && !vm.count("mirror-absolute")) {
-      cerr << "Warning: Board dimensions unknown. Gcode for drilling probably misaligned on Y-axis.\n";
+       && !(vm.count("front") || vm.count("back") || vm.count("outline"))) {
+      cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
    }
 
    //---------------------------------------------------------------------------

@@ -81,6 +81,7 @@ public:
 	ivalue_t get_max_x() {	return max_x; };
 	ivalue_t get_min_y() {	return min_y; };
 	ivalue_t get_max_y() {	return max_y; };
+	double get_layersnum() {  return layers.size(); };
 
 	vector<string> list_layers();
 	shared_ptr<Layer> get_layer(string layername);
