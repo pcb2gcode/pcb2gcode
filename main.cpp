@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
 
    shared_ptr<Cutter> cutter;
 
-   if (vm.count("outline") || (vm.count("drill") && vm.count("milldrill"))) {
+   if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>())) {
       cutter = shared_ptr<Cutter>(new Cutter());
       cutter->tool_diameter = vm["cutter-diameter"].as<double>() * unit;
       cutter->zwork = vm["zcut"].as<double>() * unit;
