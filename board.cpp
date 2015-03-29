@@ -66,7 +66,7 @@ double Board::get_height() {
 /*
  */
 /******************************************************************************/
-uint Board::get_dpi() {
+unsigned int Board::get_dpi() {
 	return dpi;
 }
 
