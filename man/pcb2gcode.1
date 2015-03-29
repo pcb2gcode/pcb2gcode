@@ -187,7 +187,8 @@ feature you need a probe tool connected to your machine. The autoleveller
 process is composed by two parts:
 .IP \[bu] 2
 Initial probing, where the machine "probes" a grid of points and save
-their heights
+their heights. In order to save probing time, only the area where the PCB
+must be milled will be probed.
 .IP \[bu]
 Actual milling, identical to the standard process, but with an additional
 Z-correction (based on a bilinear interpolation of the probed points)
@@ -196,11 +197,13 @@ Unfortunately each control software (LinuxCNC, Mach3, ...) uses different
 gcodes for the probing, the parameters and the macros, therefore the output
 gcode won't be software-independent, and you have to choose the used software
 with the proper argument.
+Mach3 and TurboCNC support only "plain" gcode, therefore the corresponding
+gcode is ~400% times the gcode without autoleveller.
+Mach4 and LinuxCNC support macro calls and conditional gcode, therefore the
+corresponding gcode is only ~40% bigger than the gcode without autoleveller.
 The autoleveller feature is currently (27/01/2014) EXPERIMENTAL, especially
 the Mach3, Mach4 and TurboCNC softwares, which are also UNTESTED. Please
 provide a feedback on the software page.
-Mach4 and LinuxCNC support macro calls, therefore the corrisponding gcode is
-~30% smaller.
 .TP
 \fB\-\-al-front\fP
 enable the autoleveller for the front side
