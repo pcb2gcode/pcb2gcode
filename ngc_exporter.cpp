@@ -92,8 +92,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    bCutfront = options["cut-front"].as<bool>();      //set flag
    bFrontAutoleveller = options["al-front"].as<bool>();
    bBackAutoleveller = options["al-back"].as<bool>();
-   probeOnCommands = options["al-probe-on"].as<string>();
-   probeOffCommands = options["al-probe-off"].as<string>();
    string outputdir = options["output-dir"].as<string>();
 
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
@@ -124,9 +122,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	   g64 = ( 2.0 / this->board->get_dpi() ) * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
    
    if( bFrontAutoleveller || bBackAutoleveller ) {
-      autolevellerFeed = options["al-probefeed"].as<double>();
-	  autolevellerFailDepth = AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor;	//Fixed (by now) 
-       
+
 	  if( boost::iequals( options["software"].as<string>(), "turbocnc" ) )
 	     autolevellerSoftware = autoleveller::TURBOCNC;
 	  else if( boost::iequals( options["software"].as<string>(), "mach3" ) )
@@ -139,7 +135,13 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    	  leveller = new autoleveller ( options["al-x"].as<double>(),
   		 						 options["al-y"].as<double>(),
   								 options["zwork"].as<double>(),
-  								 autolevellerSoftware );
+  								 autolevellerSoftware,
+  								 options["zsafe"].as<double>(),
+  								 options["zsafe"].as<double>(),
+  								 AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor,	//Fixed (by now) 
+  								 options["al-probefeed"].as<double>(),
+  								 options["al-probe-on"].as<string>(),
+  								 options["al-probe-off"].as<string>() );
 	}
 
    if (options["bridges"].as<double>() != 0 && options["bridgesnum"].as<unsigned int>() != 0) {
@@ -214,7 +216,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
    of << "G90 ( Absolute coordinates. )\n"
       << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
-      << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n\n";
+      << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n"
+      << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
    if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) ) {
       workarea.first.first = INFINITY;
@@ -241,18 +244,17 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       workarea.second.first -= xoffset * cfactor - quantization_error;
       workarea.second.second -= yoffset * cfactor - quantization_error;
 
-      try {
-         leveller->probeHeader( of, workarea, mill->zsafe * cfactor, mill->zsafe * cfactor, autolevellerFailDepth,
-                                autolevellerFeed, probeOnCommands, probeOffCommands );
-      } catch (autoleveller_exception &exc) {
+      if( !leveller->setConfig( of, workarea ) ) {
          std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
                       ") exceeds the maximum number (" << leveller->maxProbePoints() << "). "
                       "Reduce either al-x or al-y." << std::endl;
          exit(EXIT_FAILURE);
       }
+
+      leveller->header( of );
     }
 
-	of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
+    of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
 	   << "M3 ( Spindle on clockwise. )\n";
 
    //SVG EXPORTER
@@ -396,6 +398,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n" << postamble
       << "M5 ( Spindle off. )\n" << "M9 ( Coolant off. )\n" << "M2 ( Program end. )"
 	  << endl << endl;
+
+   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) ) {
+      leveller->footer( of );
+   }
+
    of.close();
 
    //SVG EXPORTER

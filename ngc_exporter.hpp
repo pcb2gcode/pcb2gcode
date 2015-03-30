@@ -106,12 +106,8 @@ protected:
 	outline_bridges *bridges;
 	
 	autoleveller *leveller;
-	double autolevellerFeed;
-	double autolevellerFailDepth;
 	bool bFrontAutoleveller;
 	bool bBackAutoleveller;
-	string probeOnCommands;
-	string probeOffCommands;
 
 	double xoffset;
 	double yoffset;

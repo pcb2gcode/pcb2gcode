@@ -75,10 +75,6 @@ using std::endl;
 
 #include "coord.hpp"
 
-#include <boost/exception/all.hpp>
-class autoleveller_exception: virtual std::exception, virtual boost::exception {
-};
-
 /******************************************************************************/
 /*
  */
@@ -87,8 +83,10 @@ class autoleveller {
 public:
 	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, TURBOCNC = 3 };
 
-	autoleveller( double XProbeDist, double YProbeDist, double zwork, Software software );
-	void probeHeader( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea, double zprobe, double zsafe, double zfail, int feedrate, std::string probeOn = "", std::string probeOff = "" );
+	autoleveller( double XProbeDist, double YProbeDist, double zwork, Software software, double zprobe,
+	              double zsafe, double zfail, int feedrate, string probeOn, string probeOff );
+	bool setConfig( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
+	void header( std::ofstream &of );
 	void setMillingParameters ( double zwork, double zsafe, int feedrate );
 	string addChainPoint ( icoordpair point );
 	string g01Corrected ( icoordpair point );
@@ -104,9 +102,22 @@ public:
 	    return numXPoints * numYPoints;
 	}
 	
+	inline void footer( std::ofstream &of ) {
+	    if( software != LINUXCNC )
+	        footerNoIf( of );
+	}
+
+	//Since some parameters are just placed as string in the output, saving them as
+	//strings saves a lot of string to double conversion
 	const double XProbeDistRequired;
-	const double YProbeDistRequired;	
-	const string zwork;		//Since zwork is only substituted where is necessary, saving it as a string saves lots of double->string conversions
+	const double YProbeDistRequired;
+	const string zwork;
+	const string zprobe;
+    const string zsafe;
+	const string zfail;
+	const string feedrate;
+	const string probeOn;
+	const string probeOff;
 	const Software software;
 
 protected:
@@ -122,9 +133,13 @@ protected:
 
 	static const char *callSub2[];
     static const char *callInterpolationMacro[];
+	static const char *callSubRepeat[];
+	static const char *probeCode[];
+	static const char *zProbeResultVar[];
 	
 	icoordpair lastPoint;
 
+	void footerNoIf( std::ofstream &of );
 	string getVarName( int i, int j );
 	static double pointDistance ( icoordpair p0, icoordpair p1 );
 	string interpolatePoint ( icoordpair point );
