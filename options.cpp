@@ -218,12 +218,15 @@ options::options()
             "enable the z autoleveller for the front layer")(
 			"al-back", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the back layer")(
-			"software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3, mach4 and turbocnc")(
-			"al-x", po::value<double>(), "width of the x probes")( 
-			"al-y", po::value<double>(), "width of the y probes")(           
+			"software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3, mach4 and custom")(
+			"al-x", po::value<double>(), "width of the x probes")(
+			"al-y", po::value<double>(), "width of the y probes")(
 			"al-probefeed", po::value<double>(), "speed during the probing")(
 			"al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
 			"al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
+			"al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")(
+			"al-probevar", po::value<unsigned int>()->default_value(2002), "number of the variable where the result of the probing is saved (default is 2002)")(
+			"al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)")(
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
             "zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")(
             "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
@@ -307,10 +310,10 @@ static void check_generic_parameters(po::variables_map const& vm) {
    if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>()) {
    	  if (!vm.count("software") || 
    	  		( boost::iequals( vm["software"].as<string>(), "linuxcnc" ) &&	//boost::iequals is case insensitive
-   	  		  boost::iequals( vm["software"].as<string>(), "mach3" ) &&
-   	  		  boost::iequals( vm["software"].as<string>(), "mach4" ) &&
-   	  		  boost::iequals( vm["software"].as<string>(), "turbocnc" ) ) ) {
-         cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3, mach4 or turbocnc).\n";
+              boost::iequals( vm["software"].as<string>(), "mach3" ) &&
+              boost::iequals( vm["software"].as<string>(), "mach4" ) &&
+              boost::iequals( vm["software"].as<string>(), "custom" ) ) ) {
+         cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3, mach4 or custom).\n";
       	 exit(ERR_NOSOFTWARE);
       }
       

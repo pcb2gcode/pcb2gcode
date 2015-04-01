@@ -42,9 +42,11 @@
 //Number of the X probe subroutine
 #define XPROBE_SUB_NUMBER 9
 
-//Number of the "repeat" N-code (turboCNC) or O-code (LinuxCNC) - also
-//REPEAT_CODE + 10, REPEAT_CODE + 200 and REPEAT_CODE + 210 will be used
-#define REPEAT_CODE 555
+//Number of the 1st repeat O-code (only for LinuxCNC)
+#define REPEAT_CODE_1 10
+
+//Number of the 2nd repeat O-code (only for LinuxCNC)
+#define REPEAT_CODE_2 11
 
 //Name of the variable where the interpolation result is saved (string)
 #define RESULT_VAR "100"
@@ -67,11 +69,19 @@
 //Name of the 6th usable global variable (string)
 #define GLOB_VAR_5 "115"
 
+//Fixed probe fail depth (in inches, string)
+#define FIXED_FAIL_DEPTH_IN "-0.2"
+
+//Fixed probe fail depth (in mm, string)
+#define FIXED_FAIL_DEPTH_MM "-5"
+
 #include <string>
 using std::string;
 
 #include <fstream>
 using std::endl;
+
+#include <boost/program_options.hpp>
 
 #include "coord.hpp"
 
@@ -81,10 +91,9 @@ using std::endl;
 /******************************************************************************/
 class autoleveller {
 public:
-	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, TURBOCNC = 3 };
+	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, CUSTOM = 3 };
 
-	autoleveller( double XProbeDist, double YProbeDist, double zwork, Software software, double zprobe,
-	              double zsafe, double zfail, int feedrate, string probeOn, string probeOff );
+	autoleveller( const boost::program_options::variables_map &options, double quantization_error );
 	bool setConfig( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
 	void header( std::ofstream &of );
 	void setMillingParameters ( double zwork, double zsafe, int feedrate );
@@ -119,10 +128,9 @@ public:
 	const string probeOn;
 	const string probeOff;
 	const Software software;
+    const double quantization_error;
 
 protected:
-    double workareaLenX;
-	double workareaLenY;
 	double startPointX;
 	double startPointY;
 	unsigned int numXPoints;
@@ -134,8 +142,9 @@ protected:
 	static const char *callSub2[];
     static const char *callInterpolationMacro[];
 	static const char *callSubRepeat[];
-	static const char *probeCode[];
-	static const char *zProbeResultVar[];
+	string probeCode[4];
+	string zProbeResultVar[4];
+	string setZZero[4];
 	
 	icoordpair lastPoint;
 

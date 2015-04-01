@@ -68,8 +68,6 @@ using boost::shared_ptr;
 #include "autoleveller.hpp"
 #include "outline_bridges.hpp"
 
-#define AUTOLEVELLER_FIXED_FAIL_DEPTH ( -0.03937 )
-
 /******************************************************************************/
 /*
  */
@@ -102,6 +100,7 @@ protected:
 	bool bMirrored;         //!< if true, mirrored along y axis
 	bool bCutfront;         //!< if true, the outline will be cut from front
     const unsigned int dpi;
+    const double quantization_error;
 
 	outline_bridges *bridges;
 	

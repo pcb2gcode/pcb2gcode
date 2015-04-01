@@ -58,7 +58,7 @@ using namespace std;
  */
 /******************************************************************************/
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-         : Exporter(board), dpi(board->get_dpi()) {
+         : Exporter(board), dpi(board->get_dpi()), quantization_error( 2.0 / dpi ) {
    this->board = board;
    bDoSVG = false;
 }
@@ -85,7 +85,6 @@ void NGC_Exporter::add_header(string header) {
 /******************************************************************************/
 void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
-   autoleveller::Software autolevellerSoftware;
    bMetricinput = options["metric"].as<bool>();      //set flag for metric input
    bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
    bMirrored = options["mirror-absolute"].as<bool>();      //set flag
@@ -119,30 +118,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    if( options.count("g64") )
        g64 = options["g64"].as<double>();
    else
-	   g64 = ( 2.0 / this->board->get_dpi() ) * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
+	   g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
    
-   if( bFrontAutoleveller || bBackAutoleveller ) {
-
-	  if( boost::iequals( options["software"].as<string>(), "turbocnc" ) )
-	     autolevellerSoftware = autoleveller::TURBOCNC;
-	  else if( boost::iequals( options["software"].as<string>(), "mach3" ) )
-	     autolevellerSoftware = autoleveller::MACH3;
-   	  else if( boost::iequals( options["software"].as<string>(), "mach4" ) )
-	     autolevellerSoftware = autoleveller::MACH4;
-	  else
-	     autolevellerSoftware = autoleveller::LINUXCNC;
-
-   	  leveller = new autoleveller ( options["al-x"].as<double>(),
-  		 						 options["al-y"].as<double>(),
-  								 options["zwork"].as<double>(),
-  								 autolevellerSoftware,
-  								 options["zsafe"].as<double>(),
-  								 options["zsafe"].as<double>(),
-  								 AUTOLEVELLER_FIXED_FAIL_DEPTH * cfactor,	//Fixed (by now) 
-  								 options["al-probefeed"].as<double>(),
-  								 options["al-probe-on"].as<string>(),
-  								 options["al-probe-off"].as<string>() );
-	}
+   if( bFrontAutoleveller || bBackAutoleveller )
+   	  leveller = new autoleveller ( options, quantization_error );
 
    if (options["bridges"].as<double>() != 0 && options["bridgesnum"].as<unsigned int>() != 0) {
       bridges = new outline_bridges( options["bridgesnum"].as<unsigned int>(),
@@ -178,7 +157,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    vector<unsigned int> bridgesIndexes;
    vector<unsigned int>::const_iterator currentBridge;
    std::pair<icoordpair, icoordpair> workarea;
-   const double quantization_error = 2.0 / dpi;
    vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
 
    // open output file
@@ -219,7 +197,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n"
       << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
-   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) ) {
+   if( bAutolevelNow ) {
       workarea.first.first = INFINITY;
       workarea.first.second = INFINITY;
       workarea.second.first = -INFINITY;
@@ -239,10 +217,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                                    boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second * cfactor );
       }
 
-      workarea.first.first -= xoffset * cfactor + quantization_error;
-      workarea.first.second -= yoffset * cfactor + quantization_error;
-      workarea.second.first -= xoffset * cfactor - quantization_error;
-      workarea.second.second -= yoffset * cfactor - quantization_error;
+      workarea.first.first -= ( xoffset + quantization_error ) * cfactor;
+      workarea.first.second -= ( yoffset + quantization_error ) * cfactor;
+      workarea.second.first -= ( xoffset - quantization_error ) * cfactor;
+      workarea.second.second -= ( yoffset - quantization_error ) * cfactor;
 
       if( !leveller->setConfig( of, workarea ) ) {
          std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
@@ -399,7 +377,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << "M5 ( Spindle off. )\n" << "M9 ( Coolant off. )\n" << "M2 ( Program end. )"
 	  << endl << endl;
 
-   if( ( layername == "front" && bFrontAutoleveller ) || ( layername == "back" && bBackAutoleveller ) ) {
+   if( bAutolevelNow ) {
       leveller->footer( of );
    }
 

@@ -174,7 +174,7 @@ add bridges with the given width to the outline cut.
 option requires \fB\-\-optimise\fP
 .TP
 \fB\-\-zbridges \fIunit\fP
-bridges heigth (Z-coordinates while engraving bridges, default to zsafe)
+bridges height (Z-coordinates while engraving bridges, default to zsafe)
 .TP
 \fB\-\-bridgesnum \fInumber\fP
 sets the numer of bridges to be created (\fB\-\-bridgesnum\fP bridges for each
@@ -197,13 +197,6 @@ Unfortunately each control software (LinuxCNC, Mach3, ...) uses different
 gcodes for the probing, the parameters and the macros, therefore the output
 gcode won't be software-independent, and you have to choose the used software
 with the proper argument.
-Mach3 and TurboCNC support only "plain" gcode, therefore the corresponding
-gcode is ~400% times the gcode without autoleveller.
-Mach4 and LinuxCNC support macro calls and conditional gcode, therefore the
-corresponding gcode is only ~40% bigger than the gcode without autoleveller.
-The autoleveller feature is currently (27/01/2014) EXPERIMENTAL, especially
-the Mach3, Mach4 and TurboCNC softwares, which are also UNTESTED. Please
-provide a feedback on the software page.
 .TP
 \fB\-\-al-front\fP
 enable the autoleveller for the front side
@@ -213,8 +206,12 @@ enable the autoleveller for the back side
 .TP
 \fB\-\-software\fP \fIsoftware\fP
 the height probing commands are different from software to software. Use this
-option to select the used software; currently supported softwares are LinuxCNC,
-Mach3, Mach4 and TurboCNC
+option to select the used software; currently supported softwares are
+\fBLinuxCNC\fP, \fBMach3\fP, \fBMach4\fP and \fBcustom\fP. With custom you
+can specify \fBal-probecode\fP, \fBal-probevar\fP and \fBal-setzzero\fP, in
+order to generate gcode for an unsupported software. For compatibility
+reasons, the \fBcustom\fP gcode is much bigger (3-4 times) than the gcode for
+a supported software.
 .TP
 \fB\-\-al-x\fP \fIunit\fP
 the width of the probing on the X axis. Higher values increase the levelling 
@@ -229,15 +226,32 @@ probe speed on the Z axis. Higher values decrease the probing time but also
 increase the wear of the probing tool
 .TP
 \fB\-\-al-probe-on\fP \fIcommand(s)\fP
-insert these commands at the start of the probing sequence. You can use this
-argument to add a M64/M65 command (LinuxCNC) to automatically enable the 
-probe tool. Use a at sign (@) to insert a newline
+insert these commands at the start of the probing sequence, replacing the 
+standard M0 command. You can use this argument to add a M64/M65 command
+(LinuxCNC) to automatically enable the probe tool. Use an at sign (@) to
+insert a newline
 .TP
 \fB\-\-al-probe-off\fP \fIcommand(s)\fP
 insert these commands at the end of the probing sequence, replacing the 
 standard M0 command. You can use this argument to add a M64/M65 command 
-(LinuxCNC) to automatically disable the probe tool. Use a dollar sign ($) to
+(LinuxCNC) to automatically disable the probe tool. Use an at sign (@) to
 insert a newline
+.TP
+\fB\-\-al-probecode\fP \fIcode\fP
+custom Z probe code. For example, LinuxCNC uses \fBG38.2\fP while Mach3, Mach4
+and TurboCNC use \fBG31\fP. If unspecified, \fBG31\fP will be used. This
+option is relevant only when \fB\-\-software\fP=\fBcustom\fP
+.TP
+\fB\-\-al-probevar\fP \fInumber\fP
+custom Z probe result variable. For example, LinuxCNC uses \fB5063\fP while
+Mach3, Mach4 and TurboCNC use \fB2002\fP. If unspecified, \fB2002\fP will be
+used. This option is relevant only when \fB\-\-software\fP=\fBcustom\fP
+.TP
+\fB\-\-al-setzzero\fP \fIcode\fP
+custom gcode for setting the actual height as the zero of the Z axis. For
+example, LinuxCNC uses \fBG10 L20 P0 Z0\fP while Mach3, Mach4 and TurboCNC use
+\fBG92 Z0\fP. If unspecified, \fBG92 Z0\fP will be used. This option is
+relevant only when \fB\-\-software\fP=\fBcustom\fP
 
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
