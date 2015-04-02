@@ -214,7 +214,7 @@ void ExcellonProcessor::export_ngc(const string of_name,
    //SVG EXPORTER
    int rad = 1.;
 
-   cout << "Exporting dill... ";
+   cout << "Exporting drill... ";
 
    //open output file
    std::ofstream of;
@@ -320,27 +320,31 @@ void ExcellonProcessor::export_ngc(const string of_name,
 
 /******************************************************************************/
 /*
- *  \brief  mill one circle
+ *  \brief  mill one circle, returns false if tool is bigger than the circle
  */
 /******************************************************************************/
-void ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
+bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
                                  shared_ptr<Cutter> cutter,
                                  double holediameter) {
 
    g_assert(cutter);
    double cutdiameter = cutter->tool_diameter;
 
-   cout << " C: " << cutdiameter << " H:" << holediameter << "\n";
+   /*cout << fixed << setprecision(3) << " Cutter: " << cutdiameter * cfactor << " " << ( bMetricOutput ? "mm" : "in" ) <<
+                                       "  Hole: " << holediameter * cfactor << " " << ( bMetricOutput ? "mm" : "in" ) <<
+                                       "  Mill radius: " << (holediameter - cutdiameter) / 2. * cfactor << ( bMetricOutput ? "mm" : "in" ) << endl;*/
 
-   if (cutdiameter * 1.001 >= holediameter) {
+   if (cutdiameter * 1.001 >= holediameter) {       //In order to avoid a "zero radius arc" error
       of << "G0 X" << x * cfactor << " Y" << y * cfactor << endl;
       of << "G1 Z#50" << endl;
       of << "G0 Z#51" << endl << endl;
+
+      return false;
    } else {
 
       double millr = (holediameter - cutdiameter) / 2.;      //mill radius
 
-      of << "G0 X" << x * cfactor + millr << " Y" << y * cfactor << endl;
+      of << "G0 X" << ( x + millr ) * cfactor << " Y" << y * cfactor << endl;
 
       double z_step = cutter->stepsize;
       double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
@@ -354,12 +358,14 @@ void ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
       while (z >= cutter->zwork) {
          of << "G1 Z[#50+" << stepcount << "*#52]" << endl;
-         of << "G2 I" << -millr << " J0" << endl;
+         of << "G2 I" << -millr * cfactor << " J0" << endl;
          z -= z_step;
          stepcount--;
       }
 
       of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
+
+      return true;
    }
 }
 
@@ -372,10 +378,11 @@ void ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 void ExcellonProcessor::export_ngc(const string outputname,
                                    shared_ptr<Cutter> target, bool drillfront,
                                    bool mirror_absolute, bool onedrill) {
+   unsigned int badHoles = 0;
 
-   g_assert(drillfront == true);
-   g_assert(mirror_absolute == false);
-   cerr << "Currently Drilling " << "\n";
+   //g_assert(drillfront == true);       //WHY?
+   //g_assert(mirror_absolute == false); //WHY?
+      cout << "Exporting drill... ";
 
    // open output file
    std::ofstream of;
@@ -419,21 +426,18 @@ void ExcellonProcessor::export_ngc(const string outputname,
    for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++) {
 
-      double diameter = it->second.diameter;
+      double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
 
       const icoords drill_coords = holes->at(it->first);
       icoords::const_iterator coord_iter = drill_coords.begin();
 
-      millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first) - xoffset,
-               coord_iter->second - yoffset, target, diameter);
-      ++coord_iter;
+      do {
+         if( !millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first) - xoffset,
+         	   coord_iter->second - yoffset, target, diameter) )
+            ++badHoles;
 
-      while (coord_iter != drill_coords.end()) {
-
-         millhole(of, get_xvalue(!drillfront, mirror_absolute, coord_iter->first) - xoffset,
-         	   coord_iter->second - yoffset, target, diameter);
          ++coord_iter;
-      }
+      } while (coord_iter != drill_coords.end());
    }
 
    // retract, end
@@ -441,6 +445,12 @@ void ExcellonProcessor::export_ngc(const string outputname,
    of << postamble_ext;
    of << postamble << endl;
    of.close();
+
+   if( badHoles != 0 ) {
+      cerr << "Warning: " << badHoles << ( badHoles == 1 ? " hole was" : " holes were" )
+         << " bigger than the milling tool." << endl;
+   }
+   cout << "DONE." << endl;
 }
 
 /******************************************************************************/

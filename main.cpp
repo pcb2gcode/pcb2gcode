@@ -358,7 +358,7 @@ int main(int argc, char* argv[]) {
 
       //Check if there are layers in "board"; if not, we have to compute
       //the size of the board now, based only on the size of the drill layer
-      //(the resuling drill gcode will be probably disaligned, but this is the
+      //(the resulting drill gcode will be probably disaligned, but this is the
       //best we can do)
       if(board->get_layersnum() == 0) {
          boost::shared_ptr<LayerImporter> importer(new GerberImporter(drill));
@@ -371,13 +371,6 @@ int main(int argc, char* argv[]) {
          board_min_y = board->get_min_y();
          board_width = board->get_width();
       }
-
-      /*
-      ExcellonProcessor ep(
-               vm["drill"].as<string>(),
-               board_max_x - board_min_x,
-               board_min_x + (board_max_x - board_min_x) / 2,
-               vm["metricoutput"].as<bool>());*/
 
       ExcellonProcessor ep(
                drill,

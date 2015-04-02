@@ -108,7 +108,7 @@ class ExcellonProcessor {
    private:
       void parse_holes();
       void parse_bits();
-      void millhole(std::ofstream &of, double x, double y,
+      bool millhole(std::ofstream &of, double x, double y,
                     shared_ptr<Cutter> cutter, double holediameter);
       void calc_dimensions();
       double get_xvalue(bool, bool, double);
