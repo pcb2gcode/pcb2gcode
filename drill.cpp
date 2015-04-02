@@ -336,8 +336,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
    if (cutdiameter * 1.001 >= holediameter) {       //In order to avoid a "zero radius arc" error
       of << "G0 X" << x * cfactor << " Y" << y * cfactor << endl;
-      of << "G1 Z#50" << endl;
-      of << "G0 Z#51" << endl << endl;
+      of << "G1 Z" << cutter->zwork * cfactor << endl;
+      of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
 
       return false;
    } else {
@@ -357,7 +357,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
       int stepcount = abs(int(cutter->zwork / z_step));
 
       while (z >= cutter->zwork) {
-         of << "G1 Z[#50+" << stepcount << "*#52]" << endl;
+         of << "G1 Z[" << cutter->zwork * cfactor << "+" << stepcount << "*" << cutter->stepsize * cfactor << "]" << endl;
          of << "G2 I" << -millr * cfactor << " J0" << endl;
          z -= z_step;
          stepcount--;
@@ -417,11 +417,7 @@ void ExcellonProcessor::export_ngc(const string outputname,
       << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor
       << " (Feedrate)\n\n";
 
-   of << "#50=" << target->zwork * cfactor << "  (zwork)" << "\n";
-   of << "#51=" << target->zsafe * cfactor << "  (zsafe)" << "\n";
-   of << "#52=" << target->stepsize * cfactor << "  (stepsize)" << "\n\n";
-
-   of << "G00 Z#51\n";
+   of << "G00 Z" << target->zsafe * cfactor << endl;
 
    for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++) {
