@@ -30,6 +30,9 @@
 #include "surface.hpp"
 using std::pair;
 
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
+
 // color definitions for the ARGB32 format used
 
 #define OPAQUE 0xFF000000
@@ -650,8 +653,8 @@ void Surface::save_debug_image(string message) {
 	static unsigned int debug_image_index = 0;
 
 	opacify(pixbuf);
-	pixbuf->save(outputdir +
-			(boost::format("outp%1%_%2%.png") % debug_image_index % message).str(),
+	pixbuf->save( build_filename(outputdir,
+			(boost::format("outp%1%_%2%.png") % debug_image_index % message).str() ),
 			"png");
 	debug_image_index++;
 }

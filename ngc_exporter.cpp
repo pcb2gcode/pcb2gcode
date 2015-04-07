@@ -53,6 +53,9 @@
 #include <iomanip>
 using namespace std;
 
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
+
 /******************************************************************************/
 /*
  */
@@ -95,14 +98,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 
    //set imperial/metric conversion factor for output coordinates depending on metricoutput option
    cfactor = bMetricoutput ? 25.4 : 1;
-   
-#ifdef __unix__
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
-      outputdir += '/';
-#else
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' && *outputdir.rbegin() != '\\' )
-      outputdir += '\\';
-#endif
 
    if( options["zero-start"].as<bool>() )
    {
@@ -134,7 +129,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
       option_name << layername << "-output";
-      string of_name = outputdir + options[option_name.str()].as<string>();
+      string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
       cerr << "Exporting " << layername << "... ";
       export_layer(board->get_layer(layername), of_name);
       cerr << "DONE." << " (Height: " << board->get_height() * cfactor

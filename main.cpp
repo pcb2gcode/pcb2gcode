@@ -58,6 +58,9 @@ using Glib::ustring;
 #include <glibmm/init.h>
 #include <gdkmm/wrap_init.h>
 
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
+
 #include "gerberimporter.hpp"
 #include "surface.hpp"
 #include "ngc_exporter.hpp"
@@ -106,21 +109,9 @@ int main(int argc, char* argv[]) {
    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
 
    //---------------------------------------------------------------------------
-   //add trailing /
-
-   string outputdir = vm["output-dir"].as<string>();
-
-#ifdef __unix__
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' )
-      outputdir += '/';
-#else
-   if ( !outputdir.empty() && *outputdir.rbegin() != '/' && *outputdir.rbegin() != '\\' )
-      outputdir += '\\';
-#endif
-
-   //---------------------------------------------------------------------------
    //prepare environment:
 
+   const string outputdir = vm["output-dir"].as<string>();
    shared_ptr<Isolator> isolator;
 
    if (vm.count("front") || vm.count("back")) {
@@ -318,7 +309,7 @@ int main(int argc, char* argv[]) {
 
       if (vm.count("svg")) {
          cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
-         svgexpo->create_svg(outputdir + vm["svg"].as<string>());
+         svgexpo->create_svg( build_filename(outputdir, vm["svg"].as<string>()) );
       }
 
       shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
@@ -398,12 +389,12 @@ int main(int argc, char* argv[]) {
       cout << "DONE.\n";
 
       if (vm["milldrill"].as<bool>()) {
-         ep.export_ngc(outputdir + vm["drill-output"].as<string>(), cutter,
-                       !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
+         ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
+                       cutter, !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                        vm["onedrill"].as<bool>());
       } else {
-         ep.export_ngc(outputdir + vm["drill-output"].as<string>(), driller,
-                       vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
+         ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
+                       driller, vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
                        vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
       }
 
