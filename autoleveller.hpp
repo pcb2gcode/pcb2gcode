@@ -91,33 +91,63 @@ using std::endl;
 /******************************************************************************/
 class autoleveller {
 public:
-	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, CUSTOM = 3 };
-
+	// The constructor just initialize the common parameters variables
 	autoleveller( const boost::program_options::variables_map &options, double quantization_error );
-	bool setConfig( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
+
+	// setWorkarea takes the area of the milling project and computes the required number of probe points;
+	// if it exceeds the maximum number of probe point it return false, otherwise it returns true
+	bool setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
+
+	// header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
+	// only the probe calls for the other softwares)
 	void header( std::ofstream &of );
+
+	// setMillingParameters sets the milling parameters
 	void setMillingParameters ( double zwork, double zsafe, int feedrate );
+
+	// autoleveller doesn't just interpolate a point, it also checks that the distance between the
+	// previous point and the new point is not too high. If the distance is too high, it creates the
+	// required number of points between the previous and the current point and it interpolates them too.
+	// This function adds a new chain point. Always call setLastChainPoint before starting a new chain
+	// (call it also for the 1st chain)
 	string addChainPoint ( icoordpair point );
+
+	// g01Corrected interpolates only point (without adding it to the chain), and it prints a G01 to that
+	// position
 	string g01Corrected ( icoordpair point );
+
+	// Returns a string containing the software name
 	string getSoftware();
-	
+
+	// Set lastPoint as the last chain point. You can use this function when you want to start a new chain
 	inline void setLastChainPoint ( icoordpair lastPoint ) {
 		this->lastPoint = lastPoint;
 	}
+
+	// This function returns the maximum number of probe points
 	inline unsigned int maxProbePoints() {
 	    return software == LINUXCNC ? 4501 : 500;
 	}
+
+	// This function returns the required number of probe points
 	inline unsigned int requiredProbePoints() {
 	    return numXPoints * numYPoints;
 	}
-	
+
+	// Since Mach3/4 require the subroutine body to be written at the end of the file, footer writes them
+	// if software != LinuxCNC
 	inline void footer( std::ofstream &of ) {
 	    if( software != LINUXCNC )
 	        footerNoIf( of );
 	}
 
-	//Since some parameters are just placed as string in the output, saving them as
-	//strings saves a lot of string to double conversion
+	// This enum contains the software codes. Note that the codes must start from 0 and be consecutive,
+	// as they are used as array indexes
+	enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, CUSTOM = 3 };
+
+	// Some parameters are just placed as string in the output, saving them as strings saves a lot of
+	// string to double conversion. These parameters are probably not useful for the user, but we can
+	// safely define them as public as they are const
 	const double XProbeDistRequired;
 	const double YProbeDistRequired;
 	const string zwork;
@@ -148,11 +178,26 @@ protected:
 	
 	icoordpair lastPoint;
 
+	// footerNoIf prints the footer, regardless of the software
 	void footerNoIf( std::ofstream &of );
+
+	// getVarName returns the string containing the variable name associated with the probe point with
+	// the indexes i and j
 	string getVarName( int i, int j );
+
+	// pointDistance computes the euclidean distance between p0 and p1
 	static double pointDistance ( icoordpair p0, icoordpair p1 );
+
+	// interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
+	// The result of the interpolation is saved in the parameter number RESULT_VAR
 	string interpolatePoint ( icoordpair point );
+
+	// numOfSubsegments returns the right number of subsegments in order to approximate the line in the
+	// best way possible
 	unsigned int numOfSubsegments ( icoordpair point );
+
+	// splitSegment splits the segment between lastPoint and point in n subsegments, and returns the
+	// icoords (aka vector<icoordpair>) containing them
 	icoords splitSegment ( const icoordpair point, const unsigned int n );
 };
 

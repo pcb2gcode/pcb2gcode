@@ -75,12 +75,6 @@ boost::format silent_format(const string &f_string) {
     return fmter;
 }
 
-/******************************************************************************/
-/*	
- *  Constructor, throws an exception if the number of required variables (probe
- *  points) exceeds the maximum number of variables
- */
-/******************************************************************************/
 autoleveller::autoleveller( const boost::program_options::variables_map &options, double quantization_error ) :
  XProbeDistRequired( options["al-x"].as<double>() ),
  YProbeDistRequired( options["al-y"].as<double>() ),
@@ -110,10 +104,6 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     setZZero[CUSTOM] = options["al-setzzero"].as<string>();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
 string autoleveller::getSoftware() {
     switch( software ) {
         case LINUXCNC:  return "LinuxCNC";
@@ -124,16 +114,11 @@ string autoleveller::getSoftware() {
     }
 }
 
-/******************************************************************************/
-/*
- *  Returns the ij-th variable name (based on software)
- */
-/******************************************************************************/
 string autoleveller::getVarName( int i, int j ) {
     return '#' + boost::lexical_cast<string>( i * numYPoints + j + 500 );	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-bool autoleveller::setConfig( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea ) {
+bool autoleveller::setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea ) {
     const double workareaLenX = workarea.second.first - workarea.first.first;
     const double workareaLenY = workarea.second.second - workarea.first.second;
     int temp;
@@ -164,11 +149,6 @@ bool autoleveller::setConfig( std::ofstream &of, std::pair<icoordpair, icoordpai
         return true;
 }
 
-/******************************************************************************/
-/*
- *  Generate the gcode probe header
- */
-/******************************************************************************/
 void autoleveller::header( std::ofstream &of ) {
 	const char *logFileOpenAndComment[] =
 	 { "(PROBEOPEN RawProbeLog.txt) ( Record all probes in RawProbeLog.txt )",
@@ -227,11 +207,6 @@ void autoleveller::header( std::ofstream &of ) {
     of << endl;
 }
 
-/******************************************************************************/
-/*
- *  Generate the gcode probe footer
- */
-/******************************************************************************/
 void autoleveller::footerNoIf( std::ofstream &of ) {
 	const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d", "" };
 	const char *endSub[] = { "o%1$d endsub", "M99", "M99", "" };
@@ -302,11 +277,6 @@ void autoleveller::footerNoIf( std::ofstream &of ) {
     }
 }
 
-/******************************************************************************/
-/*
- *  Find the correct rectangle and write the bilinear interpolation of the point
- */
-/******************************************************************************/
 string autoleveller::interpolatePoint ( icoordpair point ) {
 	int xminindex;
 	int yminindex;
@@ -326,11 +296,6 @@ string autoleveller::interpolatePoint ( icoordpair point ) {
 												      y_minus_y0_rel % x_minus_x0_rel );
 }
 
-/******************************************************************************/
-/*
- *  Interpolate a point and eventually add intermediate points
- */
-/******************************************************************************/
 string autoleveller::addChainPoint ( icoordpair point ) {
 	string outputStr;
 	icoords subsegments;

@@ -217,7 +217,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       workarea.second.first -= ( xoffset - quantization_error ) * cfactor;
       workarea.second.second -= ( yoffset - quantization_error ) * cfactor;
 
-      if( !leveller->setConfig( of, workarea ) ) {
+      if( !leveller->setWorkarea( of, workarea ) ) {
          std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
                       ") exceeds the maximum number (" << leveller->maxProbePoints() << "). "
                       "Reduce either al-x or al-y." << std::endl;
