@@ -28,20 +28,13 @@
 #include <boost/assign/list_of.hpp>
 #include <cmath>
 
-outline_bridges::outline_bridges( unsigned int number, double length, double height ) :
- number(number),
- length(length),
- height(height) {
-     
- }
-
-vector<unsigned int> outline_bridges::makeBridges ( shared_ptr<icoords> &path ) {
-    return insertBridges( path, findLongestSegments( path ) );
+vector<unsigned int> outline_bridges::makeBridges ( shared_ptr<icoords> &path, unsigned int number, double length ) {
+    return insertBridges( path, findLongestSegments( path, number, length ), length );
 }
 
 //This function finds the longest segments and returns a vector of pair containing the index of path where the segment
 //starts and its length. If no segments longer than "length" can be found, it throws outline_bridges_exception
-vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( const shared_ptr<icoords> path ) {
+vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( const shared_ptr<icoords> path, unsigned int number, double length ) {
     vector< pair< unsigned int, double > >::iterator element;
     vector< pair< unsigned int, double > > distances;
     vector< pair< unsigned int, double > > output;
@@ -68,7 +61,7 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
 
 //This function takes the segments where the bridges must be built (in the form of vector<pair<uint,double>>, see findLongestSegments),
 //inserts them in the path and returns an array containing the indexes of each bridge's start
-vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments ) {
+vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments, double length ) {
     vector<unsigned int> output;
     icoords temp;
     

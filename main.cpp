@@ -139,6 +139,12 @@ int main(int argc, char* argv[]) {
       cutter->do_steps = true;
       cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
       cutter->optimise = vm["optimise"].as<bool>();
+      cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
+      cutter->bridges_width = vm["bridges"].as<double>() * unit;
+      if (vm.count("zbridges"))
+        cutter->bridges_height = vm["zbridges"].as<double>() * unit;
+      else
+        cutter->bridges_height = cutter->zsafe;
    }
 
    shared_ptr<Driller> driller;

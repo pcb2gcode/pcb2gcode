@@ -37,16 +37,12 @@ class outline_bridges_exception: virtual std::exception, virtual boost::exceptio
 
 class outline_bridges {
     public:
-        outline_bridges( unsigned int num, double length, double height );
-        vector<unsigned int> makeBridges ( shared_ptr<icoords> &path );
-        
-        const unsigned int number;
-        const double length;
-        const double height;
+        static vector<unsigned int> makeBridges ( shared_ptr<icoords> &path, unsigned int number, double length );
         
     protected:
-        vector< pair< unsigned int, double > > findLongestSegments ( const shared_ptr<icoords> path );
-        vector<unsigned int> insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments );
+        static vector< pair< unsigned int, double > > findLongestSegments ( const shared_ptr<icoords> path, unsigned int number, double length );
+        static vector<unsigned int> insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments, double length );
         static double pointDistance( icoordpair p0, icoordpair p1 );
         static icoordpair intermediatePoint( icoordpair p0, icoordpair p1, double position );
 };
+

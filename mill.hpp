@@ -81,6 +81,9 @@ class Cutter: public RoutingMill {
 public:
 	bool do_steps;
 	double stepsize;
+	unsigned int bridges_num;
+	double bridges_height;
+	double bridges_width;
 };
 
 /******************************************************************************/

@@ -99,10 +99,10 @@ protected:
 	bool bMetricoutput;     //!< if true, metric g-code output
 	bool bMirrored;         //!< if true, mirrored along y axis
 	bool bCutfront;         //!< if true, the outline will be cut from front
+    bool bBridges;
     const unsigned int dpi;
     const double quantization_error;
 
-	outline_bridges *bridges;
 	
 	autoleveller *leveller;
 	bool bFrontAutoleveller;

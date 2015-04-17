@@ -118,13 +118,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    if( bFrontAutoleveller || bBackAutoleveller )
    	  leveller = new autoleveller ( options, quantization_error );
 
-   if (options["bridges"].as<double>() != 0 && options["bridgesnum"].as<unsigned int>() != 0) {
-      bridges = new outline_bridges( options["bridgesnum"].as<unsigned int>(),
-                                     ( options["bridges"].as<double>() + options["cutter-diameter"].as<double>() ) / cfactor,
-                                     options.count("zbridges")? options["zbridges"].as<double>() : options["zsafe"].as<double>() );
-   }
+   if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() != 0)
+      bBridges = true;
    else
-       bridges = NULL;
+      bBridges = false;
 
    BOOST_FOREACH( string layername, board->list_layers() ) {
       std::stringstream option_name;
@@ -257,12 +254,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
 
       if (cutter && cutter->do_steps) {
-         if( bridges ) {
+         if( bBridges ) {
             try {
-                bridgesIndexes = bridges->makeBridges( path );
+                bridgesIndexes = outline_bridges::makeBridges( path, cutter->bridges_num, cutter->bridges_width + cutter->tool_diameter );
                 currentBridge = bridgesIndexes.begin();
-                if ( bridgesIndexes.size() != bridges->number )
-                    cerr << "Can't create " << bridges->number << " bridges on this layer, only " << bridgesIndexes.size() << " will be created." << endl;
+                if ( bridgesIndexes.size() != cutter->bridges_num )
+                    cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, only " << bridgesIndexes.size() << " will be created." << endl;
             } catch ( outline_bridges_exception &exc ) {
                 cerr << "Error while adding outline bridges. Outline bridges on this path won't be created." << endl;
             }
@@ -298,11 +295,13 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                      if (bSvgOnce)
                         svgexpo->line_to(iter->first, iter->second);
                   }
-                  if( bridges && currentBridge != bridgesIndexes.end() && *currentBridge == iter - path->begin() )
-                     of << "Z" << bridges->height << endl;
-                  else if( bridges && currentBridge != bridgesIndexes.end() && *currentBridge == last - path->begin() ) {
-                     of << "Z" << z * cfactor << endl;
-                     ++currentBridge;
+                  if( bBridges && currentBridge != bridgesIndexes.end() ) {
+                      if( *currentBridge == iter - path->begin() )
+                         of << "Z" << cutter->bridges_height << endl;
+                      else if( *currentBridge == last - path->begin() ) {
+                         of << "Z" << z * cfactor << endl;
+                         ++currentBridge;
+                      }
                   }
                }
 
