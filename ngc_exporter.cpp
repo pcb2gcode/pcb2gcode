@@ -197,22 +197,22 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
       BOOST_FOREACH( shared_ptr<icoords> path, toolpaths ) {
          workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
-                                 boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first * cfactor );
+                                 boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
 
          workarea.first.second = std::min(workarea.first.second, std::min_element( path->begin(), path->end(),
-                                  boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second * cfactor );
+                                  boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
 
          workarea.second.first = std::max(workarea.second.first, std::max_element( path->begin(), path->end(),
-                                  boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first * cfactor );
+                                  boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
 
          workarea.second.second = std::max(workarea.second.second, std::max_element( path->begin(), path->end(),
-                                   boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second * cfactor );
+                                   boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
       }
 
-      workarea.first.first -= ( xoffset + quantization_error ) * cfactor;
-      workarea.first.second -= ( yoffset + quantization_error ) * cfactor;
-      workarea.second.first -= ( xoffset - quantization_error ) * cfactor;
-      workarea.second.second -= ( yoffset - quantization_error ) * cfactor;
+      workarea.first.first -= xoffset + quantization_error;
+      workarea.first.second -= yoffset + quantization_error;
+      workarea.second.first -= xoffset - quantization_error;
+      workarea.second.second -= yoffset - quantization_error;
 
       if( !leveller->setWorkarea( of, workarea ) ) {
          std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<

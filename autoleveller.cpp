@@ -76,19 +76,23 @@ boost::format silent_format(const string &f_string) {
 }
 
 autoleveller::autoleveller( const boost::program_options::variables_map &options, double quantization_error ) :
- XProbeDistRequired( options["al-x"].as<double>() ),
- YProbeDistRequired( options["al-y"].as<double>() ),
- zwork( str( format("%.5f") % options["zwork"].as<double>() ) ),
- zprobe( str( format("%.3f") % options["zsafe"].as<double>() ) ),
- zsafe( str( format("%.3f") % options["zsafe"].as<double>() ) ),
- zfail( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ),
- feedrate( boost::lexical_cast<string>( options["al-probefeed"].as<double>() ) ),
+ unitconv( options["metric"].as<bool>() ?
+              ( options["metricoutput"].as<bool>() ? 1 : 1/25.4 ) :
+              ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
+ cfactor( options["metricoutput"].as<bool>() ? 25.4 : 1 ),
+ XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
+ YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
+ zwork( str( format("%.5f") % ( options["zwork"].as<double>() * unitconv ) ) ),
+ zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
+ zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
+ zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
+ feedrate( boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) ),
  probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
  probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
  software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
               boost::iequals( options["software"].as<string>(), "mach3" ) ? MACH3 :
                  boost::iequals( options["software"].as<string>(), "mach4" ) ? MACH4 : CUSTOM ),
- quantization_error( quantization_error )
+ quantization_error( quantization_error * cfactor )
 {
     probeCode[LINUXCNC] = "G38.2";
     probeCode[MACH4] = "G31";
@@ -119,13 +123,13 @@ string autoleveller::getVarName( int i, int j ) {
 }
 
 bool autoleveller::setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea ) {
-    const double workareaLenX = workarea.second.first - workarea.first.first;
-    const double workareaLenY = workarea.second.second - workarea.first.second;
+    const double workareaLenX = ( workarea.second.first - workarea.first.first ) * cfactor;
+    const double workareaLenY = ( workarea.second.second - workarea.first.second ) * cfactor;
     int temp;
     
-    startPointX = workarea.first.first;
-    startPointY = workarea.first.second;
-    
+    startPointX = workarea.first.first * cfactor;
+    startPointY = workarea.first.second * cfactor;
+
     temp = round ( workareaLenX / XProbeDistRequired );    //We need at least 2 probe points
     if( temp > 1 )
         numXPoints = temp + 1;

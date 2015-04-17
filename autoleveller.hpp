@@ -91,11 +91,12 @@ using std::endl;
 /******************************************************************************/
 class autoleveller {
 public:
-	// The constructor just initialize the common parameters variables
+	// The constructor just initialize the common parameters variables (quantization_error must be in inches)
 	autoleveller( const boost::program_options::variables_map &options, double quantization_error );
 
 	// setWorkarea takes the area of the milling project and computes the required number of probe points;
 	// if it exceeds the maximum number of probe point it return false, otherwise it returns true
+	// workarea coordinates must be in inches
 	bool setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
 
 	// header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
@@ -148,6 +149,8 @@ public:
 	// Some parameters are just placed as string in the output, saving them as strings saves a lot of
 	// string to double conversion. These parameters are probably not useful for the user, but we can
 	// safely define them as public as they are const
+    const double unitconv;
+    const double cfactor;
 	const double XProbeDistRequired;
 	const double YProbeDistRequired;
 	const string zwork;
