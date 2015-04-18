@@ -257,21 +257,20 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             while (iter != path->end()) {
                peek = iter + 1;
 
-               if (last == path->end()
-                       || peek == path->end()
-                       || !((last->first == iter->first
-                             && iter->first == peek->first)
-                            || (last->second == iter->second
-                                && iter->second == peek->second))) {
+               if (mill->optimise //Already optimised (also includes the bridge case)
+                       || last == path->end()  //First
+                           || peek == path->end()   //Last
+                               || !aligned(last, iter, peek) ) {    //Not aligned
                   of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
                      << ( iter->second - yoffset ) * cfactor << endl;
                   if (bDoSVG) {
                      if (bSvgOnce)
                         svgexpo->line_to(iter->first, iter->second);
                   }
+
                   if( bBridges && currentBridge != bridgesIndexes.end() ) {
                       if( *currentBridge == iter - path->begin() )
-                         of << "Z" << cutter->bridges_height << endl;
+                         of << "Z" << cutter->bridges_height * cfactor << endl;
                       else if( *currentBridge == last - path->begin() ) {
                          of << "Z" << z * cfactor << endl;
                          ++currentBridge;
@@ -309,12 +308,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
 
          while (iter != path->end()) {
             peek = iter + 1;
-            if (last == path->end()
-                    || peek == path->end()
-                    || !((last->first == iter->first
-                          && iter->first == peek->first)
-                         || (last->second == iter->second
-                             && iter->second == peek->second))) {
+            if (mill->optimise //When simplifypath is performed, no further optimisation is required
+                    || last == path->end()  //First
+                        || peek == path->end()   //Last
+                            || !aligned(last, iter, peek) ) {    //Not aligned
                 /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
                if( bAutolevelNow )
 		          of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
