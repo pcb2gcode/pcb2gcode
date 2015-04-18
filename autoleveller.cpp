@@ -27,13 +27,16 @@
 #include "autoleveller.hpp"
 
 #include <cmath>
+#include <limits>
 
 #include <boost/algorithm/string.hpp>
-
+#include <boost/lexical_cast.hpp>
+#include <boost/bind.hpp>
+#include <boost/foreach.hpp>
+#include <boost/shared_ptr.hpp>
+using boost::shared_ptr;
 #include <boost/format.hpp>
 using boost::format;
-
-#include <boost/lexical_cast.hpp>
 
 /*	^ y
  *	|
@@ -43,7 +46,7 @@ using boost::format;
  *	|		    x
  *	+----------->
  *
- * The autoleveller macro has this order of the argument:
+ * The interpolation macro arguments have this order:
  * 1 - number of the macro
  * 2 - point A
  * 3 - point B
@@ -75,7 +78,7 @@ boost::format silent_format(const string &f_string) {
     return fmter;
 }
 
-autoleveller::autoleveller( const boost::program_options::variables_map &options, double quantization_error ) :
+autoleveller::autoleveller( const boost::program_options::variables_map &options, double quantization_error, double xoffset, double yoffset ) :
  unitconv( options["metric"].as<bool>() ?
               ( options["metricoutput"].as<bool>() ? 1 : 1/25.4 ) :
               ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
@@ -92,7 +95,9 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
  software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
               boost::iequals( options["software"].as<string>(), "mach3" ) ? MACH3 :
                  boost::iequals( options["software"].as<string>(), "mach4" ) ? MACH4 : CUSTOM ),
- quantization_error( quantization_error * cfactor )
+ quantization_error( quantization_error * cfactor ),
+ xoffset( xoffset ),
+ yoffset( yoffset )
 {
     probeCode[LINUXCNC] = "G38.2";
     probeCode[MACH4] = "G31";
@@ -122,11 +127,13 @@ string autoleveller::getVarName( int i, int j ) {
     return '#' + boost::lexical_cast<string>( i * numYPoints + j + 500 );	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-bool autoleveller::setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea ) {
+bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths ) {
+    const std::pair<icoordpair, icoordpair> workarea = computeWorkarea( toolpaths );
+
     const double workareaLenX = ( workarea.second.first - workarea.first.first ) * cfactor;
     const double workareaLenY = ( workarea.second.second - workarea.first.second ) * cfactor;
     int temp;
-    
+
     startPointX = workarea.first.first * cfactor;
     startPointY = workarea.first.second * cfactor;
 
@@ -151,6 +158,36 @@ bool autoleveller::setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordp
         return false;
     else
         return true;
+}
+
+std::pair<icoordpair, icoordpair> autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths ) {
+    std::pair<icoordpair, icoordpair> workarea;
+
+    workarea.first.first = std::numeric_limits<double>::infinity();
+    workarea.first.second = std::numeric_limits<double>::infinity();
+    workarea.second.first = -std::numeric_limits<double>::infinity();
+    workarea.second.second = -std::numeric_limits<double>::infinity();
+
+    BOOST_FOREACH( shared_ptr<icoords> path, toolpaths ) {
+        workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
+                               boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
+
+        workarea.first.second = std::min(workarea.first.second, std::min_element( path->begin(), path->end(),
+                                boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
+
+        workarea.second.first = std::max(workarea.second.first, std::max_element( path->begin(), path->end(),
+                                boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
+
+        workarea.second.second = std::max(workarea.second.second, std::max_element( path->begin(), path->end(),
+                                 boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
+    }
+
+    workarea.first.first -= xoffset + quantization_error;
+    workarea.first.second -= yoffset + quantization_error;
+    workarea.second.first -= xoffset - quantization_error;
+    workarea.second.second -= yoffset - quantization_error;
+
+    return workarea;
 }
 
 void autoleveller::header( std::ofstream &of ) {

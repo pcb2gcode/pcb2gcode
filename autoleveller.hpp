@@ -81,7 +81,13 @@ using std::string;
 #include <fstream>
 using std::endl;
 
+#include <vector>
+using std::vector;
+
 #include <boost/program_options.hpp>
+
+#include <boost/shared_ptr.hpp>
+using boost::shared_ptr;
 
 #include "coord.hpp"
 
@@ -91,13 +97,13 @@ using std::endl;
 /******************************************************************************/
 class autoleveller {
 public:
-	// The constructor just initialize the common parameters variables (quantization_error must be in inches)
-	autoleveller( const boost::program_options::variables_map &options, double quantization_error );
+	// The constructor just initialize the common parameters variables (parameters be in inches)
+	autoleveller( const boost::program_options::variables_map &options, double quantization_error, double xoffset, double yoffset );
 
-	// setWorkarea takes the area of the milling project and computes the required number of probe points;
-	// if it exceeds the maximum number of probe point it return false, otherwise it returns true
-	// workarea coordinates must be in inches
-	bool setWorkarea( std::ofstream &of, std::pair<icoordpair, icoordpair> workarea );
+	// prepareWorkarea computes the area of the milling project and computes the required number of probe
+	// points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
+	// All the arguments must be in inches
+	bool prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths );
 
 	// header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
 	// only the probe calls for the other softwares)
@@ -162,6 +168,8 @@ public:
 	const string probeOff;
 	const Software software;
     const double quantization_error;
+	const double xoffset;
+	const double yoffset;
 
 protected:
 	double startPointX;
@@ -180,6 +188,9 @@ protected:
 	string setZZero[4];
 	
 	icoordpair lastPoint;
+
+    //computeWorkarea computes the occupied rectangule of toolpaths
+    std::pair<icoordpair, icoordpair> computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
 
 	// footerNoIf prints the footer, regardless of the software
 	void footerNoIf( std::ofstream &of );

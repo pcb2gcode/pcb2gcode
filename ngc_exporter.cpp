@@ -48,7 +48,6 @@
 #include "ngc_exporter.hpp"
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/bind.hpp>
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -116,7 +115,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
 	   g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
    
    if( bFrontAutoleveller || bBackAutoleveller )
-   	  leveller = new autoleveller ( options, quantization_error );
+   	  leveller = new autoleveller ( options, quantization_error, xoffset, yoffset );
 
    if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() != 0)
       bBridges = true;
@@ -148,7 +147,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    bool bAutolevelNow;
    vector<unsigned int> bridgesIndexes;
    vector<unsigned int>::const_iterator currentBridge;
-   std::pair<icoordpair, icoordpair> workarea;
    vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
 
    // open output file
@@ -189,32 +187,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n"
       << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
-   if( bAutolevelNow ) {
-      workarea.first.first = INFINITY;
-      workarea.first.second = INFINITY;
-      workarea.second.first = -INFINITY;
-      workarea.second.second = -INFINITY;
-
-      BOOST_FOREACH( shared_ptr<icoords> path, toolpaths ) {
-         workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
-                                 boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
-
-         workarea.first.second = std::min(workarea.first.second, std::min_element( path->begin(), path->end(),
-                                  boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
-
-         workarea.second.first = std::max(workarea.second.first, std::max_element( path->begin(), path->end(),
-                                  boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
-
-         workarea.second.second = std::max(workarea.second.second, std::max_element( path->begin(), path->end(),
-                                   boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
-      }
-
-      workarea.first.first -= xoffset + quantization_error;
-      workarea.first.second -= yoffset + quantization_error;
-      workarea.second.first -= xoffset - quantization_error;
-      workarea.second.second -= yoffset - quantization_error;
-
-      if( !leveller->setWorkarea( of, workarea ) ) {
+    if( bAutolevelNow ) {
+      if( !leveller->prepareWorkarea( toolpaths ) ) {
          std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
                       ") exceeds the maximum number (" << leveller->maxProbePoints() << "). "
                       "Reduce either al-x or al-y." << std::endl;
