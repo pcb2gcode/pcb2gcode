@@ -117,7 +117,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options) {
    if( bFrontAutoleveller || bBackAutoleveller )
    	  leveller = new autoleveller ( options, quantization_error, xoffset, yoffset );
 
-   if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() != 0)
+   if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() > 0)
       bBridges = true;
    else
       bBridges = false;
@@ -145,9 +145,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
    shared_ptr<RoutingMill> mill = layer->get_manufacturer();
    bool bSvgOnce = TRUE;
    bool bAutolevelNow;
-   vector<unsigned int> bridgesIndexes;
-   vector<unsigned int>::const_iterator currentBridge;
    vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
+   vector<unsigned int> bridges;
+   vector<unsigned int>::const_iterator currentBridge;
 
    // open output file
    std::ofstream of;
@@ -228,22 +228,17 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
 
       if (cutter && cutter->do_steps) {
-         if( bBridges ) {
-            try {
-                bridgesIndexes = outline_bridges::makeBridges( path, cutter->bridges_num, cutter->bridges_width + cutter->tool_diameter );
-                currentBridge = bridgesIndexes.begin();
-                if ( bridgesIndexes.size() != cutter->bridges_num )
-                    cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, only " << bridgesIndexes.size() << " will be created." << endl;
-            } catch ( outline_bridges_exception &exc ) {
-                cerr << "Error while adding outline bridges. Outline bridges on this path won't be created." << endl;
-            }
-         }
 
          //--------------------------------------------------------------------
          //cutting (outline)
 
          double z_step = cutter->stepsize;
          double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
+
+         if( bBridges ) {
+            bridges = layer->get_bridges( path );
+            currentBridge = bridges.begin();
+         }
 
          while (z >= mill->zwork) {
             of << "G01 Z" << z * cfactor << " F" << mill->feed * cfactor / 2
@@ -268,13 +263,13 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                         svgexpo->line_to(iter->first, iter->second);
                   }
 
-                  if( bBridges && currentBridge != bridgesIndexes.end() ) {
-                      if( *currentBridge == iter - path->begin() )
-                         of << "Z" << cutter->bridges_height * cfactor << endl;
-                      else if( *currentBridge == last - path->begin() ) {
-                         of << "Z" << z * cfactor << endl;
-                         ++currentBridge;
-                      }
+                  if( bBridges && currentBridge != bridges.end() ) {
+                     if( *currentBridge == iter - path->begin() )
+                        of << "Z" << cutter->bridges_height * cfactor << endl;
+                     else if( *currentBridge == last - path->begin() ) {
+                        of << "Z" << z * cfactor << endl;
+                        ++currentBridge;
+                     }
                   }
                }
 

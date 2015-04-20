@@ -67,6 +67,7 @@ public:
 
 	vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
 			bool mirror, bool mirror_absolute);
+    vector<unsigned int> get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath );
 	ivalue_t get_width_in() {
 		return max_x - min_x;
 	}

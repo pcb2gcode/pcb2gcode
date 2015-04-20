@@ -66,7 +66,6 @@ using boost::shared_ptr;
 #include "exporter.hpp"
 #include "svg_exporter.hpp"
 #include "autoleveller.hpp"
-#include "outline_bridges.hpp"
 
 /******************************************************************************/
 /*
@@ -106,7 +105,6 @@ protected:
     bool bBridges;
     const unsigned int dpi;
     const double quantization_error;
-
 	
 	autoleveller *leveller;
 	bool bFrontAutoleveller;

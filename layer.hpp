@@ -39,6 +39,7 @@ public:
 
 	vector<shared_ptr<icoords> > get_toolpaths();
 	shared_ptr<RoutingMill> get_manufacturer();
+	vector<unsigned int> get_bridges( shared_ptr<icoords> toolpath );
 	string get_name() {
 		return name;
 	}

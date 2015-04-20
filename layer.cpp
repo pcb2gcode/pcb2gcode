@@ -55,3 +55,12 @@ shared_ptr<RoutingMill> Layer::get_manufacturer() {
 void Layer::add_mask(shared_ptr<Layer> mask) {
 	surface->add_mask(mask->surface);
 }
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+vector<unsigned int> Layer::get_bridges( shared_ptr<icoords> toolpath ) {
+	return surface->get_bridges( boost::dynamic_pointer_cast<Cutter>( manufacturer ), toolpath );
+}
+
