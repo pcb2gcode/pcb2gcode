@@ -213,7 +213,7 @@ options::options()
             "optimise", po::value<bool>()->default_value(false)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
-            "zbridges", po::value<double>(), "bridges heigth (Z-coordinates while engraving bridges, default to zsafe) ")(
+            "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
 			"al-front", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the front layer")(
 			"al-back", po::value<bool>()->default_value(false)->implicit_value(true),
@@ -222,6 +222,7 @@ options::options()
 			"al-x", po::value<double>(), "width of the x probes")(
 			"al-y", po::value<double>(), "width of the y probes")(
 			"al-probefeed", po::value<double>(), "speed during the probing")(
+			"al-2ndprobefeed", po::value<double>(), "speed during the probing of the 2nd tool")(
 			"al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
 			"al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
 			"al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")(
@@ -321,16 +322,37 @@ static void check_generic_parameters(po::variables_map const& vm) {
       	 cerr << "Error: autoleveller probe width x not specified.\n";
          exit(ERR_NOALX);
       }
-       
+      else
+         if (vm["al-x"].as<double>() <= 0) {
+            cerr << "Error: al-x < 0!" << endl;
+            exit(ERR_NEGATIVEALX);
+         }
+
       if (!vm.count("al-y")) {
       	 cerr << "Error: autoleveller probe width y not specified.\n";
          exit(ERR_NOALY);
       }
-      
+      else
+         if (vm["al-y"].as<double>() <= 0) {
+            cerr << "Error: al-y < 0!" << endl;
+            exit(ERR_NEGATIVEALY);
+         }
+
       if (!vm.count("al-probefeed")) {
       	 cerr << "Error: autoleveller probe feed rate not specified.\n";
          exit(ERR_NOALPROBEFEED);
       }
+      else
+         if ( !vm.count("al-2ndprobefeed") && vm["al-probefeed"].as<double>() <= 0) {
+            cerr << "Error: al-probefeed < 0!" << endl;
+            exit(ERR_NEGATIVEPROBEFEED);
+         }
+
+      if (vm.count("al-2ndprobefeed") && vm["al-2ndprobefeed"].as<double>() <= 0) {
+         cerr << "Error: al-2ndprobefeed < 0!" << endl;
+         exit(ERR_NEGATIVE2NDPROBEFEED);
+      }
+
    }
 }
 

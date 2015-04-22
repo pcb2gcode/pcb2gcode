@@ -89,7 +89,8 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
  zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
  zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
  zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
- feedrate( boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) ),
+ feedrate( options["al-probefeed"].as<double>() > 0 ? boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) : "" ),
+ feedrate2nd( options.count("al-2ndprobefeed") ? boost::lexical_cast<string>( options["al-2ndprobefeed"].as<double>() * unitconv ) : "" ),
  probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
  probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
  software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
@@ -204,41 +205,55 @@ void autoleveller::header( std::ofstream &of ) {
     if( software == LINUXCNC )
         footerNoIf( of );
 
-    of << probeOn << endl;
-    of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
-    of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
-    of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
-    of << logFileOpenAndComment[software] << endl;
-    of << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Z-probe )" << endl;
-    of << "#500 = 0 ( Probe point [0, 0] is our reference )" << endl;
-    of << setZZero[software] << " ( Set the current Z as zero-value )" << endl;
-    of << endl;	
-    of << "( We now start the real probing: move the Z axis to the probing height, move to )" << endl;
-    of << "( the probing XY position, probe it and save the result, parameter " << zProbeResultVar[software] << ", )" << endl;
-    of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )" << endl;
-    of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )" << endl;
-    of << endl;
-    
-    if( software != CUSTOM ) {
-        of << "#" GLOB_VAR_0 " = 0 ( X iterator )" << endl;
-        of << "#" GLOB_VAR_1 " = 1 ( Y iterator )" << endl;
-        of << "#" GLOB_VAR_2 " = 1 ( UP or DOWN increment )" << endl;
-        of << "#" GLOB_VAR_3 " = " << numYPoints - 1 << " ( number of Y points; the 1st Y row can be done one time less )" << endl;
-        of << silent_format( callSubRepeat[software] ) % XPROBE_SUB_NUMBER % numXPoints % REPEAT_CODE_2;
-	}
-	else {
-	    for( i = 0; i < numXPoints; i++ ) {
-	        while( j >= 0 && j <= numYPoints - 1 ) {
-	            of << "G0 Z" << zprobe << endl;
-                of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << endl;
-                of << probeCode[software] << " Z" << zfail << " F" << feedrate << endl;
-                of << getVarName(i, j) << "=" << zProbeResultVar[software] << endl;
+    if( !feedrate.empty() ) {
+        of << probeOn << endl;
+        of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
+        of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
+        of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
+        of << logFileOpenAndComment[software] << endl;
+        of << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Z-probe )" << endl;
+        of << "#500 = 0 ( Probe point [0, 0] is our reference )" << endl;
+        of << setZZero[software] << " ( Set the current Z as zero-value )" << endl;
+        of << endl;	
+        of << "( We now start the real probing: move the Z axis to the probing height, move to )" << endl;
+        of << "( the probing XY position, probe it and save the result, parameter " << zProbeResultVar[software] << ", )" << endl;
+        of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )" << endl;
+        of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )" << endl;
+        of << endl;
+        
+        if( software != CUSTOM ) {
+            of << "#" GLOB_VAR_0 " = 0 ( X iterator )" << endl;
+            of << "#" GLOB_VAR_1 " = 1 ( Y iterator )" << endl;
+            of << "#" GLOB_VAR_2 " = 1 ( UP or DOWN increment )" << endl;
+            of << "#" GLOB_VAR_3 " = " << numYPoints - 1 << " ( number of Y points; the 1st Y row can be done one time less )" << endl;
+            of << silent_format( callSubRepeat[software] ) % XPROBE_SUB_NUMBER % numXPoints % REPEAT_CODE_2;
+	    }
+	    else {
+	        for( i = 0; i < numXPoints; i++ ) {
+	            while( j >= 0 && j <= numYPoints - 1 ) {
+	                of << "G0 Z" << zprobe << endl;
+                    of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << endl;
+                    of << probeCode[software] << " Z" << zfail << " F" << feedrate << endl;
+                    of << getVarName(i, j) << "=" << zProbeResultVar[software] << endl;
+	                j += incr_decr;
+	            }
+	            incr_decr = -incr_decr;
 	            j += incr_decr;
 	        }
-	        incr_decr = -incr_decr;
-	        j += incr_decr;
 	    }
 	}
+	
+    if( !feedrate2nd.empty() ) {
+        of << endl;
+        of << "T2" << endl;
+        of << "(MSG, Insert the mill tool)" << endl;
+        of << "M0 (Temporary machine stop.)" << endl;
+        of << "G0 Z[" << zsafe << " + " << 0.2 * cfactor << "] ( Move Z to safe height )"<< endl;
+        of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
+        of << "G0 Z[" << zprobe << " + " << 0.2 * cfactor << "] ( Move Z to probe height )" << endl;
+        of << probeCode[software] << " Z[" << zfail << " - " << 0.2 * cfactor << "] F" << feedrate2nd << " ( Probe )" << endl;
+        of << setZZero[software] << " ( Set the current Z as zero-value )" << endl;
+    }
 	
 	of << endl;
     of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
@@ -298,7 +313,7 @@ void autoleveller::footerNoIf( std::ofstream &of ) {
         of << silent_format(endSub[software]) % G01_INTERPOLATED_MACRO_NUMBER << endl;
        	of << endl;	
         of << format( startSub[software] ) % YPROBE_SUB_NUMBER << " ( Y probe subroutine )" << endl;
-        of << "    G0 Z" << zprobe << " ( Move to safe height )" << endl;
+        of << "    G0 Z" << zprobe << " ( Move to probe height )" << endl;
         of << "    X[#" GLOB_VAR_0 " * " << XProbeDist << " + " << startPointX << "] Y[#" GLOB_VAR_1 " * " << YProbeDist << " + " << startPointY << "] "
                     " ( Move to the current probe point )" << endl;
         of << "    " << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Probe it )" << endl;
