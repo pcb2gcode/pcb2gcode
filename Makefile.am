@@ -19,6 +19,8 @@ pcb2gcode_SOURCES = \
 	importer.hpp \
 	layer.hpp \
 	layer.cpp \
+	m4_exporter.hpp \
+	m4_exporter.cpp \
 	mill.hpp \
 	mill.cpp \
 	ngc_exporter.hpp \

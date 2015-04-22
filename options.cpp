@@ -110,9 +110,9 @@ void options::parse(int argc, char** argv) {
       basename = instance().vm["basename"].as<string>() + "_";
    }
 
-   string front_output = "--front-output=" + basename + "front.ngc";
-   string back_output = "--back-output=" + basename + "back.ngc";
-   string outline_output = "--outline-output=" + basename + "outline.ngc";
+   string front_output = "--front-output=" + basename + "front";
+   string back_output = "--back-output=" + basename + "back";
+   string outline_output = "--outline-output=" + basename + "outline";
    string drill_output = "--drill-output=" + basename + "drill.ngc";
 
    const char *fake_basename_command_line[] = { "", front_output.c_str(),
@@ -233,6 +233,7 @@ options::options()
             "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
             "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
+            "m4", po::value<bool>()->default_value(0),"export m4")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
             "back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")(

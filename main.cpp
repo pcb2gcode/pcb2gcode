@@ -64,6 +64,7 @@ using Glib::build_filename;
 #include "gerberimporter.hpp"
 #include "surface.hpp"
 #include "ngc_exporter.hpp"
+#include "m4_exporter.hpp"
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
@@ -318,23 +319,43 @@ int main(int argc, char* argv[]) {
          svgexpo->create_svg( build_filename(outputdir, vm["svg"].as<string>()) );
       }
 
-      shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
-      exporter->add_header(PACKAGE_STRING);
-
-      if (vm.count("preamble") || vm.count("preamble-text")) {
-         exporter->set_preamble(preamble);
+      if (vm["m4"].as<bool>()){
+         shared_ptr<M4_Exporter> exporter(new M4_Exporter(board));
+         exporter->add_header(PACKAGE_STRING);
+   
+         //if (vm.count("preamble") || vm.count("preamble-text")) {
+         //   exporter->set_preamble(preamble);
+         //}
+   
+         //if (vm.count("postamble")) {
+         //   exporter->set_postamble(postamble);
+         //}
+   
+         //SVG EXPORTER
+         if (vm.count("svg")) {
+            exporter->set_svg_exporter(svgexpo);
+         }
+   
+         exporter->export_all(vm);
+      } else {
+         shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
+         exporter->add_header(PACKAGE_STRING);
+   
+         if (vm.count("preamble") || vm.count("preamble-text")) {
+            exporter->set_preamble(preamble);
+         }
+   
+         if (vm.count("postamble")) {
+            exporter->set_postamble(postamble);
+         }
+   
+         //SVG EXPORTER
+         if (vm.count("svg")) {
+            exporter->set_svg_exporter(svgexpo);
+         }
+   
+         exporter->export_all(vm);
       }
-
-      if (vm.count("postamble")) {
-         exporter->set_postamble(postamble);
-      }
-
-      //SVG EXPORTER
-      if (vm.count("svg")) {
-         exporter->set_svg_exporter(svgexpo);
-      }
-
-      exporter->export_all(vm);
 
    } catch (std::logic_error& le) {
       cout << "Internal Error: " << le.what() << endl;
