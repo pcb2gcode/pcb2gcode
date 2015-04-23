@@ -44,6 +44,7 @@ public:
 	;
 
 	double feed;
+	double vertfeed;
 	int speed;
 	double zchange;
 	double zsafe;

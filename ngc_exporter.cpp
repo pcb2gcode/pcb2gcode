@@ -241,8 +241,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
          }
 
          while (z >= mill->zwork) {
-            of << "G01 Z" << z * cfactor << " F" << mill->feed * cfactor / 2
-               << " ( plunge. )\n";
+            of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
             of << "F" << mill->feed * cfactor << "\n";
 
@@ -267,7 +266,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
                      if( *currentBridge == iter - path->begin() )
                         of << "Z" << cutter->bridges_height * cfactor << endl;
                      else if( *currentBridge == last - path->begin() ) {
-                        of << "Z" << z * cfactor << endl;
+                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
+                        of << "F" << cutter->feed * cfactor;
                         ++currentBridge;
                      }
                   }
@@ -286,6 +286,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
       } else {
          //--------------------------------------------------------------------
          // isolating (front/backside)
+         of << "F" << mill->vertfeed * cfactor << endl;
+
          if( bAutolevelNow ) {
             leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffset ) * cfactor,
 										             ( path->begin()->second - yoffset ) * cfactor ) );
@@ -296,6 +298,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name) {
             of << "G01 Z" << mill->zwork * cfactor << "\n";
 
          of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+         of << "F" << mill->feed * cfactor << endl;
 
          icoords::iterator iter = path->begin();
          icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value

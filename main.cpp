@@ -120,6 +120,10 @@ int main(int argc, char* argv[]) {
       isolator->zwork = vm["zwork"].as<double>() * unit;
       isolator->zsafe = vm["zsafe"].as<double>() * unit;
       isolator->feed = vm["mill-feed"].as<double>() * unit;
+      if (vm.count("mill-vertfeed"))
+          isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
+      else
+          isolator->vertfeed = isolator->feed / 2;
       isolator->speed = vm["mill-speed"].as<int>();
       isolator->zchange = vm["zchange"].as<double>() * unit;
       isolator->extra_passes = vm["extra-passes"].as<int>();
@@ -134,6 +138,10 @@ int main(int argc, char* argv[]) {
       cutter->zwork = vm["zcut"].as<double>() * unit;
       cutter->zsafe = vm["zsafe"].as<double>() * unit;
       cutter->feed = vm["cut-feed"].as<double>() * unit;
+      if (vm.count("cut-vertfeed"))
+          cutter->vertfeed = vm["cut-vertfeed"].as<double>() * unit;
+      else
+          cutter->vertfeed = cutter->feed / 2;
       cutter->speed = vm["cut-speed"].as<int>();
       cutter->zchange = vm["zchange"].as<double>() * unit;
       cutter->do_steps = true;

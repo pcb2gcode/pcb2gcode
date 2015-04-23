@@ -87,6 +87,10 @@ Z-coordinate for movements between engraving steps
 \fB\-\-mill\-feed\fP \fIunit/minute\fP
 feed rate at which engraving takes place (horizontal speed)
 .TP
+\fB\-\-mill\-vertfeed\fP \fIunit/minute\fP
+vertical mill feed rate used at the start of each engraving path. If
+unspecified, \fB\-\-mill\-feed\fP/2 will be used.
+.TP
 \fB\-\-mill\-speed\fP \fIrpm\fP
 spindle speed during engraving (rounds per minute)
 .TP
@@ -149,6 +153,10 @@ Z-coordinate indicating where the outline cutting ends
 .TP
 \fB\-\-cut\-feed\fP \fIunit/minute\fP
 feed rate at which outline cutting takes place (horizontal speed)
+.TP
+\fB\-\-cut\-vertfeed\fP \fIunit/minute\fP
+vertical cut feed rate used at the start of each cutting path. If
+unspecified, \fB\-\-cut\-feed\fP/2 will be used.
 .TP
 \fB\-\-cut\-speed\fP \fIrpm\fP
 spindle speed during outline cutting (rounds per minute)

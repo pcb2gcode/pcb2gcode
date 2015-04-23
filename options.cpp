@@ -190,6 +190,7 @@ options::options()
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
+            "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
             "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
@@ -199,6 +200,7 @@ options::options()
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
             "zcut", po::value<double>(), "PCB cutting depth in inches")(
             "cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")(
+            "cut-vertfeed", po::value<double>(), "PCB vertical cutting feed in [i/m] or [mm/m]")(
 			"cut-speed", po::value<int>(), "spindle rpm when cutting")(
             "cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")(
             "cut-front", po::value<bool>()->default_value(false)->implicit_value(true), "cut from front side. Default is back side.")(
@@ -394,9 +396,14 @@ static void check_milling_parameters(po::variables_map const& vm) {
          exit(ERR_ZSAFELOWERZWORK);
       }
 
-      if (vm["mill-feed"].as<double>() < 0) {
-         cerr << "Error: Negative milling feed (--mill-feed).\n";
+      if (vm["mill-feed"].as<double>() <= 0) {
+         cerr << "Error: Negative or equal to 0 milling feed (--mill-feed).\n";
          exit(ERR_NEGATIVEMILLFEED);
+      }
+
+      if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<double>() <= 0) {
+         cerr << "Error: Negative or equal to 0 vertical milling feed (--mill-vertfeed).\n";
+         exit(ERR_NEGATIVEMILLVERTFEED);
       }
 
       if (vm["mill-speed"].as<int>() < 0) {
@@ -526,6 +533,11 @@ static void check_cutting_parameters(po::variables_map const& vm) {
       if (vm["cut-feed"].as<double>() <= 0) {
          cerr << "Error: The cutting feed --cut-feed is <= 0.\n";
          exit(ERR_NEGATIVECUTFEED);
+      }
+
+      if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<double>() <= 0) {
+         cerr << "Error: The cutting vertical feed --cut-feed is <= 0.\n";
+         exit(ERR_NEGATIVECUTVERTFEED);
       }
 
       if (vm["cut-speed"].as<int>() < 0) {      //no need to support both directions?
