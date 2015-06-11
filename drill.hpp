@@ -44,6 +44,8 @@ using std::map;
 #include <string>
 using std::string;
 
+#include <list>
+using std::list;
 #include <vector>
 using std::vector;
 #include <map>
@@ -91,19 +93,18 @@ class ExcellonProcessor {
    public:
       ExcellonProcessor(const string drillfile, const ivalue_t board_width,
                         const ivalue_t board_center, bool metricoutput,
-                        double xoffset = 0, double yoffset = 0);
+                        bool optimise, bool drillfront, bool mirror_absolute,
+                        double quantization_error, double xoffset = 0, double yoffset = 0);
       ~ExcellonProcessor();
       void add_header(string);
       void set_preamble(string);
       void set_postamble(string);
-      void export_ngc(const string of_name, shared_ptr<Driller> target,
-                      bool mirrored, bool mirror_absolute, bool onedrill, bool nog81);
-      void export_ngc(const string of_name, shared_ptr<Cutter> target,
-                      bool mirrored, bool mirror_absolute, bool onedrill);
+      void export_ngc(const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
+      void export_ngc(const string of_name, shared_ptr<Cutter> target);
       void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
 
-      shared_ptr<const map<int, drillbit> > get_bits();
-      shared_ptr<const map<int, icoords> > get_holes();
+      shared_ptr< map<int, drillbit> > get_bits();
+      shared_ptr< map<int, icoords> > get_holes();
 
    private:
       void parse_holes();
@@ -111,7 +112,11 @@ class ExcellonProcessor {
       bool millhole(std::ofstream &of, double x, double y,
                     shared_ptr<Cutter> cutter, double holediameter);
       void calc_dimensions();
-      double get_xvalue(bool, bool, double);
+      double get_xvalue(double);
+
+      shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
+      shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
+      static double pointDistance ( icoordpair p0, icoordpair p1 );
 
       const ivalue_t board_width;
       const ivalue_t board_center;
@@ -131,9 +136,13 @@ class ExcellonProcessor {
       double x_max;           //!< absolute max drill coordinate
       double width;           //!< distance between x_min and x_max
       double x_center;        //!< absolute center of drill coordinates
-      bool   bMetricOutput;   //!< Flag to indicate metric output
-      double xoffset;
-      double yoffset;
+      const bool drillfront;
+      const bool mirror_absolute;
+      const bool bMetricOutput;   //!< Flag to indicate metric output
+      const bool optimise;
+      const double quantization_error;
+      const double xoffset;
+      const double yoffset;
 };
 
 #endif // DRILL_H

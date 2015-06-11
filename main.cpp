@@ -363,7 +363,7 @@ int main(int argc, char* argv[]) {
 
       //Check if there are layers in "board"; if not, we have to compute
       //the size of the board now, based only on the size of the drill layer
-      //(the resulting drill gcode will be probably disaligned, but this is the
+      //(the resulting drill gcode will be probably misaligned, but this is the
       //best we can do)
       if(board->get_layersnum() == 0) {
          boost::shared_ptr<LayerImporter> importer(new GerberImporter(drill));
@@ -382,6 +382,10 @@ int main(int argc, char* argv[]) {
                board_width,
                board_min_x + board_width / 2,
                vm["metricoutput"].as<bool>(),
+               vm["optimise"].as<bool>(),
+               vm["drill-front"].as<bool>(),
+               vm["mirror-absolute"].as<bool>(),
+               2.0 / vm["dpi"].as<int>(),
                vm["zero-start"].as<bool>() ? board_min_x : 0,
                vm["zero-start"].as<bool>() ? board_min_y : 0 ) ;
 
@@ -403,13 +407,10 @@ int main(int argc, char* argv[]) {
       cout << "DONE.\n";
 
       if (vm["milldrill"].as<bool>()) {
-         ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
-                       cutter, !vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
-                       vm["onedrill"].as<bool>());
+         ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()), cutter);
       } else {
          ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
-                       driller, vm["drill-front"].as<bool>(), vm["mirror-absolute"].as<bool>(),
-                       vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
+                        driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
       }
 
    } catch (drill_exception& e) {
