@@ -18,6 +18,8 @@
 
 #include <vector>
 #include <boost/geometry.hpp>
+#include <boost/geometry/geometries/register/point.hpp>
+#include <boost/geometry/geometries/register/ring.hpp>
 
 typedef std::pair<int, int> coordpair;
 typedef std::vector<coordpair> coords;
@@ -30,47 +32,9 @@ typedef std::pair<ivalue_t, ivalue_t> icoordpair;
 typedef std::vector<icoordpair> icoords;
 
 //Adaptation of icoordpair to Boost Geometry (point)
-namespace boost {
-    namespace geometry {
-        namespace traits {
-
-            template<> struct tag<icoordpair>
-            { typedef point_tag type; };
-
-            template<> struct coordinate_type<icoordpair>
-            { typedef ivalue_t type; };
-
-            template<> struct coordinate_system<icoordpair>
-            { typedef cs::cartesian type; };
-
-            template<> struct dimension<icoordpair> : boost::mpl::int_<2> {};
-
-            template<> struct access<icoordpair, 0> {
-                static ivalue_t get(icoordpair const& p)
-                { return p.first; }
-
-                static void set(icoordpair& p, ivalue_t const& value)
-                { p.first = value; }
-            };
-
-            template<> struct access<icoordpair, 1> {
-                static ivalue_t get(icoordpair const& p)
-                { return p.second; }
-
-                static void set(icoordpair& p, ivalue_t const& value)
-                { p.second = value; }
-            };
-        }
-    }
-}
+BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, second)
 
 // Adaptation of icoords to Boost Geometry (ring)
-namespace boost {
-    namespace geometry {
-        namespace traits {
-            template <> struct tag< icoords > { typedef ring_tag type; };
-        }
-    }
-}
+BOOST_GEOMETRY_REGISTER_RING(icoords)
 
 #endif // COORD_H
