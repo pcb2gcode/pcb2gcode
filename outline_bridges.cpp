@@ -26,6 +26,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/assign/list_of.hpp>
+#include <boost/geometry/algorithms/distance.hpp>
 #include <cmath>
 
 vector<unsigned int> outline_bridges::makeBridges ( shared_ptr<icoords> &path, unsigned int number, double length ) {
@@ -40,7 +41,7 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
     vector< pair< unsigned int, double > > output;
     
     for( unsigned int i = 0; i < path->size() - 1; i++ )
-        distances.push_back( std::make_pair( i, pointDistance( path->at(i), path->at(i+1) ) ) );
+        distances.push_back( std::make_pair( i, boost::geometry::distance( path->at(i), path->at(i+1) ) ) );
 
     for( unsigned int i = 0; i < number; i++ )
     {
@@ -80,14 +81,6 @@ vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, 
     }
 
     return output;
-}
-
-//This function compute the distance between two points
-double outline_bridges::pointDistance( icoordpair p0, icoordpair p1 ) {
-	double x1_x0 = p1.first - p0.first;
-	double y1_y0 = p1.second - p0.second;
-	
-	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
 }
 
 //This function returns the intermediate point between p0 and p1. With position=0 it returns p0, with position=1 it returns p1,

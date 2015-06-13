@@ -116,7 +116,6 @@ class ExcellonProcessor {
 
       shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
       shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
-      static double pointDistance ( icoordpair p0, icoordpair p1 );
 
       const ivalue_t board_width;
       const ivalue_t board_center;

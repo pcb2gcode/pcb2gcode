@@ -57,6 +57,7 @@ using namespace std;
 #include <boost/scoped_array.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/foreach.hpp>
+#include <boost/geometry/algorithms/distance.hpp>
 
 using std::pair;
 using std::make_pair;
@@ -561,16 +562,16 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
       new_length = 0;
 
       //Find the original path length
-      original_length = pointDistance( startingPoint, path.front() );
+      original_length = boost::geometry::distance( startingPoint, path.front() );
       for( list<icoordpair>::const_iterator hole = boost::next(path.begin()); hole != path.end(); hole++ )
-         original_length += pointDistance( *boost::prior(hole), *hole );
+         original_length += boost::geometry::distance( *boost::prior(hole), *hole );
 
       icoordpair currentHole = startingPoint;
       while( path.size() > 1 ) {
 
          //Compute all the distances
          for( list<icoordpair>::const_iterator i = path.begin(); i != path.end(); i++ )
-            distances.push_back( pointDistance( currentHole, *i ) );
+            distances.push_back( boost::geometry::distance( currentHole, *i ) );
 
          //Find the minimum distance
          minDistance = *min_element( distances.begin(), distances.end() );
@@ -604,7 +605,7 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
       }
 
       newpath.push_back( path.front() );    //Copy the last hole into newpath
-      new_length += pointDistance( currentHole, path.front() ); //Compute the distance and add it to new_length
+      new_length += boost::geometry::distance( currentHole, path.front() ); //Compute the distance and add it to new_length
 
       if( new_length < original_length ) {  //If the new path is better than the previous one
          i->second = newpath;               //Replace the old path with the optimised one
@@ -650,15 +651,4 @@ void ExcellonProcessor::set_preamble(string _preamble) {
 /******************************************************************************/
 void ExcellonProcessor::set_postamble(string _postamble) {
    postamble_ext = _postamble;
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double ExcellonProcessor::pointDistance ( icoordpair p0, icoordpair p1 ) {
-	double x1_x0 = p1.first - p0.first;
-	double y1_y0 = p1.second - p0.second;
-
-	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
 }
