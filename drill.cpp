@@ -75,7 +75,6 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
                                      const ivalue_t board_width,
                                      const ivalue_t board_center,
                                      bool _metricoutput,
-                                     bool optimise,
                                      bool drillfront,
                                      bool mirror_absolute,
                                      double quantization_error,
@@ -83,8 +82,8 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
                                      double yoffset)
          : board_center(board_center), board_width(board_width),
            drillfront(drillfront), mirror_absolute(mirror_absolute),
-           bMetricOutput(_metricoutput), optimise(optimise),
-           quantization_error(quantization_error), xoffset(xoffset), yoffset(yoffset) {
+           bMetricOutput(_metricoutput), quantization_error(quantization_error),
+           xoffset(xoffset), yoffset(yoffset) {
 
    bDoSVG = false;      //clear flag for SVG export
    project = gerbv_create_project();
@@ -225,8 +224,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
    std::ofstream of;
    of.open(of_name.c_str());
 
-   shared_ptr<const map<int, drillbit> > bits = optimise ? optimise_bits( get_bits(), onedrill ) : get_bits();
-   shared_ptr<const map<int, icoords> > holes = optimise ? optimise_path( get_holes(), onedrill ) : get_holes();
+   shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
+   shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
 
    //write header to .ngc file
    BOOST_FOREACH (string s, header) {
@@ -391,8 +390,8 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
    std::ofstream of;
    of.open(outputname.c_str());
 
-   shared_ptr<const map<int, drillbit> > bits = optimise ? optimise_bits( get_bits(), false ) : get_bits();
-   shared_ptr<const map<int, icoords> > holes = optimise ? optimise_path( get_holes(), false ) : get_holes();
+   shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
+   shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
 
    // write header to .ngc file
    BOOST_FOREACH (string s, header) {

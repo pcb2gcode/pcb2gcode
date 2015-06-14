@@ -93,8 +93,8 @@ class ExcellonProcessor {
    public:
       ExcellonProcessor(const string drillfile, const ivalue_t board_width,
                         const ivalue_t board_center, bool metricoutput,
-                        bool optimise, bool drillfront, bool mirror_absolute,
-                        double quantization_error, double xoffset = 0, double yoffset = 0);
+                        bool drillfront, bool mirror_absolute, double quantization_error,
+                        double xoffset = 0, double yoffset = 0);
       ~ExcellonProcessor();
       void add_header(string);
       void set_preamble(string);
@@ -138,7 +138,6 @@ class ExcellonProcessor {
       const bool drillfront;
       const bool mirror_absolute;
       const bool bMetricOutput;   //!< Flag to indicate metric output
-      const bool optimise;
       const double quantization_error;
       const double xoffset;
       const double yoffset;

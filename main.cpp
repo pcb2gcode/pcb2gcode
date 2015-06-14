@@ -382,7 +382,6 @@ int main(int argc, char* argv[]) {
                board_width,
                board_min_x + board_width / 2,
                vm["metricoutput"].as<bool>(),
-               vm["optimise"].as<bool>(),
                vm["drill-front"].as<bool>(),
                vm["mirror-absolute"].as<bool>(),
                2.0 / vm["dpi"].as<int>(),
