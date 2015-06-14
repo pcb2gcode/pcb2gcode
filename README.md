@@ -30,15 +30,15 @@ There are pcb2gcode packages in the official repositories. You can install the w
 
     sudo apt-get install pcb2gcode
 
-Unfortunately, these packages are outdated (as 31/1/2015). If you want to download the latest development
+Unfortunately, these packages are outdated (as 14/6/2015). If you want to download the latest development
 version, go to "Installation from GIT"
 
 ### Installation from GIT (latest development version):
 If you want to install the latest version from git you'll need the autotools, boost program options library
-(dev), gtkmm2.4 (dev) and libgerbv (dev). You can download them from your repositories; if you use
-Debian/Ubuntu type
+(dev), boost geometry library (dev) gtkmm2.4 (dev) and libgerbv (dev). You can download them from your
+repositories; if you use Debian/Ubuntu type
 
-    $ sudo apt-get install build-essential automake autoconf libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv
+    $ sudo apt-get install build-essential automake autoconf libtool libboost-dev libboost-program-options-dev libgtkmm-2.4-dev gerbv
 
 or, if you use Fedora
 
@@ -48,11 +48,13 @@ or, if you use Fedora
     yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel
     exit
 
-Then you can download it from git, build and install it
+Then you can download pcb2gcode from git, build and install it
 
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode
-    $ ./git-build.sh
+    $ autoreconf -i
+    $ ./configure
+    $ make
     $ sudo make install
 
 ### Windows
