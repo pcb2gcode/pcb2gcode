@@ -31,6 +31,7 @@
 using std::pair;
 
 #include "outline_bridges.hpp"
+#include "tsp_solver.hpp"
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -189,6 +190,9 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 				<< " instead. You may want to check the g-code output and"
 				<< " possibly use a smaller milling width.\n";
 	}
+
+	if(mill->optimise)
+	    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
 
 	save_debug_image("traced");
 	return toolpath;

@@ -22,6 +22,9 @@
  */
 /******************************************************************************/
 
+#ifndef OUTLINE_BRIDGES_HPP
+#define OUTLINE_BRIDGES_HPP
+
 #include <vector>
 using std::vector;
 using std::pair;
@@ -45,3 +48,4 @@ class outline_bridges {
         static icoordpair intermediatePoint( icoordpair p0, icoordpair p1, double position );
 };
 
+#endif
