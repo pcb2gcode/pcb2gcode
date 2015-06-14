@@ -56,10 +56,71 @@ Then you can download it from git, build and install it
     $ sudo make install
 
 ### Windows
-Building pcb2gcode in Windows isn't easy, you should download a precompiled release.
-If you really want to build it by yourself you'll need MinGW and a MSYS environment.
-You can find a good guide here http://ingar.satgnu.net/devenv/mingw32/index.html (follow
-the steps 1, 2 and 3, or follow the step 1 and download the precompiled packages here
-http://ingar.satgnu.net/devenv/mingw32/base.html#build)
+You can easily build pcb2gcode for Windows with MSYS2 (http://sourceforge.net/projects/msys2/).
+Download MSYS2 and install it somewhere, then run "MinGW-w64 Win32 Shell" (if you want a i686 binary) or "MinGW-w64 Win64 Shell" (if you want a x86_64 binary). The following commands are for the i686 binary, if you want the x86_64 binary replace all the "/mingw32" with "/mingw64" and all the mingw-w64-i686-* packages with mingw-w64-x86_64-*
+
+    pacman -Sy
+    pacman --needed -S bash pacman pacman-mirrors msys2-runtime
+
+Close and reopen the shell
+
+    pacman -Su
+    pacman --needed -S base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-gtkmm
+
+Now let's download, build and install gerbv (version 2.6.1 is broken, don't use it)
+
+    wget downloads.sourceforge.net/gerbv/gerbv-2.6.0.tar.gz
+    tar -xzf gerbv-2.6.0.tar.gz
+    cd gerbv-2.6.0/    
+    ./configure --prefix=/mingw32 --disable-update-desktop-database
+    make
+    make install
+
+Finally, download and build pcb2gcode
+
+    cd ..
+    git clone https://github.com/pcb2gcode/pcb2gcode.git
+    cd pcb2gcode/
+    autoreconf -i
+    ./configure --prefix=/mingw32
+    make LDFLAGS='-s'
+
+The dynamically linked binary is &lt;msys2 installation folder&gt;/home/&lt;user&gt;/pcb2gcode/.libs/pcb2gcode.exe.
+You can find all the DLLs in &lt;msys2 installation folder&gt;/mingw32/bin; copy them in the same folder of pcb2gcode. The required DLLs are:
+ * libatk-1.0-0.dll
+ * libboost_program_options-mt.dll
+ * libbz2-1.dll
+ * libcairo-2.dll
+ * libcairomm-1.0-1.dll
+ * libexpat-1.dll
+ * libffi-6.dll
+ * libfontconfig-1.dll
+ * libfreetype-6.dll
+ * libgcc_s_dw2-1.dll (for the i686 binary)
+ * libgcc_s_seh-1.dll (for the x86_64 binary)
+ * libgdkmm-2.4-1.dll
+ * libgdk_pixbuf-2.0-0.dll
+ * libgdk-win32-2.0-0.dll
+ * libgerbv-1.dll
+ * libgio-2.0-0.dll
+ * libglib-2.0-0.dll
+ * libglibmm-2.4-1.dll
+ * libgmodule-2.0-0.dll
+ * libgobject-2.0-0.dll
+ * libgtk-win32-2.0-0.dll
+ * libharfbuzz-0.dll
+ * libiconv-2.dll
+ * libintl-8.dll
+ * libpango-1.0-0.dll
+ * libpangocairo-1.0-0.dll
+ * libpangoft2-1.0-0.dll
+ * libpangomm-1.4-1.dll
+ * libpangowin32-1.0-0.dll
+ * libpixman-1-0.dll
+ * libpng16-16.dll
+ * libsigc-2.0-0.dll
+ * libstdc++-6.dll
+ * libwinpthread-1.dll
+ * zlib1.dll
 
 For further details, see INSTALL.
