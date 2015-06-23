@@ -22,6 +22,9 @@
  */
 /******************************************************************************/
 
+#ifndef OUTLINE_BRIDGES_HPP
+#define OUTLINE_BRIDGES_HPP
+
 #include <vector>
 using std::vector;
 using std::pair;
@@ -42,7 +45,7 @@ class outline_bridges {
     protected:
         static vector< pair< unsigned int, double > > findLongestSegments ( const shared_ptr<icoords> path, unsigned int number, double length );
         static vector<unsigned int> insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments, double length );
-        static double pointDistance( icoordpair p0, icoordpair p1 );
         static icoordpair intermediatePoint( icoordpair p0, icoordpair p1, double position );
 };
 
+#endif

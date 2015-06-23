@@ -25,6 +25,7 @@ pcb2gcode_SOURCES = \
 	ngc_exporter.cpp \
 	surface.hpp \
 	surface.cpp \
+	tsp_solver.hpp \
 	options.hpp \
 	options.cpp \
     outline_bridges.hpp \

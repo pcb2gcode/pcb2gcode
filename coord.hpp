@@ -17,6 +17,9 @@
 #define COORD_H
 
 #include <vector>
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/register/point.hpp>
+#include <boost/geometry/geometries/register/ring.hpp>
 
 typedef std::pair<int, int> coordpair;
 typedef std::vector<coordpair> coords;
@@ -27,5 +30,11 @@ typedef double ivalue_t;
 
 typedef std::pair<ivalue_t, ivalue_t> icoordpair;
 typedef std::vector<icoordpair> icoords;
+
+//Adaptation of icoordpair to Boost Geometry (point)
+BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, second)
+
+// Adaptation of icoords to Boost Geometry (ring)
+BOOST_GEOMETRY_REGISTER_RING(icoords)
 
 #endif // COORD_H

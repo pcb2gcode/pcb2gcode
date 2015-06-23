@@ -31,6 +31,7 @@
 using std::pair;
 
 #include "outline_bridges.hpp"
+#include "tsp_solver.hpp"
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -127,65 +128,6 @@ double distancePointLine(const icoordpair &x, const icoordpair &la,
 /*
  */
 /******************************************************************************/
-void simplifypath(shared_ptr<icoords> outline, double accuracy) {
-	//take two points of the path
-	// and their interconnecting path.
-	// if the distance between all intermediate points and this line is smaller
-	// than the accuracy, all the points in between can be removed..
-	bool change;
-	int lasterased = 0;
-	const bool debug = false;
-	std::list<icoordpair> l;
-	for (int i = 0; i < outline->size(); i++) {
-		icoordpair &ii = (*outline)[i];
-		l.push_back(ii);
-	}
-
-	if (debug)
-		cerr << "outline size:" << outline->size() << endl;
-	int pos = 0;
-	do //cycle until no two points can be combined..
-	{
-		change = false;
-
-		list<icoordpair>::iterator a = l.begin();
-		do {
-			list<icoordpair>::iterator b, c;
-			b = a;
-			b++;
-			c = b;
-			c++;
-			if ((b == l.end()))
-				break;
-			double d = distancePointLine(*b, *a, *c);
-			if ((d < accuracy)) {
-
-				if (debug)
-					cerr << "erasing at" << pos << " of " << l.size() << " d="
-							<< d << endl;
-				a = l.erase(b);
-				change = true;
-			} else
-				a = b;
-			pos++;
-		} while (a != l.end());
-		//change=false;
-	} while (change);
-
-	if (debug)
-		cout << "copying" << endl;
-	outline->resize(0);
-	for (list<icoordpair>::iterator a = l.begin(); a != l.end(); a++)
-		outline->push_back(*a);
-	if (debug)
-		cerr << "outline size:" << outline->size() << endl;
-
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
 vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 		bool mirrored, bool mirror_absolute) {
 	Isolator* iso = dynamic_cast<Isolator*>(mill.get());
@@ -216,6 +158,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 			inside.clear();
 
 			shared_ptr<icoords> outline(new icoords());
+			shared_ptr<icoords> outline_optimised(new icoords());
 
 			// i'm not sure wheter this is the right place to do this...
 			// that "mirrored" flag probably is a bad idea.
@@ -229,11 +172,15 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 								min_y + max_y - ypt2i(c.second)));
 			}
 
-			if (mill->optimise)
-				simplifypath(outline, 1.0 / dpi );
-
 			outside.clear();
-			toolpath.push_back(outline);
+
+			if (mill->optimise) {
+			    //Use Boost's Douglas-Peucker simplification algorithm
+				boost::geometry::simplify( *outline, *outline_optimised, 1.0 / dpi );
+				toolpath.push_back(outline_optimised);
+			}
+			else
+				toolpath.push_back(outline);
 		}
 	}
 
@@ -243,6 +190,8 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 				<< " instead. You may want to check the g-code output and"
 				<< " possibly use a smaller milling width.\n";
 	}
+
+	tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
 
 	save_debug_image("traced");
 	return toolpath;

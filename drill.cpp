@@ -58,6 +58,8 @@ using namespace std;
 #include <boost/next_prior.hpp>
 #include <boost/foreach.hpp>
 
+#include "tsp_solver.hpp"
+
 using std::pair;
 using std::make_pair;
 using std::max;
@@ -73,7 +75,6 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
                                      const ivalue_t board_width,
                                      const ivalue_t board_center,
                                      bool _metricoutput,
-                                     bool optimise,
                                      bool drillfront,
                                      bool mirror_absolute,
                                      double quantization_error,
@@ -81,8 +82,8 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
                                      double yoffset)
          : board_center(board_center), board_width(board_width),
            drillfront(drillfront), mirror_absolute(mirror_absolute),
-           bMetricOutput(_metricoutput), optimise(optimise),
-           quantization_error(quantization_error), xoffset(xoffset), yoffset(yoffset) {
+           bMetricOutput(_metricoutput), quantization_error(quantization_error),
+           xoffset(xoffset), yoffset(yoffset) {
 
    bDoSVG = false;      //clear flag for SVG export
    project = gerbv_create_project();
@@ -223,8 +224,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
    std::ofstream of;
    of.open(of_name.c_str());
 
-   shared_ptr<const map<int, drillbit> > bits = optimise ? optimise_bits( get_bits(), onedrill ) : get_bits();
-   shared_ptr<const map<int, icoords> > holes = optimise ? optimise_path( get_holes(), onedrill ) : get_holes();
+   shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
+   shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
 
    //write header to .ngc file
    BOOST_FOREACH (string s, header) {
@@ -389,8 +390,8 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
    std::ofstream of;
    of.open(outputname.c_str());
 
-   shared_ptr<const map<int, drillbit> > bits = optimise ? optimise_bits( get_bits(), false ) : get_bits();
-   shared_ptr<const map<int, icoords> > holes = optimise ? optimise_path( get_holes(), false ) : get_holes();
+   shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
+   shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
 
    // write header to .ngc file
    BOOST_FOREACH (string s, header) {
@@ -515,16 +516,8 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::get_holes() {
 /******************************************************************************/
 shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill ) {
 
-   list<icoordpair> path;
-   vector<double> distances;
-   vector<icoordpair> newpath;
-   vector< pair< vector<double>::iterator, list<icoordpair>::iterator > > nearestPoints;    //TODO Can we use a list here?
-   double original_length;
-   double new_length;
-   double minDistance;
-   map<int, icoords>::iterator i;
    unsigned int size = 0;
-   const icoordpair startingPoint (get_xvalue(0) + xoffset, yoffset);
+   map<int, icoords>::iterator i;
 
    //If the onedrill option has been selected, we can merge all the holes in a single path
    //in order to optimise it even more
@@ -533,9 +526,8 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
       for( i = original_path->begin(); i != original_path->end(); i++ )
          size += i->second.size();
 
-      //Then reserve the vector's size (and re-initialize size to 0)
+      //Then reserve the vector's size
       original_path->begin()->second.reserve( size );
-      size = 0;
 
       //Then copy all the paths inside the first and delete the source vector
       map<int, icoords>::iterator second_element;
@@ -547,75 +539,9 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
       }
    }
 
-   //Find the maximum path size
-   for( i = original_path->begin(); i != original_path->end(); i++ )
-      size = max<unsigned int>( size, i->second.size() );
-
-   //Reserve memory
-   distances.reserve( size );
-   newpath.reserve( size );
-
+   //Otimise the holes path
    for( i = original_path->begin(); i != original_path->end(); i++ ) {
-
-      path.assign( i->second.begin(), i->second.end() );
-      new_length = 0;
-
-      //Find the original path length
-      original_length = pointDistance( startingPoint, path.front() );
-      for( list<icoordpair>::const_iterator hole = boost::next(path.begin()); hole != path.end(); hole++ )
-         original_length += pointDistance( *boost::prior(hole), *hole );
-
-      icoordpair currentHole = startingPoint;
-      while( path.size() > 1 ) {
-
-         //Compute all the distances
-         for( list<icoordpair>::const_iterator i = path.begin(); i != path.end(); i++ )
-            distances.push_back( pointDistance( currentHole, *i ) );
-
-         //Find the minimum distance
-         minDistance = *min_element( distances.begin(), distances.end() );
-
-         //Find all the minimum distance points and copy their iterators in nearestPoints
-         list<icoordpair>::iterator hole = path.begin();
-         for( vector<double>::iterator dist = distances.begin(); dist != distances.end(); dist++ ) {
-            if( *dist - minDistance <= 2 * quantization_error ) {
-               nearestPoints.push_back( make_pair( dist, hole ) );
-            }
-            ++hole;
-         }
-
-         vector< pair< vector<double>::iterator, list<icoordpair>::iterator > >::iterator chosenHole;
-         if( nearestPoints.size() == 1 ) {
-            //Simplest case: the minimum distance point is unique; just copy it into newpath
-            chosenHole = nearestPoints.begin();
-         }
-         else {
-            //More complex case: we have multiple minimum distance points (like in a grid); we have
-            //to choose one of them
-            chosenHole = nearestPoints.begin(); //TODO choose in a smarter way
-         }
-
-         newpath.push_back( *(chosenHole->second) ); //Copy the chosen hole into newpath
-         currentHole = *(chosenHole->second);        //Set the next currentHole to the chosen hole
-         path.erase( chosenHole->second );           //Remove the chosen hole from the path list ERROR SEGFAULT
-         new_length += *(chosenHole->first);         //Update the new path total length
-         distances.clear();                          //Clear the distances vector
-         nearestPoints.clear();                      //Clear the nearestPoints vector
-      }
-
-      newpath.push_back( path.front() );    //Copy the last hole into newpath
-      new_length += pointDistance( currentHole, path.front() ); //Compute the distance and add it to new_length
-
-      if( new_length < original_length ) {  //If the new path is better than the previous one
-         i->second = newpath;               //Replace the old path with the optimised one
-         //std::cout << "Replacing path; ";
-      }
-      //else
-         //std::cout << "Maintaining old path; ";
-
-      //std::cout << "old path was " << original_length << " while the optimised one is " << new_length << std::endl;
-
-      newpath.clear();  //Clear the newpath vector
+      tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
    }
 
    return original_path;
@@ -627,11 +553,9 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
 /******************************************************************************/
 shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill ) {
 
-   if( onedrill ) {
-      while( original_bits->size() > 1 ) {
-         original_bits->erase( boost::next( original_bits->begin() ) );
-      }
-   }
+   //The bits optimisation function simply removes all the unnecessary bits when onedrill == true
+   if( onedrill )
+      original_bits->erase( boost::next( original_bits->begin() ), original_bits->end() );
 
    return original_bits;
 }
@@ -650,15 +574,4 @@ void ExcellonProcessor::set_preamble(string _preamble) {
 /******************************************************************************/
 void ExcellonProcessor::set_postamble(string _postamble) {
    postamble_ext = _postamble;
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double ExcellonProcessor::pointDistance ( icoordpair p0, icoordpair p1 ) {
-	double x1_x0 = p1.first - p0.first;
-	double y1_y0 = p1.second - p0.second;
-
-	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
 }

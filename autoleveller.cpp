@@ -30,6 +30,7 @@
 #include <limits>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/geometry/algorithms/distance.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
 #include <boost/foreach.hpp>
@@ -379,23 +380,16 @@ string autoleveller::g01Corrected ( icoordpair point ) {
     	return interpolatePoint( point ) + "G01 Z[" + zwork + "+#" RESULT_VAR "]\n";
 }
 
-double autoleveller::pointDistance ( icoordpair p0, icoordpair p1 ) {
-	double x1_x0 = p1.first - p0.first;
-	double y1_y0 = p1.second - p0.second;
-	
-	return sqrt( x1_x0 * x1_x0 + y1_y0 * y1_y0 );
-}
-
 unsigned int autoleveller::numOfSubsegments ( icoordpair point ) {
 
 	if( abs( lastPoint.first - point.first ) <= quantization_error )	//The two points are X-aligned
-		return ceil( pointDistance( lastPoint, point ) / YProbeDist );
+		return ceil( boost::geometry::distance( lastPoint, point ) / YProbeDist );
 		
 	else if( abs( lastPoint.second - point.second ) <= quantization_error )	//The two points are Y-aligned
-		return ceil( pointDistance( lastPoint, point ) / XProbeDist );
+		return ceil( boost::geometry::distance( lastPoint, point ) / XProbeDist );
 		
 	else	//The two points aren't aligned
-		return ceil( pointDistance( lastPoint, point ) / averageProbeDist );
+		return ceil( boost::geometry::distance( lastPoint, point ) / averageProbeDist );
 }
 
 icoords autoleveller::splitSegment ( const icoordpair point, const unsigned int n ) {

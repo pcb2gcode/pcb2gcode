@@ -276,8 +276,8 @@ relevant only when \fB\-\-software\fP=\fBcustom\fP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
 \fB\-\-optimise\fP
-optimise the output gcode, reducing its output size up to 95% (while accepting
-a very little loss of precision) and reducing the drilling path length
+optimise the output gcode with a Douglas-Peucker algorithm, reducing its output
+size up to 95% (while accepting a very little loss of precision)
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000). If the software freezes during

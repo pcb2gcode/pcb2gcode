@@ -200,9 +200,6 @@ protected:
 	// the indexes i and j
 	string getVarName( int i, int j );
 
-	// pointDistance computes the euclidean distance between p0 and p1
-	static double pointDistance ( icoordpair p0, icoordpair p1 );
-
 	// interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
 	// The result of the interpolation is saved in the parameter number RESULT_VAR
 	string interpolatePoint ( icoordpair point );
