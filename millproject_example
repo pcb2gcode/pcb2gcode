@@ -1,5 +1,6 @@
 # This is an example config file for pcb2gcode.
-# Place this in the same directory as your gerber files to save typing
+# Rename this file "millproject" and place it in the same directory as your
+# gerber files to save typing
 # <option>=false is implicit, it is present just for clearness
 
 # You may want to uncomment and change those in local project files (or you

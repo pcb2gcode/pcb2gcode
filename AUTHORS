@@ -4,6 +4,9 @@ Core algorithm, original (pre 1.0) version: http://cynbe.us/~cynbe/gcoder/
 Patrick Birnzain
 sourceforge project, most of C++ rewrite
 
+Nicola Corna
+Autoleveller, bridges, Windows build, paths optimisation, GUI, etc.
+
 Christian M. Amsüss (Metalab Vienna)
 Debian/Ubuntu Packages, major contributions
 
@@ -12,9 +15,6 @@ Bernhard Kubicek (Metalab Vienna)
 
 Pierre Doucet
 Arch Linux packages
-
-Nicola Corna
-Autoleveller, Windows build, --zero-start, GUI, code cleaning, etc.
 
 Further Development:
 Andrew Jessop

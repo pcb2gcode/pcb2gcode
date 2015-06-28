@@ -20,7 +20,6 @@ pcb2gcode_SOURCES = \
 	layer.hpp \
 	layer.cpp \
 	mill.hpp \
-	mill.cpp \
 	ngc_exporter.hpp \
 	ngc_exporter.cpp \
 	surface.hpp \
