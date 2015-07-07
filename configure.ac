@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([pcb2gcode], [1.2.1], [pbirnzain@users.sourceforge.net])
+AC_INIT([pcb2gcode], [1.2.2], [nicola@corna.info])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
