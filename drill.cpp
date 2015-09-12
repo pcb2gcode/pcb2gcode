@@ -512,6 +512,17 @@ void ExcellonProcessor::parse_holes()
             (*holes)[currentNet->aperture].push_back(
                 icoordpair(currentNet->start_x, currentNet->start_y));
     }
+
+    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
+        if (holes->count(it->first) == 0)   //If a bit has no associated holes
+        {
+			cerr << "Warning: bit " << it->first << " (" << it->second.diameter
+				 << ' ' << it->second.unit << ") has no associated holes; "
+				 "removing it." << std::endl;
+            bits->erase(it++);  //remove it
+        }
+        else
+            ++it;
 }
 
 /******************************************************************************/
