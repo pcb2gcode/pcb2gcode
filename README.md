@@ -1,3 +1,5 @@
+# pcb2gcode [![Build Status](https://travis-ci.org/pcb2gcode/pcb2gcode.svg?branch=master)](https://travis-ci.org/pcb2gcode/pcb2gcode)
+
 This is a complete rewrite of the original pcb2gcode in C++.
 
 ### Quick Installation
@@ -38,7 +40,7 @@ If you want to install the latest version from git you'll need the autotools, bo
 (dev), boost geometry library (dev) gtkmm2.4 (dev) and libgerbv (dev). You can download them from your
 repositories; if you use Debian/Ubuntu type
 
-    $ sudo apt-get install build-essential automake autoconf libtool libboost-dev libboost-program-options-dev libgtkmm-2.4-dev gerbv
+    $ sudo apt-get install build-essential automake autoconf libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv
 
 or, if you use Fedora
 

@@ -1,0 +1,18 @@
+language: cpp
+
+compiler:
+  - gcc
+  - clang
+
+os: linux
+
+install:
+  - "sudo apt-get update -qq"
+  - "sudo apt-get install -y libboost-program-options1.48-dev libgtkmm-2.4-dev gerbv"
+
+script:
+  - "autoreconf -i"
+  - "./configure"
+  - "make"
+  - "cd testing/gerbv_example/"
+  - "for dir in *; do cd $dir; ../../../pcb2gcode; cd ..; done"
