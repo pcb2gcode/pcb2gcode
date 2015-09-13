@@ -157,7 +157,7 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
     averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
 
     if( ( software == LINUXCNC && numXPoints * numYPoints > 4501 ) ||
-            software != LINUXCNC && numXPoints * numYPoints > 500 )
+            ( software != LINUXCNC && numXPoints * numYPoints > 500 ) )
         return false;
     else
         return true;
