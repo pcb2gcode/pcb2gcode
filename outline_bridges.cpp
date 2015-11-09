@@ -63,7 +63,7 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
 vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments, double length )
 {
     vector<unsigned int> output;
-    icoords temp;
+    icoords temp (2);
 
     path->reserve( path->size() + chosenSegments.size() * 2 );  //Just to avoid unnecessary reallocations
     std::sort( chosenSegments.begin(), chosenSegments.end(), boost::bind(&pair<unsigned int, double>::first, _1) <
@@ -72,10 +72,12 @@ vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, 
     for( unsigned int i = 0; i < chosenSegments.size(); i++ )
     {
         chosenSegments[i].first += 2 * i;   //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
-        temp = boost::assign::list_of( intermediatePoint( path->at( chosenSegments[i].first ), path->at( chosenSegments[i].first + 1 ),
-                                       0.5 - ( length / chosenSegments[i].second ) / 2 ) )
-               ( intermediatePoint( path->at( chosenSegments[i].first ), path->at( chosenSegments[i].first + 1 ),
-                                    0.5 + ( length / chosenSegments[i].second ) / 2 ) );
+        temp.at(0) = intermediatePoint( path->at( chosenSegments[i].first ),
+                                        path->at( chosenSegments[i].first + 1 ),
+                                        0.5 - ( length / chosenSegments[i].second ) / 2 );
+        temp.at(1) = intermediatePoint( path->at( chosenSegments[i].first ),
+                                        path->at( chosenSegments[i].first + 1 ),
+                                        0.5 + ( length / chosenSegments[i].second ) / 2 );
         path->insert( path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end() );  //Insert the bridges in the path
         output.push_back( chosenSegments[i].first + 1 );    //Add the bridges indexes to output
     }

@@ -24,8 +24,12 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+using std::cerr;
+using std::ios_base;
+using std::setw;
+using std::left;
+
 #include <iomanip>
-using namespace std;
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;

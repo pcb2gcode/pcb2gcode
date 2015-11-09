@@ -23,7 +23,6 @@ using std::endl;
 
 #include <fstream>
 #include <iomanip>
-using namespace std;
 
 #include "svg_exporter.hpp"
 

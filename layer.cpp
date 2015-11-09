@@ -36,7 +36,6 @@ Layer::Layer(const string& name, shared_ptr<Surface> surface,
 }
 
 #include <iostream>
-using namespace std;
 
 /******************************************************************************/
 /*

@@ -26,7 +26,6 @@ using std::endl;
 
 #include <fstream>
 #include <iomanip>
-using namespace std;
 
 #include "drill.hpp"
 
@@ -41,6 +40,10 @@ using std::pair;
 using std::make_pair;
 using std::max;
 using std::min_element;
+using std::cerr;
+using std::ios_base;
+using std::setw;
+using std::left;
 
 /******************************************************************************/
 /*
