@@ -42,6 +42,7 @@ using boost::shared_ptr;
 #include "mill.hpp"
 #include "exporter.hpp"
 #include "svg_exporter.hpp"
+#include "unique_codes.hpp"
 #include "autoleveller.hpp"
 
 /******************************************************************************/
@@ -91,6 +92,9 @@ protected:
 
     double xoffset;
     double yoffset;
+    
+    uniqueCodes ocodes;
+    uniqueCodes globalVars;
 };
 
 #endif // NGCEXPORTER_H

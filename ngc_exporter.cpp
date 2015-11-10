@@ -39,7 +39,8 @@ using Glib::build_filename;
  */
 /******************************************************************************/
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : Exporter(board), dpi(board->get_dpi()), quantization_error( 2.0 / dpi )
+    : Exporter(board), dpi(board->get_dpi()), 
+      quantization_error( 2.0 / dpi ), ocodes(1), globalVars(100)
 {
     this->board = board;
     bDoSVG = false;
@@ -98,7 +99,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
 
     if( bFrontAutoleveller || bBackAutoleveller )
-        leveller = new autoleveller ( options, quantization_error, xoffset, yoffset );
+        leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error, xoffset, yoffset );
 
     if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() > 0)
         bBridges = true;

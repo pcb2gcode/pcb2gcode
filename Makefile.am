@@ -29,6 +29,7 @@ pcb2gcode_SOURCES = \
 	options.cpp \
     outline_bridges.hpp \
     outline_bridges.cpp \
+    unique_codes.hpp \
 	config.h \
 	main.cpp
 

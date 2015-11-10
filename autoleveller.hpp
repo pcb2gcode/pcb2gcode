@@ -20,48 +20,6 @@
 #ifndef AUTOLEVELLER_H
 #define AUTOLEVELLER_H
 
-//Number of the bilinear interpolation macro
-#define BILINEAR_INTERPOLATION_MACRO_NUMBER 5
-
-//Number of the correction factor subroutine
-#define CORRECTION_FACTOR_SUB_NUMBER 6
-
-//Number of the g01 interpolated macro (just a shortcut for CORRECTION_FACTOR_SUB_NUMBER + G01 X Y)
-#define G01_INTERPOLATED_MACRO_NUMBER 7
-
-//Number of the Y probe subroutine
-#define YPROBE_SUB_NUMBER 8
-
-//Number of the X probe subroutine
-#define XPROBE_SUB_NUMBER 9
-
-//Number of the 1st repeat O-code (only for LinuxCNC)
-#define REPEAT_CODE_1 10
-
-//Number of the 2nd repeat O-code (only for LinuxCNC)
-#define REPEAT_CODE_2 11
-
-//Name of the variable where the interpolation result is saved (string)
-#define RESULT_VAR "100"
-
-//Name of the 1st usable global variable (string)
-#define GLOB_VAR_0 "110"
-
-//Name of the 2nd usable global variable (string)
-#define GLOB_VAR_1 "111"
-
-//Name of the 3rd usable global variable (string)
-#define GLOB_VAR_2 "112"
-
-//Name of the 4th usable global variable (string)
-#define GLOB_VAR_3 "113"
-
-//Name of the 5th usable global variable (string)
-#define GLOB_VAR_4 "114"
-
-//Name of the 6th usable global variable (string)
-#define GLOB_VAR_5 "115"
-
 //Fixed probe fail depth (in inches, string)
 #define FIXED_FAIL_DEPTH_IN "-0.2"
 
@@ -83,12 +41,14 @@ using std::vector;
 using boost::shared_ptr;
 
 #include "coord.hpp"
+#include "unique_codes.hpp"
 
 class autoleveller
 {
 public:
-    // The constructor just initialize the common parameters variables (parameters be in inches)
-    autoleveller( const boost::program_options::variables_map &options, double quantization_error, double xoffset, double yoffset );
+    // The constructor just initialize the common parameters variables (parameters are in inches)
+    autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes, 
+                  uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset );
 
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
@@ -166,6 +126,25 @@ public:
     const double xoffset;
     const double yoffset;
 
+    //Number of the bilinear interpolation macro
+    const unsigned int bilinearInterpolationNum;
+
+    //Number of the g01 interpolated macro (just a shortcut for CORRECTION_FACTOR_SUB_NUMBER + G01 X Y)
+    const unsigned int g01InterpolatedNum;
+    
+    //Number of the X/Y probe subroutines
+    const unsigned int xProbeNum;
+    const unsigned int yProbeNum;
+    
+    // Global variables
+    const string returnVar;
+    const string globalVar0;
+    const string globalVar1;
+    const string globalVar2;
+    const string globalVar3;
+    const string globalVar4;
+    const string globalVar5;
+    
 protected:
     double startPointX;
     double startPointY;
@@ -174,10 +153,11 @@ protected:
     double XProbeDist;
     double YProbeDist;
     double averageProbeDist;
+    uniqueCodes *ocodes;
 
-    static const char *callSub2[];
-    static const char *callInterpolationMacro[];
-    static const char *callSubRepeat[];
+    string callSub2[4];
+    string callInterpolationMacro[4];
+    string callSubRepeat[4];
     string probeCode[4];
     string zProbeResultVar[4];
     string setZZero[4];
