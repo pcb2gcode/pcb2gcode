@@ -15,4 +15,9 @@ script:
   - "./configure"
   - "make"
   - "cd testing/gerbv_example/"
-  - "for dir in *; do cd $dir; ../../../pcb2gcode; cd ..; done"
+  - "ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000'"
+  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS; cd ..; done"
+  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Mach3 $ARGS; cd ..; done"
+  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Mach4 $ARGS; cd ..; done"
+  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Custom --al-probecode=G38.2 --al-probevar=5063 --al-setzzero='G10 L20 P0 Z0' $ARGS; cd ..; done"
+

@@ -9,7 +9,7 @@ zwork=-0.008
 zsafe=0.08
 mill-feed=6
 mill-speed=30000
-
+optimise=true
 
 # parameters for cutting out boards
 cutter-diameter=0.03937
