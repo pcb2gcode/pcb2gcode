@@ -17,6 +17,14 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LIBTOOL
 
+# Check for C++11
+AX_CXX_COMPILE_STDCXX_11
+
+# As reported here https://svn.boost.org/trac/boost/ticket/9240,
+# Boost requires -fext-numeric-literals when built with C++11
+AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
+                      [CPPFLAGS="$CPPFLAGS -fext-numeric-literals"])
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
