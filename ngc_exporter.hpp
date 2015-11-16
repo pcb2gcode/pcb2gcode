@@ -44,6 +44,7 @@ using boost::shared_ptr;
 #include "svg_exporter.hpp"
 #include "unique_codes.hpp"
 #include "autoleveller.hpp"
+#include "common.hpp"
 
 /******************************************************************************/
 /*
@@ -60,6 +61,10 @@ public:
     void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
     void set_preamble(string);
     void set_postamble(string);
+    inline Tiling::TileInfo getTileInfo()
+    {
+        return tileInfo;
+    }
 
 protected:
     void export_layer(shared_ptr<Layer> layer, string of_name);
@@ -89,9 +94,14 @@ protected:
     autoleveller *leveller;
     bool bFrontAutoleveller;
     bool bBackAutoleveller;
+    bool bTile;
 
     double xoffset;
     double yoffset;
+    
+    Tiling::TileInfo tileInfo;
+    unsigned int tileXNum;
+    unsigned int tileYNum;
     
     uniqueCodes ocodes;
     uniqueCodes globalVars;

@@ -196,7 +196,7 @@ process is composed by two parts:
 .IP \[bu] 2
 Initial probing, where the machine "probes" a grid of points and save
 their heights. In order to save probing time, only the area where the PCB
-must be milled will be probed.
+will be milled will be probed.
 .IP \[bu]
 Actual milling, identical to the standard process, but with an additional
 Z-correction (based on a bilinear interpolation of the probed points)
@@ -204,22 +204,15 @@ Z-correction (based on a bilinear interpolation of the probed points)
 Unfortunately each control software (LinuxCNC, Mach3, ...) uses different
 gcodes for the probing, the parameters and the macros, therefore the output
 gcode won't be software-independent, and you have to choose the used software
-with the proper argument.
+with the option \fB\-\-software\fP.  For compatibility reasons, the gcode
+generated with \fB\-\-software=Custom\fP is much bigger than the gcode for a
+supported software.
 .TP
 \fB\-\-al-front\fP
 enable the autoleveller for the front side
 .TP
 \fB\-\-al-back\fP
 enable the autoleveller for the back side
-.TP
-\fB\-\-software\fP \fIsoftware\fP
-the height probing commands are different from software to software. Use this
-option to select the used software; currently supported softwares are
-\fBLinuxCNC\fP, \fBMach3\fP, \fBMach4\fP and \fBcustom\fP. With custom you
-can specify \fBal-probecode\fP, \fBal-probevar\fP and \fBal-setzzero\fP, in
-order to generate gcode for an unsupported software. For compatibility
-reasons, the \fBcustom\fP gcode is much bigger (3-4 times) than the gcode for
-a supported software.
 .TP
 \fB\-\-al-x\fP \fIunit\fP
 the width of the probing on the X axis. Higher values increase the levelling 
@@ -267,13 +260,32 @@ Mach3, Mach4 and TurboCNC use \fB2002\fP. If unspecified, \fB2002\fP will be
 used. This option is relevant only when \fB\-\-software\fP=\fBcustom\fP
 .TP
 \fB\-\-al-setzzero\fP \fIcode\fP
-custom gcode for setting the actual height as the zero of the Z axis. For
+custom gcode for setting the current height as the zero of the Z axis. For
 example, LinuxCNC uses \fBG10 L20 P0 Z0\fP while Mach3, Mach4 and TurboCNC use
 \fBG92 Z0\fP. If unspecified, \fBG92 Z0\fP will be used. This option is
 relevant only when \fB\-\-software\fP=\fBcustom\fP
 
 .PP
+\fBpcb2gcode\fP can repeat the PCB in a tile-x times tile-y grid of identical
+PCBs. This feature can be activated by specifing the number of columns and rows
+with \fB\-\-tile\-x\fP and \fB\-\-tile\-y\fP. If you don't specify a software,
+or if you use \fB\-\-software=Custom\fP, the resulting Gcode will be much bigger
+(about original_size * tile-x * tile-y).
+.TP
+\fB\-\-tile\-x\fP \fIcolumns\fP
+number of tiling columns. Default value is 1.
+.TP
+\fB\-\-tile\-y\fP \fIrows\fP
+number of tiling rows. Default value is 1.
+
+.PP
 These options govern the general behavior of \fBpcb2gcode\fP:
+.TP
+\fB\-\-software\fP \fIsoftware\fP
+specify the gcode interpreter software; currently supported softwares are
+\fBLinuxCNC\fP, \fBMach3\fP, \fBMach4\fP and \fBcustom\fP. With custom you
+can specify \fBal-probecode\fP, \fBal-probevar\fP and \fBal-setzzero\fP, in
+order to generate gcode for an unsupported software.
 .TP
 \fB\-\-optimise\fP
 optimise the output gcode with a Douglas-Peucker algorithm, reducing its output
@@ -282,7 +294,7 @@ size up to 95% (while accepting a very little loss of precision)
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000). If the software freezes during
 the layer exporting, try to increase the dpi value. Sane values for dpi are
-1000/2000 for DIP PCBs and 2000/4000 dpi for SMD PCBs.
+1000/2000 for through-hole PCBs and 2000/4000 dpi for SMD PCBs.
 .TP
 \fB\-\-mirror\-absolute\fP
 mirror operations on the back side along the Y axis instead of the board

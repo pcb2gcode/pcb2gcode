@@ -19,21 +19,28 @@
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#include <iostream>
-using std::cout;
-using std::endl;
-
+ 
 #include <fstream>
-#include <iomanip>
-
-#include "drill.hpp"
-
 #include <cstring>
 #include <boost/scoped_array.hpp>
 #include <boost/next_prior.hpp>
 #include <boost/foreach.hpp>
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
+#include <sstream>
+using std::stringstream;
+
+#include <iomanip>
+using std::setprecision;
+using std::fixed;
+
+#include <boost/format.hpp>
+using boost::format;
+
+#include "drill.hpp"
 #include "tsp_solver.hpp"
 
 using std::pair;
@@ -42,7 +49,6 @@ using std::max;
 using std::min_element;
 using std::cerr;
 using std::ios_base;
-using std::setw;
 using std::left;
 
 /******************************************************************************/
@@ -51,25 +57,27 @@ using std::left;
  metricoutput : if true, ngc output in metric units
  */
 /******************************************************************************/
-ExcellonProcessor::ExcellonProcessor(string drillfile,
-                                     const ivalue_t board_width,
-                                     const ivalue_t board_center,
-                                     bool _metricoutput,
-                                     bool drillfront,
-                                     bool mirror_absolute,
-                                     double quantization_error,
-                                     double xoffset,
-                                     double yoffset)
-    : board_center(board_center), board_width(board_width),
-      drillfront(drillfront), mirror_absolute(mirror_absolute),
-      bMetricOutput(_metricoutput), quantization_error(quantization_error),
-      xoffset(xoffset), yoffset(yoffset)
+ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map& options,
+                                     const icoordpair min,
+                                     const icoordpair max)
+    : board_width(max.first - min.first),
+      board_height(max.second - min.second),
+      board_center(max.first + board_width / 2),
+      drillfront(options["drill-front"].as<bool>()),
+      mirror_absolute(options["mirror-absolute"].as<bool>()),
+      bMetricOutput(options["metricoutput"].as<bool>()),
+      quantization_error(2.0 / options["dpi"].as<int>()),
+      xoffset(options["zero-start"].as<bool>() ? min.first : 0),
+      yoffset(options["zero-start"].as<bool>() ? min.second : 0),
+      ocodes(1),
+      globalVars(100),
+      tileInfo( Tiling::generateTileInfo( options, ocodes, board_height, board_width ) )
 {
 
     bDoSVG = false;      //clear flag for SVG export
     project = gerbv_create_project();
 
-    const char* cfilename = drillfile.c_str();
+    const char* cfilename = options["drill"].as<string>().c_str();
     boost::scoped_array<char> filename(new char[strlen(cfilename) + 1]);
     strcpy(filename.get(), cfilename);
 
@@ -82,8 +90,6 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
 
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricOutput ? 25.4 : 1;
-
-    calc_dimensions();      //calculate board dimensions
 
     //set metric or imperial preambles
     if (bMetricOutput)
@@ -98,10 +104,7 @@ ExcellonProcessor::ExcellonProcessor(string drillfile,
     }
     preamble += "G90       (Absolute coordinates.)\n";
 
-    //set postamble
-    postamble = string("M5      (Spindle off.)\n") +
-                "M9      (Coolant off.)\n" +
-                "M2      (Program end.)\n";
+    tiling = new Tiling( tileInfo, cfactor );
 }
 
 /******************************************************************************/
@@ -135,42 +138,9 @@ void ExcellonProcessor::add_header(string header)
 
 /******************************************************************************/
 /*
- Calculate the board dimensions based on the drill file only
- */
-/******************************************************************************/
-void ExcellonProcessor::calc_dimensions(void)
-{
-
-    x_min = +INFINITY;
-    x_max = -INFINITY;
-
-    shared_ptr<const map<int, drillbit> > bits = get_bits();
-    shared_ptr<const map<int, icoords> > holes = get_holes();
-
-    for (map<int, drillbit>::const_iterator it = bits->begin();
-            it != bits->end(); it++)
-    {
-        const icoords drill_coords = holes->at(it->first);
-        icoords::const_iterator coord_iter = drill_coords.begin();
-        x_min = (coord_iter->first < x_min) ? coord_iter->first : x_min;
-        x_max = (coord_iter->first > x_max) ? coord_iter->first : x_max;
-        ++coord_iter;
-        while (coord_iter != drill_coords.end())
-        {
-            x_min = (coord_iter->first < x_min) ? coord_iter->first : x_min;
-            x_max = (coord_iter->first > x_max) ? coord_iter->first : x_max;
-            ++coord_iter;
-        }
-    }
-    width = x_max - x_min;
-    x_center = x_min + width / 2;
-}
-
-/******************************************************************************/
-/*
  Recalculates the x-coordinate based on drillfront and mirror_absolute
  drillfront: drill from front side
- mirror_absoulte: mirror back side on y-axis
+ mirror_absolute: mirror back side on y-axis
  xvalue: x-coordinate
  returns the recalulated x-coordinate
  */
@@ -206,18 +176,26 @@ double ExcellonProcessor::get_xvalue(double xvalue)
  driller: ...
  onedrill: if true, only the first drill bit is used, the others are skipped
  
- TODO: Optimise the implementation of onedrill by modifying the bits and using the smallest bit only.
+ TODO: 1. Optimise the implementation of onedrill by modifying the bits and using the smallest bit only.
+       2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
 {
-
     ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
+    double xoffsetTot;
+    double yoffsetTot;
+    stringstream zchange;
 
     //SVG EXPORTER
     int rad = 1.;
 
     cout << "Exporting drill... ";
+
+    zchange << setprecision(3) << fixed << driller->zchange * cfactor;
+    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n"
+                         + postamble_ext + "\nM5      (Spindle off.)\n"
+                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
 
     //open output file
     std::ofstream of;
@@ -231,6 +209,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
     {
         of << "( " << s << " )" << "\n";
     }
+
+    of << "( Software-independent Gcode )\n";
 
     if (!onedrill)
     {
@@ -250,11 +230,12 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
 
     of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
     of.precision(5);           //Set floating-point decimal precision
-    of << setw(7);        //Sets the field width to be used on output operations.
 
     of << preamble_ext;        //insert external preamble file
     of << preamble;            //insert internal preamble
     of << "S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
+
+    //tiling->header( of );     // See TODO #2
 
     for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++)
@@ -274,64 +255,71 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
                << "M0      (Temporary machine stop.)\n"
                << "M3      (Spindle on clockwise.)\n" << "\n";
         }
-
-        const icoords drill_coords = holes->at(it->first);
-        icoords::const_iterator coord_iter = drill_coords.begin();
-        //coord_iter->first = x-coorinate (top view)
-        //coord_iter->second =y-coordinate (top view)
-
-        //SVG EXPORTER
-        if (bDoSVG)
-        {
-            svgexpo->set_rand_color();      //set a random color
-            svgexpo->circle((double_mirror_axis - coord_iter->first),
-                            coord_iter->second, rad);      //draw first circle
-            svgexpo->stroke();
-        }
-
+        
         if( nog81 )
             of << "F" << driller->feed * cfactor << endl;
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
-               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " X"
-               << ( get_xvalue(coord_iter->first) - xoffset ) * cfactor
-               << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
-            ++coord_iter;
+               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
         }
-
-        while (coord_iter != drill_coords.end())
+        
+        for( unsigned int i = 0; i < tileInfo.tileY; i++ )
         {
-            if( nog81 )
+            yoffsetTot = yoffset - i * tileInfo.boardHeight;
+            
+            for( unsigned int j = 0; j < tileInfo.tileX; j++ )
             {
-                of << "G0 X"
-                   << ( get_xvalue(coord_iter->first) - xoffset ) * cfactor
-                   << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
-                of << "G1 Z" << driller->zwork * cfactor << endl;
-                of << "G1 Z" << driller->zsafe * cfactor << endl;
+                xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
+
+                const icoords drill_coords = holes->at(it->first);
+                icoords::const_iterator coord_iter = drill_coords.begin();
+                //coord_iter->first = x-coorinate (top view)
+                //coord_iter->second =y-coordinate (top view)
+
+                //SVG EXPORTER
+                if (bDoSVG)
+                {
+                    svgexpo->set_rand_color();      //set a random color
+                    svgexpo->circle((double_mirror_axis - coord_iter->first),
+                                    coord_iter->second, rad);      //draw first circle
+                    svgexpo->stroke();
+                }
+
+                while (coord_iter != drill_coords.end())
+                {
+                    if( nog81 )
+                    {
+                        of << "G0 X"
+                           << ( get_xvalue(coord_iter->first) - xoffsetTot ) * cfactor
+                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
+                        of << "G1 Z" << driller->zwork * cfactor << endl;
+                        of << "G1 Z" << driller->zsafe * cfactor << endl;
+                    }
+                    else
+                    {
+                        of << "X"
+                           << ( get_xvalue(coord_iter->first) - xoffsetTot )
+                           * cfactor
+                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
+                    }
+                    //SVG EXPORTER
+                    if (bDoSVG)
+                    {
+                        svgexpo->circle((double_mirror_axis - coord_iter->first),
+                                        coord_iter->second, rad);      //make a whole
+                        svgexpo->stroke();
+                    }
+                    ++coord_iter;
+                }
             }
-            else
-            {
-                of << "X"
-                   << ( get_xvalue(coord_iter->first) - xoffset )
-                   * cfactor
-                   << " Y" << ( ( coord_iter->second - yoffset ) * cfactor) << "\n";
-            }
-            //SVG EXPORTER
-            if (bDoSVG)
-            {
-                svgexpo->circle((double_mirror_axis - coord_iter->first),
-                                coord_iter->second, rad);      //make a whole
-                svgexpo->stroke();
-            }
-            ++coord_iter;
         }
         of << "\n";
     }
-
-    of << "G00 Z" << driller->zchange * cfactor << " (All done -- retract)\n\n";
-    of << postamble_ext;          //insert external postamble file
-    of << postamble << endl;      //add internal postamble
+    
+    //tiling->footer( of ); // See TODO #2
+    of << tiling->getGCodeEnd();
+    
     of.close();
     cout << "DONE." << endl;
 }
@@ -348,10 +336,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
     g_assert(cutter);
     double cutdiameter = cutter->tool_diameter;
-
-    /*cout << fixed << setprecision(3) << " Cutter: " << cutdiameter * cfactor << " " << ( bMetricOutput ? "mm" : "in" ) <<
-                                        "  Hole: " << holediameter * cfactor << " " << ( bMetricOutput ? "mm" : "in" ) <<
-                                        "  Mill radius: " << (holediameter - cutdiameter) / 2. * cfactor << ( bMetricOutput ? "mm" : "in" ) << endl;*/
 
     if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
     {
@@ -401,10 +385,18 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> target)
 {
     unsigned int badHoles = 0;
+    double xoffsetTot;
+    double yoffsetTot;
+    stringstream zchange;
 
     //g_assert(drillfront == true);       //WHY?
     //g_assert(mirror_absolute == false); //WHY?
     cout << "Exporting drill... ";
+
+    zchange << setprecision(3) << fixed << target->zchange * cfactor;
+    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n" +
+                         postamble_ext + "\nM5      (Spindle off.)\n"
+                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
 
     // open output file
     std::ofstream of;
@@ -418,11 +410,14 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
     {
         of << "( " << s << " )" << "\n";
     }
-    of << "\n";
+
+    if( tileInfo.enabled && tileInfo.software != CUSTOM )
+        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    else
+        of << "( Software-independent Gcode )\n";
 
     of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
     of.precision(5);              //Set floating-point decimal precision
-    of << setw(7);        //Sets the field width to be used on output operations.
 
     of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
        << (bMetricOutput ? "mm" : "inch") << " to drill the " << bits->size()
@@ -443,34 +438,48 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
 
     of << "G00 Z" << target->zsafe * cfactor << endl;
 
-    for (map<int, drillbit>::const_iterator it = bits->begin();
-            it != bits->end(); it++)
+    tiling->header( of );
+
+    for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
     {
-
-        double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
-
-        const icoords drill_coords = holes->at(it->first);
-        icoords::const_iterator coord_iter = drill_coords.begin();
-
-        do
+        yoffsetTot = yoffset - i * tileInfo.boardHeight;
+        
+        for( unsigned int j = 0; j < tileInfo.forXNum; j++ )
         {
-            if( !millhole(of, get_xvalue(coord_iter->first) - xoffset,
-                          coord_iter->second - yoffset, target, diameter) )
-                ++badHoles;
+            xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            ++coord_iter;
+            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+                of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
+
+            for (map<int, drillbit>::const_iterator it = bits->begin();
+                    it != bits->end(); it++)
+            {
+
+                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
+
+                const icoords drill_coords = holes->at(it->first);
+                icoords::const_iterator coord_iter = drill_coords.begin();
+
+                do
+                {
+                    if( !millhole(of, get_xvalue(coord_iter->first) - xoffsetTot,
+                                  coord_iter->second - yoffsetTot, target, diameter) )
+                        ++badHoles;
+
+                    ++coord_iter;
+                }
+                while (coord_iter != drill_coords.end());
+            }
         }
-        while (coord_iter != drill_coords.end());
     }
+    
+    tiling->footer( of );
 
-    // retract, end
-    of << "G00 Z" << target->zchange * cfactor << " ( All done -- retract )\n";
-    of << postamble_ext;
-    of << postamble << endl;
     of.close();
 
     if( badHoles != 0 )
     {
+        badHoles /= tileInfo.tileX * tileInfo.tileY;    //Don't count the same bad hole multiple times
         cerr << "Warning: " << badHoles << ( badHoles == 1 ? " hole was" : " holes were" )
              << " bigger than the milling tool." << endl;
     }

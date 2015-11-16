@@ -26,13 +26,15 @@
 #include <iostream>
 using std::cerr;
 using std::ios_base;
-using std::setw;
 using std::left;
 
 #include <iomanip>
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
+
+#include <boost/format.hpp>
+using boost::format;
 
 /******************************************************************************/
 /*
@@ -78,10 +80,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     bFrontAutoleveller = options["al-front"].as<bool>();
     bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
-
+    
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricoutput ? 25.4 : 1;
-
+    
     if( options["zero-start"].as<bool>() )
     {
         xoffset = board->get_min_x();
@@ -92,6 +94,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         xoffset = 0;
         yoffset = 0;
     }
+    
+    tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
     if( options.count("g64") )
         g64 = options["g64"].as<double>();
@@ -99,7 +103,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
 
     if( bFrontAutoleveller || bBackAutoleveller )
-        leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error, xoffset, yoffset );
+        leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
+                                      xoffset, yoffset, tileInfo );
 
     if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() > 0)
         bBridges = true;
@@ -126,7 +131,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 /******************************************************************************/
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 {
-
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     bool bSvgOnce = TRUE;
@@ -134,6 +138,18 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
+    static const unsigned int repeatVar = ocodes.getUniqueCode();
+
+    double xoffsetTot;
+    double yoffsetTot;
+    Tiling tiling( tileInfo, cfactor );
+    tiling.setGCodeEnd( "\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
+        "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
+        " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nM9 ( Coolant off. )\n"
+        "M2 ( Program end. )\n\n" );
+
+    tiling.initialXOffsetVar = globalVars.getUniqueCode();
+    tiling.initialYOffsetVar = globalVars.getUniqueCode();
 
     // open output file
     std::ofstream of;
@@ -146,20 +162,18 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     if( ( bFrontAutoleveller && layername == "front" ) ||
-            ( bBackAutoleveller && layername == "back" ) )
-    {
-        of << "( Gcode for " << leveller->getSoftware() << " )\n";
+        ( bBackAutoleveller && layername == "back" ) )
         bAutolevelNow = true;
-    }
     else
-    {
-        of << "( Software-independent Gcode )\n";
         bAutolevelNow = false;
-    }
+
+    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != CUSTOM ) )
+        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    else
+        of << "( Software-independent Gcode )\n";
 
     of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
     of.precision(5);              //Set floating-point decimal precision
-    of << setw(7);        //Sets the field width to be used on output operations.
 
     of << "\n" << preamble;       //insert external preamble
 
@@ -194,6 +208,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
     of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
        << "M3 ( Spindle on clockwise. )\n";
+    
+    tiling.header( of );
 
     //SVG EXPORTER
     if (bDoSVG)
@@ -202,155 +218,165 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         svgexpo->set_rand_color();
     }
 
-    // contours
-    BOOST_FOREACH( shared_ptr<icoords> path, toolpaths )
+    for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
     {
-
-        // retract, move to the starting point of the next contour
-        of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-        of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
-        of << "G00 X" << ( path->begin()->first - xoffset ) * cfactor << " Y"
-           << ( path->begin()->second - yoffset ) * cfactor << " ( rapid move to begin. )\n";
-
-        //SVG EXPORTER
-        if (bDoSVG)
+        yoffsetTot = yoffset - i * tileInfo.boardHeight;
+        
+        for( unsigned int j = 0; j < tileInfo.forXNum; j++ )
         {
-            svgexpo->move_to(path->begin()->first, path->begin()->second);
-            bSvgOnce = TRUE;
-        }
+            xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-        /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
-         * i know this is partially repetitive, but this way it's easier to read
-         */
-        shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
+            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+                of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
-        if (cutter && cutter->do_steps)
-        {
-
-            //--------------------------------------------------------------------
-            //cutting (outline)
-
-            double z_step = cutter->stepsize;
-            double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
-
-            if( bBridges )
+            // contours
+            BOOST_FOREACH( shared_ptr<icoords> path, toolpaths )
             {
-                bridges = layer->get_bridges( path );
-                currentBridge = bridges.begin();
-            }
-
-            while (z >= mill->zwork)
-            {
-                of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
+                // retract, move to the starting point of the next contour
                 of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                of << "F" << mill->feed * cfactor << "\n";
+                of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
+                of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
+                   << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
-                icoords::iterator iter = path->begin();
-                icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-                icoords::iterator peek;
-                while (iter != path->end())
-                {
-                    peek = iter + 1;
-
-                    if (mill->optimise //Already optimised (also includes the bridge case)
-                            || last == path->end()  //First
-                            || peek == path->end()   //Last
-                            || !aligned(last, iter, peek) )      //Not aligned
-                    {
-                        of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-                           << ( iter->second - yoffset ) * cfactor << endl;
-                        if (bDoSVG)
-                        {
-                            if (bSvgOnce)
-                                svgexpo->line_to(iter->first, iter->second);
-                        }
-
-                        if( bBridges && currentBridge != bridges.end() )
-                        {
-                            if( *currentBridge == iter - path->begin() )
-                                of << "Z" << cutter->bridges_height * cfactor << endl;
-                            else if( *currentBridge == last - path->begin() )
-                            {
-                                of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
-                                of << "F" << cutter->feed * cfactor;
-                                ++currentBridge;
-                            }
-                        }
-                    }
-
-                    last = iter;
-                    ++iter;
-                }
                 //SVG EXPORTER
                 if (bDoSVG)
                 {
-                    svgexpo->close_path();
-                    bSvgOnce = FALSE;
+                    svgexpo->move_to(path->begin()->first, path->begin()->second);
+                    bSvgOnce = TRUE;
                 }
-                z -= z_step;
-            }
-        }
-        else
-        {
-            //--------------------------------------------------------------------
-            // isolating (front/backside)
-            of << "F" << mill->vertfeed * cfactor << endl;
 
-            if( bAutolevelNow )
-            {
-                leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffset ) * cfactor,
-                                             ( path->begin()->second - yoffset ) * cfactor ) );
-                of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffset ) * cfactor,
-                                              ( path->begin()->second - yoffset ) * cfactor ) );
-            }
-            else
-                of << "G01 Z" << mill->zwork * cfactor << "\n";
+                /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
+                 * i know this is partially repetitive, but this way it's easier to read
+                 */
+                shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
 
-            of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-            of << "F" << mill->feed * cfactor << endl;
-
-            icoords::iterator iter = path->begin();
-            icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-            icoords::iterator peek;
-
-            while (iter != path->end())
-            {
-                peek = iter + 1;
-                if (mill->optimise //When simplifypath is performed, no further optimisation is required
-                        || last == path->end()  //First
-                        || peek == path->end()   //Last
-                        || !aligned(last, iter, peek) )      //Not aligned
+                if (cutter && cutter->do_steps)
                 {
-                    /* no need to check for "they are on one axis but iter is outside of last and peek" because that's impossible from how they are generated */
+
+                    //--------------------------------------------------------------------
+                    //cutting (outline)
+
+                    double z_step = cutter->stepsize;
+                    double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
+
+                    if( bBridges )
+                    {
+                        if( i == 0 && j == 0 )  //Compute the bridges only the 1st time
+                            bridges = layer->get_bridges( path );
+                        currentBridge = bridges.begin();
+                    }
+
+                    while (z >= mill->zwork)
+                    {
+                        of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
+                        of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+                        of << "F" << mill->feed * cfactor << "\n";
+
+                        icoords::iterator iter = path->begin();
+                        icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
+                        icoords::iterator peek;
+                        while (iter != path->end())
+                        {
+                            peek = iter + 1;
+
+                            if (mill->optimise //Already optimised (also includes the bridge case)
+                                    || last == path->end()  //First
+                                    || peek == path->end()   //Last
+                                    || !aligned(last, iter, peek) )      //Not aligned
+                            {
+                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
+                                if (bDoSVG)
+                                {
+                                    if (bSvgOnce)
+                                        svgexpo->line_to(iter->first, iter->second);
+                                }
+
+                                if( bBridges && currentBridge != bridges.end() )
+                                {
+                                    if( *currentBridge == iter - path->begin() )
+                                        of << "Z" << cutter->bridges_height * cfactor << endl;
+                                    else if( *currentBridge == last - path->begin() )
+                                    {
+                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
+                                        of << "F" << cutter->feed * cfactor;
+                                        ++currentBridge;
+                                    }
+                                }
+                            }
+
+                            last = iter;
+                            ++iter;
+                        }
+                        //SVG EXPORTER
+                        if (bDoSVG)
+                        {
+                            svgexpo->close_path();
+                            bSvgOnce = FALSE;
+                        }
+                        z -= z_step;
+                    }
+                }
+                else
+                {
+                    //--------------------------------------------------------------------
+                    // isolating (front/backside)
+                    of << "F" << mill->vertfeed * cfactor << endl;
+
                     if( bAutolevelNow )
-                        of << leveller->addChainPoint( icoordpair( ( iter->first - xoffset ) * cfactor, ( iter->second - yoffset ) * cfactor ) );
+                    {
+                        leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
+                                                     ( path->begin()->second - yoffsetTot ) * cfactor ) );
+                        of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
+                                                      ( path->begin()->second - yoffsetTot ) * cfactor ) );
+                    }
                     else
-                        of << "X" << ( iter->first - xoffset ) * cfactor << " Y"
-                           << ( iter->second - yoffset ) * cfactor << endl;
+                        of << "G01 Z" << mill->zwork * cfactor << "\n";
+
+                    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+                    of << "F" << mill->feed * cfactor << endl;
+
+                    icoords::iterator iter = path->begin();
+                    icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
+                    icoords::iterator peek;
+
+                    while (iter != path->end())
+                    {
+                        peek = iter + 1;
+                        if (mill->optimise //When simplifypath is performed, no further optimisation is required
+                                || last == path->end()  //First
+                                || peek == path->end()   //Last
+                                || !aligned(last, iter, peek) )      //Not aligned
+                        {
+                            /* no need to check for "they are on one axis but iter is outside of last and peek"
+                             because that's impossible from how they are generated */
+                            if( bAutolevelNow )
+                                of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
+                                                                           ( iter->second - yoffsetTot ) * cfactor ) );
+                            else
+                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
+                            //SVG EXPORTER
+                            if (bDoSVG)
+                                if (bSvgOnce)
+                                    svgexpo->line_to(iter->first, iter->second);
+                        }
+
+                        last = iter;
+                        ++iter;
+                    }
                     //SVG EXPORTER
                     if (bDoSVG)
-                        if (bSvgOnce)
-                            svgexpo->line_to(iter->first, iter->second);
+                    {
+                        svgexpo->close_path();
+                        bSvgOnce = FALSE;
+                    }
                 }
-
-                last = iter;
-                ++iter;
-            }
-            //SVG EXPORTER
-            if (bDoSVG)
-            {
-                svgexpo->close_path();
-                bSvgOnce = FALSE;
             }
         }
     }
-
-    of << "\n";
-    // retract
-    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
-       << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n" << postamble
-       << "M5 ( Spindle off. )\n" << "M9 ( Coolant off. )\n" << "M2 ( Program end. )"
-       << endl << endl;
+    
+    tiling.footer( of );
 
     if( bAutolevelNow )
     {

@@ -42,13 +42,16 @@ using boost::shared_ptr;
 
 #include "coord.hpp"
 #include "unique_codes.hpp"
+#include "common.hpp"
+#include "tile.hpp"
 
 class autoleveller
 {
 public:
     // The constructor just initialize the common parameters variables (parameters are in inches)
     autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes, 
-                  uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset );
+                  uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
+                  const struct Tiling::TileInfo tileInfo );
 
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
@@ -69,12 +72,9 @@ public:
     // (call it also for the 1st chain)
     string addChainPoint ( icoordpair point );
 
-    // g01Corrected interpolates only point (without adding it to the chain), and it prints a G01 to that
+    // g01Corrected interpolates only one point (without adding it to the chain), and it prints a G01 to that
     // position
     string g01Corrected ( icoordpair point );
-
-    // Returns a string containing the software name
-    string getSoftware();
 
     // Set lastPoint as the last chain point. You can use this function when you want to start a new chain
     inline void setLastChainPoint ( icoordpair lastPoint )
@@ -102,15 +102,14 @@ public:
             footerNoIf( of );
     }
 
-    // This enum contains the software codes. Note that the codes must start from 0 and be consecutive,
-    // as they are used as array indexes
-    enum Software { LINUXCNC = 0, MACH4 = 1, MACH3 = 2, CUSTOM = 3 };
-
     // Some parameters are just placed as string in the output, saving them as strings saves a lot of
     // string to double conversion. These parameters are probably not useful for the user, but we can
     // safely define them as public as they are const
     const double unitconv;
     const double cfactor;
+    const string probeCodeCustom;
+    const string zProbeResultVarCustom;
+    const string setZZeroCustom;
     const double XProbeDistRequired;
     const double YProbeDistRequired;
     const string zwork;
@@ -126,15 +125,12 @@ public:
     const double xoffset;
     const double yoffset;
 
-    //Number of the bilinear interpolation macro
-    const unsigned int bilinearInterpolationNum;
-
-    //Number of the g01 interpolated macro (just a shortcut for CORRECTION_FACTOR_SUB_NUMBER + G01 X Y)
+    //Number of the g01 interpolated macro
     const unsigned int g01InterpolatedNum;
     
     //Number of the X/Y probe subroutines
-    const unsigned int xProbeNum;
     const unsigned int yProbeNum;
+    const unsigned int xProbeNum;
     
     // Global variables
     const string returnVar;
@@ -145,6 +141,15 @@ public:
     const string globalVar4;
     const string globalVar5;
     
+    const struct Tiling::TileInfo tileInfo;
+    const unsigned int initialXOffsetVar;
+    const unsigned int initialYOffsetVar;
+
+    static const string callSubRepeat[];
+    static const string probeCode[];
+    static const string zProbeResultVar[];
+    static const string setZZero[];
+
 protected:
     double startPointX;
     double startPointY;
@@ -155,12 +160,7 @@ protected:
     double averageProbeDist;
     uniqueCodes *ocodes;
 
-    string callSub2[4];
-    string callInterpolationMacro[4];
-    string callSubRepeat[4];
-    string probeCode[4];
-    string zProbeResultVar[4];
-    string setZZero[4];
+    string callSub2[3];
 
     icoordpair lastPoint;
 

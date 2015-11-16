@@ -9,6 +9,7 @@ pcb2gcode_SOURCES = \
     svg_exporter.cpp \
     board.hpp \
     board.cpp \
+    common.hpp \
     coord.hpp \
     drill.hpp \
     drill.cpp \
@@ -24,6 +25,8 @@ pcb2gcode_SOURCES = \
     ngc_exporter.cpp \
     surface.hpp \
     surface.cpp \
+    tile.hpp \
+    tile.cpp \
     tsp_solver.hpp \
     options.hpp \
     options.cpp \

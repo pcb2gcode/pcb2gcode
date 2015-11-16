@@ -52,6 +52,8 @@ class drill_exception: virtual std::exception, virtual boost::exception
 
 #include "mill.hpp"
 #include "svg_exporter.hpp"
+#include "tile.hpp"
+#include "unique_codes.hpp"
 
 /******************************************************************************/
 /*
@@ -79,10 +81,8 @@ public:
 class ExcellonProcessor
 {
 public:
-    ExcellonProcessor(const string drillfile, const ivalue_t board_width,
-                      const ivalue_t board_center, bool metricoutput,
-                      bool drillfront, bool mirror_absolute, double quantization_error,
-                      double xoffset = 0, double yoffset = 0);
+    ExcellonProcessor(const boost::program_options::variables_map& options,
+                      const icoordpair min, const icoordpair max);
     ~ExcellonProcessor();
     void add_header(string);
     void set_preamble(string);
@@ -99,13 +99,13 @@ private:
     void parse_bits();
     bool millhole(std::ofstream &of, double x, double y,
                   shared_ptr<Cutter> cutter, double holediameter);
-    void calc_dimensions();
     double get_xvalue(double);
 
     shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
 
     const ivalue_t board_width;
+    const ivalue_t board_height;
     const ivalue_t board_center;
     bool bDoSVG;            //Flag to indicate SVG output
     shared_ptr<SVG_Exporter> svgexpo;
@@ -114,21 +114,21 @@ private:
     gerbv_project_t* project;
     vector<string> header;
     string preamble;        //Preamble for output file
-    string postamble;       //Postamble for output file
 
     string preamble_ext;    //Preamble from command line (user file)
     string postamble_ext;   //Postamble from command line (user file)
     double cfactor;         //imperial/metric conversion factor for output file
-    double x_min;           //absolute min drill coordinate
-    double x_max;           //absolute max drill coordinate
-    double width;           //distance between x_min and x_max
-    double x_center;        //absolute center of drill coordinates
+    string zchange;
     const bool drillfront;
     const bool mirror_absolute;
     const bool bMetricOutput;   //Flag to indicate metric output
     const double quantization_error;
     const double xoffset;
     const double yoffset;
+    uniqueCodes ocodes;
+    uniqueCodes globalVars;
+    const Tiling::TileInfo tileInfo;
+    Tiling *tiling;
 };
 
 #endif // DRILL_H

@@ -32,6 +32,15 @@ using boost::shared_ptr;
 #include <boost/format.hpp>
 using boost::format;
 
+const string autoleveller::callSubRepeat[] = {
+ "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",
+ "M98 P%1% L%2%\n",
+ "M98 P%1% L%2%\n" };
+
+const string autoleveller::probeCode[] = { "G38.2", "G31", "G31" };
+const string autoleveller::zProbeResultVar[] = { "#5063", "#2002", "#2002" };
+const string autoleveller::setZZero[] = { "G10 L20 P0 Z0", "G92 Z0", "G92 Z0" };
+
 boost::format silent_format(const string &f_string)
 {
     format fmter(f_string);
@@ -40,11 +49,15 @@ boost::format silent_format(const string &f_string)
 }
 
 autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
-                            uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset ) :
+                            uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
+                            const struct Tiling::TileInfo tileInfo ) :
     unitconv( options["metric"].as<bool>() ?
               ( options["metricoutput"].as<bool>() ? 1 : 1/25.4 ) :
               ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
     cfactor( options["metricoutput"].as<bool>() ? 25.4 : 1 ),
+    probeCodeCustom( options["al-probecode"].as<string>() ),
+    zProbeResultVarCustom( "#" + boost::lexical_cast<string>( options["al-probevar"].as<unsigned int>() ) ),
+    setZZeroCustom( options["al-setzzero"].as<string>() ),
     XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
     YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
     zwork( str( format("%.5f") % ( options["zwork"].as<double>() * unitconv ) ) ),
@@ -61,10 +74,9 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     quantization_error( quantization_error * cfactor ),
     xoffset( xoffset ),
     yoffset( yoffset ),
-    bilinearInterpolationNum( ocodes->getUniqueCode() ),
     g01InterpolatedNum( ocodes->getUniqueCode() ),
-    xProbeNum( ocodes->getUniqueCode() ),
     yProbeNum( ocodes->getUniqueCode() ),
+    xProbeNum( ocodes->getUniqueCode() ),
     returnVar( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
     globalVar0( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
     globalVar1( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
@@ -72,70 +84,14 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     globalVar3( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
     globalVar4( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
     globalVar5( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
+    tileInfo( tileInfo ),
+    initialXOffsetVar( globalVars->getUniqueCode() ),
+    initialYOffsetVar( globalVars->getUniqueCode() ),
     ocodes( ocodes )
 {
-    probeCode[LINUXCNC] = "G38.2";
-    probeCode[MACH4] = "G31";
-    probeCode[MACH3] = "G31";
-    probeCode[CUSTOM] = options["al-probecode"].as<string>();
-    
-    zProbeResultVar[LINUXCNC] = "#5063";
-    zProbeResultVar[MACH4] = "#2002";
-    zProbeResultVar[MACH3] = "#2002";
-    zProbeResultVar[CUSTOM] = "#" + boost::lexical_cast<string>( options["al-probevar"].as<unsigned int>() );
-    
-    setZZero[LINUXCNC] = "G10 L20 P0 Z0";
-    setZZero[MACH4] = "G92 Z0";
-    setZZero[MACH3] = "G92 Z0";
-    setZZero[CUSTOM] = options["al-setzzero"].as<string>();
-    
     callSub2[LINUXCNC] = "o%1$s call [%2$s] [%3$s]\n";
     callSub2[MACH4] = "G65 P%1$s A%2$s B%3$s\n";
     callSub2[MACH3] = "#" + globalVar0 + "=%2$s\n%4$s#" + globalVar1 + "=%3$s\n%4$sM98 P%1$s\n";
-    callSub2[CUSTOM] = "";
-
-/*	^ y
- *	|
- *	|	A	B
- *	|
- *	|	C	D
- *	|		    x
- *	+----------->
- *
- * The interpolation macro arguments have this order:
- * 1 - number of the macro
- * 2 - point A
- * 3 - point B
- * 4 - point C
- * 5 - point D
- * 6 - distance between the y coordinate of the point and the y coordinate of C/D
- * 7 - distance between the x coordinate of the point and the x coordinate of A/C
- */
-
-    callInterpolationMacro[LINUXCNC] = "o%1$s call [%2$s] [%3$s] [%4$s] [%5$s] [%6$.5f] [%7$.5f]\n";
-    callInterpolationMacro[MACH4] = "G65 P%1$s A%2$s B%3$s C%4$s I%5$s J%6$.5f K%7$.5f\n";
-    callInterpolationMacro[MACH3] = "#" + globalVar0 + " = %2$s\n%8$s#" + globalVar1 + " = %3$s\n%8$s#" +
-                                    globalVar2 + " = %4$s\n%8$s#" + globalVar3 + " = %5$s\n%8$s#" +
-                                    globalVar4 + " = %6$.5f\n%8$s#" + globalVar5 + " = %7$.5f\n%8$sM98 P%1$s\n";
-    callInterpolationMacro[CUSTOM] = "#7=[%4$s+[%2$s-%4$s]*%6$.5f]\n#8=[%5$s+[%3$s-%5$s]*%6$.5f]\n#" +
-                                     returnVar + "=[#7+[#8-#7]*%7$.5f]\n";
-    
-    callSubRepeat[LINUXCNC] = "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n";
-    callSubRepeat[MACH4] = "M98 P%1% L%2%\n";
-    callSubRepeat[MACH3] = "M98 P%1% L%2%\n";
-    callSubRepeat[CUSTOM] = "";
-}
-
-string autoleveller::getSoftware()
-{
-    switch( software )
-    {
-    case LINUXCNC:  return "LinuxCNC";
-    case MACH4:     return "Mach4";
-    case MACH3:     return "Mach3";
-    case CUSTOM:    return "custom [probe code: " + probeCode[software] + ", probe result variable: "
-                               + zProbeResultVar[software] + ", set zero code: " + setZZero[software] + "]";
-    }
 }
 
 string autoleveller::getVarName( int i, int j )
@@ -145,11 +101,16 @@ string autoleveller::getVarName( int i, int j )
 
 bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
 {
-    const std::pair<icoordpair, icoordpair> workarea = computeWorkarea( toolpaths );
-
-    const double workareaLenX = ( workarea.second.first - workarea.first.first ) * cfactor;
-    const double workareaLenY = ( workarea.second.second - workarea.first.second ) * cfactor;
+    std::pair<icoordpair, icoordpair> workarea;
+    double workareaLenX;
+    double workareaLenY;
     int temp;
+
+    workarea = computeWorkarea( toolpaths );
+    workareaLenX = ( workarea.second.first - workarea.first.first ) * cfactor + 
+                   tileInfo.boardWidth * cfactor * ( tileInfo.tileX - 1 );
+    workareaLenY = ( workarea.second.second - workarea.first.second ) * cfactor +
+                   tileInfo.boardHeight * cfactor * ( tileInfo.tileY - 1 );
 
     startPointX = workarea.first.first * cfactor;
     startPointY = workarea.first.second * cfactor;
@@ -211,14 +172,12 @@ std::pair<icoordpair, icoordpair> autoleveller::computeWorkarea( vector<shared_p
 
 void autoleveller::header( std::ofstream &of )
 {
-    const char *logFileOpenAndComment[] =
-    {
+    const char *logFileOpenAndComment[] = {
         "(PROBEOPEN RawProbeLog.txt) ( Record all probes in RawProbeLog.txt )",
         "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")",
-        "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")",
-        "( No probe log function available in custom mode )"
+        "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")"
     };
-    const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41", "( No probe log function available in custom mode )" };
+    const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41" };
     int i;
     int j = 1;
     int incr_decr = 1;
@@ -228,17 +187,31 @@ void autoleveller::header( std::ofstream &of )
 
     if( !feedrate.empty() )
     {
+        if( tileInfo.enabled )
+        {
+            of << "#" << initialXOffsetVar << " = #5211\n";      //Save the initial offset
+            of << "#" << initialYOffsetVar << " = #5212\n\n";
+        }
+        else
+        {
+            of << "#" << initialXOffsetVar << " = 0\n";
+            of << "#" << initialYOffsetVar << " = 0\n\n";
+        }
         of << probeOn << endl;
         of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
         of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
         of << "G0 Z" << zprobe << " ( Move Z to probe height )" << endl;
-        of << logFileOpenAndComment[software] << endl;
-        of << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Z-probe )" << endl;
+        if( software != CUSTOM )
+            of << logFileOpenAndComment[software] << endl;
+        of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z" << zfail 
+           << " F" << feedrate << " ( Z-probe )" << endl;
         of << "#500 = 0 ( Probe point [0, 0] is our reference )" << endl;
-        of << setZZero[software] << " ( Set the current Z as zero-value )" << endl;
+        of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
+           << " ( Set the current Z as zero-value )" << endl;
         of << endl;
         of << "( We now start the real probing: move the Z axis to the probing height, move to )" << endl;
-        of << "( the probing XY position, probe it and save the result, parameter " << zProbeResultVar[software] << ", )" << endl;
+        of << "( the probing XY position, probe it and save the result, parameter "
+           << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] ) << ", )" << endl;
         of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )" << endl;
         of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )" << endl;
         of << endl;
@@ -259,8 +232,8 @@ void autoleveller::header( std::ofstream &of )
                 {
                     of << "G0 Z" << zprobe << endl;
                     of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << endl;
-                    of << probeCode[software] << " Z" << zfail << " F" << feedrate << endl;
-                    of << getVarName(i, j) << "=" << zProbeResultVar[software] << endl;
+                    of << probeCodeCustom << " Z" << zfail << " F" << feedrate << endl;
+                    of << getVarName(i, j) << "=" << zProbeResultVarCustom << endl;
                     j += incr_decr;
                 }
                 incr_decr = -incr_decr;
@@ -278,79 +251,72 @@ void autoleveller::header( std::ofstream &of )
         of << "G0 Z[" << zsafe << " + " << 0.2 * cfactor << "] ( Move Z to safe height )"<< endl;
         of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )" << endl;
         of << "G0 Z[" << zprobe << " + " << 0.2 * cfactor << "] ( Move Z to probe height )" << endl;
-        of << probeCode[software] << " Z[" << zfail << " - " << 0.2 * cfactor << "] F" << feedrate2nd << " ( Probe )" << endl;
-        of << setZZero[software] << " ( Set the current Z as zero-value )" << endl;
+        of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z[" << zfail
+           << " - "<< 0.2 * cfactor << "] F" << feedrate2nd << " ( Probe )" << endl;
+        of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
+           << " ( Set the current Z as zero-value )" << endl;
     }
 
     of << endl;
     of << "G0 Z" << zsafe << " ( Move Z to safe height )"<< endl;
-    of << logFileClose[software] << " ( Close the probe log file )" << endl;
+    if( software != CUSTOM )
+       of << logFileClose[software] << " ( Close the probe log file )" << endl;
     of << "( Probing has ended, each Z-coordinate will be corrected with a bilinear interpolation )" << endl;
     of << probeOff << endl;
+    if( software == CUSTOM )
+        of << "\n#4 = " << zwork << '\n';
     of << endl;
 }
 
 void autoleveller::footerNoIf( std::ofstream &of )
 {
-    const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d", "" };
-    const char *endSub[] = { "o%1$d endsub", "M99", "M99", "" };
-    const char *callSubSimple2[] = { "o%1$s call [%2$s] [%3$s]\n", "G65 P%1$s A%2$s B%3$s\n", "M98 P%1$s\n", "" };
-    const char *var1[] = { "1", "1", globalVar0.c_str(), globalVar0.c_str() };
-    const char *var2[] = { "2", "2", globalVar1.c_str(), globalVar1.c_str() };
-    const char *var3[] = { "3", "3", globalVar2.c_str(), globalVar2.c_str() };
-    const char *var4[] = { "4", "4", globalVar3.c_str(), globalVar3.c_str() };
-    const char *var5[] = { "5", "5", globalVar4.c_str(), globalVar4.c_str() };
-    const char *var6[] = { "6", "6", globalVar5.c_str(), globalVar5.c_str() };
-    const unsigned int correctionFactorNum = ocodes->getUniqueCode();
+    const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d" };
+    const char *endSub[] = { "o%1$d endsub", "M99", "M99" };
+    const char *callSubSimple2[] = { "o%1$s call [%2$s] [%3$s]\n", "G65 P%1$s A%2$s B%3$s\n", "M98 P%1$s\n" };
+    const char *var1[] = { "1", "1", globalVar0.c_str() };
+    const char *var2[] = { "2", "2", globalVar1.c_str() };
+    const char *var3[] = { "3", "3", globalVar2.c_str() };
+    const char *var4[] = { "4", "4", globalVar3.c_str() };
+    const char *var5[] = { "5", "5", globalVar4.c_str() };
+    const char *var6[] = { "6", "6", globalVar5.c_str() };
 
     if( software != CUSTOM )
     {
-        of << format(startSub[software]) % bilinearInterpolationNum << " ( Bilinear interpolation macro )" << endl;
-        of << "    #7 = [ #" << var3[software] << " + [ #" << var1[software] << " - #" << var3[software]
-           << " ] * #" << var5[software] << " ] ( Linear interpolation of the x-min elements )" << endl;
-        of << "    #8 = [ #" << var4[software] << " + [ #" << var2[software] << " - #" << var4[software]
-           << " ] * #" << var5[software] << " ] ( Linear interpolation of the x-max elements )" << endl;
-        of << "    #" << returnVar << " = [ #7 + [ #8 - #7 ] * #" << var6[software] << " ] ( Linear interpolation of previously interpolated points )" << endl;
-        of << silent_format(endSub[software]) % bilinearInterpolationNum << endl;
-        of << endl;
-        of << format(startSub[software]) % correctionFactorNum << " ( Z-correction subroutine )" << endl;
-        of << "    #3 = [ FIX[ [ #" << var1[software] << " - " << startPointX << " ] / " << XProbeDist << " ] ] ( Lower left point X index )" << endl;
-        of << "    #4 = [ FIX[ [ #" << var2[software] << " - " << startPointY << " ] / " << YProbeDist << " ] ] ( Lower left point Y index )" << endl;
-        if( software == MACH3 )
-        {
-            of << "    #11 = #" << globalVar0 << " ( Save global parameter " << globalVar0 << " )" << endl;
-            of << "    #12 = #" << globalVar1 << " ( and " << globalVar1 << " )" << endl;
-        }
-        of << "    #5 = [ #3 * " << numYPoints << " + [ #4 + 1 ] + 500 ] ( Upper left point parameter number )" << endl;
-        of << "    #6 = [ [ #3 + 1 ] *" << numYPoints << " + [ #4 + 1 ] + 500 ] ( Upper right point parameter number )" << endl;
-        of << "    #7 = [ #3 * " << numYPoints << " + #4 + 500 ] ( Lower left point parameter number )" << endl;
-        of << "    #8 = [ [ #3 + 1 ] * " << numYPoints << " + #4 + 500 ] ( Lower right point parameter number )" << endl;
-        of << "    #9 = [ [ #" << var2[software] << " - " << startPointY << " - #4 * " << YProbeDist << " ] / " << YProbeDist << " ] "
-           "( Distance between the point and the left border of the rectangle, normalized to 1 )" << endl;
-        of << "    #10 = [ [ #" << var1[software] << " - " << startPointX << " - #3 * " << XProbeDist << " ] / " << XProbeDist << " ] "
-           "( Distance between the point and the down border of the rectangle, normalized to 1 ) " << endl;
-        of << "    " << str( silent_format( callInterpolationMacro[software] ) % bilinearInterpolationNum %
-                             "##5" % "##6" % "##7" % "##8" % "#9" % "#10" % "    " );
-        if( software == MACH3 )
-        {
-            of << "    #" << globalVar0 << " = #11 ( Restore global parameter " << globalVar0 << " )" << endl;
-            of << "    #" << globalVar1 << " = #12 ( and " << globalVar1 << " )" << endl;
-        }
-        of << silent_format(endSub[software]) % correctionFactorNum << endl;
-        of << endl;
         of << format(startSub[software]) % g01InterpolatedNum << " ( G01 with Z-correction subroutine )" << endl;
-        of << "    " << silent_format(callSubSimple2[software]) % correctionFactorNum %
-           ( string("#") + var1[software] ) % ( string("#") + var2[software] );
-        of << "    G01 X#" << var1[software] << " Y#" << var2[software] << " Z[" + zwork + "+#" << returnVar << "]" << endl;
+        if( tileInfo.enabled )
+        {
+            of << "    #3 = [ #5211 - #" << initialXOffsetVar << " ] ( x-tile offset [minus the initial offset] )" << endl;
+            of << "    #4 = [ #5212 - #" << initialYOffsetVar << " ] ( y-tile offset [minus the initial offset] )" << endl;
+        }
+        else
+        {
+            of << "    #3 = 0 ( x-tile offset [minus the initial offset] )" << endl;
+            of << "    #4 = 0 ( x-tile offset [minus the initial offset] )" << endl;
+        }
+        of << "    #5 = [ FIX[ [ #" << var1[software] << " - " << startPointX << " + #3 ] / " << XProbeDist << " ] ] ( Lower left point X index )" << endl;
+        of << "    #6 = [ FIX[ [ #" << var2[software] << " - " << startPointY << " + #4 ] / " << YProbeDist << " ] ] ( Lower left point Y index )" << endl;
+        of << "    #7 = [ #5 * " << numYPoints << " + [ #6 + 1 ] + 500 ] ( Upper left point parameter number )" << endl;
+        of << "    #8 = [ [ #5 + 1 ] *" << numYPoints << " + [ #6 + 1 ] + 500 ] ( Upper right point parameter number )" << endl;
+        of << "    #9 = [ #5 * " << numYPoints << " + #6 + 500 ] ( Lower left point parameter number )" << endl;
+        of << "    #10 = [ [ #5 + 1 ] * " << numYPoints << " + #6 + 500 ] ( Lower right point parameter number )" << endl;
+        of << "    #11 = [ [ #" << var2[software] << " + #4 - " << startPointY << " - #6 * " << YProbeDist << " ] / " << YProbeDist << " ] "
+           "( Distance between the point and the left border of the rectangle, normalized to 1 )" << endl;
+        of << "    #12 = [ [ #" << var1[software] << " + #3 - " << startPointX << " - #5 * " << XProbeDist << " ] / " << XProbeDist << " ] "
+           "( Distance between the point and the bottom border of the rectangle, normalized to 1 ) " << endl;
+        of << "    #13 = [ ##9 + [ ##7 - ##9 ] * #11 ] ( Linear interpolation of the x-min elements )" << endl;
+        of << "    #14 = [ ##10 + [ ##8 - ##10 ] * #11 ] ( Linear interpolation of the x-max elements )" << endl;
+        of << "    #15 = [ #13 + [ #14 - #13 ] * #12 ] ( Linear interpolation of previously interpolated points )" << endl;
+        of << "    G01 X#" << var1[software] << " Y#" << var2[software] << " Z[" + zwork + "+#15]" << endl;
         of << silent_format(endSub[software]) % g01InterpolatedNum << endl;
         of << endl;
         of << format( startSub[software] ) % yProbeNum << " ( Y probe subroutine )" << endl;
         of << "    G0 Z" << zprobe << " ( Move to probe height )" << endl;
-        of << "    X[#" << globalVar0 << " * " << XProbeDist << " + " << startPointX << "] Y[#" << globalVar1 << " * " << YProbeDist << " + " << startPointY << "] "
-           " ( Move to the current probe point )" << endl;
+        of << "    X[#" << globalVar0 << " * " << XProbeDist << " + " << startPointX << "] Y[#" << globalVar1
+           << " * " << YProbeDist << " + " << startPointY << "] ( Move to the current probe point )" << endl;
         of << "    " << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Probe it )" << endl;
-        of << "    #[#" << globalVar0 << " * " << numYPoints << " + #" << globalVar1 << " + 500] = " << zProbeResultVar[software] <<
-           " ( Save the probe in the correct parameter )" << endl;
+        of << "    #[#" << globalVar0 << " * " << numYPoints << " + #" << globalVar1 << " + 500] = "
+           << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] )
+           << " ( Save the probe in the correct parameter )" << endl;
         of << "    #" << globalVar1 << " = [#" << globalVar1 << " + #" << globalVar2 << "] ( Increment/decrement by 1 the Y counter )" << endl;
         of << silent_format( endSub[software] ) % yProbeNum << endl;
         of << endl;
@@ -377,7 +343,7 @@ string autoleveller::interpolatePoint ( icoordpair point )
     x_minus_x0_rel = ( point.first - startPointX - xminindex * XProbeDist ) / XProbeDist;
     y_minus_y0_rel = ( point.second - startPointY - yminindex * YProbeDist ) / YProbeDist;
 
-    return str( silent_format( callInterpolationMacro[software] ) % bilinearInterpolationNum %
+    return str( format( "#1=[%3$s+[%1$s-%3$s]*%5$.5f]\n#2=[%4$s+[%2$s-%4$s]*%5$.5f]\n#3=[#1+[#2-#1]*%6$.5f]\n" ) %
                 getVarName( xminindex, yminindex + 1 ) %
                 getVarName( xminindex + 1, yminindex + 1 ) %
                 getVarName( xminindex, yminindex ) %
@@ -400,7 +366,7 @@ string autoleveller::addChainPoint ( icoordpair point )
         for( i = subsegments.begin(); i != subsegments.end(); i++ )
         {
             outputStr += interpolatePoint( *i );
-            outputStr += str( format( "X%1$.5f Y%2$.5f Z[%3$s+#" + returnVar + "]\n" ) % i->first % i->second % zwork );
+            outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+#4]\n" ) % i->first % i->second );
         }
 
     lastPoint = point;

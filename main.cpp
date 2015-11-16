@@ -325,6 +325,7 @@ int main(int argc, char* argv[])
     //SVG EXPORTER
 
     shared_ptr<SVG_Exporter> svgexpo(new SVG_Exporter(board));
+    Tiling::TileInfo *tileInfo = NULL;
 
     try
     {
@@ -358,6 +359,8 @@ int main(int argc, char* argv[])
 
         exporter->export_all(vm);
 
+        tileInfo = new Tiling::TileInfo;
+        *tileInfo = exporter->getTileInfo();
     }
     catch (std::logic_error& le)
     {
@@ -375,10 +378,8 @@ int main(int argc, char* argv[])
 
     try
     {
-        string drill = vm["drill"].as<string>();
-        double board_min_x;
-        double board_min_y;
-        double board_width;
+        icoordpair min;
+        icoordpair max;
 
         //Check if there are layers in "board"; if not, we have to compute
         //the size of the board now, based only on the size of the drill layer
@@ -386,28 +387,17 @@ int main(int argc, char* argv[])
         //best we can do)
         if(board->get_layersnum() == 0)
         {
-            boost::shared_ptr<LayerImporter> importer(new GerberImporter(drill));
-            board_min_x = importer->get_min_x();
-            board_min_y = importer->get_min_y();
-            board_width = importer->get_width();
+            boost::shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
+            min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
+            max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
         }
         else
         {
-            board_min_x = board->get_min_x();
-            board_min_y = board->get_min_y();
-            board_width = board->get_width();
+            min = std::make_pair( board->get_min_x(), board->get_min_y() );
+            max = std::make_pair( board->get_max_x(), board->get_max_y() );
         }
 
-        ExcellonProcessor ep(
-            drill,
-            board_width,
-            board_min_x + board_width / 2,
-            vm["metricoutput"].as<bool>(),
-            vm["drill-front"].as<bool>(),
-            vm["mirror-absolute"].as<bool>(),
-            2.0 / vm["dpi"].as<int>(),
-            vm["zero-start"].as<bool>() ? board_min_x : 0,
-            vm["zero-start"].as<bool>() ? board_min_y : 0 ) ;
+        ExcellonProcessor ep(vm, min, max);
 
         ep.add_header(PACKAGE_STRING);
 

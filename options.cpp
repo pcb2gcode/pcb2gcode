@@ -202,6 +202,8 @@ options::options()
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
+            "tile-x", po::value<int>()->default_value(1), "[TODO]")(
+            "tile-y", po::value<int>()->default_value(1), "[TODO]")(
             "al-front", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the front layer")(
             "al-back", po::value<bool>()->default_value(false)->implicit_value(true),
@@ -283,6 +285,21 @@ static void check_generic_parameters(po::variables_map const& vm)
             && !(vm.count("front") || vm.count("back") || vm.count("outline")))
     {
         cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
+    }
+    
+    //---------------------------------------------------------------------------
+    //Check for tile parameters
+
+    if (vm["tile-x"].as<int>() < 1)
+    {
+        cerr << "tile-x can't be negative!\n";
+        exit(ERR_NEGATIVETILEX);
+    }
+    
+    if (vm["tile-y"].as<int>() < 1)
+    {
+        cerr << "tile-y can't be negative!\n";
+        exit(ERR_NEGATIVETILEY);
     }
 
     //---------------------------------------------------------------------------
