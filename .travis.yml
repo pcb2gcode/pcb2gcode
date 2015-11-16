@@ -1,4 +1,5 @@
 language: cpp
+sudo: false
 
 compiler:
   - gcc
@@ -6,14 +7,27 @@ compiler:
 
 os: linux
 
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - boost-latest
+    packages:
+      - gcc-4.8
+      - g++-4.8
+      - libboost-program-options1.55-dev
+      - libgtkmm-2.4-dev
+      - gerbv
+
 install:
-  - "sudo apt-get update -qq"
-  - "sudo apt-get install -y libboost-program-options1.48-dev libgtkmm-2.4-dev gerbv"
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 script:
   - "autoreconf -i"
   - "./configure"
   - "make"
+
+after_script:
   - "cd testing/gerbv_example/"
   - "ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000'"
   - "for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS; cd ..; done"
