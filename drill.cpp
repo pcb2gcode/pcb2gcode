@@ -421,7 +421,7 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
 
     of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
        << (bMetricOutput ? "mm" : "inch") << " to drill the " << bits->size()
-       << "bit sizes. )" << "\n";
+       << " bit sizes. )" << "\n";
 
     of << "( Bit sizes:";
     for (map<int, drillbit>::const_iterator it = bits->begin();
@@ -434,9 +434,8 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
     //preamble
     of << preamble_ext << preamble << "S" << left << target->speed
        << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor
-       << " (Feedrate)\n\n";
-
-    of << "G00 Z" << target->zsafe * cfactor << endl;
+       << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
+       << "G00 Z" << target->zsafe * cfactor << "\n\n";
 
     tiling->header( of );
 
