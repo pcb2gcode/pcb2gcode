@@ -298,7 +298,7 @@ int main(int argc, char* argv[])
         {
             string outline = vm["outline"].as<string>();                               //Filename
             boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-            board->prepareLayer("outline", importer, cutter, vm["cut-front"].as<bool>(),
+            board->prepareLayer("outline", importer, cutter, !vm["cut-front"].as<bool>(),
                                 vm["mirror-absolute"].as<bool>());
 
             cout << "DONE.\n";

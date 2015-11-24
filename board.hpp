@@ -63,7 +63,7 @@ public:
     Board(int dpi, bool fill_outline, double outline_width, string outputdir);
 
     void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
-                      shared_ptr<RoutingMill> manufacturer, bool topside,
+                      shared_ptr<RoutingMill> manufacturer, bool backside,
                       bool mirror_absolute);
     void set_margins(double margins) { margin = margins;	};
     ivalue_t get_width();

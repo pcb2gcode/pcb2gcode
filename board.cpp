@@ -67,10 +67,10 @@ unsigned int Board::get_dpi()
 /*
  */
 /******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool mirror, bool mirror_absolute)
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool mirror_absolute)
 {
     // see comment for prep_t in board.hpp
-    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, mirror, mirror_absolute)));
+    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside, mirror_absolute)));
 }
 
 /******************************************************************************/
