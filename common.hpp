@@ -23,25 +23,13 @@
 #include <string>
 using std::string;
 
-#include <fstream>
-
-#include <boost/format.hpp>
-using boost::format;
+#include <boost/program_options.hpp>
 
 // This enum contains the software codes. Note that all the items (except for CUSTOM)
 // must start from 0 and be consecutive, as they are used as array indexes
 enum Software { CUSTOM = -1, LINUXCNC = 0, MACH4 = 1, MACH3 = 2 };
 
-inline string getSoftwareString( Software software )
-{
-    switch( software )
-    {
-        case LINUXCNC:  return "LinuxCNC";
-        case MACH4:     return "Mach4";
-        case MACH3:     return "Mach3";
-        case CUSTOM:    return "custom software";
-        default:        return "unknown software";
-    }
-}
+string getSoftwareString( Software software );
+bool workSide( const boost::program_options::variables_map &options, string type );
 
 #endif // COMMON_H

@@ -298,7 +298,7 @@ int main(int argc, char* argv[])
         {
             string outline = vm["outline"].as<string>();                               //Filename
             boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-            board->prepareLayer("outline", importer, cutter, !vm["cut-front"].as<bool>(),
+            board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"),
                                 vm["mirror-absolute"].as<bool>());
 
             cout << "DONE.\n";
@@ -428,6 +428,8 @@ int main(int argc, char* argv[])
             ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
                            driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
         }
+
+        cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 
     }
     catch (drill_exception& e)

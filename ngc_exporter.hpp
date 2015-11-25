@@ -86,7 +86,6 @@ protected:
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
     bool bMirrored;         //if true, mirrored along y axis
-    bool bCutfront;         //if true, the outline will be cut from front
     bool bBridges;
     const unsigned int dpi;
     const double quantization_error;

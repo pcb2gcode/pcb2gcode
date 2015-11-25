@@ -76,7 +76,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
     bMirrored = options["mirror-absolute"].as<bool>();      //set flag
-    bCutfront = options["cut-front"].as<bool>();      //set flag
     bFrontAutoleveller = options["al-front"].as<bool>();
     bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
@@ -121,7 +120,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         cerr << "DONE." << " (Height: " << board->get_height() * cfactor
              << (bMetricoutput ? "mm" : "in") << " Width: "
              << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
-             << ")" << endl;
+             << ")";
+        if (layername == "outline")
+            cerr << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
+        cerr << endl;
     }
 }
 

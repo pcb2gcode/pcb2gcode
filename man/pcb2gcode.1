@@ -131,8 +131,12 @@ created by moving the head in circles using the feed and infeed parameters used
 in cutting.
 .TP
 \fB\-\-drill\-front\fP
-use the coordinates of the front side for drilling instead of the coordinates
-of the back side
+[\fBDEPRECATED\fP, use \fB\-\-drill\-side\fP instead] drill from the front side.
+.TP
+\fB\-\-drill\-side\fP \fIside\fP
+choose the drill side. Valid choices are front, back or auto (default). In auto
+mode the drill side is automatically chosen (always front unless only the back
+side is specified)
 .TP
 \fB\-\-onedrill\fP
 use only one drill bit size
@@ -174,7 +178,12 @@ the centres of these lines.
 thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
 .TP
 \fB\-\-cut\-front\fP
-cut from the front side. Default is from the back side
+[\fBDEPRECATED\fP, use \fB\-\-cut\-side\fP instead] cut from the front side.
+.TP
+\fB\-\-cut\-side\fP \fIside\fP
+choose the cut side. Valid choices are front, back or auto (default). In auto mode
+the cut side is automatically chosen (always front unless only the back side is
+specified)
 .TP
 \fB\-\-bridges \fIunit\fP
 add bridges with the given width to the outline cut.

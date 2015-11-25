@@ -10,6 +10,7 @@ pcb2gcode_SOURCES = \
     board.hpp \
     board.cpp \
     common.hpp \
+    common.cpp \
     coord.hpp \
     drill.hpp \
     drill.cpp \

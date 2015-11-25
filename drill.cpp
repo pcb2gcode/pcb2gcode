@@ -42,6 +42,7 @@ using boost::format;
 
 #include "drill.hpp"
 #include "tsp_solver.hpp"
+#include "common.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -63,7 +64,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     : board_width(max.first - min.first),
       board_height(max.second - min.second),
       board_center(max.first + board_width / 2),
-      drillfront(options["drill-front"].as<bool>()),
+      drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
       quantization_error(2.0 / options["dpi"].as<int>()),
@@ -321,7 +322,6 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
     of << tiling->getGCodeEnd();
     
     of.close();
-    cout << "DONE." << endl;
 }
 
 /******************************************************************************/
@@ -482,7 +482,6 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
         cerr << "Warning: " << badHoles << ( badHoles == 1 ? " hole was" : " holes were" )
              << " bigger than the milling tool." << endl;
     }
-    cout << "DONE." << endl;
 }
 
 /******************************************************************************/

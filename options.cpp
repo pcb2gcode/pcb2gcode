@@ -189,12 +189,14 @@ options::options()
             "cut-vertfeed", po::value<double>(), "PCB vertical cutting feed in [i/m] or [mm/m]")(
             "cut-speed", po::value<int>(), "spindle rpm when cutting")(
             "cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")(
-            "cut-front", po::value<bool>()->default_value(false)->implicit_value(true), "cut from front side. Default is back side.")(
+            "cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")(
+            "cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")(
             "zdrill", po::value<double>(), "drill depth")(
             "zchange", po::value<double>(), "tool changing height")(
             "drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")(
             "drill-speed", po::value<int>(), "spindle rpm when drilling")(
-            "drill-front", po::value<bool>()->default_value(false)->implicit_value(true), "drill through the front side of board")(
+            "drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")(
+            "drill-side", po::value<string>()->default_value("auto"), "drill side; valid choices are front, back or auto (default)")(
             "onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")(
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
@@ -202,8 +204,8 @@ options::options()
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
-            "tile-x", po::value<int>()->default_value(1), "[TODO]")(
-            "tile-y", po::value<int>()->default_value(1), "[TODO]")(
+            "tile-x", po::value<int>()->default_value(1), "number of tiling columns. Default value is 1")(
+            "tile-y", po::value<int>()->default_value(1), "number of tiling rows. Default value is 1")(
             "al-front", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the front layer")(
             "al-back", po::value<bool>()->default_value(false)->implicit_value(true),
@@ -325,13 +327,15 @@ static void check_generic_parameters(po::variables_map const& vm)
 
     if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>())
     {
+        const string software = vm.count("software") ? vm["software"].as<string>() : "";
+
         if (!vm.count("software") ||
-                ( boost::iequals( vm["software"].as<string>(), "linuxcnc" ) &&	//boost::iequals is case insensitive
-                  boost::iequals( vm["software"].as<string>(), "mach3" ) &&
-                  boost::iequals( vm["software"].as<string>(), "mach4" ) &&
-                  boost::iequals( vm["software"].as<string>(), "custom" ) ) )
+                ( !boost::iequals( software, "linuxcnc" ) &&	//boost::iequals is case insensitive
+                  !boost::iequals( software, "mach3" ) &&
+                  !boost::iequals( software, "mach4" ) &&
+                  !boost::iequals( software, "custom" ) ) )
         {
-            cerr << "Error: Unknown software, please specify a software (linuxcnc, mach3, mach4 or custom).\n";
+            cerr << "Error: unspecified or unsupported software, please specify a supported software (linuxcnc, mach3, mach4 or custom).\n";
             exit(ERR_NOSOFTWARE);
         }
 
@@ -501,6 +505,29 @@ static void check_drilling_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEDRILLSPEED);
         }
 
+        if (vm.count("drill-front"))
+        {
+            cerr << "drill-front is deprecated, use drill-side.\n";
+
+            if (!vm["drill-side"].defaulted())
+            {
+                cerr << "You can't specify both drill-front and drill-side!\n";
+                exit(ERR_BOTHDRILLFRONTSIDE);
+            }
+        }
+
+        if (!vm["drill-side"].defaulted())
+        {
+            const string drillside = vm["drill-side"].as<string>();
+
+            if( !boost::iequals( drillside, "auto" ) &&
+                !boost::iequals( drillside, "front" ) &&
+                !boost::iequals( drillside, "back" ) )
+            {
+                cerr << "drill-side can only be auto, front or back";
+                exit(ERR_UNKNOWNDRILLSIDE);
+            }
+        }
     }
 
 }
@@ -621,6 +648,30 @@ static void check_cutting_parameters(po::variables_map const& vm)
         {
             cerr << "Error: \"bridges\" requires \"optimise\".\n";
             exit(ERR_BRIDGENOOPTIMISE);
+        }
+
+        if (vm.count("cut-front"))
+        {
+            cerr << "cut-front is deprecated, use cut-side.\n";
+
+            if (!vm["cut-side"].defaulted())
+            {
+                cerr << "You can't specify both cut-front and cut-side!\n";
+                exit(ERR_BOTHCUTFRONTSIDE);
+            }
+        }
+
+        if (!vm["cut-side"].defaulted())
+        {
+            const string cutside = vm["cut-side"].as<string>();
+
+            if( !boost::iequals( cutside, "auto" ) &&
+                !boost::iequals( cutside, "front" ) &&
+                !boost::iequals( cutside, "back" ) )
+            {
+                cerr << "cut-side can only be auto, front or back";
+                exit(ERR_UNKNOWNCUTSIDE);
+            }
         }
     }
 }
