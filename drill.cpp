@@ -63,7 +63,8 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                                      const icoordpair max)
     : board_width(max.first - min.first),
       board_height(max.second - min.second),
-      board_center(max.first + board_width / 2),
+      board_center(min.first + board_width / 2),
+      board_minx(min.first),
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
@@ -159,7 +160,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     {
         if (mirror_absolute)        //drill from back side, mirrored along y-axis
         {
-            retval = xvalue * -1;
+            retval = (2 * board_minx - xvalue);
         }
         else          //drill from back side, mirrored along board center
         {

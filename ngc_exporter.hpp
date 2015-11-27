@@ -85,7 +85,6 @@ protected:
     double cfactor;         //imperial/metric conversion factor for output file
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
-    bool bMirrored;         //if true, mirrored along y axis
     bool bBridges;
     const unsigned int dpi;
     const double quantization_error;

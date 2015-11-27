@@ -107,6 +107,7 @@ private:
     const ivalue_t board_width;
     const ivalue_t board_height;
     const ivalue_t board_center;
+    const ivalue_t board_minx;
     bool bDoSVG;            //Flag to indicate SVG output
     shared_ptr<SVG_Exporter> svgexpo;
     shared_ptr<map<int, drillbit> > bits;
