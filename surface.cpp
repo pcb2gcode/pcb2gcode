@@ -29,6 +29,8 @@ using std::pair;
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
 
+#include <algorithm>
+
 // color definitions for the ARGB32 format used
 
 #define OPAQUE 0xFF000000
@@ -133,14 +135,20 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     Isolator* iso = dynamic_cast<Isolator*>(mill.get());
     int extra_passes = iso ? iso->extra_passes : 0;
 
-    coords components = fill_all_components();
+    coords components = fill_all_components(mill->internal_components);
+    coords negativecomponents;
 
     int added = -1;
     int contentions = 0;
     int grow = mill->tool_diameter / 2 * dpi;
     ivalue_t mirror_axis = mirror_absolute ? min_x : ((min_x + max_x) / 2);
+    coordpair newxy;
+    int removed_negativecomponents = 0;
 
     vector<shared_ptr<icoords> > toolpath;
+
+    for(int i = 0; i < flaggedcolors.size(); i++)
+        negativecomponents.push_back(find_color(flaggedcolors[i], coordpair(0, 0)));
 
     for (int pass = 0; pass <= extra_passes && added != 0; pass++)
     {
@@ -150,9 +158,45 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
             BOOST_FOREACH( coordpair c, components )
             {
-                added += grow_a_component(c.first, c.second, contentions);
+                added += grow_a_component(c.first, c.second, contentions, false);
+            }
+            
+            for (int j = 0; j < flaggedcolors.size(); j++)
+            {
+                unsigned int added_now = grow_a_component(
+                            negativecomponents[j].first,
+                            negativecomponents[j].second, contentions, true);
+                
+                /* If grow_a_component returns 0 it means that the component is
+                 * about to disappear, but we can't easily find its outline; we
+                 * can safely remove its color from negativecomponents to ignore
+                 * it in the future.
+                 * A better solution would be to improve calculate_outline and
+                 * make it find also the border of diagonal lines, but this
+                 * solution should work in all cases without any performance
+                 * penalty.
+                 */
+
+                if (added_now != 0)
+                {
+                    added += added_now;
+                    newxy = find_color(flaggedcolors[j], negativecomponents[j]);
+                }
+
+                if (added_now != 0 && newxy.first >= 0)
+                    negativecomponents[j] = newxy;
+                else
+                {
+                    ++removed_negativecomponents;
+                    negativecomponents.erase(negativecomponents.begin() + j);
+                    flaggedcolors.erase(flaggedcolors.begin() + j);
+                }
             }
         }
+
+        components.reserve(components.size() + negativecomponents.size());
+        components.insert(components.end(),
+            negativecomponents.begin(), negativecomponents.end());
 
         coords inside, outside;
 
@@ -197,11 +241,37 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
              << " instead. You may want to check the g-code output and"
              << " possibly use a smaller milling width.\n";
     }
+    
+    if(removed_negativecomponents)
+    {
+        cerr << "\nWarning: " << removed_negativecomponents << " internal"
+                " toolpath" << (removed_negativecomponents == 1 ?
+                " has" : "s have") << " been removed.\n";
+    }
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
 
     save_debug_image("traced");
     return toolpath;
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+coordpair Surface::find_color(guint32 color, coordpair startpoint)
+{
+    int max_x = cairo_surface->get_width() - 1;
+    int max_y = cairo_surface->get_height() - 1;
+    guint8* pixels = cairo_surface->get_data();
+    int stride = cairo_surface->get_stride();
+
+    for (int y = startpoint.second; y <= max_y; y++)
+        for (int x = startpoint.first; x <= max_x; x++)
+            if (PRC(pixels + x*4 + y*stride) == color)
+                return coordpair(x, y);
+    
+    return coordpair(-1, -1);
 }
 
 /******************************************************************************/
@@ -227,6 +297,7 @@ guint32 Surface::get_an_unused_color()
     }
     while (badcol);
     usedcolors.push_back(clr);
+
     return clr;
 }
 
@@ -237,25 +308,93 @@ guint32 Surface::get_an_unused_color()
  returns the	list floodfill-seed points
  */
 /******************************************************************************/
-std::vector<std::pair<int, int> > Surface::fill_all_components()
+std::vector<std::pair<int, int> > Surface::fill_all_components(bool internal_components)
 {
+    int x;
+    int y;
     std::vector<pair<int, int> > components;
     int max_x = cairo_surface->get_width() - 1;
     int max_y = cairo_surface->get_height() - 1;
     guint8* pixels = cairo_surface->get_data();
     int stride = cairo_surface->get_stride();
+    guint32 color;
+    bool remove_color;
 
-    for (int y = 0; y <= max_y; y++)
+    for (y = 0; y <= max_y; y++)
     {
-        for (int x = 0; x <= max_x; x++)
+        for (x = 0; x <= max_x; x++)
         {
             if ((PRC(pixels + x*4 + y*stride) | OPAQUE) == WHITE)
             {
                 components.push_back(pair<int, int>(x, y));
                 fill_a_component(x, y, get_an_unused_color());
             }
+            else if (internal_components &&
+                     (PRC(pixels + x*4 + y*stride) | OPAQUE) == BLACK)
+            {
+                guint32 c = get_an_unused_color();
+
+                fill_a_component(x, y, c);
+                flaggedcolors.push_back(c);
+            }
         }
     }
+
+    // Remove all the invalid negative components
+    if (internal_components)
+        for (int i = 0; i < flaggedcolors.size(); i++)
+        {
+            for (y = 0; y <= max_y; y++)
+            {
+                for (x = 0; x <= max_x; x++)
+                {
+                    if (PRC(pixels + x*4 + y*stride) == flaggedcolors[i])
+                    {
+                        coords inside, outside;
+                        coords::iterator iter;
+                        guint32 outside_color;
+                        guint32 this_color;
+                        
+                        remove_color = false;
+                        
+                        try
+                        {
+                            calculate_outline(x, y, outside, inside, false);
+                            outside_color = PRC(pixels + outside[0].first*4 + outside[0].second*stride);
+                            
+                            for (iter = outside.begin(); iter != outside.end(); iter++)
+                            {
+                                this_color = PRC(pixels + iter->first*4 + iter->second*stride);
+                                if (this_color != outside_color || this_color == (RED | BLUE))
+                                {
+                                    remove_color = true;
+                                    break;
+                                }
+                            }
+                        }
+                        catch (std::logic_error& e)
+                        {
+                            /* If calculate_outline throws a std::logic_error it
+                             * usually means that we're trying to compute the
+                             * outline of a border of the image. In this case the
+                             * negative component is invalid and must be removed.
+                             */
+                            remove_color = true;
+                        }
+                        
+                        if (remove_color)
+                        {
+                            fill_a_component(x, y, BLACK);
+                            flaggedcolors.erase(flaggedcolors.begin() + i);
+                            --i;
+                        }
+
+                        x = max_x + 1;
+                        y = max_y + 1;
+                    }
+                }
+            }
+        }
 
     return components;
 }
@@ -317,7 +456,7 @@ void Surface::fill_a_component(int x, int y, guint32 argb)
 /******************************************************************************/
 /*
  starting from a pixel at xy within a "component" aka a blob of
- same-colored pixels, increase x until it is next to a new color
+ same-colored pixels, increase x until it is on a new color
  */
 /******************************************************************************/
 void Surface::run_to_border(int& x, int& y)
@@ -352,7 +491,7 @@ int offset4[4][2] = { { 1, 0 }, { 0, 1 }, { -1, 0 }, { 0, -1 } };
  returns true if free for growing components
  */
 /******************************************************************************/
-inline bool Surface::allow_grow(int x, int y, guint32 ownclr)
+inline bool Surface::allow_grow(int x, int y, guint32 ownclr, guint32 extraclr)
 {
     if (x <= 0 || y <= 0)
         return false;
@@ -370,9 +509,11 @@ inline bool Surface::allow_grow(int x, int y, guint32 ownclr)
         int cy = y + offset8[i][1];
 
         guint8* pixel = pixels + cx * 4 + cy * stride;
+        guint32 color = PRC(pixel);
 
-        // surrounding pixel != own color, not black -> other component!
-        if (PRC(pixel) != ownclr && (PRC(pixel) | OPAQUE) != BLACK)
+        // surrounding pixel != own color/inside color, not black -> other component!
+        if (color != ownclr && (color | OPAQUE) != BLACK &&
+            std::find(flaggedcolors.begin(), flaggedcolors.end(), color) == flaggedcolors.end())
             return false;
     }
 
@@ -396,7 +537,9 @@ int growoff_i[3][3][2] = { { { -1, 0 }, { -1, 1 }, { 0, 1 } }, { { -1, -1 }, {
  */
 /******************************************************************************/
 void Surface::calculate_outline(const int x, const int y,
-                                vector<pair<int, int> >& outside, vector<pair<int, int> >& inside)
+                                vector<pair<int, int> >& outside,
+                                vector<pair<int, int> >& inside,
+                                bool debug_image, bool allow_remove)
 {
     guint8* pixels = cairo_surface->get_data();
     int stride = cairo_surface->get_stride();
@@ -439,7 +582,8 @@ void Surface::calculate_outline(const int x, const int y,
 
             if (xnext < 0 || ynext < 0 || xnext > stride || ynext > max_y)
             {
-                save_debug_image("error_outerpath");
+                if(debug_image)
+                    save_debug_image("error_outerpath");
                 std::stringstream msg;
                 msg << "Outside path reaches image margins at " << xin << ","
                     << yin << ")\n";
@@ -459,7 +603,8 @@ void Surface::calculate_outline(const int x, const int y,
         }
         if (i == 8)
         {
-            save_debug_image("error_outsideoverstepping");
+            if(debug_image)
+                save_debug_image("error_outsideoverstepping");
             std::stringstream msg;
             msg << "Outside over-stepping at in(" << xin << "," << yin << ")\n";
             throw std::logic_error(msg.str());
@@ -496,7 +641,8 @@ void Surface::calculate_outline(const int x, const int y,
         }
         if (i == 8)
         {
-            save_debug_image("error_insideoverstepping");
+            if(debug_image)
+                save_debug_image("error_insideoverstepping");
             std::stringstream msg;
             msg << "Inside over-stepping at out(" << xout << "," << yout
                 << ")\n";
@@ -545,12 +691,18 @@ void Surface::calculate_outline(const int x, const int y,
 
             if (changes == 0)
             {
-                PRC(pixels + xin*4 + yin*stride) |= RED;
-                PRC(pixels + xout*4 + yout*stride) |= BLUE;
-                save_debug_image("failed_repair");
-                std::stringstream msg;
-                msg << "Failed repairing @ (" << xin << "," << yin << ")\n";
-                throw std::logic_error(msg.str());
+                if (allow_remove)
+                    return;
+                else
+                {
+                    PRC(pixels + xin*4 + yin*stride) |= RED;
+                    PRC(pixels + xout*4 + yout*stride) |= BLUE;
+                    if(debug_image)
+                        save_debug_image("failed_repair");
+                    std::stringstream msg;
+                    msg << "Failed repairing @ (" << xin << "," << yin << ")\n";
+                    throw std::logic_error(msg.str());
+                }
             }
             else
                 blasts++;
@@ -578,8 +730,15 @@ void Surface::calculate_outline(const int x, const int y,
 /*
  */
 /******************************************************************************/
-guint Surface::grow_a_component(int x, int y, int& contentions)
+guint Surface::grow_a_component(int x, int y, int& contentions, bool reversed)
 {
+    guint8* pixels = cairo_surface->get_data();
+    int stride = cairo_surface->get_stride();
+    unsigned int pixels_changed = 0;
+    guint32 ownclr;
+    guint32 extraclr;
+    vector<pair<int, int> > outside, inside;
+
     if (x < 0 || x >= cairo_surface->get_width() || y < 0
             || y >= cairo_surface->get_height())
     {
@@ -590,22 +749,38 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
     }
 
     contentions = 0;
+    ownclr = PRC(pixels + x*4 + y*stride);
+    extraclr = ownclr;
+    
+    if (reversed)
+    {
+        /* We're looking at a negative component (a hole inside another
+         * component), so we have to swap the inside with the outside.
+         * We also have to change the coordinates in order to point at the real
+         * component.
+         */
+        calculate_outline(x, y, inside, outside, true, true);
 
-    vector<pair<int, int> > outside, inside;
-    calculate_outline(x, y, outside, inside);
+        /* With allow_remove = true, calculate_outline returns an empty inside
+         * if it fails to calculate the outline. If we're on a negative
+         * component this usually means that the component is a diagonal line
+         * and is about to disappear; we can safely inform the caller by
+         * returning 0 (aka "no pixel changed")
+         */
+        if (inside.size() == 0)
+            return 0;
 
-    guint8* pixels = cairo_surface->get_data();
-    int stride = cairo_surface->get_stride();
-
-    unsigned int pixels_changed = 0;
-
-    guint32 ownclr = PRC(pixels + x*4 + y*stride);
+        run_to_border(x, y);
+        ownclr = PRC(pixels + x*4 + y*stride);  // Use the real component's color
+    }
+    else
+        calculate_outline(x, y, outside, inside);
 
     for (unsigned int i = 0; i < outside.size(); i++)
     {
         pair<int, int> coord = outside[i];
 
-        if (allow_grow(coord.first, coord.second, ownclr))
+        if (allow_grow(coord.first, coord.second, ownclr, extraclr))
         {
             PRC(pixels + coord.first*4 + coord.second*stride) = ownclr;
             pixels_changed++;
@@ -649,7 +824,7 @@ void Surface::add_mask(shared_ptr<Surface> mask_surface)
             PRC(pixels + x*4 + y*stride) &=
                 PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
             PRC(pixels + x*4 + y*stride) |=
-                (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
+                (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outside in an own color to block extension */
         }
     }
 }
@@ -754,7 +929,7 @@ void Surface::fill_outline(double linewidth)
     for (int i = 0; i < grow; ++i)
     {
         // starting at the very left
-        added = grow_a_component(0, first_line_with_black + grow, contentions);
+        added = grow_a_component(0, first_line_with_black + grow, contentions, false);
     }
     // if you can think of a sane situation in which either of this could
     // occur and nevertheless give a meaningful result, change it to a

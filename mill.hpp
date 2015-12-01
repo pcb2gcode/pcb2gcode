@@ -52,6 +52,7 @@ class RoutingMill: public Mill
 public:
     double tool_diameter;
     bool optimise;
+    bool internal_components;
 };
 
 /******************************************************************************/

@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2015-02-17"
+.TH PCB2GCODE 1 "2016-04-22"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -66,6 +66,15 @@ gcode postamble file, inserted before M9 and M2
 .TP
 \fB\-\-g64\fP \fIunit\fP
 maximum deviation from toolpath, overrides internal calculation
+.TP
+\fB\-\-internal\-toolpaths\fP
+\fBEXPERIMENTAL!!\fP
+Experimental feature to enable the new core algorithms, able to detect and
+process internal toolpaths, like thermal pads or cutoffs in the working area.
+The new algorithms work well if offset is small enough (offset < free space
+between inside and outside), but freeze and crash if the offset is too large
+(for example you can't create voronoi regions when \fB\-\-internal\-toolpaths\fP
+is enabled). \fBUse with caution and report any bug on the project's page.\fP
 
 .PP
 For every option \fB\-\-x\fP that takes a filename, there is an
