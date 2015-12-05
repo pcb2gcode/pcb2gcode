@@ -32,28 +32,50 @@ There are pcb2gcode packages in the official repositories. You can install the w
 
     sudo apt-get install pcb2gcode
 
-Unfortunately, these packages are outdated (as 14/6/2015). If you want to download the latest development
+Unfortunately, these packages are outdated (as 4/12/2015). If you want to download the latest development
 version, go to "Installation from GIT"
 
 ### Installation from GIT (latest development version):
 If you want to install the latest version from git you'll need the autotools, boost program options library
-(dev), boost geometry library (dev) gtkmm2.4 (dev) and libgerbv (dev). You can download them from your
-repositories; if you use Debian/Ubuntu type
+(dev), boost geometry library (dev), gtkmm2.4 (dev) and libgerbv (dev).
 
-    $ sudo apt-get install build-essential automake autoconf libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv
+#### Ubuntu 12.04 LTS
 
-or, if you use Fedora
+    $ sudo apt-get update
+    $ sudo apt-get install software-properties-common python-software-properties
+    $ sudo add-apt-repository "ppa:ubuntu-toolchain-r/test"
+    $ sudo apt-get update
+    $ sudo apt-get install gcc-4.8 g++-4.8 build-essential automake autoconf autoconf-archive libtool libboost-program-options1.48-dev libgtkmm-2.4-dev gerbv git
+    $ git clone https://github.com/pcb2gcode/pcb2gcode.git
+    $ cd pcb2gcode
+    $ export CC=gcc-4.8 CXX=g++-4.8
+
+Then follow the [common build steps](#commonbuild)
+
+#### Debian Wheezy or newer, Ubuntu Trusty or newer
+
+Unfortunately Debian Wheezy does not provide a g++ compiler with C++11 (gcc >= 4.8), so you have either to download the source and build it, or download it from Jessie.
+Once you have it you can continue with the pcb2gcode compilation. Don't forget to set the CC and CXX environment variables
+
+    $ sudo apt-get update
+    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git
+    $ git clone https://github.com/pcb2gcode/pcb2gcode.git
+    $ cd pcb2gcode
+
+Then follow the [common build steps](#commonbuild)
+
+#### Fedora
 
     su
     <the root password>
     yum groupinstall "Development Tools"
-    yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel
+    yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel git
     exit
 
-Then you can download pcb2gcode from git, build and install it
+Then follow the [common build steps](#commonbuild)
 
-    $ git clone https://github.com/pcb2gcode/pcb2gcode.git
-    $ cd pcb2gcode
+#### Common build steps<a name="commonbuild"></a>
+
     $ autoreconf -i
     $ ./configure
     $ make

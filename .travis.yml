@@ -23,9 +23,6 @@ install:
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 script:
-  - wget 'http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_cxx_compile_stdcxx.m4' -O m4/ax_cxx_compile_stdcxx.m4
-  - wget 'http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_cxx_compile_stdcxx_11.m4' -O m4/ax_cxx_compile_stdcxx_11.m4
-  - wget 'http://git.savannah.gnu.org/gitweb/?p=autoconf-archive.git;a=blob_plain;f=m4/ax_check_compile_flag.m4' -O m4/ax_check_compile_flag.m4
   - "autoreconf -i"
   - "./configure"
   - "make"
