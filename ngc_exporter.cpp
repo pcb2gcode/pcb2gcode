@@ -261,11 +261,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                     double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
 
                     if( bBridges )
-                    {
                         if( i == 0 && j == 0 )  //Compute the bridges only the 1st time
                             bridges = layer->get_bridges( path );
-                        currentBridge = bridges.begin();
-                    }
 
                     while (z >= mill->zwork)
                     {
@@ -276,6 +273,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
                         icoords::iterator peek;
+
+                        if (bBridges)
+                            currentBridge = bridges.begin();
+
                         while (iter != path->end())
                         {
                             peek = iter + 1;
@@ -295,8 +296,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                                 if( bBridges && currentBridge != bridges.end() )
                                 {
+                                    double bridges_depth = cutter->bridges_height >= 0 ?
+                                        cutter->bridges_height : cutter->bridges_height * z / mill->zwork;
+
                                     if( *currentBridge == iter - path->begin() )
-                                        of << "Z" << cutter->bridges_height * cfactor << endl;
+                                        of << "Z" << bridges_depth * cfactor << endl;
                                     else if( *currentBridge == last - path->begin() )
                                     {
                                         of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
