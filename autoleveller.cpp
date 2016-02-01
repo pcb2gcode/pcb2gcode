@@ -38,7 +38,7 @@ const string autoleveller::callSubRepeat[] = {
  "M98 P%1% L%2%\n" };
 
 const string autoleveller::probeCode[] = { "G38.2", "G31", "G31" };
-const string autoleveller::zProbeResultVar[] = { "#5063", "#2002", "#2002" };
+const string autoleveller::zProbeResultVar[] = { "#5063", "#5063", "#2002" };
 const string autoleveller::setZZero[] = { "G10 L20 P0 Z0", "G92 Z0", "G92 Z0" };
 
 boost::format silent_format(const string &f_string)
