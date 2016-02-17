@@ -105,6 +105,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                    + "G20       (Units == INCHES.)\n";
     }
     preamble += "G90       (Absolute coordinates.)\n";
+    preamble += "G91.1     (Incremental arc distance mode.)\n";
 
     tiling = new Tiling( tileInfo, cfactor );
 }
