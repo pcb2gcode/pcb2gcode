@@ -21,10 +21,10 @@
 #define AUTOLEVELLER_H
 
 //Fixed probe fail depth (in inches, string)
-#define FIXED_FAIL_DEPTH_IN "-0.2"
+#define FIXED_FAIL_DEPTH_IN "-0.1"
 
 //Fixed probe fail depth (in mm, string)
-#define FIXED_FAIL_DEPTH_MM "-5"
+#define FIXED_FAIL_DEPTH_MM "-3"
 
 #include <string>
 using std::string;
