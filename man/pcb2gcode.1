@@ -46,7 +46,8 @@ Engrave the back side according to the given file.
 \fB\-\-outline\fP \fIfilename.gbr\fP
 Cut out the board to the shape exposed in the given file. Typically, there is
 only a polygon in this gerber file. Alternatively, this file can contain a
-closed line chain (see \fB\-\-fill-outline\fP).
+closed line chain (see \fB\-\-fill\-outline\fP).  This option is enabled by
+default, to disable it use \-\-fill\-outline=false
 .TP
 \fB\-\-drill\fP \fIfilename.cnc\fP
 Convert the given file (containing drill sizes and positions) to G-code.
@@ -175,7 +176,8 @@ contains not a polygon but a closed chain of lines. The board will be cut along
 the centres of these lines.
 .TP
 \fB\-\-outline\-width \fIunit\fP\fP
-thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
+thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is
+given); the default value is 0.15 mm/0.059 in.
 .TP
 \fB\-\-cut\-front\fP
 [\fBDEPRECATED\fP, use \fB\-\-cut\-side\fP instead] cut from the front side.
@@ -299,12 +301,12 @@ order to generate gcode for an unsupported software.
 \fB\-\-optimise\fP
 optimise the output gcode with a Douglas-Peucker algorithm, reducing its output
 size up to 95% (while accepting a very little loss of precision). This option is
-enable by default, to disable it use \-\-optimise=false
+enabled by default, to disable it use \-\-optimise=false
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000). If the software freezes during
 the layer exporting, try to increase the dpi value. Sane values for dpi are
-1000/2000 for through-hole PCBs and 2000/4000 dpi for SMD PCBs.
+1000/2000 for through-hole PCBs and 2000/4000 dpi for SMT PCBs.
 .TP
 \fB\-\-mirror\-absolute\fP
 mirror operations on the back side along the Y axis instead of the board

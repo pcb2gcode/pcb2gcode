@@ -102,6 +102,18 @@ void options::parse(int argc, char** argv)
         po::parse_command_line(5, (char**) fake_basename_command_line,
                                generic, style),
         instance().vm);
+
+    //Default value for outline-width
+    const char *fake_outline_width_command_line[] = { "",
+                                            instance().vm["metric"].as<bool>() ?
+                                            "--outline-width=0.15" :
+                                            "--outline-width=0.059" };
+
+    if (!instance().vm.count("outline-width"))
+        po::store(po::parse_command_line(2,
+                        (char**) fake_outline_width_command_line,
+                        generic, style), instance().vm);
+
     po::notify(instance().vm);
 }
 
@@ -181,7 +193,7 @@ options::options()
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
             "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
             "extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")(
-            "fill-outline", po::value<bool>()->default_value(false)->implicit_value(true), "accept a contour instead of a polygon as outline (you likely want to enable this one)")(
+            "fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")(
             "outline-width", po::value<double>(), "width of the outline")(
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
             "zcut", po::value<double>(), "PCB cutting depth in inches")(
@@ -200,7 +212,7 @@ options::options()
             "onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")(
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
-            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
+            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
