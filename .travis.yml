@@ -5,7 +5,9 @@ compiler:
   - gcc
   - clang
 
-os: linux
+os:
+  - linux
+  - osx
 
 addons:
   apt:
@@ -19,8 +21,12 @@ addons:
       - libgtkmm-2.4-dev
       - gerbv
 
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install gtkmm gerbv; fi
+
 install:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$CXX" == "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
 
 script:
   - "autoreconf -i"
