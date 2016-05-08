@@ -108,7 +108,6 @@ int main(int argc, char* argv[])
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
-        isolator->internal_components = vm["internal-toolpaths"].as<bool>();
     }
 
     shared_ptr<Cutter> cutter;
@@ -135,7 +134,6 @@ int main(int argc, char* argv[])
             cutter->bridges_height = vm["zbridges"].as<double>() * unit;
         else
             cutter->bridges_height = cutter->zsafe;
-        cutter->internal_components = vm["internal-toolpaths"].as<bool>();
     }
 
     shared_ptr<Driller> driller;

@@ -212,8 +212,7 @@ options::options()
             "onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")(
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
-            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 95% while accepting a little loss of precision (enabled by default).")(
-            "internal-toolpaths", po::value<bool>()->default_value(false)->implicit_value(true), "**EXPERIMENTAL** enable the new core algorithms, able to detect and process internal toolpaths (like thermal pads)")(
+            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
@@ -403,9 +402,6 @@ static void check_milling_parameters(po::variables_map const& vm)
 
     if (vm.count("front") || vm.count("back"))
     {
-        if (vm["internal-toolpaths"].as<bool>())
-            cerr << "WARNING! Experimental core algorithms enabled, report any "
-                    "bug on the project's page!\n";
 
         if (!vm.count("zwork"))
         {
