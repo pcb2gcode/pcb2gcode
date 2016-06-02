@@ -26,12 +26,13 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir) :
+Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
     outline_width(outline_width),
-    outputdir(outputdir)
+    outputdir(outputdir),
+    vectorial(vectorial)
 {
 
 }
@@ -146,13 +147,44 @@ void Board::createLayers()
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
         // prepare the surface
-        shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y, outputdir));
         shared_ptr<LayerImporter> importer = it->second.get<0>();
-        surface->render(importer);
 
-        shared_ptr<Layer> layer(new Layer(it->first, surface, it->second.get<1>(), it->second.get<2>(), it->second.get<3>())); // see comment for prep_t in board.hpp
+        if (vectorial)
+        {
+            if (dynamic_pointer_cast<VectorialLayerImporter>(importer))
+            {
+                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30));
+                surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
 
-        layers.insert(std::make_pair(layer->get_name(), layer));
+                shared_ptr<Layer> layer(new Layer(it->first,
+                                                    surface,
+                                                    it->second.get<1>(),
+                                                    it->second.get<2>(), 
+                                                    it->second.get<3>())); // see comment for prep_t in board.hpp
+
+                layers.insert(std::make_pair(layer->get_name(), layer));
+            }
+            else
+                throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
+        }
+        else
+        {
+            if (dynamic_pointer_cast<RasterLayerImporter>(importer))
+            {
+                shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y, outputdir));   
+                surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
+
+                shared_ptr<Layer> layer(new Layer(it->first,
+                                                    surface, 
+                                                    it->second.get<1>(),
+                                                    it->second.get<2>(), 
+                                                    it->second.get<3>())); // see comment for prep_t in board.hpp
+                
+                layers.insert(std::make_pair(layer->get_name(), layer));
+            }
+            else
+                throw std::logic_error("Can't cast LayerImporter to RasterLayerImporter!");
+        }
     }
 
     // DEBUG output

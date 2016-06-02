@@ -92,7 +92,7 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
 /*
  */
 /******************************************************************************/
-void Surface::render(boost::shared_ptr<LayerImporter> importer)
+void Surface::render(boost::shared_ptr<RasterLayerImporter> importer)
 throw (import_exception)
 {
     importer->render(cairo_surface, dpi,
@@ -623,10 +623,10 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
 /*
  */
 /******************************************************************************/
-void Surface::add_mask(shared_ptr<Surface> mask_surface)
+void Surface::add_mask(shared_ptr<Core> mask_surface)
 {
     Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface =
-        mask_surface->cairo_surface;
+        boost::dynamic_pointer_cast<Surface>(mask_surface)->cairo_surface;
 
     int max_x = cairo_surface->get_width();
     int max_y = cairo_surface->get_height();

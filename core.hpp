@@ -1,8 +1,7 @@
 /*
  * This file is part of pcb2gcode.
  * 
- * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
- * Copyright (C) 2015 Nicola Corna <nicola@corna.info>
+ * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,49 +17,35 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LAYER_H
-#define LAYER_H
+#ifndef CORE_H
+#define CORE_H
 
-#include <string>
-using std::string;
+#include <boost/array.hpp>
+#include <boost/shared_ptr.hpp>
+using boost::shared_ptr;
+
 #include <vector>
 using std::vector;
 
-#include <boost/noncopyable.hpp>
-
 #include "coord.hpp"
-#include "surface.hpp"
 #include "mill.hpp"
 
 /******************************************************************************/
 /*
+ Pure virtual base class for cores.
  */
 /******************************************************************************/
-class Layer: boost::noncopyable
+class Core
 {
 public:
-    Layer(const string& name, shared_ptr<Core> surface,
-          shared_ptr<RoutingMill> manufacturer, bool backside,
-          bool mirror_absolute);
-
-    vector<shared_ptr<icoords> > get_toolpaths();
-    shared_ptr<RoutingMill> get_manufacturer();
-    vector<unsigned int> get_bridges( shared_ptr<icoords> toolpath );
-    string get_name()
-    {
-        return name;
-    }
-    ;
-    void add_mask(shared_ptr<Layer>);
-
-private:
-    string name;
-    bool mirrored;
-    bool mirror_absolute;
-    shared_ptr<Core> surface;
-    shared_ptr<RoutingMill> manufacturer;
-
-    friend class Board;
+    virtual vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
+            bool mirror, bool mirror_absolute) = 0;
+    virtual vector<unsigned int> get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath ) = 0;
+    virtual void save_debug_image(string) = 0;
+    virtual void fill_outline(double linewidth) = 0;
+    virtual ivalue_t get_width_in() = 0;
+    virtual ivalue_t get_height_in() = 0;
+    virtual void add_mask(shared_ptr<Core>) = 0;
 };
 
-#endif // LAYER_H
+#endif // IMPORTER_H

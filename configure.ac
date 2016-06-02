@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([pcb2gcode], [1.2.3], [nicola@corna.info])
+AC_INIT([pcb2gcode], [1.3.0], [nicola@corna.info])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -28,7 +28,7 @@ AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
-BOOST_REQUIRE([1.47.0])
+BOOST_REQUIRE([1.56.0])
 BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
 BOOST_SMART_PTR

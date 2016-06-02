@@ -41,6 +41,7 @@ public:
     double zchange;
     double zsafe;
     double zwork;
+    double tolerance;
 };
 
 /******************************************************************************/

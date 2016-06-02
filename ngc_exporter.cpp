@@ -95,11 +95,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
-    if( options.count("g64") )
-        g64 = options["g64"].as<double>();
-    else
-        g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
-
     if( bFrontAutoleveller || bBackAutoleveller )
         leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
                                       xoffset, yoffset, tileInfo );
@@ -191,7 +186,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
     of << "G90 ( Absolute coordinates. )\n"
        << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
-       << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n"
+       << "G64 P" << mill->tolerance << " ( set maximum deviation from commanded toolpath )\n"
        << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if( bAutolevelNow )

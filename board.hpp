@@ -39,11 +39,14 @@ using std::pair;
 #include <boost/foreach.hpp>
 #include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
+using boost::dynamic_pointer_cast;
+using boost::static_pointer_cast;
 #include <boost/tuple/tuple.hpp>
 using boost::tuple;
 
 #include "coord.hpp"
 #include "surface.hpp"
+#include "surface_vectorial.hpp"
 #include "layer.hpp"
 
 #include "mill.hpp"
@@ -60,7 +63,7 @@ using boost::tuple;
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, string outputdir);
+    Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial);
 
     void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
                       shared_ptr<RoutingMill> manufacturer, bool backside,
@@ -87,6 +90,7 @@ private:
     const bool fill_outline;
     const double outline_width;
     const string outputdir;
+    const bool vectorial;
     ivalue_t min_x;
     ivalue_t max_x;
     ivalue_t min_y;

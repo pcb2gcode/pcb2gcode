@@ -90,8 +90,14 @@ int main(int argc, char* argv[])
     //---------------------------------------------------------------------------
     //prepare environment:
 
+    double tolerance;
     const string outputdir = vm["output-dir"].as<string>();
     shared_ptr<Isolator> isolator;
+
+    if (vm.count("g64"))
+        tolerance = vm["g64"].as<double>() * unit;
+    else
+        tolerance = 2.0 / vm["dpi"].as<int>() * unit;
 
     if (vm.count("front") || vm.count("back"))
     {
@@ -108,6 +114,7 @@ int main(int argc, char* argv[])
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
+        isolator->tolerance = tolerance;
     }
 
     shared_ptr<Cutter> cutter;
@@ -128,6 +135,7 @@ int main(int argc, char* argv[])
         cutter->do_steps = true;
         cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
         cutter->optimise = vm["optimise"].as<bool>();
+        cutter->tolerance = tolerance;
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
         cutter->bridges_width = vm["bridges"].as<double>() * unit;
         if (vm.count("zbridges"))
@@ -145,6 +153,7 @@ int main(int argc, char* argv[])
         driller->zsafe = vm["zsafe"].as<double>() * unit;
         driller->feed = vm["drill-feed"].as<double>() * unit;
         driller->speed = vm["drill-speed"].as<int>();
+        driller->tolerance = tolerance;
         driller->zchange = vm["zchange"].as<double>() * unit;
     }
 
@@ -235,7 +244,8 @@ int main(int argc, char* argv[])
             vm["fill-outline"].as<bool>() ?
             vm["outline-width"].as<double>() * unit :
             INFINITY,
-            outputdir));
+            outputdir,
+            true)); //FIXME
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -255,8 +265,7 @@ int main(int argc, char* argv[])
         try
         {
             string frontfile = vm["front"].as<string>();
-            boost::shared_ptr<LayerImporter> importer(
-                new GerberImporter(frontfile));
+            boost::shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
             board->prepareLayer("front", importer, isolator, false,
                                 vm["mirror-absolute"].as<bool>());
             cout << "DONE.\n";

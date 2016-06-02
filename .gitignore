@@ -46,6 +46,8 @@ man/Makefile.in
 pcb2gcode
 stamp-h1
 testing/gerbv_example/*/*.png
+testing/gerbv_example/*/*.ngc
+testing/gerbv_example/*/*.svg
 
 #editor or browser files
 .directory

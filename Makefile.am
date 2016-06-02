@@ -26,6 +26,8 @@ pcb2gcode_SOURCES = \
     ngc_exporter.cpp \
     surface.hpp \
     surface.cpp \
+    surface_vectorial.hpp \
+    surface_vectorial.cpp \
     tile.hpp \
     tile.cpp \
     tsp_solver.hpp \
@@ -34,6 +36,7 @@ pcb2gcode_SOURCES = \
     outline_bridges.hpp \
     outline_bridges.cpp \
     unique_codes.hpp \
+    voronoi_visual_utils.hpp \
     config.h \
     main.cpp
 

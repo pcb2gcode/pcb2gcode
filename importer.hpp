@@ -27,7 +27,25 @@ using Glib::ustring;
 #include <cairomm/cairomm.h>
 #include <gdk/gdkcairo.h>
 
+#include <boost/shared_ptr.hpp>
+using boost::shared_ptr;
+
 #include <boost/exception/all.hpp>
+
+#include <boost/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/geometries.hpp>
+
+#include "coord.hpp"
+
+typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
+typedef boost::geometry::model::ring<point_type> ring_type;
+typedef boost::geometry::model::box<point_type> box_type;
+typedef boost::geometry::model::linestring<point_type> linestring_type;
+typedef boost::geometry::model::multi_linestring<linestring_type> multi_linestring_type;
+typedef boost::geometry::model::polygon<point_type> polygon_type;
+typedef boost::geometry::model::multi_polygon<polygon_type> multi_polygon_type;
+
 struct import_exception: virtual std::exception, virtual boost::exception
 {
 };
@@ -47,11 +65,22 @@ public:
     virtual gdouble get_max_x() = 0;
     virtual gdouble get_min_y() = 0;
     virtual gdouble get_max_y() = 0;
+};
 
+class RasterLayerImporter : virtual public LayerImporter
+{
+public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double xoff, const double yoff)
     throw (import_exception) = 0;
 
+};
+
+class VectorialLayerImporter : virtual public LayerImporter
+{
+public:
+    virtual shared_ptr<multi_polygon_type> render(unsigned int points_per_circle = 30) = 0;
+    virtual unsigned int vectorial_scale() = 0;
 };
 
 #endif // IMPORTER_H

@@ -39,6 +39,7 @@ using Glib::ustring;
 #include "coord.hpp"
 #include "mill.hpp"
 #include "gerberimporter.hpp"
+#include "core.hpp"
 
 struct surface_exception: virtual std::exception, virtual boost::exception
 {
@@ -48,12 +49,12 @@ struct surface_exception: virtual std::exception, virtual boost::exception
 /*
  */
 /******************************************************************************/
-class Surface: virtual public boost::noncopyable
+class Surface: public Core, virtual public boost::noncopyable
 {
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
             ivalue_t max_y, string outputdir);
-    void render(boost::shared_ptr<LayerImporter> importer)
+    void render(boost::shared_ptr<RasterLayerImporter> importer)
     throw (import_exception);
 
     boost::shared_ptr<Surface> deep_copy();
@@ -74,7 +75,7 @@ public:
     }
     ;
 
-    void add_mask(shared_ptr<Surface>);
+    void add_mask(shared_ptr<Core>);
     void fill_outline(double linewidth);
 
 protected:

@@ -24,7 +24,7 @@
 /*
  */
 /******************************************************************************/
-Layer::Layer(const string& name, shared_ptr<Surface> surface,
+Layer::Layer(const string& name, shared_ptr<Core> surface,
              shared_ptr<RoutingMill> manufacturer, bool backside,
              bool mirror_absolute)
 {
