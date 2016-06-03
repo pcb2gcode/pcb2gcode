@@ -70,23 +70,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     return toolpath;
 }
 
-shared_ptr<icoords> Surface_vectorial::ring_to_icoords(const ring_type& ring, coordinate_type scale)
-{
-    auto output = make_shared<icoords>();
-    
-    for (const point_type& point : ring)
-    {
-        output->push_back(std::make_pair(point.x() / double(scale), point.y() / double(scale)));
-    }
-    
-    return output;
-}
-
-vector<unsigned int> Surface_vectorial::get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath )
-{
-    //TODO
-}
-
 void Surface_vectorial::save_debug_image(string message)
 {
     save_debug_image(*vectorial_surface, message);
@@ -110,7 +93,63 @@ void Surface_vectorial::save_debug_image(const multi_polygon_type& mpoly, string
 
 void Surface_vectorial::fill_outline(double linewidth)
 {
-    //TODO
+    /*std::map<box_type, polygon_type *> boxes_map;
+    std::list<box_type> boxes;
+    std::vector<std::list<box_type> > polygons_boxes;
+
+    boxes.resize(vectorial_surface->size());
+
+
+    for (unsigned int i = 0; i < vectorial_surface->size(); i++)
+    {
+        boxes.push_back(bg::return_envelope<box_type>(vectorial_surface->at(i)));
+        boxes_map[boxes.back()] = &(vectorial_surface->at(i));
+    }
+
+    while (!boxes.empty())
+    {
+        polygons_boxes.resize(polygons_boxes.size() + 1);
+        std::list<box_type>& this_polygon = polygons_boxes.back();
+        
+        auto biggest_box = std::max_element(boxes.begin(), boxes.end(), max_area<box_type>);
+        this_polygon.push_back(*biggest_box);
+        boxes.erase(biggest_box);
+        
+        auto i = boxes.begin();
+        if (i != boxes.end())
+        {
+            i++;
+            while (i != boxes.end())
+            {
+                if (bg::covered_by(*i, boxes.front()))
+                {
+                    this_polygon.push_back(*i);
+                    i = boxes.erase(i);
+                }
+                else
+                    i++;
+            }
+        }
+        
+        //Remove boxes included by other boxes                    
+    }
+    
+    shared_ptr<multi_polygon_type> filled_polygons = std::make_shared<multi_polygon_type>();
+    
+    for (std::list<box_type>& polygon_boxes : polygons_boxes)
+    {
+        polygon_type polygon;
+        auto i = polygon_boxes.begin();
+
+        polygon.outer() = boxes_map[*i];
+        ++i;
+        
+        while (i != polygon_boxes.end())
+        {
+            polygons.inners().push_back(boxes_map[*i]);
+            ++i;
+        }
+    }*/
 }
 
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)

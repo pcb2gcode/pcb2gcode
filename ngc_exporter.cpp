@@ -186,7 +186,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
     of << "G90 ( Absolute coordinates. )\n"
        << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
-       << "G64 P" << mill->tolerance << " ( set maximum deviation from commanded toolpath )\n"
+       << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n"
        << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if( bAutolevelNow )

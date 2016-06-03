@@ -64,7 +64,6 @@ public:
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute);
-    vector<unsigned int> get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath );
     void save_debug_image(string message);
     static void save_debug_image(const multi_polygon_type& mpoly, string message);
     void fill_outline(double linewidth);
@@ -92,7 +91,6 @@ protected:
     static segment_type retrieve_segment(const cell_type& cell, const vector<segment_type> &segments);
     static void sample_curved_edge(const edge_type *edge, const vector<segment_type> &segments, vector<point_type_p>& sampled_edge, coordinate_type_fp max_dist);
     static void copy_ring(const ring_type& ring, vector<segment_type> &segments);
-    static shared_ptr<icoords> ring_to_icoords(const ring_type& ring, coordinate_type scale);
 
     static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
                                                              const cell_type& cell, multi_polygon_type& output);
@@ -105,6 +103,12 @@ protected:
     static void offset_polygon(const multi_polygon_type& input, const multi_polygon_type& voronoi,
                             vector< shared_ptr<icoords> >& toolpath, coordinate_type offset,
                             unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale);
+    
+    template <typename T>
+    static bool max_area(T first, T second)
+    {
+        return boost::geometry::area(first) < boost::geometry::area(second);
+    }
 };
 
 #endif // SURFACE_VECTORIAL_H

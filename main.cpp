@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
             vm["outline-width"].as<double>() * unit :
             INFINITY,
             outputdir,
-            true)); //FIXME
+            vm["vectorial"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))

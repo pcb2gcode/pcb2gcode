@@ -158,8 +158,8 @@ void GerberImporter::draw_regular_polygon(point_type center, coordinate_type dia
 {
     const double angle_step = 2 * bg::math::pi<double>() / vertices;
     
-    offset *= bg::math::d2r;
-    
+    offset *= bg::math::pi<double>() / 180.0;
+
     for (unsigned int i = 0; i < vertices; i++)
         polygon.outer().push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
                                sin(angle_step * i + offset) * diameter / 2 + center.y()));
@@ -312,6 +312,92 @@ void GerberImporter::linear_draw_circular_aperture(point_type startpoint, point_
     bg::correct(ring);
 }
 
+void GerberImporter::circular_arc(point_type center, coordinate_type radius,
+                    double angle1, double angle2, unsigned int circle_points,
+                    linestring_type& linestring)
+{
+    const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
+    const double angle_step = (angle2 - angle1) / steps;
+    
+    for (unsigned int i = 0; i < steps; i++)
+    {
+        const double angle = angle1 + i * angle_step;
+
+        linestring.push_back(point_type(cos(angle) * radius + center.x(),
+                                        sin(angle) * radius + center.y()));
+    }
+    
+    linestring.push_back(point_type(cos(angle2) * radius + center.x(),
+                                    sin(angle2) * radius + center.y()));
+}
+void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source)
+{
+    const size_t source_size = source.size();
+
+    if (!destination.empty())
+    {
+        linestring_type& last_ls = destination.back();
+    
+        if (bg::equals(last_ls.back(), source.front()))
+        {
+            for (size_t i = 0; i < source_size - 1; i++)
+                last_ls.push_back(source[i + 1]);
+        }
+        else if (bg::equals(last_ls.back(), source.back()))
+        {
+            for (size_t i = 0; i < source_size - 1; i++)
+                last_ls.push_back(source[source_size - i - 2]);
+        }
+        else if (bg::equals(last_ls.front(), source.front()))
+        {
+            std::reverse(last_ls.begin(), last_ls.end());
+            for (size_t i = 0; i < source_size - 1; i++)
+                last_ls.push_back(source[i + 1]);
+        }
+        else if (bg::equals(last_ls.front(), source.back()))
+        {
+            std::reverse(last_ls.begin(), last_ls.end());
+            for (size_t i = 0; i < source_size - 1; i++)
+                last_ls.push_back(source[source_size - i - 2]);
+        }
+        else
+        {
+            destination.push_back(source);
+        }
+    }
+    else
+    {
+        destination.push_back(source);
+    }
+}
+
+shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const std::map<unsigned int, multi_linestring_type>& paths,
+                                                                shared_ptr<multi_polygon_type> input,
+                                                                const gerbv_image_t * const gerber,
+                                                                double cfactor, unsigned int points_per_circle)
+{
+    auto output = make_shared<multi_polygon_type>();
+
+    for (auto i = paths.begin(); i != paths.end(); i++)
+    {
+        multi_polygon_type buffered_mls;
+
+        bg::buffer(i->second, buffered_mls,
+                   bg::strategy::buffer::distance_symmetric<coordinate_type>
+                    (gerber->aperture[i->first]->parameter[0] * cfactor / 2),
+                   bg::strategy::buffer::side_straight(),
+                   bg::strategy::buffer::join_round(points_per_circle),
+                   bg::strategy::buffer::end_round(points_per_circle),
+                   bg::strategy::buffer::point_circle(points_per_circle));
+
+        bg::union_(buffered_mls, *input, *output);
+        input->clear();
+        input.swap(output);
+    }
+    
+    return input;
+}
+
 /******************************************************************************/
 /*
  */
@@ -367,46 +453,12 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                 {
                     if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
                     {
-                        linestring_type temp_ls;
-                        multi_linestring_type& current_mls = paths[currentNet->aperture];
+                        linestring_type new_segment;
                         
-                        if (!current_mls.empty())
-                        {
-                            if (bg::equals(current_mls.back().back(), start))
-                            {
-                                bg::append(current_mls.back(), stop);
-                            }
-                            else if (bg::equals(current_mls.back().back(), stop))
-                            {
-                                bg::append(current_mls.back(), start);
-                            }
-                            else if (current_mls.back().size() == 2 &&
-                                        bg::equals(current_mls.back().front(), start))
-                            {
-                                std::swap(current_mls.back().front(), current_mls.back().back());
-                                bg::append(current_mls.back(), stop);
-                            }
-                            else if (current_mls.back().size() == 2 &&
-                                        bg::equals(current_mls.back().front(), stop))
-                            {
-                                std::swap(current_mls.back().front(), current_mls.back().back());
-                                bg::append(current_mls.back(), start);
-                            }
-                            else
-                            {
-                                bg::append(temp_ls, start);
-                                bg::append(temp_ls, stop);
-                                
-                                current_mls.push_back(temp_ls);
-                            }
-                        }
-                        else
-                        {
-                            bg::append(temp_ls, start);
-                            bg::append(temp_ls, stop);
-                            
-                            current_mls.push_back(temp_ls);
-                        }
+                        new_segment.push_back(start);
+                        new_segment.push_back(stop);
+                        
+                        merge_paths(paths[currentNet->aperture], new_segment);                        
                     }
                     else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE)
                     {
@@ -496,7 +548,11 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                             currentNet->layer->polarity == GERBV_POLARITY_DARK )
                             bg::union_(*input, region, *output);
                         else
+                        {
+                            input = generate_paths(paths, input, gerber, cfactor, points_per_circle);
+                            paths.clear();
                             bg::difference(*input, region, *output);    //TODO: negative regions have never been tested
+                        }
                         
                         input->clear();
                         input.swap(output);
@@ -532,7 +588,32 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
         else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                  currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR)
         {
-            std::cout << "Circular interpolation mode is not supported yet" << std::endl;   //TODO
+            const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
+            linestring_type path;
+
+            if (cirseg != NULL)
+            {
+                circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
+                                cirseg->width * scale / 2,
+                                cirseg->angle1 * bg::math::pi<double>() / 180.0,
+                                cirseg->angle2 * bg::math::pi<double>() / 180.0,
+                                points_per_circle,
+                                path);
+
+                if (contour)
+                {
+                    if (region.empty())
+                        std::copy(path.begin(), path.end(), region.end());
+                    else
+                        std::copy(path.begin() + 1, path.end(), region.end());
+                }
+                else
+                {
+                    merge_paths(paths[currentNet->aperture], path);
+                }
+            }
+            else
+                std::cout << "Circular arc requested but cirseg == NULL" << std::endl;
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
                  currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
@@ -545,25 +626,10 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
             std::cout << "Unrecognized interpolation mode" << std::endl;
         }
     }
-    
-    for (auto i = paths.begin(); i != paths.end(); i++)
-    {
-        multi_polygon_type buffered_mls;
 
-        bg::buffer(i->second, buffered_mls,
-                   bg::strategy::buffer::distance_symmetric<coordinate_type>
-                    (gerber->aperture[i->first]->parameter[0] * cfactor / 2),
-                   bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
-                   bg::strategy::buffer::point_circle(points_per_circle));
+    output = generate_paths(paths, input, gerber, cfactor, points_per_circle);
 
-        bg::union_(buffered_mls, *input, *output);
-        input->clear();
-        input.swap(output);
-    }
-    
-    return input;
+    return output;
 }
 
 /******************************************************************************/

@@ -27,6 +27,9 @@ using boost::shared_ptr;
 #include <vector>
 using std::vector;
 
+#include <string>
+using std::string;
+
 #include "coord.hpp"
 #include "mill.hpp"
 
@@ -40,12 +43,13 @@ class Core
 public:
     virtual vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute) = 0;
-    virtual vector<unsigned int> get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath ) = 0;
-    virtual void save_debug_image(string) = 0;
+    virtual void save_debug_image(string message) = 0;
     virtual void fill_outline(double linewidth) = 0;
     virtual ivalue_t get_width_in() = 0;
     virtual ivalue_t get_height_in() = 0;
     virtual void add_mask(shared_ptr<Core>) = 0;
+    
+    virtual vector<unsigned int> get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath);
 };
 
 #endif // IMPORTER_H

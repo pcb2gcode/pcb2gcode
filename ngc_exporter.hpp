@@ -81,7 +81,6 @@ protected:
     string preamble;        //Preamble from command line (user file)
     string postamble;       //Postamble from command line (user file)
 
-    double g64;             //maximum deviation from commanded toolpath
     double cfactor;         //imperial/metric conversion factor for output file
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output

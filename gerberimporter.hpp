@@ -39,6 +39,11 @@ struct gerber_exception: virtual import_exception
 
  GerberImporter is using libgerbv and hence features its suberb support for
  different file formats and gerber dialects.
+ 
+ Vectorial TODO:
+  1 - add support for RS274X macros
+  2 - add support for region cut-ins 
+  3 - test negative regions
  */
 /******************************************************************************/
 class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
@@ -84,9 +89,18 @@ protected:
     static void linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
                                     coordinate_type radius, unsigned int circle_points, ring_type& ring);
     
-    static void circular_arc(point_type startpoint, point_type endpoint, point_type center,
-                                coordinate_type radius, coordinate_type angle1, coordinate_type angle2,
-                                bool clockwise, unsigned int circle_points, linestring_type& linestring);
+    //Angles are in rad
+    static void circular_arc(point_type center, coordinate_type radius, double angle1,
+                                double angle2, unsigned int circle_points, linestring_type& linestring);
+    
+    static void merge_paths(multi_linestring_type &destination, const linestring_type& source);
+
+    static shared_ptr<multi_polygon_type> generate_paths(const std::map<unsigned int, multi_linestring_type>& paths,
+                                                            shared_ptr<multi_polygon_type> input,
+                                                            const gerbv_image_t * const gerber,
+                                                            double cfactor, unsigned int points_per_circle);
+    
+    static void add_region_point(polygon_type& region, const point_type& start, const point_type& stop);
 
 private:
 

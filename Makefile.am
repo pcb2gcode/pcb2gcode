@@ -12,6 +12,8 @@ pcb2gcode_SOURCES = \
     common.hpp \
     common.cpp \
     coord.hpp \
+    core.hpp \
+    core.cpp \
     drill.hpp \
     drill.cpp \
     exporter.hpp \
