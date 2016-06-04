@@ -99,7 +99,6 @@ class voronoi_visual_utils {
 
     // Adjust max_dist parameter in the transformed space.
     const CT max_dist_transformed = max_dist * max_dist * sqr_segment_length;
-    //while (!point_stack.empty() && !std::isnan(point_stack.top())) {
     while (!point_stack.empty()) {
       CT new_x = point_stack.top();
       CT new_y = parabola_y(new_x, rot_x, rot_y);

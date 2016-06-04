@@ -20,6 +20,7 @@
 #include <fstream>
 #include <boost/format.hpp>
 
+#include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "voronoi_visual_utils.hpp"
 
@@ -61,6 +62,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
         offset_polygon(*vectorial_surface, voronoi, toolpath, grow, points_per_circle, i, extra_passes + 1, scale);
+
+    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
     return toolpath;
 }
