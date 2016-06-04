@@ -23,8 +23,8 @@
 
 #include <stdexcept>
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;

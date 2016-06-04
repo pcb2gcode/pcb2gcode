@@ -22,11 +22,14 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <memory>
 
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::fstream;
+using std::shared_ptr;
 
 #include <glibmm/ustring.h>
 using Glib::ustring;
@@ -45,12 +48,7 @@ using Glib::build_filename;
 #include "options.hpp"
 #include "svg_exporter.hpp"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
-
-#include <fstream>
-#include <sstream>
 
 /******************************************************************************/
 /*
@@ -265,7 +263,7 @@ int main(int argc, char* argv[])
         try
         {
             string frontfile = vm["front"].as<string>();
-            boost::shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
+            shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
             board->prepareLayer("front", importer, isolator, false,
                                 vm["mirror-absolute"].as<bool>());
             cout << "DONE.\n";
@@ -285,7 +283,7 @@ int main(int argc, char* argv[])
         try
         {
             string backfile = vm["back"].as<string>();
-            boost::shared_ptr<LayerImporter> importer(
+            shared_ptr<LayerImporter> importer(
                 new GerberImporter(backfile));
             board->prepareLayer("back", importer, isolator, true,
                                 vm["mirror-absolute"].as<bool>());
@@ -306,7 +304,7 @@ int main(int argc, char* argv[])
         try
         {
             string outline = vm["outline"].as<string>();                               //Filename
-            boost::shared_ptr<LayerImporter> importer(new GerberImporter(outline));
+            shared_ptr<LayerImporter> importer(new GerberImporter(outline));
             board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"),
                                 vm["mirror-absolute"].as<bool>());
 
@@ -396,7 +394,7 @@ int main(int argc, char* argv[])
         //best we can do)
         if(board->get_layersnum() == 0)
         {
-            boost::shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
+            shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
             min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
             max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
         }

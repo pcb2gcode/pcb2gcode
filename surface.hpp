@@ -23,13 +23,14 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
 
 #include <vector>
 using std::vector;
+
+#include <boost/noncopyable.hpp>
 
 #include <glibmm/refptr.h>
 #include <gdkmm/pixbuf.h>
@@ -54,10 +55,10 @@ class Surface: public Core, virtual public boost::noncopyable
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
             ivalue_t max_y, string outputdir);
-    void render(boost::shared_ptr<RasterLayerImporter> importer)
+    void render(shared_ptr<RasterLayerImporter> importer)
     throw (import_exception);
 
-    boost::shared_ptr<Surface> deep_copy();
+    shared_ptr<Surface> deep_copy();
 
     void save_debug_image(string);
 

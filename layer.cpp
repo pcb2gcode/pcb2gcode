@@ -70,6 +70,6 @@ void Layer::add_mask(shared_ptr<Layer> mask)
 /******************************************************************************/
 vector<unsigned int> Layer::get_bridges( shared_ptr<icoords> toolpath )
 {
-    return surface->get_bridges( boost::dynamic_pointer_cast<Cutter>( manufacturer ), toolpath );
+    return surface->get_bridges(dynamic_pointer_cast<Cutter>( manufacturer ), toolpath);
 }
 

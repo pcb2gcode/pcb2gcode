@@ -25,7 +25,6 @@
 
 #include <fstream>
 #include <list>
-#include <boost/foreach.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 

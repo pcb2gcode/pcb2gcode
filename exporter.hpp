@@ -27,9 +27,10 @@ using std::vector;
 using std::string;
 using std::pair;
 
+#include <memory>
+using std::shared_ptr;
+
 #include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
 
 #include <boost/program_options.hpp>
 

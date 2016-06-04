@@ -33,8 +33,9 @@ using std::pair;
 #include <fstream>
 using std::ofstream;
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
 
 #include <boost/program_options.hpp>
 

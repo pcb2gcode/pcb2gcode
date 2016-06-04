@@ -26,9 +26,7 @@
 #include <boost/geometry/algorithms/distance.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/bind.hpp>
-#include <boost/foreach.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+
 #include <boost/format.hpp>
 using boost::format;
 
@@ -147,7 +145,7 @@ std::pair<icoordpair, icoordpair> autoleveller::computeWorkarea( vector<shared_p
     workarea.second.first = -std::numeric_limits<double>::infinity();
     workarea.second.second = -std::numeric_limits<double>::infinity();
 
-    BOOST_FOREACH( shared_ptr<icoords> path, toolpaths )
+    for ( shared_ptr<icoords> path : toolpaths )
     {
         workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
                                         boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );

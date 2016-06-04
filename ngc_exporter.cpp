@@ -21,7 +21,6 @@
  */
 
 #include "ngc_exporter.hpp"
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 using std::cerr;
@@ -104,7 +103,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     else
         bBridges = false;
 
-    BOOST_FOREACH( string layername, board->list_layers() )
+    for ( string layername : board->list_layers() )
     {
         std::stringstream option_name;
         option_name << layername << "-output";
@@ -152,7 +151,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     of.open(of_name.c_str());
 
     // write header to .ngc file
-    BOOST_FOREACH( string s, header )
+    for ( string s : header )
     {
         of << "( " << s << " )\n";
     }
@@ -226,7 +225,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
-            BOOST_FOREACH( shared_ptr<icoords> path, toolpaths )
+            for ( shared_ptr<icoords> path : toolpaths )
             {
                 // retract, move to the starting point of the next contour
                 of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
@@ -244,7 +243,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
                  * i know this is partially repetitive, but this way it's easier to read
                  */
-                shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
+                shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
 
                 if (cutter && cutter->do_steps)
                 {

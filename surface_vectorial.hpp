@@ -20,16 +20,19 @@
 #ifndef SURFACE_VECTORIAL_H
 #define SURFACE_VECTORIAL_H
 
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-
-#include <boost/polygon/polygon.hpp>
-#include <boost/polygon/voronoi.hpp>
-
 #include <vector>
 using std::vector;
 using std::pair;
+
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+using std::make_shared;
+
+#include <boost/noncopyable.hpp>
+
+#include <boost/polygon/polygon.hpp>
+#include <boost/polygon/voronoi.hpp>
 
 #include "coord.hpp"
 #include "mill.hpp"
@@ -65,7 +68,7 @@ public:
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute);
     void save_debug_image(string message);
-    static void save_debug_image(const multi_polygon_type& mpoly, string message);
+    void save_debug_image(const multi_polygon_type& mpoly, string message);
     void fill_outline(double linewidth);
     void add_mask(shared_ptr<Core> surface);
     void render(shared_ptr<VectorialLayerImporter> importer);

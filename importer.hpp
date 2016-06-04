@@ -20,15 +20,15 @@
 #ifndef IMPORTER_H
 #define IMPORTER_H
 
+#include <memory>
+using std::shared_ptr;
+
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
 #include <glibmm/refptr.h>
 #include <cairomm/cairomm.h>
 #include <gdk/gdkcairo.h>
-
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
 
 #include <boost/exception/all.hpp>
 

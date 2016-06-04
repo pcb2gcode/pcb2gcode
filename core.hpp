@@ -20,9 +20,8 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <boost/array.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
 
 #include <vector>
 using std::vector;

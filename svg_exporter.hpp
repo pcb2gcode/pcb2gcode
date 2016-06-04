@@ -28,11 +28,12 @@ using std::string;
 
 #include <vector>
 using std::vector;
+
 #include <map>
 using std::map;
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
 
 extern "C" {
 #include <gerbv.h>

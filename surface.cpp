@@ -50,7 +50,6 @@ void Surface::make_the_surface(unsigned int width, unsigned int height)
                     Cairo::FORMAT_ARGB32, width, height, pixbuf->get_rowstride());
 }
 
-#include <boost/foreach.hpp>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -91,7 +90,7 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
 /*
  */
 /******************************************************************************/
-void Surface::render(boost::shared_ptr<RasterLayerImporter> importer)
+void Surface::render(shared_ptr<RasterLayerImporter> importer)
 throw (import_exception)
 {
     importer->render(cairo_surface, dpi,
@@ -147,7 +146,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
         {
             added = 0;
 
-            BOOST_FOREACH( coordpair c, components )
+            for ( coordpair c : components )
             {
                 added += grow_a_component(c.first, c.second, contentions);
             }
@@ -155,7 +154,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
         coords inside, outside;
 
-        BOOST_FOREACH( coordpair c, components )
+        for ( coordpair c : components )
         {
             calculate_outline(c.first, c.second, outside, inside);
             inside.clear();
@@ -165,7 +164,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
             // i'm not sure wheter this is the right place to do this...
             // that "mirrored" flag probably is a bad idea.
-            BOOST_FOREACH( coordpair c, outside )
+            for ( coordpair c : outside )
             {
                 outline->push_back(
                     icoordpair(
@@ -625,7 +624,7 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
 void Surface::add_mask(shared_ptr<Core> mask_surface)
 {
     Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface =
-        boost::dynamic_pointer_cast<Surface>(mask_surface)->cairo_surface;
+        dynamic_pointer_cast<Surface>(mask_surface)->cairo_surface;
 
     int max_x = cairo_surface->get_width();
     int max_y = cairo_surface->get_height();

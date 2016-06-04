@@ -22,11 +22,7 @@
 #include <utility>
 #include <cstdint>
 
-#include <boost/scoped_array.hpp>
 #include <boost/format.hpp>
-
-#include <boost/make_shared.hpp>
-using boost::make_shared;
 
 #include "gerberimporter.hpp"
 
@@ -44,10 +40,12 @@ GerberImporter::GerberImporter(const string path)
     project = gerbv_create_project();
 
     const char* cfilename = path.c_str();
-    boost::scoped_array<char> filename(new char[strlen(cfilename) + 1]);
-    strcpy(filename.get(), cfilename);
+    char *filename = new char[strlen(cfilename) + 1];
+    strcpy(filename, cfilename);
 
-    gerbv_open_layer_from_filename(project, filename.get());
+    gerbv_open_layer_from_filename(project, filename);
+    delete[] filename;
+
     if (project->file[0] == NULL)
         throw gerber_exception();
 }

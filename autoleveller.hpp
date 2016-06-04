@@ -35,10 +35,10 @@ using std::endl;
 #include <vector>
 using std::vector;
 
-#include <boost/program_options.hpp>
+#include <memory>
+using std::shared_ptr;
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <boost/program_options.hpp>
 
 #include "coord.hpp"
 #include "unique_codes.hpp"

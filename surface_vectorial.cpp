@@ -18,12 +18,7 @@
  */
 
 #include <fstream>
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
-
-#include <boost/make_shared.hpp>
-using boost::make_shared;
-using boost::dynamic_pointer_cast;
 
 #include "surface_vectorial.hpp"
 #include "voronoi_visual_utils.hpp"
@@ -77,7 +72,16 @@ void Surface_vectorial::save_debug_image(string message)
 
 void Surface_vectorial::save_debug_image(const multi_polygon_type& mpoly, string message)
 {
+    box_type bounding_box;
+    bg::envelope(mpoly, bounding_box);
+
     std::ofstream svg(message + ".svg");
+    
+    /*boost::geometry::svg_mapper<point_type> mapper(svg,
+        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) / double(scale),
+        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) / double(scale),
+        str(boost::format("width=\"%1$f%%\" height=\"%1$f%%\"") % (100.0 / scale)));*/
+   
     boost::geometry::svg_mapper<point_type> mapper(svg, 3000, 3000);
 
     srand(0);
@@ -134,7 +138,7 @@ void Surface_vectorial::fill_outline(double linewidth)
         //Remove boxes included by other boxes                    
     }
     
-    shared_ptr<multi_polygon_type> filled_polygons = std::make_shared<multi_polygon_type>();
+    shared_ptr<multi_polygon_type> filled_polygons = make_shared<multi_polygon_type>();
     
     for (std::list<box_type>& polygon_boxes : polygons_boxes)
     {
@@ -403,7 +407,7 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
         bg::buffer(input[index], mpoly,
                    bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * i),
                    bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_round(points_per_circle),
+                   bg::strategy::buffer::join_miter(5 * offset * i),
                    bg::strategy::buffer::end_round(points_per_circle),
                    bg::strategy::buffer::point_circle(points_per_circle));
 

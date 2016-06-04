@@ -22,10 +22,12 @@
 
 #include <vector>
 using std::vector;
+
 #include <list>
 using std::list;
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+
+#include <memory>
+using std::shared_ptr;
 
 #include "coord.hpp"
 using std::pair;

@@ -95,7 +95,7 @@ void Board::createLayers()
     // calculate room needed by the PCB traces
     for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
-        shared_ptr<LayerImporter> importer = it->second.get<0>();
+        shared_ptr<LayerImporter> importer = get<0>(it->second);
         float t;
         t = importer->get_min_x();
         if(min_x > t) min_x = t;
@@ -110,7 +110,7 @@ void Board::createLayers()
     // if there's no pcb outline, add the specified margins
     try
     {
-        shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
+        shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
         ivalue_t radius = outline_mill->tool_diameter / 2;
         min_x -= radius;
         max_x += radius;
@@ -121,7 +121,7 @@ void Board::createLayers()
     {
         try
         {
-            shared_ptr<Isolator> trace_mill = boost::static_pointer_cast<Isolator>(prepared_layers.at("front").get<1>());
+            shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at("front")));
             ivalue_t radius = trace_mill->tool_diameter / 2;
             int passes = trace_mill->extra_passes + 1;
             min_x -= radius * passes;
@@ -147,7 +147,7 @@ void Board::createLayers()
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
         // prepare the surface
-        shared_ptr<LayerImporter> importer = it->second.get<0>();
+        shared_ptr<LayerImporter> importer = get<0>(it->second);
 
         if (vectorial)
         {
@@ -158,9 +158,9 @@ void Board::createLayers()
 
                 shared_ptr<Layer> layer(new Layer(it->first,
                                                     surface,
-                                                    it->second.get<1>(),
-                                                    it->second.get<2>(), 
-                                                    it->second.get<3>())); // see comment for prep_t in board.hpp
+                                                    get<1>(it->second),
+                                                    get<2>(it->second),
+                                                    get<3>(it->second))); // see comment for prep_t in board.hpp
 
                 layers.insert(std::make_pair(layer->get_name(), layer));
             }
@@ -176,9 +176,9 @@ void Board::createLayers()
 
                 shared_ptr<Layer> layer(new Layer(it->first,
                                                     surface, 
-                                                    it->second.get<1>(),
-                                                    it->second.get<2>(), 
-                                                    it->second.get<3>())); // see comment for prep_t in board.hpp
+                                                    get<1>(it->second),
+                                                    get<2>(it->second),
+                                                    get<3>(it->second))); // see comment for prep_t in board.hpp
                 
                 layers.insert(std::make_pair(layer->get_name(), layer));
             }
@@ -188,7 +188,7 @@ void Board::createLayers()
     }
 
     // DEBUG output
-    BOOST_FOREACH( layer_t layer, layers )
+    for ( layer_t layer : layers )
     {
         layer.second->surface->save_debug_image(string("original_") + layer.second->get_name());
     }
@@ -243,7 +243,7 @@ vector<string> Board::list_layers()
 {
     vector<string> layerlist;
 
-    BOOST_FOREACH( layer_t layer, layers )
+    for ( layer_t layer : layers )
     {
         layerlist.push_back(layer.first);
     }

@@ -22,9 +22,6 @@
  
 #include <fstream>
 #include <cstring>
-#include <boost/scoped_array.hpp>
-#include <boost/next_prior.hpp>
-#include <boost/foreach.hpp>
 
 #include <iostream>
 using std::cout;
@@ -80,10 +77,11 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     project = gerbv_create_project();
 
     const char* cfilename = options["drill"].as<string>().c_str();
-    boost::scoped_array<char> filename(new char[strlen(cfilename) + 1]);
-    strcpy(filename.get(), cfilename);
+    char *filename = new char[strlen(cfilename) + 1];
+    strcpy(filename, cfilename);
 
-    gerbv_open_layer_from_filename(project, filename.get());
+    gerbv_open_layer_from_filename(project, filename);
+    delete[] filename;
 
     if (project->file[0] == NULL)
     {
@@ -208,7 +206,7 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
 
     //write header to .ngc file
-    BOOST_FOREACH (string s, header)
+    for (string s : header)
     {
         of << "( " << s << " )" << "\n";
     }
@@ -408,7 +406,7 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
 
     // write header to .ngc file
-    BOOST_FOREACH (string s, header)
+    for (string s : header)
     {
         of << "( " << s << " )" << "\n";
     }

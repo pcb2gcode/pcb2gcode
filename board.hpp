@@ -36,13 +36,15 @@ using std::map;
 using std::vector;
 using std::pair;
 
-#include <boost/foreach.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-using boost::dynamic_pointer_cast;
-using boost::static_pointer_cast;
-#include <boost/tuple/tuple.hpp>
-using boost::tuple;
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+using std::static_pointer_cast;
+
+#include <tuple>
+using std::tuple;
+using std::make_tuple;
+using std::get;
 
 #include "coord.hpp"
 #include "surface.hpp"

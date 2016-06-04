@@ -25,6 +25,8 @@ using std::string;
 
 #include "importer.hpp"
 
+using std::make_shared;
+
 extern "C" {
 #include <gerbv.h>
 }
