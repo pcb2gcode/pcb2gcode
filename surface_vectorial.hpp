@@ -28,6 +28,7 @@ using std::pair;
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 using std::make_shared;
+using std::make_pair;
 
 #include <boost/noncopyable.hpp>
 
@@ -105,7 +106,19 @@ protected:
 
     static void offset_polygon(const multi_polygon_type& input, const multi_polygon_type& voronoi,
                             vector< shared_ptr<icoords> >& toolpath, coordinate_type offset,
-                            unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale);
+                            unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
+                            bool mirror, ivalue_t mirror_axis);
+
+    static inline void push_point(point_type point, bool mirror, coordinate_type mirror_axis,
+                                    coordinate_type scale, shared_ptr<icoords> toolpath)
+    {
+        if (mirror)
+            toolpath->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                                            point.y() / double(scale)));
+        else
+            toolpath->push_back(make_pair(point.x() / double(scale),
+                                            point.y() / double(scale)));
+    }
     
     template <typename T>
     static bool max_area(T first, T second)

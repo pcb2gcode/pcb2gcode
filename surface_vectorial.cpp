@@ -39,9 +39,10 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(points_per_circle);
     
-    //With a very small loss of precision we can reduce memory usage and processing time
-    bg::simplify(*vectorial_surface_not_simplified, *vectorial_surface, importer->vectorial_scale() / 10000);
     scale = importer->vectorial_scale();
+    
+    //With a very small loss of precision we can reduce memory usage and processing time
+    bg::simplify(*vectorial_surface_not_simplified, *vectorial_surface, scale / 10000);
     bg::envelope(*vectorial_surface, bounding_box);
 }
 
@@ -50,9 +51,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 {
     coordinate_type grow = mill->tool_diameter / 2 * scale;
     vector<shared_ptr<icoords> > toolpath;
+    vector<shared_ptr<icoords> > toolpath_optimised;
     multi_polygon_type voronoi;
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     const int extra_passes = isolator ? isolator->extra_passes : 0;
+    const coordinate_type mirror_axis = mirror_absolute ? 
+        bounding_box.min_corner().x() :
+        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
 
     //save_debug_image(*vectorial_surface, "input");
 
@@ -61,11 +66,23 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     //save_debug_image(voronoi, "voronoi");
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
-        offset_polygon(*vectorial_surface, voronoi, toolpath, grow, points_per_circle, i, extra_passes + 1, scale);
+        offset_polygon(*vectorial_surface, voronoi, toolpath, grow, points_per_circle,
+                        i, extra_passes + 1, scale, mirror, mirror_axis);
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
-    return toolpath;
+    if (mill->optimise)
+    {    
+        for (const shared_ptr<icoords>& ring : toolpath)
+        {
+            toolpath_optimised.push_back(make_shared<icoords>());
+            bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
+        }
+
+        return toolpath_optimised;
+    }
+    else
+        return toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -217,8 +234,6 @@ pair<const polygon_type *,ring_type *> Surface_vectorial::find_ring (const multi
 {
     const source_index_type index = cell.source_index();
     source_index_type cur_index = 0;
-    polygon_type *polygon;
-    ring_type *ring;
 
     for (auto i_poly = input.cbegin(); i_poly != input.cend(); i_poly++)
     {
@@ -386,7 +401,8 @@ void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_pol
 
 void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const multi_polygon_type& voronoi,
                             vector< shared_ptr<icoords> >& toolpath, coordinate_type offset,
-                            unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale)
+                            unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
+                            bool mirror, ivalue_t mirror_axis)
 {
     const size_t toolpath_start_index = toolpath.size();
     const unsigned int new_rings_num = input[index].inners().size() + 1;
@@ -420,15 +436,13 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
         
         toolpath.push_back(make_shared<icoords>());
         for (const point_type& point : poly.outer())
-            toolpath.back()->push_back(std::make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
+            push_point(point, mirror, mirror_axis, scale, toolpath.back());
         
         for (const ring_type& ring : poly.inners())
         {
             toolpath.push_back(make_shared<icoords>());
             for (const point_type& point : ring)
-                toolpath.back()->push_back(std::make_pair(point.x() / double(scale),
-                                                        point.y() / double(scale)));
+                push_point(point, mirror, mirror_axis, scale, toolpath.back());
         }
     }
 
