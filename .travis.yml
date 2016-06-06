@@ -1,32 +1,54 @@
 language: cpp
 sudo: false
 
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-4.8', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-4.8
 
-os:
-  - linux
-  - osx
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-5', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-5
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - boost-latest
-    packages:
-      - gcc-4.8
-      - g++-4.8
-      - libboost-program-options1.55-dev
-      - libgtkmm-2.4-dev
-      - gerbv
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-6', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-6
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          sources: ['boost-latest']
+          packages: ['libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=clang++
+
+    - os: osx
+      compiler: gcc
+      env: COMPILER=g++
+
+    - os: osx
+      compiler: clang
+      env: COMPILER=clang++
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget https://sourceforge.net/projects/pcb2gcode/files/pcb2gcode/boost_1_56_0_amd64.tar.gz && tar -xf boost_1_56_0_amd64.tar.gz && export BOOST_DIR=$PWD/boost_1_56_0_amd64; fi
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ] && [ "$CC" == "gcc" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  - export CXX=$COMPILER
 
 script:
   - autoreconf -fvi
