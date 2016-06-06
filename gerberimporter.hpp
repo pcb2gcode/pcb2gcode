@@ -26,6 +26,7 @@ using std::string;
 #include "importer.hpp"
 
 using std::make_shared;
+using std::map;
 
 extern "C" {
 #include <gerbv.h>
@@ -81,9 +82,20 @@ protected:
     
     static void draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
                     coordinate_type hole_diameter, unsigned int circle_points, polygon_type& polygon);
+
+    static void draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon);
     
     static void draw_oval(point_type center, coordinate_type width, coordinate_type height, coordinate_type hole_diameter,
                 unsigned int circle_points, polygon_type& polygon);
+
+    static void draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
+                coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output);
+
+    static void draw_moire(const double * const parameters, unsigned int circle_points, coordinate_type cfactor,
+                multi_polygon_type& output);
+
+    static void generate_apertures_map(const gerbv_aperture_t * const apertures[],
+                map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor);
 
     static void linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
                                 coordinate_type height, ring_type& ring);
@@ -97,7 +109,7 @@ protected:
     
     static void merge_paths(multi_linestring_type &destination, const linestring_type& source);
 
-    static shared_ptr<multi_polygon_type> generate_paths(const std::map<unsigned int, multi_linestring_type>& paths,
+    static shared_ptr<multi_polygon_type> generate_paths(const map<unsigned int, multi_linestring_type>& paths,
                                                             shared_ptr<multi_polygon_type> input,
                                                             const gerbv_image_t * const gerber,
                                                             double cfactor, unsigned int points_per_circle);

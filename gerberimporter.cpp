@@ -28,6 +28,9 @@
 
 namespace bg = boost::geometry;
 
+typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
+typedef bg::strategy::transform::translate_transformer<coordinate_type, 2, 2> translate;
+
 //As suggested by the Gerber specification, we retain 6 decimals
 const unsigned int GerberImporter::scale = 1000000;
 
@@ -195,6 +198,19 @@ void GerberImporter::draw_rectangle(point_type center, coordinate_type width, co
     }
 
     bg::correct(polygon);
+}
+
+void GerberImporter::draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon)
+{
+    const double angle = atan2(point2.y() - point1.y(), point2.x() - point1.x());
+    const coordinate_type dx = height / 2 * sin(angle);
+    const coordinate_type dy = height / 2 * cos(angle);
+
+    polygon.outer().push_back(point_type(point1.x() + dx, point1.y() - dy));
+    polygon.outer().push_back(point_type(point1.x() - dx, point1.y() + dy));
+    polygon.outer().push_back(point_type(point2.x() - dx, point2.y() + dy));
+    polygon.outer().push_back(point_type(point2.x() + dx, point2.y() - dy));
+    polygon.outer().push_back(polygon.outer().front());
 }
 
 void GerberImporter::draw_oval(point_type center, coordinate_type width, coordinate_type height,
@@ -369,7 +385,7 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
     }
 }
 
-shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const std::map<unsigned int, multi_linestring_type>& paths,
+shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const map<unsigned int, multi_linestring_type>& paths,
                                                                 shared_ptr<multi_polygon_type> input,
                                                                 const gerbv_image_t * const gerber,
                                                                 double cfactor, unsigned int points_per_circle)
@@ -396,13 +412,293 @@ shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const std::map<uns
     return input;
 }
 
+void GerberImporter::draw_moire(const double * const parameters, unsigned int circle_points,
+                                 coordinate_type cfactor, multi_polygon_type& output)
+{
+    const point_type center (parameters[0] * cfactor, parameters[1] * cfactor);
+    const coordinate_type external_diameter_reduction = (parameters[3] + parameters[4]) * cfactor;
+    polygon_type poly1;
+    polygon_type poly2;
+    multi_polygon_type cross;
+    auto mpoly1 = make_shared<multi_polygon_type>();
+    auto mpoly2 = make_shared<multi_polygon_type>();
+
+    draw_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0, poly1);
+    draw_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0, poly2);
+    bg::union_(poly1, poly2, cross);
+
+    poly1.clear();
+    poly2.clear();
+    
+    coordinate_type external_diameter = parameters[2] * cfactor + external_diameter_reduction;
+    unsigned int steps = 0;
+
+    do
+    {
+        coordinate_type internal_diameter;
+
+        steps++;
+        external_diameter -= external_diameter_reduction;
+
+        if (parameters[3] > parameters[4])
+            internal_diameter = (parameters[3] - parameters[4]) * cfactor;
+        else
+            internal_diameter = 0;
+    
+        draw_regular_polygon(center, parameters[3] * cfactor, circle_points, 0,
+                        internal_diameter, circle_points, poly1);
+        
+        bg::union_(poly1, *mpoly1, *mpoly2);
+        mpoly1->clear();
+        mpoly1.swap(mpoly2);
+    }
+    while (external_diameter > external_diameter_reduction && steps < parameters[5] + 1);
+
+    output = *mpoly1; 
+}
+
+void GerberImporter::draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
+                                    coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output)
+{
+    polygon_type ring;
+    polygon_type rect1;
+    polygon_type rect2;
+    multi_polygon_type cross;
+    
+    draw_regular_polygon(center, external_diameter, circle_points,
+                            0, internal_diameter, circle_points, ring);
+    
+    draw_rectangle(center, gap_width, external_diameter + 1, 0, 0, rect1);
+    draw_rectangle(center, external_diameter + 1, gap_width, 0, 0, rect2);
+    bg::union_(rect1, rect2, cross);
+    bg::difference(ring, cross, output);
+}
+
+void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apertures[], map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor)
+{
+    const point_type origin (0, 0);
+
+    for (int i = 0; i < APERTURE_MAX; i++)
+    {
+        const gerbv_aperture_t * const aperture = apertures[i];
+
+        if (aperture)
+        {
+            const double * const parameters = aperture->parameter;
+            auto input = make_shared<multi_polygon_type>();
+            auto output = make_shared<multi_polygon_type>();
+
+            switch (aperture->type)
+            {
+                case GERBV_APTYPE_NONE:
+                    continue;
+
+                case GERBV_APTYPE_CIRCLE:
+                    input->resize(1);
+                    draw_regular_polygon(origin,
+                                            parameters[0] * cfactor,
+                                            circle_points,
+                                            parameters[1] * cfactor,
+                                            parameters[2] * cfactor,
+                                            circle_points,
+                                            input->back());
+                    break;
+
+                case GERBV_APTYPE_RECTANGLE:
+                    input->resize(1);
+                    draw_rectangle(origin,
+                                    parameters[0] * cfactor,
+                                    parameters[1] * cfactor,
+                                    parameters[2] * cfactor,
+                                    circle_points,
+                                    input->back());
+                    break;
+
+                case GERBV_APTYPE_OVAL:
+                    input->resize(1);
+                    draw_oval(origin,
+                                parameters[0] * cfactor,
+                                parameters[1] * cfactor,
+                                parameters[2] * cfactor,
+                                circle_points,
+                                input->back());
+                    break;
+
+                case GERBV_APTYPE_POLYGON:
+                    input->resize(1);
+                    draw_regular_polygon(origin,
+                                            parameters[0] * cfactor,
+                                            parameters[1] * cfactor,
+                                            parameters[2] * cfactor,
+                                            parameters[3] * cfactor,
+                                            circle_points,
+                                            input->back());
+                    break;
+                
+                case GERBV_APTYPE_MACRO:
+                    if (aperture->simplified)
+                    {
+                        const gerbv_simplified_amacro_t *simplified_amacro = aperture->simplified;
+
+                        while (simplified_amacro)
+                        {
+                            const double * const parameters = simplified_amacro->parameter;
+                            double rotation;
+                            int polarity;
+                            multi_polygon_type mpoly;
+                            multi_polygon_type mpoly_rotated;
+
+                            switch (simplified_amacro->type)
+                            {                     
+                                case GERBV_APTYPE_NONE:
+	                            case GERBV_APTYPE_CIRCLE:
+	                            case GERBV_APTYPE_RECTANGLE:
+	                            case GERBV_APTYPE_OVAL:
+	                            case GERBV_APTYPE_POLYGON:
+	                                std::cerr << "Non-macro aperture during macro drawing: skipping" << std::endl;
+	                                simplified_amacro = simplified_amacro->next;
+	                                continue;
+	
+	                            case GERBV_APTYPE_MACRO:
+	                                std::cerr << "Macro start aperture during macro drawing: skipping" << std::endl;
+	                                simplified_amacro = simplified_amacro->next;
+	                                continue;
+	
+	                            case GERBV_APTYPE_MACRO_CIRCLE:
+	                                mpoly.resize(1);
+	                                draw_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+	                                                        parameters[1] * cfactor,
+	                                                        circle_points,
+	                                                        0, 0, 0,
+	                                                        mpoly.front());
+	                                polarity = parameters[0];
+	                                rotation = parameters[4];
+	                                break;
+	                            
+	                            case GERBV_APTYPE_MACRO_OUTLINE:
+	                                mpoly.resize(1);
+                                    for (unsigned int i = 0; i < round(parameters[1]) + 1; i++)
+                                    {
+                                        mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2],
+                                                                                    parameters [i * 2 + 3]));
+                                    }
+                                    bg::correct(mpoly.front());
+	                                polarity = parameters[0];
+                                    rotation = parameters[(2 * int(round(parameters[1])) + 4)];
+	                                break;
+	                            
+	                            case GERBV_APTYPE_MACRO_POLYGON:
+	                                mpoly.resize(1);
+	                                draw_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+	                                                        parameters[4] * cfactor,
+	                                                        parameters[1],
+	                                                        0, 0, 0,
+	                                                        mpoly.front());
+	                                polarity = parameters[0];
+	                                rotation = parameters[5];
+	                                break;
+	                            
+	                            case GERBV_APTYPE_MACRO_MOIRE:
+                                    draw_moire(parameters, circle_points, cfactor, mpoly);
+                                    polarity = 1;
+                                    rotation = parameters[8];
+	                                break;
+
+	                            case GERBV_APTYPE_MACRO_THERMAL:
+	                                draw_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
+	                                                parameters[2] * cfactor,
+	                                                parameters[3] * cfactor,
+	                                                parameters[4] * cfactor,
+	                                                circle_points,
+	                                                mpoly);
+	                                polarity = 1;
+	                                rotation = parameters[5];
+	                                break;
+
+	                            case GERBV_APTYPE_MACRO_LINE20:
+	                                mpoly.resize(1);
+                                    draw_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                    point_type(parameters[4] * cfactor, parameters[5] * cfactor),
+                                                    parameters[1] * cfactor, mpoly.front());
+	                                polarity = parameters[0];
+                                    rotation = parameters[6];
+	                                break;
+
+	                            case GERBV_APTYPE_MACRO_LINE21:
+	                                mpoly.resize(1);
+                                    draw_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
+                                                    parameters[1] * cfactor,
+                                                    parameters[2] * cfactor,
+                                                    0, 0, mpoly.front());
+	                                polarity = parameters[0];
+                                    rotation = parameters[5];
+	                                break;
+
+	                            case GERBV_APTYPE_MACRO_LINE22:
+	                                mpoly.resize(1);
+                                    draw_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
+                                                                (parameters[4] + parameters[2] / 2) * cfactor),
+                                                    parameters[1] * cfactor,
+                                                    parameters[2] * cfactor,
+                                                    0, 0, mpoly.front());
+	                                polarity = parameters[0];
+                                    rotation = parameters[5];
+	                                break;
+
+	                            default:
+                                    std::cerr << "Unrecognized aperture: skipping" << std::endl;
+                                    simplified_amacro = simplified_amacro->next;
+                                    continue;
+                            }
+
+                            bg::transform(mpoly, mpoly_rotated, rotate_deg(rotation));
+
+                            if (polarity == 0)
+                                bg::difference(*input, mpoly_rotated, *output);
+                            else
+                                bg::union_(*input, mpoly_rotated, *output);
+                            input->clear();
+                            input.swap(output);
+                        
+                            simplified_amacro = simplified_amacro->next;
+                        }
+                    }
+                    else
+                    {
+                        std::cerr << "Macro aperture " << i << " is not simplified: skipping" << std::endl;
+                        continue;
+                    }
+                    break;
+                
+                case GERBV_APTYPE_MACRO_CIRCLE:
+	            case GERBV_APTYPE_MACRO_OUTLINE:
+	            case GERBV_APTYPE_MACRO_POLYGON:
+	            case GERBV_APTYPE_MACRO_MOIRE:
+	            case GERBV_APTYPE_MACRO_THERMAL:
+	            case GERBV_APTYPE_MACRO_LINE20:
+	            case GERBV_APTYPE_MACRO_LINE21:
+	            case GERBV_APTYPE_MACRO_LINE22:
+	                std::cerr << "Macro aperture during non-macro drawing: skipping" << std::endl;
+	                continue;
+	            
+	            default:
+	                std::cerr << "Unrecognized aperture: skipping" << std::endl;
+                    continue;
+            }
+
+            apertures_map[i] = *input;
+        }
+    }
+}
+
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
 shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_circle)
 {
-    std::map<unsigned int, multi_linestring_type> paths;
+    map<unsigned int, multi_linestring_type> paths;
+    map<int, multi_polygon_type> apertures_map;
     ring_type region;
     coordinate_type cfactor;
     
@@ -413,28 +709,19 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
 
     gerbv_image_t *gerber = project->file[0]->image;
 
-    for (unsigned int i = 0; i < APERTURE_MAX; i++) {
-        if (gerber->aperture[i] != NULL)
-        {
-            if (gerber->aperture[i]->type == GERBV_APTYPE_OVAL &&
-                gerber->aperture[i]->parameter[0] == gerber->aperture[i]->parameter[1])
-            {
-                gerber->aperture[i]->type = GERBV_APTYPE_CIRCLE;
-            }
-        }
-    }
-    
     if (gerber->netlist->state->unit == GERBV_UNIT_MM)
         cfactor = scale / 25.4;
     else
         cfactor = scale;
+
+    generate_apertures_map(gerber->aperture, apertures_map, points_per_circle, cfactor);
 
     for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next){
 
         const point_type start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
         const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
         const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
-        polygon_type temp_poly;
+        multi_polygon_type mpoly;
 
         if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
         
@@ -460,10 +747,11 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                     }
                     else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE)
                     {
+                        mpoly.resize(1);
                         linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
-                                                parameters[1] * cfactor, temp_poly.outer());
+                                                parameters[1] * cfactor, mpoly.back().outer());
                         
-                        bg::union_(temp_poly, *input, *output);
+                        bg::union_(mpoly, *input, *output);
                         input->clear();
                         input.swap(output);
                     }
@@ -481,54 +769,16 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                     std::cout << "D03 during contour mode: forbidden by the Gerber standard!" << std::endl;
                 }
                 else
-                {                    
-                    switch(gerber->aperture[currentNet->aperture]->type) {
-                        case GERBV_APTYPE_NONE:
-                            break;
+                {
+                    const auto aperture_mpoly = apertures_map.find(currentNet->aperture);
 
-                        case GERBV_APTYPE_CIRCLE:
-                            draw_regular_polygon(stop,
-                                                    parameters[0] * cfactor,
-                                                    points_per_circle,
-                                                    parameters[1] * cfactor,
-                                                    parameters[2] * cfactor,
-                                                    points_per_circle,
-                                                    temp_poly);
-                            break;
+                    if (aperture_mpoly != apertures_map.end())
+                        bg::transform(aperture_mpoly->second, mpoly, translate(stop.x(), stop.y()));
+                    else
+                        std::cerr << "Macro aperture " << currentNet->aperture <<
+                                    " not found in macros list; skipping" << std::endl;
 
-                        case GERBV_APTYPE_RECTANGLE:
-                            draw_rectangle(stop,
-                                            parameters[0] * cfactor,
-                                            parameters[1] * cfactor,
-                                            parameters[2] * cfactor,
-                                            points_per_circle,
-                                            temp_poly);
-                            break;
-
-                        case GERBV_APTYPE_OVAL:
-                            draw_oval(stop,
-                                        parameters[0] * cfactor,
-                                        parameters[1] * cfactor,
-                                        parameters[2] * cfactor,
-                                        points_per_circle,
-                                        temp_poly);
-                            break;
-
-                        case GERBV_APTYPE_POLYGON:
-                            draw_regular_polygon(stop,
-                                                    parameters[0] * cfactor,
-                                                    parameters[1] * cfactor,
-                                                    parameters[2] * cfactor,
-                                                    parameters[3] * cfactor,
-                                                    points_per_circle,
-                                                    temp_poly);
-                            break;
-                        
-                        default:
-                            std::cout << "RS274X aperture macros are not supported yet" << std::endl;   //TODO
-                    }
-                    
-                    bg::union_(temp_poly, *input, *output);
+                    bg::union_(mpoly, *input, *output);
                     input->clear();
                     input.swap(output);
                 }
