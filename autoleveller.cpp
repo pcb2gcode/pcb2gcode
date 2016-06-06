@@ -176,8 +176,6 @@ void autoleveller::header( std::ofstream &of )
         "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")"
     };
     const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41" };
-    int i;
-    int j = 1;
     int incr_decr = 1;
 
     if( software == LINUXCNC )
@@ -224,8 +222,10 @@ void autoleveller::header( std::ofstream &of )
         }
         else
         {
-            for( i = 0; i < numXPoints; i++ )
+            for(unsigned int i = 0; i < numXPoints; i++ )
             {
+                unsigned int j = 1;
+            
                 while( j >= 0 && j <= numYPoints - 1 )
                 {
                     of << "G0 Z" << zprobe << endl;
@@ -270,13 +270,8 @@ void autoleveller::footerNoIf( std::ofstream &of )
 {
     const char *startSub[] = { "o%1$d sub", "O%1$d", "O%1$d" };
     const char *endSub[] = { "o%1$d endsub", "M99", "M99" };
-    const char *callSubSimple2[] = { "o%1$s call [%2$s] [%3$s]\n", "G65 P%1$s A%2$s B%3$s\n", "M98 P%1$s\n" };
     const char *var1[] = { "1", "1", globalVar0.c_str() };
     const char *var2[] = { "2", "2", globalVar1.c_str() };
-    const char *var3[] = { "3", "3", globalVar2.c_str() };
-    const char *var4[] = { "4", "4", globalVar3.c_str() };
-    const char *var5[] = { "5", "5", globalVar4.c_str() };
-    const char *var6[] = { "6", "6", globalVar5.c_str() };
 
     if( software != CUSTOM )
     {

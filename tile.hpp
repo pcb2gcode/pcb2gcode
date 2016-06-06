@@ -34,8 +34,8 @@ public:
     {
         Software software;
         bool enabled;
-        int tileX;
-        int tileY;
+        unsigned int tileX;
+        unsigned int tileY;
         double boardWidth;
         double boardHeight;
         int tileVar;

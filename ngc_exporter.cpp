@@ -133,7 +133,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
-    static const unsigned int repeatVar = ocodes.getUniqueCode();
 
     double xoffsetTot;
     double yoffsetTot;

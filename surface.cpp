@@ -64,7 +64,7 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
                  ivalue_t max_y, string outputdir) :
     dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
         -min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
-            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin), clr(32), outputdir(outputdir)
+            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin), outputdir(outputdir), clr(32)
 {
     guint8* pixels;
     int stride;
@@ -214,7 +214,7 @@ guint32 Surface::get_an_unused_color()
         badcol = false;
         clr = rand();
 
-        for (int i = 0; i < usedcolors.size(); i++)
+        for (unsigned int i = 0; i < usedcolors.size(); i++)
         {
             if (usedcolors[i] == clr)
             {

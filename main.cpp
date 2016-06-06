@@ -95,7 +95,12 @@ int main(int argc, char* argv[])
     if (vm.count("g64"))
         tolerance = vm["g64"].as<double>() * unit;
     else
-        tolerance = 2.0 / vm["dpi"].as<int>() * unit;
+    {
+        if (vm["vectorial"].as<bool>())
+            tolerance = 0.0004 * unit;  //Default tolerance is ~10 um
+        else
+            tolerance = 2.0 / vm["dpi"].as<int>() * unit;
+    }
 
     if (vm.count("front") || vm.count("back"))
     {

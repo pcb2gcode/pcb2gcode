@@ -25,6 +25,9 @@ AX_CXX_COMPILE_STDCXX_11
 AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
                       [CPPFLAGS="$CPPFLAGS -fext-numeric-literals"])
 
+# Enable warnings
+AX_CXXFLAGS_WARN_ALL
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
