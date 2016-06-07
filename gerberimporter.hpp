@@ -44,8 +44,7 @@ struct gerber_exception: virtual import_exception
  different file formats and gerber dialects.
  
  Vectorial TODO:
-  1 - add support for RS274X macros
-  2 - add support for region cut-ins 
+  1 - test all the RS274X macros
   3 - test negative regions
  */
 /******************************************************************************/
@@ -113,8 +112,6 @@ protected:
                                                             shared_ptr<multi_polygon_type> input,
                                                             const gerbv_image_t * const gerber,
                                                             double cfactor, unsigned int points_per_circle);
-    
-    static void add_region_point(polygon_type& region, const point_type& start, const point_type& stop);
 
 private:
 

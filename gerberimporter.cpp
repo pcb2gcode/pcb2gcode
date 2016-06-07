@@ -799,7 +799,7 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                         {
                             input = generate_paths(paths, input, gerber, cfactor, points_per_circle);
                             paths.clear();
-                            bg::difference(*input, region, *output);    //TODO: negative regions have never been tested
+                            bg::difference(*input, region, *output);
                         }
                         
                         input->clear();
@@ -825,7 +825,11 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                     currentNet->layer->polarity == GERBV_POLARITY_DARK )
                     bg::union_(*input, region, *output);
                 else
+                {
+                    input = generate_paths(paths, input, gerber, cfactor, points_per_circle);
+                    paths.clear();
                     bg::difference(*input, region, *output);
+                }
 
                 input->clear();
                 input.swap(output);

@@ -51,20 +51,19 @@ using std::make_pair;
 
 typedef double coordinate_type_fp;
 
-typedef boost::polygon::point_data<coordinate_type_fp> point_type_p;
-typedef boost::polygon::segment_data<coordinate_type_fp> segment_type;
-typedef boost::polygon::voronoi_builder<coordinate_type> VB;
-typedef boost::polygon::voronoi_diagram<coordinate_type_fp> VD;
-typedef VD::cell_type cell_type;
-typedef VD::cell_type::source_index_type source_index_type;
-typedef VD::cell_type::source_category_type source_category_type;
-typedef VD::edge_type edge_type;
-typedef VD::cell_container_type cell_container_type;
-typedef VD::cell_container_type vertex_container_type;
-typedef VD::edge_container_type edge_container_type;
-typedef VD::const_cell_iterator const_cell_iterator;
-typedef VD::const_vertex_iterator const_vertex_iterator;
-typedef VD::const_edge_iterator const_edge_iterator;
+typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp;
+typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp;
+typedef boost::polygon::voronoi_diagram<coordinate_type_fp> voronoi_diagram_type;
+typedef voronoi_diagram_type::cell_type cell_type;
+typedef voronoi_diagram_type::cell_type::source_index_type source_index_type;
+typedef voronoi_diagram_type::cell_type::source_category_type source_category_type;
+typedef voronoi_diagram_type::edge_type edge_type;
+typedef voronoi_diagram_type::cell_container_type cell_container_type;
+typedef voronoi_diagram_type::cell_container_type vertex_container_type;
+typedef voronoi_diagram_type::edge_container_type edge_container_type;
+typedef voronoi_diagram_type::const_cell_iterator const_cell_iterator;
+typedef voronoi_diagram_type::const_vertex_iterator const_vertex_iterator;
+typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 
 /******************************************************************************/
 /*
@@ -100,10 +99,10 @@ protected:
     coordinate_type scale;
     box_type bounding_box;
 
-    static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type> &segments);
-    static segment_type retrieve_segment(const cell_type& cell, const vector<segment_type> &segments);
-    static void sample_curved_edge(const edge_type *edge, const vector<segment_type> &segments, vector<point_type_p>& sampled_edge, coordinate_type_fp max_dist);
-    static void copy_ring(const ring_type& ring, vector<segment_type> &segments);
+    static point_type_fp retrieve_point(const cell_type& cell, const vector<segment_type_fp> &segments);
+    static segment_type_fp retrieve_segment(const cell_type& cell, const vector<segment_type_fp> &segments);
+    static void sample_curved_edge(const edge_type *edge, const vector<segment_type_fp> &segments, vector<point_type_fp>& sampled_edge, coordinate_type_fp max_dist);
+    static void copy_ring(const ring_type& ring, vector<segment_type_fp> &segments);
 
     static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
                                                              const cell_type& cell, multi_polygon_type& output);

@@ -39,6 +39,7 @@ using Glib::ustring;
 #include "coord.hpp"
 
 typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
+typedef boost::geometry::model::segment<point_type> segment_type;
 typedef boost::geometry::model::ring<point_type> ring_type;
 typedef boost::geometry::model::box<point_type> box_type;
 typedef boost::geometry::model::linestring<point_type> linestring_type;
