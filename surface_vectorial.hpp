@@ -21,8 +21,17 @@
 #define SURFACE_VECTORIAL_H
 
 #include <vector>
+#include <list>
+#include <forward_list>
+#include <map>
+#include <algorithm>
 using std::vector;
+using std::list;
+using std::forward_list;
+using std::map;
 using std::pair;
+using std::copy;
+using std::swap;
 
 #include <memory>
 using std::shared_ptr;
@@ -109,6 +118,8 @@ protected:
                             unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
                             bool mirror, ivalue_t mirror_axis);
 
+    static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
+
     static inline void push_point(point_type point, bool mirror, coordinate_type mirror_axis,
                                     coordinate_type scale, shared_ptr<icoords> toolpath)
     {
@@ -121,9 +132,9 @@ protected:
     }
     
     template <typename T>
-    static bool max_area(T first, T second)
+    static bool area_compare(T first, T second, const map<T, coordinate_type>& areas)
     {
-        return boost::geometry::area(first) < boost::geometry::area(second);
+        return areas.at(first) < areas.at(second);
     }
 };
 

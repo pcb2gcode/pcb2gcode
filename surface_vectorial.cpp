@@ -20,10 +20,15 @@
 #include <fstream>
 #include <boost/format.hpp>
 
+#include <functional>
+using std::bind;
+using namespace std::placeholders;
+
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "voronoi_visual_utils.hpp"
 
+using std::max_element;
 namespace bg = boost::geometry;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle) :
@@ -115,65 +120,83 @@ void Surface_vectorial::save_debug_image(const multi_polygon_type& mpoly, string
     }
 }
 
-void Surface_vectorial::fill_outline(double linewidth)
+void Surface_vectorial::group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings)
 {
-    /*std::map<box_type, polygon_type *> boxes_map;
-    std::list<box_type> boxes;
-    std::vector<std::list<box_type> > polygons_boxes;
+    map<const ring_type *, coordinate_type> areas;
 
-    boxes.resize(vectorial_surface->size());
+    for (const ring_type *ring : rings)
+        areas[ring] = coordinate_type(bg::area(*ring));
 
+    const auto area_compare_2 = bind(area_compare<const ring_type *>, _1, _2, areas);
 
-    for (unsigned int i = 0; i < vectorial_surface->size(); i++)
+    while (!rings.empty())
     {
-        boxes.push_back(bg::return_envelope<box_type>(vectorial_surface->at(i)));
-        boxes_map[boxes.back()] = &(vectorial_surface->at(i));
-    }
+        grouped_rings.resize(grouped_rings.size() + 1);
+        
+        auto biggest_ring = max_element(rings.begin(), rings.end(), area_compare_2);
+        pair<ring_type *, vector<ring_type *> >& current_ring = grouped_rings.back();
+        forward_list<list<ring_type *>::iterator> to_be_removed_rings;
 
-    while (!boxes.empty())
-    {
-        polygons_boxes.resize(polygons_boxes.size() + 1);
-        std::list<box_type>& this_polygon = polygons_boxes.back();
-        
-        auto biggest_box = std::max_element(boxes.begin(), boxes.end(), max_area<box_type>);
-        this_polygon.push_back(*biggest_box);
-        boxes.erase(biggest_box);
-        
-        auto i = boxes.begin();
-        if (i != boxes.end())
+        current_ring.first = *biggest_ring;
+        rings.erase(biggest_ring);
+
+        for (auto i = rings.begin(); i != rings.end(); i++)
         {
-            i++;
-            while (i != boxes.end())
+            if (bg::covered_by(**i, **biggest_ring))
             {
-                if (bg::covered_by(*i, boxes.front()))
+                list<ring_type *>::iterator j;
+            
+                for (j = rings.begin(); j != rings.end(); j++)
+                    if (*i != *j && bg::covered_by(**i, **j))
+                            break;
+
+                if (j == rings.end())
                 {
-                    this_polygon.push_back(*i);
-                    i = boxes.erase(i);
+                    current_ring.second.push_back(*i);
+                    to_be_removed_rings.push_front(i);
                 }
-                else
-                    i++;
             }
         }
         
-        //Remove boxes included by other boxes                    
+        for (auto i : to_be_removed_rings)
+            rings.erase(i);
     }
-    
-    shared_ptr<multi_polygon_type> filled_polygons = make_shared<multi_polygon_type>();
-    
-    for (std::list<box_type>& polygon_boxes : polygons_boxes)
-    {
-        polygon_type polygon;
-        auto i = polygon_boxes.begin();
+}
 
-        polygon.outer() = boxes_map[*i];
-        ++i;
-        
-        while (i != polygon_boxes.end())
+void Surface_vectorial::fill_outline(double linewidth)
+{
+    map<const ring_type *, const polygon_type *> rings_map;
+    vector<pair<ring_type *, vector<ring_type *> > > grouped_rings;
+    list<ring_type *> rings;
+    auto filled_outline = make_shared<multi_polygon_type>();
+
+    for (polygon_type& polygon : *vectorial_surface)
+    {
+        rings.push_back(&(polygon.outer()));
+        rings_map[&(polygon.outer())] = &polygon;
+    }
+
+    group_rings(rings, grouped_rings);
+    filled_outline->resize(grouped_rings.size());
+
+    for (unsigned int i = 0; i < grouped_rings.size(); i++)
+    {
+        const polygon_type *outer_polygon = rings_map.at(grouped_rings[i].first);
+
+        (*filled_outline)[i].outer() = outer_polygon->outer();
+
+        for (ring_type* ring : grouped_rings[i].second)
         {
-            polygons.inners().push_back(boxes_map[*i]);
-            ++i;
+            const vector<ring_type>& inners = rings_map.at(ring)->inners();
+
+            if (!inners.empty())
+                (*filled_outline)[i].inners().push_back(inners.front());
+            else
+                (*filled_outline)[i].inners().push_back(rings_map[ring]->outer());
         }
-    }*/
+    }
+
+    vectorial_surface = filled_outline;
 }
 
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)
@@ -184,7 +207,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
     if (mask)
     {
         bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_vectorial_surface);
-        std::swap(masked_vectorial_surface, vectorial_surface);
+        swap(masked_vectorial_surface, vectorial_surface);
     }
     else
         abort();    //Don't use abort, please FIXME
@@ -485,7 +508,7 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
         if (toolpath[toolpath_start_index + i]->empty())
         {
             removed_rings++;
-            std::swap(toolpath[toolpath_start_index + i], *(toolpath.end() - removed_rings));
+            swap(toolpath[toolpath_start_index + i], *(toolpath.end() - removed_rings));
         }
     }
     toolpath.erase(toolpath.end() - removed_rings, toolpath.end());
