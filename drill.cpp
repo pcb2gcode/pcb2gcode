@@ -258,7 +258,7 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
         }
         
         if( nog81 )
-            of << "F" << driller->feed * cfactor << endl;
+            of << "F" << driller->feed * cfactor << '\n';
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
@@ -294,8 +294,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
                         of << "G0 X"
                            << ( get_xvalue(coord_iter->first) - xoffsetTot ) * cfactor
                            << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
-                        of << "G1 Z" << driller->zwork * cfactor << endl;
-                        of << "G1 Z" << driller->zsafe * cfactor << endl;
+                        of << "G1 Z" << driller->zwork * cfactor << '\n';
+                        of << "G1 Z" << driller->zsafe * cfactor << '\n';
                     }
                     else
                     {
@@ -339,9 +339,9 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
     if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
     {
-        of << "G0 X" << x * cfactor << " Y" << y * cfactor << endl;
-        of << "G1 Z" << cutter->zwork * cfactor << endl;
-        of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
+        of << "G0 X" << x * cfactor << " Y" << y * cfactor << '\n';
+        of << "G1 Z" << cutter->zwork * cfactor << '\n';
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return false;
     }
@@ -350,7 +350,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
 
-        of << "G0 X" << ( x + millr ) * cfactor << " Y" << y * cfactor << endl;
+        of << "G0 X" << ( x + millr ) * cfactor << " Y" << y * cfactor << '\n';
 
         double z_step = cutter->stepsize;
         double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
@@ -365,13 +365,13 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
         while (z >= cutter->zwork)
         {
-            of << "G1 Z[" << cutter->zwork * cfactor << "+" << stepcount << "*" << cutter->stepsize * cfactor << "]" << endl;
-            of << "G2 I" << -millr * cfactor << " J0" << endl;
+            of << "G1 Z[" << cutter->zwork * cfactor << "+" << stepcount << "*" << cutter->stepsize * cfactor << "]\n";
+            of << "G2 I" << -millr * cfactor << " J0\n";
             z -= z_step;
             stepcount--;
         }
 
-        of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return true;
     }

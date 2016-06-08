@@ -280,7 +280,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                     || !aligned(last, iter, peek) )      //Not aligned
                             {
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
+                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
                                 if (bDoSVG)
                                 {
                                     if (bSvgOnce)
@@ -293,10 +293,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                         cutter->bridges_height : cutter->bridges_height * z / mill->zwork;
 
                                     if( *currentBridge == iter - path->begin() )
-                                        of << "Z" << bridges_depth * cfactor << endl;
+                                        of << "Z" << bridges_depth * cfactor << '\n';
                                     else if( *currentBridge == last - path->begin() )
                                     {
-                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
+                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
                                         of << "F" << cutter->feed * cfactor;
                                         ++currentBridge;
                                     }
@@ -319,7 +319,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 {
                     //--------------------------------------------------------------------
                     // isolating (front/backside)
-                    of << "F" << mill->vertfeed * cfactor << endl;
+                    of << "F" << mill->vertfeed * cfactor << '\n';
 
                     if( bAutolevelNow )
                     {
@@ -332,7 +332,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 Z" << mill->zwork * cfactor << "\n";
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                    of << "F" << mill->feed * cfactor << endl;
+                    of << "F" << mill->feed * cfactor << '\n';
 
                     icoords::iterator iter = path->begin();
                     icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -353,7 +353,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                                                            ( iter->second - yoffsetTot ) * cfactor ) );
                             else
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
+                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
                             //SVG EXPORTER
                             if (bDoSVG)
                                 if (bSvgOnce)
