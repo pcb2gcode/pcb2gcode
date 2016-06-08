@@ -42,7 +42,7 @@ struct voronoi_ctype_traits<int64_t> {
 } } }
 
 typedef boost::polygon::voronoi_builder<coordinate_type> voronoi_builder_type;
-typedef boost::polygon::voronoi_diagram<ivalue_t> voronoi_diagram_type;
+typedef boost::polygon::voronoi_diagram<coordinate_type_fp> voronoi_diagram_type;
 
 typedef voronoi_diagram_type::cell_type cell_type;
 typedef voronoi_diagram_type::cell_type::source_index_type source_index_type;

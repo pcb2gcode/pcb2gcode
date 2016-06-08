@@ -213,7 +213,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         abort();    //Don't use abort, please FIXME
 }
 
-point_type Surface_vectorial::retrieve_point(const cell_type& cell, const vector<segment_type> &segments) {
+point_type_p Surface_vectorial::retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments) {
     source_index_type index = cell.source_index();
     source_category_type category = cell.source_category();
 
@@ -223,34 +223,33 @@ point_type Surface_vectorial::retrieve_point(const cell_type& cell, const vector
        return boost::polygon::high(segments[index]);
 }
 
-segment_type Surface_vectorial::retrieve_segment(const cell_type& cell, const vector<segment_type> &segments) {
+segment_type_p Surface_vectorial::retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments) {
     source_index_type index = cell.source_index();
     return segments[index];
 }
 
-void Surface_vectorial::sample_curved_edge(const edge_type *edge, const vector<segment_type> &segments,
-                         vector<point_type_fp>& sampled_edge, coordinate_type_fp max_dist) {
+void Surface_vectorial::sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments,
+                         vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist) {
 
-    point_type point = edge->cell()->contains_point() ?
+    point_type_p point = edge->cell()->contains_point() ?
         retrieve_point(*(edge->cell()), segments) :
         retrieve_point(*(edge->twin()->cell()), segments);
     
-    segment_type segment = edge->cell()->contains_point() ?
+    segment_type_p segment = edge->cell()->contains_point() ?
         retrieve_segment(*(edge->twin()->cell()), segments) :
         retrieve_segment(*(edge->cell()), segments);
 
-    sampled_edge.push_back(point_type_fp(edge->vertex0()->x(), edge->vertex0()->y()));
-    sampled_edge.push_back(point_type_fp(edge->vertex1()->x(), edge->vertex1()->y()));
+    sampled_edge.push_back(point_type_fp_p(edge->vertex0()->x(), edge->vertex0()->y()));
+    sampled_edge.push_back(point_type_fp_p(edge->vertex1()->x(), edge->vertex1()->y()));
 
-    boost::polygon::voronoi_visual_utils<coordinate_type_fp>::discretize(
-        point, segment, max_dist, &sampled_edge);
+    boost::polygon::voronoi_visual_utils<coordinate_type_fp>::discretize(point, segment, max_dist, &sampled_edge);
 }
 
-void Surface_vectorial::copy_ring(const ring_type& ring, vector<segment_type> &segments)
+void Surface_vectorial::copy_ring(const ring_type& ring, vector<segment_type_p> &segments)
 {
     for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++)
-        segments.push_back(segment_type(point_type_fp(iter->x(), iter->y()),
-                                        point_type_fp((iter + 1)->x(), (iter + 1)->y())));
+        segments.push_back(segment_type_p(point_type_p(iter->x(), iter->y()),
+                                        point_type_p((iter + 1)->x(), (iter + 1)->y())));
 }
 
 pair<const polygon_type *,ring_type *> Surface_vectorial::find_ring (const multi_polygon_type& input, const cell_type& cell, multi_polygon_type& output)
@@ -297,7 +296,7 @@ void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_pol
 {
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder_type voronoi_builder;
-    vector<segment_type> segments;
+    vector<segment_type_p> segments;
     std::list<const cell_type *> visited_cells;
     size_t segments_num = 0;
     ring_type bounding_box;
@@ -378,7 +377,7 @@ void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_pol
                                     append_remove_extra(ring, endpoint);
                                 else
                                 {
-                                    vector<point_type_fp> sampled_edge;
+                                    vector<point_type_fp_p> sampled_edge;
 
                                     sample_curved_edge(edge, segments, sampled_edge, max_dist);
 
@@ -429,15 +428,14 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
                             unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
                             bool mirror, ivalue_t mirror_axis)
 {
-    const size_t toolpath_start_index = toolpath.size();
-    const unsigned int new_rings_num = input[index].inners().size() + 1;
-
 /* TODO improve the extra_passes behaviour:
  * 1. group all the consecutive rings together
  * 2. remove equivalent consecutive rings
  */
-
 /*
+    const size_t toolpath_start_index = toolpath.size();
+    const unsigned int new_rings_num = input[index].inners().size() + 1;
+
     toolpath.resize(toolpath_start_index + new_rings_num);
 
     for (unsigned int i = 0; i < new_rings_num; i++)

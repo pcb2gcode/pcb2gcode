@@ -23,17 +23,17 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/geometries.hpp>
-#include <boost/geometry/geometries/adapted/boost_polygon/point.hpp>
 #include <boost/polygon/polygon.hpp>
 
 #include "coord.hpp"
 
-typedef boost::polygon::point_data<coordinate_type> point_type;
-typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp;
+typedef boost::polygon::point_data<coordinate_type> point_type_p;
+typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
+typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
+typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
 
-typedef boost::polygon::segment_data<coordinate_type> segment_type; //Not adapted for Boost.Geometry
-typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp;   //Not adapted for Boost.Geometry
-
+typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
+typedef boost::geometry::model::segment<point_type> segment_type;
 typedef boost::geometry::model::ring<point_type> ring_type;
 typedef boost::geometry::model::box<point_type> box_type;
 typedef boost::geometry::model::linestring<point_type> linestring_type;

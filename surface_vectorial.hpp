@@ -80,10 +80,10 @@ protected:
     coordinate_type scale;
     box_type bounding_box;
 
-    static point_type retrieve_point(const cell_type& cell, const vector<segment_type> &segments);
-    static segment_type retrieve_segment(const cell_type& cell, const vector<segment_type> &segments);
-    static void sample_curved_edge(const edge_type *edge, const vector<segment_type> &segments, vector<point_type_fp>& sampled_edge, coordinate_type_fp max_dist);
-    static void copy_ring(const ring_type& ring, vector<segment_type> &segments);
+    static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
+    static segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
+    static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments, vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
+    static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
 
     static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
                                                              const cell_type& cell, multi_polygon_type& output);
