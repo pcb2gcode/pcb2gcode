@@ -18,6 +18,7 @@ pcb2gcode_SOURCES = \
     drill.cpp \
     exporter.hpp \
     Fixed.hpp \
+    geometry.hpp \
     gerberimporter.hpp \
     gerberimporter.cpp \
     importer.hpp \
@@ -38,6 +39,7 @@ pcb2gcode_SOURCES = \
     outline_bridges.hpp \
     outline_bridges.cpp \
     unique_codes.hpp \
+    voronoi.hpp \
     voronoi_visual_utils.hpp \
     config.h \
     main.cpp

@@ -213,7 +213,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         abort();    //Don't use abort, please FIXME
 }
 
-point_type_fp Surface_vectorial::retrieve_point(const cell_type& cell, const vector<segment_type_fp> &segments) {
+point_type Surface_vectorial::retrieve_point(const cell_type& cell, const vector<segment_type> &segments) {
     source_index_type index = cell.source_index();
     source_category_type category = cell.source_category();
 
@@ -223,19 +223,19 @@ point_type_fp Surface_vectorial::retrieve_point(const cell_type& cell, const vec
        return boost::polygon::high(segments[index]);
 }
 
-segment_type_fp Surface_vectorial::retrieve_segment(const cell_type& cell, const vector<segment_type_fp> &segments) {
+segment_type Surface_vectorial::retrieve_segment(const cell_type& cell, const vector<segment_type> &segments) {
     source_index_type index = cell.source_index();
     return segments[index];
 }
 
-void Surface_vectorial::sample_curved_edge(const edge_type *edge, const vector<segment_type_fp> &segments,
+void Surface_vectorial::sample_curved_edge(const edge_type *edge, const vector<segment_type> &segments,
                          vector<point_type_fp>& sampled_edge, coordinate_type_fp max_dist) {
-    
-    point_type_fp point = edge->cell()->contains_point() ?
+
+    point_type point = edge->cell()->contains_point() ?
         retrieve_point(*(edge->cell()), segments) :
         retrieve_point(*(edge->twin()->cell()), segments);
     
-    segment_type_fp segment = edge->cell()->contains_point() ?
+    segment_type segment = edge->cell()->contains_point() ?
         retrieve_segment(*(edge->twin()->cell()), segments) :
         retrieve_segment(*(edge->cell()), segments);
 
@@ -246,10 +246,10 @@ void Surface_vectorial::sample_curved_edge(const edge_type *edge, const vector<s
         point, segment, max_dist, &sampled_edge);
 }
 
-void Surface_vectorial::copy_ring(const ring_type& ring, vector<segment_type_fp> &segments)
+void Surface_vectorial::copy_ring(const ring_type& ring, vector<segment_type> &segments)
 {
     for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++)
-        segments.push_back(segment_type_fp(point_type_fp(iter->x(), iter->y()),
+        segments.push_back(segment_type(point_type_fp(iter->x(), iter->y()),
                                         point_type_fp((iter + 1)->x(), (iter + 1)->y())));
 }
 
@@ -296,7 +296,8 @@ void Surface_vectorial::append_remove_extra(ring_type& ring, const point_type po
 void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_polygon_type &output, coordinate_type bounding_box_offset, coordinate_type max_dist)
 {
     voronoi_diagram_type voronoi_diagram;
-    vector<segment_type_fp> segments;
+    voronoi_builder_type voronoi_builder;
+    vector<segment_type> segments;
     std::list<const cell_type *> visited_cells;
     size_t segments_num = 0;
     ring_type bounding_box;
@@ -334,7 +335,8 @@ void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_pol
     for (size_t i = 0; i < input.size(); i++)
         output.at(i).inners().resize(input.at(i).inners().size());
 
-    boost::polygon::construct_voronoi(segments.begin(), segments.end(), &voronoi_diagram);
+    boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
+    voronoi_builder.construct(&voronoi_diagram);
 
     for (const cell_type& cell : voronoi_diagram.cells())
     {

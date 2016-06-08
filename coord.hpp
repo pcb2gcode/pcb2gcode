@@ -27,6 +27,7 @@
 #include <boost/geometry/geometries/register/ring.hpp>
 
 typedef int64_t coordinate_type;
+typedef double coordinate_type_fp;
 typedef std::pair<int, int> coordpair;
 typedef std::vector<coordpair> coords;
 

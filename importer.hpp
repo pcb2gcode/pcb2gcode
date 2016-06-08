@@ -32,20 +32,8 @@ using Glib::ustring;
 
 #include <boost/exception/all.hpp>
 
-#include <boost/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/geometries.hpp>
-
 #include "coord.hpp"
-
-typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
-typedef boost::geometry::model::segment<point_type> segment_type;
-typedef boost::geometry::model::ring<point_type> ring_type;
-typedef boost::geometry::model::box<point_type> box_type;
-typedef boost::geometry::model::linestring<point_type> linestring_type;
-typedef boost::geometry::model::multi_linestring<linestring_type> multi_linestring_type;
-typedef boost::geometry::model::polygon<point_type> polygon_type;
-typedef boost::geometry::model::multi_polygon<polygon_type> multi_polygon_type;
+#include "geometry.hpp"
 
 struct import_exception: virtual std::exception, virtual boost::exception
 {
