@@ -44,7 +44,7 @@ extern "C" {
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "exporter.hpp"
 
 /******************************************************************************/

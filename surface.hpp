@@ -37,7 +37,7 @@ using std::vector;
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 #include "gerberimporter.hpp"
 #include "core.hpp"

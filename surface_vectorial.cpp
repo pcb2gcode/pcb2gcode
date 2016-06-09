@@ -20,10 +20,6 @@
 #include <fstream>
 #include <boost/format.hpp>
 
-#include <functional>
-using std::bind;
-using namespace std::placeholders;
-
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "voronoi_visual_utils.hpp"
@@ -123,17 +119,16 @@ void Surface_vectorial::save_debug_image(const multi_polygon_type& mpoly, string
 void Surface_vectorial::group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings)
 {
     map<const ring_type *, coordinate_type> areas;
+    auto compare_2nd = [&](const ring_type *a, const ring_type *b) { return areas.at(a) < areas.at(b); };
 
     for (const ring_type *ring : rings)
         areas[ring] = coordinate_type(bg::area(*ring));
-
-    const auto area_compare_2 = bind(area_compare<const ring_type *>, _1, _2, areas);
 
     while (!rings.empty())
     {
         grouped_rings.resize(grouped_rings.size() + 1);
         
-        auto biggest_ring = max_element(rings.begin(), rings.end(), area_compare_2);
+        auto biggest_ring = max_element(rings.begin(), rings.end(), compare_2nd);
         pair<ring_type *, vector<ring_type *> >& current_ring = grouped_rings.back();
         forward_list<list<ring_type *>::iterator> to_be_removed_rings;
 

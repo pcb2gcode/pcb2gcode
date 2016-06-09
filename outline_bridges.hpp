@@ -27,7 +27,7 @@ using std::pair;
 #include <memory>
 using std::shared_ptr;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 
 class outline_bridges_exception: virtual std::exception, virtual boost::exception

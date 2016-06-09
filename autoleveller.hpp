@@ -28,6 +28,7 @@
 
 #include <string>
 using std::string;
+using std::to_string;
 
 #include <fstream>
 using std::endl;
@@ -40,7 +41,7 @@ using std::shared_ptr;
 
 #include <boost/program_options.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "unique_codes.hpp"
 #include "common.hpp"
 #include "tile.hpp"
@@ -165,7 +166,7 @@ protected:
     icoordpair lastPoint;
 
     //computeWorkarea computes the occupied rectangule of toolpaths
-    std::pair<icoordpair, icoordpair> computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    box_type_fp computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
 
     // footerNoIf prints the footer, regardless of the software
     void footerNoIf( std::ofstream &of );

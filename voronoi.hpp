@@ -22,7 +22,7 @@
 
 #include <boost/polygon/voronoi.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 
 namespace boost { namespace polygon { namespace detail {
 

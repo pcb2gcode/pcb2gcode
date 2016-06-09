@@ -32,7 +32,7 @@ using Glib::ustring;
 
 #include <boost/exception/all.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "geometry.hpp"
 
 struct import_exception: virtual std::exception, virtual boost::exception

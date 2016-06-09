@@ -34,7 +34,7 @@ using std::shared_ptr;
 
 #include <boost/program_options.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "board.hpp"
 
 /******************************************************************************/

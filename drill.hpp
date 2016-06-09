@@ -45,7 +45,7 @@ extern "C" {
 #include <gerbv.h>
 }
 
-#include "coord.hpp"
+#include "geometry.hpp"
 
 #include <boost/exception/all.hpp>
 class drill_exception: virtual std::exception, virtual boost::exception

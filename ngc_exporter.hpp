@@ -39,7 +39,7 @@ using std::dynamic_pointer_cast;
 
 #include <boost/program_options.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 #include "exporter.hpp"
 #include "svg_exporter.hpp"

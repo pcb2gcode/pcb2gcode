@@ -28,7 +28,7 @@ using std::vector;
 
 #include <boost/noncopyable.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "surface.hpp"
 #include "mill.hpp"
 

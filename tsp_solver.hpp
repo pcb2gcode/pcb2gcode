@@ -29,7 +29,7 @@ using std::list;
 #include <memory>
 using std::shared_ptr;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 using std::pair;
 
 class tsp_solver

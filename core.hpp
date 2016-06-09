@@ -29,7 +29,7 @@ using std::vector;
 #include <string>
 using std::string;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 
 /******************************************************************************/

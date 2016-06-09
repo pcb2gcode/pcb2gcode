@@ -24,8 +24,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/geometry/algorithms/distance.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/bind.hpp>
 
 #include <boost/format.hpp>
 using boost::format;
@@ -54,7 +52,7 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
               ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
     cfactor( options["metricoutput"].as<bool>() ? 25.4 : 1 ),
     probeCodeCustom( options["al-probecode"].as<string>() ),
-    zProbeResultVarCustom( "#" + boost::lexical_cast<string>( options["al-probevar"].as<unsigned int>() ) ),
+    zProbeResultVarCustom( "#" + to_string(options["al-probevar"].as<unsigned int>()) ),
     setZZeroCustom( options["al-setzzero"].as<string>() ),
     XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
     YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
@@ -62,8 +60,8 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
-    feedrate( options["al-probefeed"].as<double>() > 0 ? boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) : "" ),
-    feedrate2nd( options.count("al-2ndprobefeed") ? boost::lexical_cast<string>( options["al-2ndprobefeed"].as<double>() * unitconv ) : "" ),
+    feedrate( options["al-probefeed"].as<double>() > 0 ? to_string(options["al-probefeed"].as<double>() * unitconv) : "" ),
+    feedrate2nd( options.count("al-2ndprobefeed") ? to_string(options["al-2ndprobefeed"].as<double>() * unitconv) : "" ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
@@ -75,13 +73,13 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     g01InterpolatedNum( ocodes->getUniqueCode() ),
     yProbeNum( ocodes->getUniqueCode() ),
     xProbeNum( ocodes->getUniqueCode() ),
-    returnVar( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar0( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar1( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar2( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar3( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar4( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
-    globalVar5( boost::lexical_cast<string>( globalVars->getUniqueCode() ) ),
+    returnVar( to_string(globalVars->getUniqueCode()) ),
+    globalVar0( to_string(globalVars->getUniqueCode()) ),
+    globalVar1( to_string(globalVars->getUniqueCode()) ),
+    globalVar2( to_string(globalVars->getUniqueCode()) ),
+    globalVar3( to_string(globalVars->getUniqueCode()) ),
+    globalVar4( to_string(globalVars->getUniqueCode()) ),
+    globalVar5( to_string(globalVars->getUniqueCode()) ),
     tileInfo( tileInfo ),
     initialXOffsetVar( globalVars->getUniqueCode() ),
     initialYOffsetVar( globalVars->getUniqueCode() ),
@@ -94,24 +92,24 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
 
 string autoleveller::getVarName( int i, int j )
 {
-    return '#' + boost::lexical_cast<string>( i * numYPoints + j + 500 );	//getVarName(10,8) returns (numYPoints=10) #180
+    return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
 bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
 {
-    std::pair<icoordpair, icoordpair> workarea;
+    box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
     int temp;
 
     workarea = computeWorkarea( toolpaths );
-    workareaLenX = ( workarea.second.first - workarea.first.first ) * cfactor + 
+    workareaLenX = ( workarea.max_corner().x() - workarea.min_corner().x() ) * cfactor + 
                    tileInfo.boardWidth * cfactor * ( tileInfo.tileX - 1 );
-    workareaLenY = ( workarea.second.second - workarea.first.second ) * cfactor +
+    workareaLenY = ( workarea.max_corner().y() - workarea.min_corner().y() ) * cfactor +
                    tileInfo.boardHeight * cfactor * ( tileInfo.tileY - 1 );
 
-    startPointX = workarea.first.first * cfactor;
-    startPointY = workarea.first.second * cfactor;
+    startPointX = workarea.min_corner().x() * cfactor;
+    startPointY = workarea.min_corner().y() * cfactor;
 
     temp = round ( workareaLenX / XProbeDistRequired );    //We need at least 2 probe points
     if( temp > 1 )
@@ -136,36 +134,31 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
         return true;
 }
 
-std::pair<icoordpair, icoordpair> autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths )
+box_type_fp autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths )
 {
-    std::pair<icoordpair, icoordpair> workarea;
+    box_type_fp bounding_box;
 
-    workarea.first.first = std::numeric_limits<double>::infinity();
-    workarea.first.second = std::numeric_limits<double>::infinity();
-    workarea.second.first = -std::numeric_limits<double>::infinity();
-    workarea.second.second = -std::numeric_limits<double>::infinity();
+    boost::geometry::envelope(*(toolpaths.front()), bounding_box);
 
-    for ( shared_ptr<icoords> path : toolpaths )
+    for (auto i = toolpaths.begin() + 1; i != toolpaths.end(); i++)
     {
-        workarea.first.first = std::min(workarea.first.first, std::min_element( path->begin(), path->end(),
-                                        boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
+        box_type_fp bounding_box_temp;
+        multi_point_type_fp points;
 
-        workarea.first.second = std::min(workarea.first.second, std::min_element( path->begin(), path->end(),
-                                         boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
-
-        workarea.second.first = std::max(workarea.second.first, std::max_element( path->begin(), path->end(),
-                                         boost::bind(&icoordpair::first, _1) < boost::bind(&icoordpair::first, _2) )->first );
-
-        workarea.second.second = std::max(workarea.second.second, std::max_element( path->begin(), path->end(),
-                                          boost::bind(&icoordpair::second, _1) < boost::bind(&icoordpair::second, _2) )->second );
+        boost::geometry::envelope(**i, bounding_box_temp);
+        points.push_back(bounding_box_temp.min_corner());
+        points.push_back(bounding_box_temp.max_corner());
+        points.push_back(bounding_box.min_corner());
+        points.push_back(bounding_box.max_corner());
+        boost::geometry::envelope(points, bounding_box);
     }
 
-    workarea.first.first -= xoffset + quantization_error;
-    workarea.first.second -= yoffset + quantization_error;
-    workarea.second.first -= xoffset - quantization_error;
-    workarea.second.second -= yoffset - quantization_error;
+    bounding_box.min_corner().x(bounding_box.min_corner().x() - xoffset - quantization_error);
+    bounding_box.min_corner().y(bounding_box.min_corner().y() - yoffset - quantization_error);
+    bounding_box.max_corner().x(bounding_box.max_corner().x() - xoffset + quantization_error);
+    bounding_box.max_corner().y(bounding_box.max_corner().y() - yoffset + quantization_error);
 
-    return workarea;
+    return bounding_box;
 }
 
 void autoleveller::header( std::ofstream &of )
