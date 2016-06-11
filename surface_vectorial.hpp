@@ -99,17 +99,6 @@ protected:
                             bool mirror, ivalue_t mirror_axis);
 
     static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
-
-    static inline void push_point(point_type point, bool mirror, coordinate_type mirror_axis,
-                                    coordinate_type scale, shared_ptr<icoords> toolpath)
-    {
-        if (mirror)
-            toolpath->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                            point.y() / double(scale)));
-        else
-            toolpath->push_back(make_pair(point.x() / double(scale),
-                                            point.y() / double(scale)));
-    }
     
     template <typename T>
     static bool area_compare(T first, T second, const map<T, coordinate_type>& areas)

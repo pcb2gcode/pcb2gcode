@@ -25,6 +25,7 @@
 #include "voronoi_visual_utils.hpp"
 
 using std::max_element;
+using std::next;
 namespace bg = boost::geometry;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle) :
@@ -423,90 +424,129 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
                             unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
                             bool mirror, ivalue_t mirror_axis)
 {
-/* TODO improve the extra_passes behaviour:
- * 1. group all the consecutive rings together
- * 2. remove equivalent consecutive rings
- */
-/*
-    const size_t toolpath_start_index = toolpath.size();
-    const unsigned int new_rings_num = input[index].inners().size() + 1;
+    list<list<ring_type> > rings (steps);
+    auto ring_i = rings.begin();
 
-    toolpath.resize(toolpath_start_index + new_rings_num);
-
-    for (unsigned int i = 0; i < new_rings_num; i++)
-        toolpath[toolpath_start_index + i] = make_shared<icoords>();
-*/
-    for (unsigned int i = 1; i <= steps; i++)
+    auto push_point = [&](const point_type& point)
     {
-        multi_polygon_type mpoly;
-        multi_polygon_type mpoly_buffered;
+        if (mirror)
+            toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                                                    point.y() / double(scale)));
+        else
+            toolpath.back()->push_back(make_pair(point.x() / double(scale),
+                                                    point.y() / double(scale)));
+    };
 
-        bg::buffer(input[index], mpoly,
-                   bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * i),
+    auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
+    {
+        const auto size_minus_1 = ring.size() - 1;
+        unsigned int i = start;
+
+        do
+        {
+            push_point(ring[i]);
+            i = (i + 1) % size_minus_1;
+        } while (i != start);
+
+        push_point(ring[i]);
+    };
+
+    auto find_first_nonempty = [&]()
+    {
+        for (auto i = rings.begin(); i != rings.end(); i++)
+            if (!i->empty())
+                return i;
+        return rings.end();
+    };
+
+    auto find_closest_point_index = [&](const ring_type& ring)
+    {
+        const unsigned int size = ring.size();
+        const icoordpair& last_icp = toolpath.back()->back();
+        point_type last_point;
+
+        last_point.y(last_icp.second * scale);
+        if (mirror)
+            last_point.x(2 * mirror_axis - last_icp.first * scale);
+        else
+            last_point.x(last_icp.first * scale);
+
+        auto min_distance = bg::comparable_distance(ring[0], last_point);
+        unsigned int index = 0;
+
+        for (unsigned int i = 1; i < size; i++)
+        {
+            const auto distance = bg::comparable_distance(ring[i], last_point);
+
+            if (distance < min_distance)
+            {
+                min_distance = distance;
+                index = i;
+            }
+        }
+
+        return index;
+    };
+
+    toolpath.push_back(make_shared<icoords>());
+
+    for (unsigned int i = 0; i < steps; i++)
+    {
+        multi_polygon_type mpoly_temp;
+        multi_polygon_type mpoly;
+
+        bg::buffer(input[index], mpoly_temp,
+                   bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                    bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_miter(5 * offset * i),
+                   bg::strategy::buffer::join_miter(5 * offset * (i + 1)),
                    bg::strategy::buffer::end_round(points_per_circle),
                    bg::strategy::buffer::point_circle(points_per_circle));
 
-        bg::intersection(mpoly, voronoi[index], mpoly_buffered);
+        bg::intersection(mpoly_temp, voronoi[index], mpoly);
+        
+        if (i == 0)
+            copy_ring_to_toolpath(mpoly[0].outer(), 0);
+        else
+            copy_ring_to_toolpath(mpoly[0].outer(), find_closest_point_index(mpoly[0].outer()));
 
-        polygon_type& poly = mpoly_buffered[0];
+        mpoly[0].outer().clear();
+
+        for (const ring_type& ring : mpoly[0].inners())
+            ring_i->push_back(ring);
         
-        toolpath.push_back(make_shared<icoords>());
-        for (const point_type& point : poly.outer())
-            push_point(point, mirror, mirror_axis, scale, toolpath.back());
-        
-        for (const ring_type& ring : poly.inners())
-        {
-            toolpath.push_back(make_shared<icoords>());
-            for (const point_type& point : ring)
-                push_point(point, mirror, mirror_axis, scale, toolpath.back());
-        }
+        ++ring_i;
     }
 
-/*
-        for (const point_type& point : poly.outer())
-            toolpath[toolpath_start_index]->push_back(std::make_pair(point.x() / double(scale),
-                                                                    point.y() / double(scale)));
+    ring_i = find_first_nonempty();
 
-        for (unsigned int j = 0; j < poly.inners().size(); j++)
-        {
-            const unsigned int input_inners_num = input[index].inners().size();
-            unsigned int k;
-
-            // Some inner rings could have been removed; we have to find their original index
-            for (k = 0; k < input_inners_num; k++)
-                if (bg::covered_by(poly.inners()[j], input[index].inners()[k]))
-                    break;
-
-            if (k == input_inners_num)
-                abort();    //Use a decent exception here FIXME
-            else
-            {
-                for (const point_type& point : poly.inners()[j])
-                    toolpath[toolpath_start_index + k + 1]->push_back(std::make_pair(point.x() / double(scale),
-                                                                                point.y() / double(scale)));
-            }
-        }
-    }
-    
-    unsigned int removed_rings = 0;
-    */
-    /*
-     * It can happen that some rings are empty (an internal ring removed on the first buffer).
-     * Since we don't care anymore about the order of the rings, we can swap the empty ring with
-     * the latest valid ring in the vector, and chop the end of the vector only once.
-     */
-/*
-    for (unsigned int i = 1; i < new_rings_num - removed_rings; i++)
+    while (ring_i != rings.end())
     {
-        if (toolpath[toolpath_start_index + i]->empty())
+        ring_type& biggest = ring_i->front();
+        auto ring_j = next(ring_i);
+
+        toolpath.push_back(make_shared<icoords>());
+        copy_ring_to_toolpath(biggest, 0);
+
+        while (ring_j != rings.end())
         {
-            removed_rings++;
-            swap(toolpath[toolpath_start_index + i], *(toolpath.end() - removed_rings));
+            list<ring_type>::iterator j;
+
+            for (j = ring_j->begin(); j != ring_j->end(); j++)
+                if (bg::covered_by(*j, biggest))
+                {
+                    copy_ring_to_toolpath(*j, find_closest_point_index(*j));
+                    ring_j->erase(j);
+                    break;
+                }
+
+            if (j == ring_j->end())
+                ring_j = rings.end();
+            else
+                ++ring_j;
         }
+
+        ring_i->erase(ring_i->begin());
+        ring_i = find_first_nonempty();
     }
-    toolpath.erase(toolpath.end() - removed_rings, toolpath.end());
-*/
 }
 
