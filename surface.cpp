@@ -622,33 +622,39 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
 /******************************************************************************/
 void Surface::add_mask(shared_ptr<Core> mask_surface)
 {
-    Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface =
-        dynamic_pointer_cast<Surface>(mask_surface)->cairo_surface;
-
-    int max_x = cairo_surface->get_width();
-    int max_y = cairo_surface->get_height();
-    int stride = cairo_surface->get_stride();
-
-    if (max_x != mask_cairo_surface->get_width()
-            || max_y != mask_cairo_surface->get_height()
-            || stride != mask_cairo_surface->get_stride())
+    shared_ptr<Surface> mask = dynamic_pointer_cast<Surface>(mask_surface);
+    
+    if (mask)
     {
-        throw std::logic_error("Surface shapes don't match.");
-    }
+        Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface = mask->cairo_surface;
 
-    guint8* pixels = cairo_surface->get_data();
-    guint8* mask_pixels = mask_cairo_surface->get_data();
+        int max_x = cairo_surface->get_width();
+        int max_y = cairo_surface->get_height();
+        int stride = cairo_surface->get_stride();
 
-    for (int y = 0; y < max_y; y++)
-    {
-        for (int x = 0; x < max_x; x++)
+        if (max_x != mask_cairo_surface->get_width()
+                || max_y != mask_cairo_surface->get_height()
+                || stride != mask_cairo_surface->get_stride())
         {
-            PRC(pixels + x*4 + y*stride) &=
-                PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
-            PRC(pixels + x*4 + y*stride) |=
-                (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
+            throw std::logic_error("Surface shapes don't match.");
+        }
+
+        guint8* pixels = cairo_surface->get_data();
+        guint8* mask_pixels = mask_cairo_surface->get_data();
+
+        for (int y = 0; y < max_y; y++)
+        {
+            for (int x = 0; x < max_x; x++)
+            {
+                PRC(pixels + x*4 + y*stride) &=
+                    PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
+                PRC(pixels + x*4 + y*stride) |=
+                    (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
+            }
         }
     }
+    else
+        throw std::logic_error("Can't cast Core to Surface");
 }
 
 #include <boost/format.hpp>

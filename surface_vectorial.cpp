@@ -280,7 +280,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         swap(masked_vectorial_surface, vectorial_surface);
     }
     else
-        abort();    //Don't use abort, please FIXME
+        throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
 point_type_p Surface_vectorial::retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments) {
