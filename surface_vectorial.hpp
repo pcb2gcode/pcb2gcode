@@ -55,12 +55,13 @@ namespace bg = boost::geometry;
 class Surface_vectorial: public Core, virtual public boost::noncopyable
 {
 public:
-    Surface_vectorial(unsigned int points_per_circle, string name, string outputdir);
+    Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
+                        string name, string outputdir);
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute);
     void save_debug_image(string message);
-    void init_debug_image(string filename, const multi_polygon_type& geometry, double opacity, bool stroke);
+    void init_debug_image(string filename);
     void add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke);
     void add_debug_image(const vector<polygon_type>& geometries, double opacity);
     void close_debug_image();
@@ -70,16 +71,18 @@ public:
     
     inline ivalue_t get_width_in()
     {
-        return (bounding_box.max_corner().x() - bounding_box.min_corner().x()) / ivalue_t(scale);
+        return width_in;
     }
 
     inline ivalue_t get_height_in()
     {
-        return (bounding_box.max_corner().y() - bounding_box.min_corner().y()) / ivalue_t(scale);
+        return height_in;
     }
     
 protected:
     const unsigned int points_per_circle;
+    const ivalue_t width_in;
+    const ivalue_t height_in;
     const string name;
     const string outputdir;
 
@@ -90,7 +93,6 @@ protected:
     std::ofstream *svg;
     bg::svg_mapper<point_type_fp> *mapper;
     bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2> *scale_geometry;
-    bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2> *translate_geometry;
 
     static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
     static segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);

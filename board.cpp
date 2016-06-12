@@ -153,7 +153,9 @@ void Board::createLayers()
         {
             if (dynamic_pointer_cast<VectorialLayerImporter>(importer))
             {
-                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, it->first, outputdir));
+                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
+                                                                            max_y - min_y,
+                                                                            it->first, outputdir));
                 surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
 
                 shared_ptr<Layer> layer(new Layer(it->first,

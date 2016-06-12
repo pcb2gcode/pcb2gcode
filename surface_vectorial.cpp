@@ -30,8 +30,11 @@ using Glib::build_filename;
 using std::max_element;
 using std::next;
 
-Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, string name, string outputdir) :
+Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
+                                        ivalue_t height,string name, string outputdir) :
     points_per_circle(points_per_circle),
+    width_in(width),
+    height_in(height),
     name(name),
     outputdir(outputdir)
 {
@@ -67,8 +70,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     build_voronoi(*vectorial_surface, voronoi, grow * 3, mill->tolerance * scale);
 
+    init_debug_image(name + ".svg");
+
     srand(1);
-    init_debug_image(name + ".svg", voronoi, 0.2, false);
+    add_debug_image(voronoi, 0.2, false);
     srand(1);
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
@@ -113,22 +118,11 @@ void Surface_vectorial::save_debug_image(string message)
 */
 }
 
-void Surface_vectorial::init_debug_image(string filename, const multi_polygon_type& geometry, double opacity, bool stroke)
+void Surface_vectorial::init_debug_image(string filename)
 {
-    box_type bounding_box;
-    bg::envelope(geometry, bounding_box);
-
-    const coordinate_type width = bounding_box.max_corner().x() - bounding_box.min_corner().x();
-    const coordinate_type height = bounding_box.max_corner().y() - bounding_box.min_corner().y();
-    const coordinate_type_fp svg_scale = scale / 1000;
-
     svg = new std::ofstream(build_filename(outputdir, filename));
-    mapper = new bg::svg_mapper<point_type_fp>(*svg, width / svg_scale + 1000, height / svg_scale + 1000);
-    translate_geometry = new bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2>
-                                (-bounding_box.min_corner().x(), -bounding_box.min_corner().y());
-    scale_geometry = new bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(1.0 / svg_scale);
-
-    add_debug_image(geometry, opacity, stroke);
+    mapper = new bg::svg_mapper<point_type_fp>(*svg, width_in * 1000, height_in * 1000);
+    scale_geometry = new bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(1000.0 / scale);
 }
 
 void Surface_vectorial::add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke)
@@ -140,12 +134,9 @@ void Surface_vectorial::add_debug_image(const multi_polygon_type& geometry, doub
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-
-        polygon_type poly_translated;
         polygon_type_fp poly_scaled;
 
-        bg::transform(poly, poly_translated, *translate_geometry);
-        bg::transform(poly_translated, poly_scaled, *scale_geometry);
+        bg::transform(poly, poly_scaled, *scale_geometry);
 
         mapper->add(poly_scaled);
         mapper->map(poly_scaled,
@@ -162,11 +153,9 @@ void Surface_vectorial::add_debug_image(const vector<polygon_type>& geometries, 
 
     for (unsigned int i = geometries.size(); i != 0; i--)
     {
-        polygon_type poly_translated;
         polygon_type_fp poly_scaled;
         
-        bg::transform(geometries[i - 1], poly_translated, *translate_geometry);
-        bg::transform(poly_translated, poly_scaled, *scale_geometry);
+        bg::transform(geometries[i - 1], poly_scaled, *scale_geometry);
 
         mapper->add(poly_scaled);
         
@@ -186,7 +175,6 @@ void Surface_vectorial::add_debug_image(const vector<polygon_type>& geometries, 
 void Surface_vectorial::close_debug_image()
 {
     delete scale_geometry;
-    delete translate_geometry;
     delete mapper;
     delete svg;
 }
