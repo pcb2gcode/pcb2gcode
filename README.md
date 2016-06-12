@@ -36,8 +36,7 @@ There are pcb2gcode packages in the official repositories. You can install the w
 
     sudo apt-get install pcb2gcode
 
-Unfortunately, these packages are outdated. If you want to download the latest development
-version, go to "Installation from GIT".
+Unfortunately, these packages are seriously outdated. If you want to download the latest development version, go to "Installation from GIT".
 I'm currently looking for a Debian/Ubuntu package maintainer: if you're interested [write me an email](mailto:nicola@corna.info).
 
 #### Windows
@@ -50,21 +49,27 @@ pcb2gcode is available in [Homebrew](http://brew.sh/). To install it open the "T
      $ brew install pcb2gcode
 
 ## Installation from GIT (latest development version):
-If you want to install the latest version from git you'll need the autotools, boost with the program_options library
-(dev, >= 1.47), gtkmm2.4 (dev) and libgerbv (dev).
+If you want to install the latest version from git you'll need the autotools, Boost with the program_options library
+(dev, >= 1.56), gtkmm2.4 (dev) and libgerbv (dev).
 
-#### Ubuntu 12.04 LTS
+Unfortunately pcb2gcode requires a rather new version of Boost (1.56), often not included in the oldest distros (like Ubuntu < 15.10 or Debian Stable).
+You can [download](http://www.boost.org/users/download/) Boost >= 1.56 and build it manually with:
+
+    $ ./bootstrap.sh --with-libraries=program_options
+    $ ./b2 variant=release link=static --prefix=<somewhere> install
+
+Then add `--with-boost=<same directory as before> --enable-static-boost` to the `./configure` command.
+
+Moreover Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
 
     $ sudo apt-get update
     $ sudo apt-get install software-properties-common python-software-properties
     $ sudo add-apt-repository "ppa:ubuntu-toolchain-r/test"
     $ sudo apt-get update
-    $ sudo apt-get install gcc-4.8 g++-4.8
-    $ export CC=gcc-4.8 CXX=g++-4.8
+    $ sudo apt-get install g++-4.8
+    $ export CXX=g++-4.8
 
-Then follow the steps for [Ubuntu Trusty](#debianlike)
-
-#### Debian Wheezy or newer, Ubuntu Trusty or newer<a name="trusty"></a>
+#### Debian Testing or newer, Ubuntu Wily or newer<a name="debianlike"></a>
 
     $ sudo apt-get update
     $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git

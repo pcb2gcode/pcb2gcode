@@ -131,9 +131,6 @@ regularly (possibly creating a bigger hole than intended), the other holes are
 created by moving the head in circles using the feed and infeed parameters used
 in cutting.
 .TP
-\fB\-\-drill\-front\fP
-[\fBDEPRECATED\fP, use \fB\-\-drill\-side\fP instead] drill from the front side.
-.TP
 \fB\-\-drill\-side\fP \fIside\fP
 choose the drill side. Valid choices are front, back or auto (default). In auto
 mode the drill side is automatically chosen (always front unless only the back
@@ -178,9 +175,6 @@ the centres of these lines.
 \fB\-\-outline\-width \fIunit\fP\fP
 thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is
 given); the default value is 0.15 mm/0.059 in.
-.TP
-\fB\-\-cut\-front\fP
-[\fBDEPRECATED\fP, use \fB\-\-cut\-side\fP instead] cut from the front side.
 .TP
 \fB\-\-cut\-side\fP \fIside\fP
 choose the cut side. Valid choices are front, back or auto (default). In auto mode
@@ -292,6 +286,12 @@ number of tiling rows. Default value is 1.
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
+\fB\-\-vectorial\fP
+enable the \fBEXPERIMENTAL\fP vectorial core. This new core offers much better
+performances, higher precision, smaller output files and support for internal
+cutoffs (like thermal pads). When \fB\-\-vectorial\fP is enabled, \fB\-\-dpi\fP
+is ignored.
+.TP
 \fB\-\-software\fP \fIsoftware\fP
 specify the gcode interpreter software; currently supported softwares are
 \fBLinuxCNC\fP, \fBMach3\fP, \fBMach4\fP and \fBcustom\fP. With custom you
@@ -299,9 +299,9 @@ can specify \fBal-probecode\fP, \fBal-probevar\fP and \fBal-setzzero\fP, in
 order to generate gcode for an unsupported software.
 .TP
 \fB\-\-optimise\fP
-optimise the output gcode with a Douglas-Peucker algorithm, reducing its output
-size up to 95% (while accepting a very little loss of precision). This option is
-enabled by default, to disable it use \-\-optimise=false
+optimise the output gcode with Douglas-Peucker, reducing its output size up to
+95% (while accepting a very little loss of precision). This option is enabled by
+default, to disable it use \fB\-\-optimise=false\fP
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000). If the software freezes during
