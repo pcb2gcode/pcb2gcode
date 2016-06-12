@@ -43,7 +43,9 @@ Layer::Layer(const string& name, shared_ptr<Core> surface,
 /******************************************************************************/
 vector<shared_ptr<icoords> > Layer::get_toolpaths()
 {
-    return surface->get_toolpath(manufacturer, mirrored, mirror_absolute);
+    vector<shared_ptr<icoords> > toolpath = surface->get_toolpath(manufacturer, mirrored, mirror_absolute);
+    surface->save_debug_image("traced");
+    return toolpath;
 }
 
 /******************************************************************************/

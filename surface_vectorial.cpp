@@ -20,16 +20,20 @@
 #include <fstream>
 #include <boost/format.hpp>
 
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
+
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "voronoi_visual_utils.hpp"
 
 using std::max_element;
 using std::next;
-namespace bg = boost::geometry;
 
-Surface_vectorial::Surface_vectorial(unsigned int points_per_circle) :
-    points_per_circle(points_per_circle)
+Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, string name, string outputdir) :
+    points_per_circle(points_per_circle),
+    name(name),
+    outputdir(outputdir)
 {
 
 }
@@ -61,20 +65,30 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
 
-    //save_debug_image(*vectorial_surface, "input");
-
     build_voronoi(*vectorial_surface, voronoi, grow * 3, mill->tolerance * scale);
 
-    //save_debug_image(voronoi, "voronoi");
+    srand(1);
+    init_debug_image(name + ".svg", voronoi, 0.2, false);
+    srand(1);
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
-        offset_polygon(*vectorial_surface, voronoi, toolpath, grow, points_per_circle,
-                        i, extra_passes + 1, scale, mirror, mirror_axis);
+    {
+        shared_ptr<vector<polygon_type> > polygons;
+    
+        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, grow,
+                        points_per_circle, i, extra_passes + 1, scale, mirror, mirror_axis);
+        
+        add_debug_image(*polygons, 0.6);
+    }
+
+    srand(1);
+    add_debug_image(*vectorial_surface, 1, true);
+    close_debug_image();
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
     if (mill->optimise)
-    {    
+    {
         for (const shared_ptr<icoords>& ring : toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
@@ -89,32 +103,92 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
 void Surface_vectorial::save_debug_image(string message)
 {
-    save_debug_image(*vectorial_surface, message);
+/*
+    static unsigned int debug_image_index = 0;
+    vector<shared_ptr<const multi_polygon_type> > geometries (1);
+    
+    geometries.front() = vectorial_surface;
+    save_debug_image(geometries, (boost::format("outp%1%_%2%.svg") % debug_image_index % message).str());
+    ++debug_image_index;
+*/
 }
 
-void Surface_vectorial::save_debug_image(const multi_polygon_type& mpoly, string message)
+void Surface_vectorial::init_debug_image(string filename, const multi_polygon_type& geometry, double opacity, bool stroke)
 {
     box_type bounding_box;
-    bg::envelope(mpoly, bounding_box);
+    bg::envelope(geometry, bounding_box);
 
-    std::ofstream svg(message + ".svg");
-    
-    /*boost::geometry::svg_mapper<point_type> mapper(svg,
-        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) / double(scale),
-        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) / double(scale),
-        str(boost::format("width=\"%1$f%%\" height=\"%1$f%%\"") % (100.0 / scale)));*/
-   
-    boost::geometry::svg_mapper<point_type> mapper(svg, 3000, 3000);
+    const coordinate_type width = bounding_box.max_corner().x() - bounding_box.min_corner().x();
+    const coordinate_type height = bounding_box.max_corner().y() - bounding_box.min_corner().y();
+    const coordinate_type_fp svg_scale = scale / 1000;
 
-    srand(0);
+    svg = new std::ofstream(build_filename(outputdir, filename));
+    mapper = new bg::svg_mapper<point_type_fp>(*svg, width / svg_scale + 1000, height / svg_scale + 1000);
+    translate_geometry = new bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2>
+                                (-bounding_box.min_corner().x(), -bounding_box.min_corner().y());
+    scale_geometry = new bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(1.0 / svg_scale);
 
-    for (auto iterator = mpoly.begin(); iterator != mpoly.end(); iterator++)
+    add_debug_image(geometry, opacity, stroke);
+}
+
+void Surface_vectorial::add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke)
+{
+    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:1" : "";
+
+    for (const polygon_type& poly : geometry)
     {
-        mapper.add(*iterator);
-        mapper.map(*iterator,
-            str(boost::format("fill-opacity:1;fill:rgb(%d,%d,%d);") %
-            (rand() % 256) % (rand() % 256) % (rand() % 256)));
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+
+        polygon_type poly_translated;
+        polygon_type_fp poly_scaled;
+
+        bg::transform(poly, poly_translated, *translate_geometry);
+        bg::transform(poly_translated, poly_scaled, *scale_geometry);
+
+        mapper->add(poly_scaled);
+        mapper->map(poly_scaled,
+            str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);" + stroke_str) %
+            opacity % r % g % b));
     }
+}
+
+void Surface_vectorial::add_debug_image(const vector<polygon_type>& geometries, double opacity)
+{
+    const unsigned int r = rand() % 256;
+    const unsigned int g = rand() % 256;
+    const unsigned int b = rand() % 256;
+
+    for (unsigned int i = geometries.size(); i != 0; i--)
+    {
+        polygon_type poly_translated;
+        polygon_type_fp poly_scaled;
+        
+        bg::transform(geometries[i - 1], poly_translated, *translate_geometry);
+        bg::transform(poly_translated, poly_scaled, *scale_geometry);
+
+        mapper->add(poly_scaled);
+        
+        if (i == geometries.size())
+        {
+            mapper->map(poly_scaled,
+                str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);stroke:rgb(0,0,0);stroke-width:1") %
+                opacity % r % g % b));
+        }
+        else
+        {
+            mapper->map(poly_scaled, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
+        }
+    }
+}
+
+void Surface_vectorial::close_debug_image()
+{
+    delete scale_geometry;
+    delete translate_geometry;
+    delete mapper;
+    delete svg;
 }
 
 void Surface_vectorial::group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings)
@@ -419,12 +493,13 @@ void Surface_vectorial::build_voronoi(const multi_polygon_type& input, multi_pol
     bg::correct(output);
 }
 
-void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const multi_polygon_type& voronoi,
-                            vector< shared_ptr<icoords> >& toolpath, coordinate_type offset,
-                            unsigned int points_per_circle, size_t index, unsigned int steps, coordinate_type scale,
-                            bool mirror, ivalue_t mirror_axis)
+shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
+                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
+                            coordinate_type offset, unsigned int points_per_circle, size_t index,
+                            unsigned int steps, coordinate_type scale, bool mirror, ivalue_t mirror_axis)
 {
-    list<list<ring_type> > rings (steps);
+    auto polygons = make_shared<vector<polygon_type> >(steps);
+    list<list<const ring_type *> > rings (steps);
     auto ring_i = rings.begin();
 
     auto push_point = [&](const point_type& point)
@@ -503,16 +578,17 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
                    bg::strategy::buffer::point_circle(points_per_circle));
 
         bg::intersection(mpoly_temp, voronoi[index], mpoly);
-        
+
+        (*polygons)[i] = mpoly[0];
+        mpoly.clear();
+
         if (i == 0)
-            copy_ring_to_toolpath(mpoly[0].outer(), 0);
+            copy_ring_to_toolpath((*polygons)[i].outer(), 0);
         else
-            copy_ring_to_toolpath(mpoly[0].outer(), find_closest_point_index(mpoly[0].outer()));
+            copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
 
-        mpoly[0].outer().clear();
-
-        for (const ring_type& ring : mpoly[0].inners())
-            ring_i->push_back(ring);
+        for (const ring_type& ring : (*polygons)[i].inners())
+            ring_i->push_back(&ring);
         
         ++ring_i;
     }
@@ -521,20 +597,20 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
 
     while (ring_i != rings.end())
     {
-        ring_type& biggest = ring_i->front();
+        const ring_type *biggest = ring_i->front();
         auto ring_j = next(ring_i);
 
         toolpath.push_back(make_shared<icoords>());
-        copy_ring_to_toolpath(biggest, 0);
+        copy_ring_to_toolpath(*biggest, 0);
 
         while (ring_j != rings.end())
         {
-            list<ring_type>::iterator j;
+            list<const ring_type *>::iterator j;
 
             for (j = ring_j->begin(); j != ring_j->end(); j++)
-                if (bg::covered_by(*j, biggest))
+                if (bg::covered_by(**j, *biggest))
                 {
-                    copy_ring_to_toolpath(*j, find_closest_point_index(*j));
+                    copy_ring_to_toolpath(**j, find_closest_point_index(**j));
                     ring_j->erase(j);
                     break;
                 }
@@ -548,5 +624,7 @@ void Surface_vectorial::offset_polygon(const multi_polygon_type& input, const mu
         ring_i->erase(ring_i->begin());
         ring_i = find_first_nonempty();
     }
+
+    return polygons;
 }
 

@@ -198,7 +198,6 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
 
-    save_debug_image("traced");
     return toolpath;
 }
 
@@ -774,7 +773,5 @@ void Surface::fill_outline(double linewidth)
                 PRC(pixels + x*4 + y*stride) = WHITE;
         }
     }
-
-    save_debug_image("outline_filled");
 }
 

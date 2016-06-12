@@ -153,7 +153,7 @@ void Board::createLayers()
         {
             if (dynamic_pointer_cast<VectorialLayerImporter>(importer))
             {
-                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30));
+                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, it->first, outputdir));
                 surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
 
                 shared_ptr<Layer> layer(new Layer(it->first,
@@ -201,6 +201,7 @@ void Board::createLayers()
         if (fill_outline)
         {
             outline_layer->surface->fill_outline(outline_width);
+            outline_layer->surface->save_debug_image("outline_filled");
         }
 
         for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++)
