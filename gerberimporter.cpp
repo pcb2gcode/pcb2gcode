@@ -416,43 +416,36 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
                                  coordinate_type cfactor, multi_polygon_type& output)
 {
     const point_type center (parameters[0] * cfactor, parameters[1] * cfactor);
-    const coordinate_type external_diameter_reduction = (parameters[3] + parameters[4]) * cfactor;
-    polygon_type poly1;
-    polygon_type poly2;
-    multi_polygon_type cross;
     auto mpoly1 = make_shared<multi_polygon_type>();
     auto mpoly2 = make_shared<multi_polygon_type>();
 
-    draw_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0, poly1);
-    draw_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0, poly2);
-    bg::union_(poly1, poly2, cross);
+    mpoly2->resize(2);
 
-    poly1.clear();
-    poly2.clear();
-    
-    coordinate_type external_diameter = parameters[2] * cfactor + external_diameter_reduction;
-    unsigned int steps = 0;
+    draw_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0, (*mpoly2)[0]);
+    draw_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0, (*mpoly2)[1]);
+    bg::union_((*mpoly2)[0], (*mpoly2)[1], *mpoly1);
 
-    do
+    mpoly2->clear();
+
+    for (unsigned int i = 0; i < parameters[5]; i++)
     {
-        coordinate_type internal_diameter;
+        const double external_diameter = parameters[2] - (parameters[3] + parameters[4]) * i;
+        double internal_diameter = external_diameter - parameters[3];
+        polygon_type poly;
 
-        steps++;
-        external_diameter -= external_diameter_reduction;
-
-        if (parameters[3] > parameters[4])
-            internal_diameter = (parameters[3] - parameters[4]) * cfactor;
-        else
-            internal_diameter = 0;
-    
-        draw_regular_polygon(center, parameters[3] * cfactor, circle_points, 0,
-                        internal_diameter, circle_points, poly1);
+        if (external_diameter <= 0)
+            break;
         
-        bg::union_(poly1, *mpoly1, *mpoly2);
+        if (internal_diameter < 0)
+            internal_diameter = 0;
+
+        draw_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
+                                internal_diameter * cfactor, circle_points, poly);
+
+        bg::union_(poly, *mpoly1, *mpoly2);
         mpoly1->clear();
         mpoly1.swap(mpoly2);
     }
-    while (external_diameter > external_diameter_reduction && steps < parameters[5] + 1);
 
     output = *mpoly1; 
 }
@@ -579,8 +572,8 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                                mpoly.resize(1);
                                     for (unsigned int i = 0; i < round(parameters[1]) + 1; i++)
                                     {
-                                        mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2],
-                                                                                    parameters [i * 2 + 3]));
+                                        mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2] * cfactor,
+                                                                                    parameters [i * 2 + 3] * cfactor));
                                     }
                                     bg::correct(mpoly.front());
 	                                polarity = parameters[0];
@@ -651,7 +644,9 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                                     continue;
                             }
 
-                            bg::transform(mpoly, mpoly_rotated, rotate_deg(rotation));
+                            // For Boost.Geometry a positive angle is considered
+                            // clockwise, for Gerber is the opposite
+                            bg::transform(mpoly, mpoly_rotated, rotate_deg(-rotation));
 
                             if (polarity == 0)
                                 bg::difference(*input, mpoly_rotated, *output);
