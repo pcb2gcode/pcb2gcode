@@ -111,7 +111,8 @@ protected:
     static shared_ptr<multi_polygon_type> generate_paths(const map<unsigned int, multi_linestring_type>& paths,
                                                             shared_ptr<multi_polygon_type> input,
                                                             const gerbv_image_t * const gerber,
-                                                            double cfactor, unsigned int points_per_circle);
+                                                            gerbv_polarity_t polarity, double cfactor,
+                                                            unsigned int points_per_circle);
 
 private:
 

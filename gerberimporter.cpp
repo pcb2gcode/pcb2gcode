@@ -388,7 +388,8 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
 shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const map<unsigned int, multi_linestring_type>& paths,
                                                                 shared_ptr<multi_polygon_type> input,
                                                                 const gerbv_image_t * const gerber,
-                                                                double cfactor, unsigned int points_per_circle)
+                                                                gerbv_polarity_t polarity, double cfactor,
+                                                                unsigned int points_per_circle)
 {
     auto output = make_shared<multi_polygon_type>();
 
@@ -404,7 +405,11 @@ shared_ptr<multi_polygon_type> GerberImporter::generate_paths(const map<unsigned
                    bg::strategy::buffer::end_round(points_per_circle),
                    bg::strategy::buffer::point_circle(points_per_circle));
 
-        bg::union_(buffered_mls, *input, *output);
+        if (polarity == GERBV_POLARITY_DARK)
+            bg::union_(buffered_mls, *input, *output);
+        else
+            bg::difference(buffered_mls, *input, *output);
+
         input->clear();
         input.swap(output);
     }
@@ -693,6 +698,7 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_circle)
 {
     map<unsigned int, multi_linestring_type> paths;
+    gerbv_polarity_t path_polarity = GERBV_POLARITY_DARK;
     map<int, multi_polygon_type> apertures_map;
     ring_type region;
     coordinate_type cfactor;
@@ -717,6 +723,68 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
         const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
         const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
         multi_polygon_type mpoly;
+        
+        auto merge_ring = [&](ring_type& ring)
+        {
+            bg::correct(ring);
+
+            if (currentNet->layer->polarity != path_polarity && !paths.empty())
+            {
+                input = generate_paths(paths, input, gerber, path_polarity,
+                                        cfactor, points_per_circle);
+                paths.clear();
+            }
+
+            if (currentNet->layer->polarity == GERBV_POLARITY_DARK)
+                bg::union_(*input, ring, *output);
+            else
+                bg::difference(*input, ring, *output);
+
+            ring.clear();
+            input->clear();
+            input.swap(output);
+        };
+
+        //Generic lambdas are not supported until C++14... :(
+        auto merge_mpoly = [&](multi_polygon_type& mpoly)
+        {
+            bg::correct(mpoly);
+
+            if (currentNet->layer->polarity != path_polarity && !paths.empty())
+            {
+                input = generate_paths(paths, input, gerber, path_polarity,
+                                        cfactor, points_per_circle);
+                paths.clear();
+            }
+
+            if (currentNet->layer->polarity == GERBV_POLARITY_DARK)
+                bg::union_(*input, mpoly, *output);
+            else
+                bg::difference(*input, mpoly, *output);
+
+            mpoly.clear();
+            input->clear();
+            input.swap(output);
+        };
+
+        auto check_current_path_polarity = [&]()
+        {
+            if (currentNet->layer->polarity != path_polarity && !paths.empty())
+            {
+                input = generate_paths(paths, input, gerber, path_polarity,
+                                        cfactor, points_per_circle);
+                paths.clear();
+                path_polarity = currentNet->layer->polarity;
+            }
+        };
+
+        if (currentNet->layer->polarity == GERBV_POLARITY_POSITIVE ||
+            currentNet->layer->polarity == GERBV_POLARITY_NEGATIVE)
+        {
+            std::cerr << "Image polarity has been deprecated by the "
+                            "Gerber standard: skipping" << std::endl;
+            continue;
+        }
 
         if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
         
@@ -731,6 +799,8 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                 }
                 else
                 {
+                    check_current_path_polarity();
+
                     if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
                     {
                         linestring_type new_segment;
@@ -745,14 +815,12 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                         mpoly.resize(1);
                         linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
                                                 parameters[1] * cfactor, mpoly.back().outer());
-                        
-                        bg::union_(mpoly, *input, *output);
-                        input->clear();
-                        input.swap(output);
+
+                        merge_ring(mpoly.back().outer());
                     }
                     else
-                        std::cout << "Error! Drawing with an aperture different from a circle "
-                                     "or a rectangle is forbiddden by the Gerber standard; ignoring."
+                        std::cerr << "Drawing with an aperture different from a circle "
+                                     "or a rectangle is forbidden by the Gerber standard; skipping."
                                   << std::endl;
                 }
             }
@@ -761,7 +829,8 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
 
                 if (contour)
                 {
-                    std::cout << "D03 during contour mode: forbidden by the Gerber standard!" << std::endl;
+                    std::cerr << "D03 during contour mode is forbidden by the Gerber "
+                                    "standard; skipping" << std::endl;
                 }
                 else
                 {
@@ -773,35 +842,23 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                         std::cerr << "Macro aperture " << currentNet->aperture <<
                                     " not found in macros list; skipping" << std::endl;
 
-                    bg::union_(mpoly, *input, *output);
-                    input->clear();
-                    input.swap(output);
+                    merge_mpoly(mpoly);
                 }
             }
-            else
+            else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF)
             {
                 if (contour)
                 {
                     if (!region.empty())
                     {
                         bg::append(region, stop);
-                        bg::correct(region);
-
-                        if (currentNet->layer->polarity == GERBV_POLARITY_POSITIVE ||
-                            currentNet->layer->polarity == GERBV_POLARITY_DARK )
-                            bg::union_(*input, region, *output);
-                        else
-                        {
-                            input = generate_paths(paths, input, gerber, cfactor, points_per_circle);
-                            paths.clear();
-                            bg::difference(*input, region, *output);
-                        }
-                        
-                        input->clear();
-                        input.swap(output);
-                        region.clear();
+                        merge_ring(region);
                     }
                 }
+            }
+            else
+            {
+                std::cerr << "Unrecognized aperture state: skipping" << std::endl;
             }
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_START)
@@ -813,68 +870,59 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
             contour = false;
             
             if (!region.empty())
-            {
-                bg::correct(region);
-                
-                if (currentNet->layer->polarity == GERBV_POLARITY_POSITIVE ||
-                    currentNet->layer->polarity == GERBV_POLARITY_DARK )
-                    bg::union_(*input, region, *output);
-                else
-                {
-                    input = generate_paths(paths, input, gerber, cfactor, points_per_circle);
-                    paths.clear();
-                    bg::difference(*input, region, *output);
-                }
-
-                input->clear();
-                input.swap(output);
-            }
-
-            region.clear();
+                merge_ring(region);
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                  currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR)
         {
-            const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
-            linestring_type path;
+            if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
+                const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
+                linestring_type path;
 
-            if (cirseg != NULL)
-            {
-                circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
-                                cirseg->width * scale / 2,
-                                cirseg->angle1 * bg::math::pi<double>() / 180.0,
-                                cirseg->angle2 * bg::math::pi<double>() / 180.0,
-                                points_per_circle,
-                                path);
-
-                if (contour)
+                if (cirseg != NULL)
                 {
-                    if (region.empty())
-                        std::copy(path.begin(), path.end(), region.end());
+                    circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
+                                    cirseg->width * scale / 2,
+                                    cirseg->angle1 * bg::math::pi<double>() / 180.0,
+                                    cirseg->angle2 * bg::math::pi<double>() / 180.0,
+                                    points_per_circle,
+                                    path);
+
+                    if (contour)
+                    {
+                        if (region.empty())
+                            std::copy(path.begin(), path.end(), region.end());
+                        else
+                            std::copy(path.begin() + 1, path.end(), region.end());
+                    }
                     else
-                        std::copy(path.begin() + 1, path.end(), region.end());
+                    {
+                        check_current_path_polarity();
+                        merge_paths(paths[currentNet->aperture], path);
+                    }
                 }
                 else
-                {
-                    merge_paths(paths[currentNet->aperture], path);
-                }
+                    std::cerr << "Circular arc requested but cirseg == NULL" << std::endl;
             }
-            else
-                std::cout << "Circular arc requested but cirseg == NULL" << std::endl;
+            else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
+                std::cerr << "D03 during circular arc mode is forbidden by the Gerber "
+                                "standard; skipping" << std::endl;
+            }
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
                  currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                  currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
-            std::cout << "Linear zoomed interpolation modes are not supported "
+            std::cerr << "Linear zoomed interpolation modes are not supported "
                          "(are them in the RS274X standard?)" << std::endl;
         }
-        else if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
+        else //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
         {
-            std::cout << "Unrecognized interpolation mode" << std::endl;
+            std::cerr << "Unrecognized interpolation mode" << std::endl;
         }
     }
 
-    output = generate_paths(paths, input, gerber, cfactor, points_per_circle);
+    if (!paths.empty())
+        output = generate_paths(paths, input, gerber, path_polarity, cfactor, points_per_circle);
 
     return output;
 }
