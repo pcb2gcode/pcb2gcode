@@ -22,6 +22,10 @@
 
 #include <boost/polygon/voronoi.hpp>
 
+#include <vector>
+using std::vector;
+using std::pair;
+
 #include "geometry.hpp"
 
 namespace boost { namespace polygon { namespace detail {
@@ -41,6 +45,11 @@ struct voronoi_ctype_traits<int64_t> {
 
 } } }
 
+typedef boost::polygon::point_data<coordinate_type> point_type_p;
+typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
+typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
+typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
+
 typedef boost::polygon::voronoi_builder<coordinate_type> voronoi_builder_type;
 typedef boost::polygon::voronoi_diagram<coordinate_type_fp> voronoi_diagram_type;
 
@@ -54,5 +63,21 @@ typedef voronoi_diagram_type::edge_container_type edge_container_type;
 typedef voronoi_diagram_type::const_cell_iterator const_cell_iterator;
 typedef voronoi_diagram_type::const_vertex_iterator const_vertex_iterator;
 typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
+
+class Voronoi
+{
+public:
+    static void build_voronoi(const multi_polygon_type& input, multi_polygon_type &output,
+                                coordinate_type bounding_box_offset, coordinate_type max_dist);
+
+protected:
+    static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
+                                                             const cell_type& cell, multi_polygon_type& output);
+    static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
+    static const segment_type_p& retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
+    static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments,
+                                    vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
+    static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
+};
 
 #endif

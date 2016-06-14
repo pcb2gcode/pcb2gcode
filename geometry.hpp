@@ -44,11 +44,6 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, sec
 // Adaptation of icoords to Boost Geometry (ring)
 BOOST_GEOMETRY_REGISTER_RING(icoords)
 
-typedef boost::polygon::point_data<coordinate_type> point_type_p;
-typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
-typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
-typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
-
 typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
 typedef boost::geometry::model::multi_point<point_type> multi_point_type;
 typedef boost::geometry::model::segment<point_type> segment_type;
@@ -68,5 +63,7 @@ typedef boost::geometry::model::linestring<point_type_fp> linestring_type_fp;
 typedef boost::geometry::model::multi_linestring<linestring_type_fp> multi_linestring_type_fp;
 typedef boost::geometry::model::polygon<point_type_fp> polygon_type_fp;
 typedef boost::geometry::model::multi_polygon<polygon_type_fp> multi_polygon_type_fp;
+
+namespace bg = boost::geometry;
 
 #endif

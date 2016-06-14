@@ -46,8 +46,6 @@ using std::make_pair;
 #include "core.hpp"
 #include "voronoi.hpp"
 
-namespace bg = boost::geometry;
-
 /******************************************************************************/
 /*
  */
@@ -93,19 +91,6 @@ protected:
     std::ofstream *svg;
     bg::svg_mapper<point_type_fp> *mapper;
     bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2> *scale_geometry;
-
-    static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
-    static segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
-    static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments, vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
-    static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
-
-    static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
-                                                             const cell_type& cell, multi_polygon_type& output);
-
-    static void append_remove_extra(ring_type& ring, const point_type point);
-
-    static void build_voronoi(const multi_polygon_type& input, multi_polygon_type &output,
-                                coordinate_type bounding_box_offset, coordinate_type max_dist);
 
     static shared_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
