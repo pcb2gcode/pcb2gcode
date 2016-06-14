@@ -218,8 +218,8 @@ void autoleveller::header( std::ofstream &of )
             for(unsigned int i = 0; i < numXPoints; i++ )
             {
                 unsigned int j = 1;
-            
-                while( j >= 0 && j <= numYPoints - 1 )
+
+                while (j <= numYPoints - 1)
                 {
                     of << "G0 Z" << zprobe << '\n';
                     of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
@@ -370,10 +370,10 @@ string autoleveller::g01Corrected ( icoordpair point )
 unsigned int autoleveller::numOfSubsegments ( icoordpair point )
 {
 
-    if( abs( lastPoint.first - point.first ) <= quantization_error )	//The two points are X-aligned
+    if( std::abs( lastPoint.first - point.first ) <= quantization_error )	//The two points are X-aligned
         return ceil( boost::geometry::distance( lastPoint, point ) / YProbeDist );
 
-    else if( abs( lastPoint.second - point.second ) <= quantization_error )	//The two points are Y-aligned
+    else if( std::abs( lastPoint.second - point.second ) <= quantization_error )	//The two points are Y-aligned
         return ceil( boost::geometry::distance( lastPoint, point ) / XProbeDist );
 
     else	//The two points aren't aligned
