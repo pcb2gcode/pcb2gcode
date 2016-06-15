@@ -32,13 +32,22 @@ using std::shared_ptr;
 #include "geometry.hpp"
 using std::pair;
 
+using std::next;
+
 class tsp_solver
 {
 private:
     // You can extend this class adding new overloads of get with this prototype:
     //  icoordpair get( T _name_ ) { ... }
-    static inline icoordpair get( icoordpair point ) { return point; }
-    static inline icoordpair get( shared_ptr<icoords> path ) { return path->front(); }
+    static inline icoordpair get(icoordpair point)
+    {
+        return point;
+    }
+
+    static inline icoordpair get(shared_ptr<icoords> path)
+    {
+        return path->front();
+    }
 
 public:
     // This function computes the optimised path of a
@@ -48,54 +57,53 @@ public:
     // In the case of shared_ptr<icoords> it interprets the vector<icoordpair> as closed paths, and it computes
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
-    template <typename T> static void nearest_neighbour( vector<T> &path, icoordpair startingPoint, double quantization_error )
+    template <typename T>
+    static void nearest_neighbour(vector<T> &path, icoordpair startingPoint, double quantization_error)
     {
-        list<T> temp_path;
+        list<T> temp_path (path.begin(), path.end());
         vector<T> newpath;
         vector<double> distances;
-        list< pair< vector<double>::iterator, typename list<T>::iterator > > nearestPoints; //Do we have to use a vector or a list here?
-        typename vector<T>::iterator i;
+        list<pair<vector<double>::iterator, typename list<T>::iterator> > nearestPoints;
         double original_length;
         double new_length;
         double minDistance;
         unsigned int size = path.size();
 
         //Reserve memory
-        distances.reserve( size );
+        distances.reserve(size);
         newpath.reserve( size );
 
-        temp_path.assign( path.begin(), path.end() );
         new_length = 0;
 
         //Find the original path length
         original_length = boost::geometry::distance( startingPoint, get(temp_path.front()) );
-        for( typename list<T>::const_iterator point = boost::next(temp_path.begin()); point != temp_path.end(); point++ )
-            original_length += boost::geometry::distance( get(*boost::prior(point)), get(*point) );
+        for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
+            original_length += boost::geometry::distance(get(*point), get(*next(point)));
 
         icoordpair currentPoint = startingPoint;
-        while( temp_path.size() > 1 )
+        while (temp_path.size() > 1)
         {
 
             //Compute all the distances
-            for( typename list<T>::const_iterator i = temp_path.begin(); i != temp_path.end(); i++ )
-                distances.push_back( boost::geometry::distance( currentPoint, get(*i) ) );
+            for (auto i = temp_path.begin(); i != temp_path.end(); i++)
+                distances.push_back(boost::geometry::comparable_distance(currentPoint, get(*i)));
 
             //Find the minimum distance
-            minDistance = *min_element( distances.begin(), distances.end() );
+            minDistance = *min_element(distances.begin(), distances.end());
 
             //Find all the minimum distance points and copy their iterators in nearestPoints
-            typename list<T>::iterator point = temp_path.begin();
-            for( vector<double>::iterator dist = distances.begin(); dist != distances.end(); dist++ )
+            auto point = temp_path.begin();
+            for (auto dist = distances.begin(); dist != distances.end(); dist++)
             {
-                if( *dist - minDistance <= 2 * quantization_error )
+                if (*dist - minDistance <= 2 * quantization_error)
                 {
-                    nearestPoints.push_back( make_pair( dist, point ) );
+                    nearestPoints.push_front(make_pair(dist, point));
                 }
                 ++point;
             }
 
-            typename list< pair< vector<double>::iterator, typename list<T>::iterator > >::iterator chosenPoint;
-            if( nearestPoints.size() == 1 )
+            typename list<pair<vector<double>::iterator, typename list<T>::iterator> >::iterator chosenPoint;
+            if (nearestPoints.size() == 1)
             {
                 //Simplest case: the minimum distance point is unique; just copy it into newpath
                 chosenPoint = nearestPoints.begin();
@@ -104,21 +112,21 @@ public:
             {
                 //More complex case: we have multiple minimum distance points (like in a grid); we have
                 //to choose one of them
-                chosenPoint = nearestPoints.begin(); //TODO choose in a smarter way
+                chosenPoint = nearestPoints.begin(); //TODO choose it in a smarter way
             }
 
-            newpath.push_back( *(chosenPoint->second) ); //Copy the chosen point into newpath
+            new_length += boost::geometry::distance(currentPoint, get(*(chosenPoint->second))); //Update the new path total length
+            newpath.push_back(*(chosenPoint->second)); //Copy the chosen point into newpath
             currentPoint = get(*(chosenPoint->second));        //Set the next currentPoint to the chosen point
-            temp_path.erase( chosenPoint->second );           //Remove the chosen point from the path list
-            new_length += *(chosenPoint->first);         //Update the new path total length
+            temp_path.erase(chosenPoint->second);           //Remove the chosen point from the path list
             distances.clear();                          //Clear the distances vector
             nearestPoints.clear();                      //Clear the nearestPoints vector
         }
 
-        newpath.push_back( temp_path.front() );    //Copy the last point into newpath
-        new_length += boost::geometry::distance( currentPoint, get(temp_path.front()) ); //Compute the distance and add it to new_length
+        newpath.push_back(temp_path.front());    //Copy the last point into newpath
+        new_length += boost::geometry::distance(currentPoint, get(temp_path.front())); //Compute the distance and add it to new_length
 
-        if( new_length < original_length )  //If the new path is better than the previous one
+        if (new_length < original_length)  //If the new path is better than the previous one
             path = newpath;
     }
 };
