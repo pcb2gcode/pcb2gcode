@@ -27,6 +27,8 @@ using std::string;
 
 using std::make_shared;
 using std::map;
+using std::pair;
+using std::vector;
 
 extern "C" {
 #include <gerbv.h>
@@ -73,7 +75,21 @@ public:
     virtual ~GerberImporter();
 
 protected:
+    struct gerberimporter_layer
+    {
+        map<coordinate_type, multi_linestring_type> paths;
+        shared_ptr<multi_polygon_type> draws;
+
+        gerberimporter_layer()
+        {
+            draws = make_shared<multi_polygon_type>();
+        }
+    };
+
     static const unsigned int scale;
+
+    static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                                        coordinate_type offset, bool clockwise, ring_type& ring);
 
     static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
                             coordinate_type offset, coordinate_type hole_diameter,
@@ -91,7 +107,7 @@ protected:
                 coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output);
 
     static void draw_moire(const double * const parameters, unsigned int circle_points, coordinate_type cfactor,
-                multi_polygon_type& output);
+                polygon_type& output);
 
     static void generate_apertures_map(const gerbv_aperture_t * const apertures[],
                 map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor);
@@ -108,11 +124,16 @@ protected:
     
     static void merge_paths(multi_linestring_type &destination, const linestring_type& source);
 
-    static shared_ptr<multi_polygon_type> generate_paths(const map<unsigned int, multi_linestring_type>& paths,
-                                                            shared_ptr<multi_polygon_type> input,
-                                                            const gerbv_image_t * const gerber,
-                                                            gerbv_polarity_t polarity, double cfactor,
-                                                            unsigned int points_per_circle);
+    static shared_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
+                                                            coordinate_type cfactor, unsigned int points_per_circle);
+
+    inline static void unsupported_polarity_throw_exception()
+    {
+        std::cerr << "Non-positive image polarity is deprecated by the Gerber "
+                "standard and unsupported; re-run pcb2gcode without the "
+                "--vectorial flag" << std::endl;
+        throw gerber_exception();
+    }
 
 private:
 
