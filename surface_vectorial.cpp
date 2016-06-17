@@ -342,6 +342,8 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     toolpath.push_back(make_shared<icoords>());
 
+    bool outer_collapsed = false;
+
     for (unsigned int i = 0; i < steps; i++)
     {
         multi_polygon_type mpoly_temp;
@@ -362,7 +364,13 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         if (i == 0)
             copy_ring_to_toolpath((*polygons)[i].outer(), 0);
         else
-            copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
+        {
+            if (!outer_collapsed && bg::equals((*polygons)[i].outer(), (*polygons)[i - 1].outer()))
+                outer_collapsed = true;
+
+            if (!outer_collapsed)
+                copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
+        }
 
         for (const ring_type& ring : (*polygons)[i].inners())
             ring_i->push_back(&ring);
@@ -375,6 +383,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     while (ring_i != rings.end())
     {
         const ring_type *biggest = ring_i->front();
+        const ring_type *prev = biggest;
         auto ring_j = next(ring_i);
 
         toolpath.push_back(make_shared<icoords>());
@@ -385,12 +394,23 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
             list<const ring_type *>::iterator j;
 
             for (j = ring_j->begin(); j != ring_j->end(); j++)
-                if (bg::covered_by(**j, *biggest))
+            {
+                if (bg::equals(**j, *prev))
                 {
-                    copy_ring_to_toolpath(**j, find_closest_point_index(**j));
                     ring_j->erase(j);
                     break;
                 }
+                else
+                {
+                    if (bg::covered_by(**j, *biggest))
+                    {
+                        copy_ring_to_toolpath(**j, find_closest_point_index(**j));
+                        prev = *j;
+                        ring_j->erase(j);
+                        break;
+                    }
+                }
+            }
 
             if (j == ring_j->end())
                 ring_j = rings.end();
