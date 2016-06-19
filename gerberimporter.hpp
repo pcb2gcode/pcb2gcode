@@ -127,6 +127,8 @@ protected:
     static shared_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
                                                             coordinate_type cfactor, unsigned int points_per_circle);
 
+    static bool simplify_cutins(ring_type& ring, polygon_type& polygon);
+
     inline static void unsupported_polarity_throw_exception()
     {
         std::cerr << "Non-positive image polarity is deprecated by the Gerber "

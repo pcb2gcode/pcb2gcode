@@ -652,6 +652,7 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                                                                                     parameters [i * 2 + 3] * cfactor));
                                     }
                                     bg::correct(mpoly.front());
+                                    simplify_cutins(mpoly.front().outer(), mpoly.front());
 	                                polarity = parameters[0];
                                     rotation = parameters[(2 * int(round(parameters[1])) + 4)];
 	                                break;
@@ -763,10 +764,39 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
     }
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
+bool GerberImporter::simplify_cutins(ring_type& ring, polygon_type& polygon)
+{
+    for (unsigned int i = 0; i < ring.size() - 2; i++)
+    {
+        for (unsigned int j = i + 1; j < ring.size() - 1; j++)
+        {
+            if (bg::equals(ring.at(i), ring.at(j + 1)) &&
+                bg::equals(ring.at(i + 1), ring.at(j)))
+            {
+                polygon.inners().resize(polygon.inners().size() + 1);
+                polygon.inners().back().resize(j - i); 
+                copy(ring.begin() + i + 1, ring.begin() + j + 1, polygon.inners().back().begin());
+                ring.erase(ring.begin() + i + 1, ring.begin() + j + 2);
+                break;
+            }
+        }
+    }
+    
+    if (polygon.inners().size() > 0)
+    {
+        if (&ring != &(polygon.outer()))
+        {
+            polygon.outer().resize(ring.size());
+            copy(ring.begin(), ring.end(), polygon.outer().begin());
+        }
+        bg::correct(polygon);
+
+        return true;
+    }
+    else
+        return false;
+}
+
 shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_circle)
 {
     map<int, multi_polygon_type> apertures_map;
@@ -824,14 +854,22 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
 
         auto merge_ring = [&](ring_type& ring)
         {
-            bg::correct(ring);
-            bg::union_(*draws, ring, *temp_mpoly);
-            ring.clear();
-            draws.swap(temp_mpoly);
-            temp_mpoly->clear();
+            if (ring.size() > 1)
+            {
+                polygon_type polygon;
+                bg::correct(ring);
+                
+                if (simplify_cutins(ring, polygon))
+                    bg::union_(*draws, polygon, *temp_mpoly);
+                else
+                    bg::union_(*draws, ring, *temp_mpoly);
+
+                ring.clear();
+                draws.swap(temp_mpoly);
+                temp_mpoly->clear();
+            }
         };
 
-        //Generic lambdas are not supported until C++14... :(
         auto merge_mpoly = [&](multi_polygon_type& mpoly)
         {
             bg::correct(mpoly);

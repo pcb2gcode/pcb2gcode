@@ -352,7 +352,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         bg::buffer(input[index], mpoly_temp,
                    bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                    bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_miter(5 * offset * (i + 1)),
+                   bg::strategy::buffer::join_round(points_per_circle),
                    bg::strategy::buffer::end_round(points_per_circle),
                    bg::strategy::buffer::point_circle(points_per_circle));
 
