@@ -18,6 +18,9 @@
  */
 
 #include <fstream>
+#include <limits>
+using std::numeric_limits;
+
 #include <boost/format.hpp>
 
 #include <glibmm/miscutils.h>
@@ -353,8 +356,9 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                    bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                    bg::strategy::buffer::side_straight(),
                    bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
-                   bg::strategy::buffer::point_circle(points_per_circle));
+                   //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
+                   bg::strategy::buffer::end_flat(),
+                   bg::strategy::buffer::point_circle(30));
 
         bg::intersection(mpoly_temp, voronoi[index], mpoly);
 
