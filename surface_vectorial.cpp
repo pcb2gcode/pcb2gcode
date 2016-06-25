@@ -281,6 +281,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     auto polygons = make_shared<vector<polygon_type> >(steps);
     list<list<const ring_type *> > rings (steps);
     auto ring_i = rings.begin();
+    point_type last_point;
 
     auto push_point = [&](const point_type& point)
     {
@@ -304,6 +305,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         } while (i != start);
 
         push_point(ring[i]);
+        last_point = ring[i];
     };
 
     auto find_first_nonempty = [&]()
@@ -317,15 +319,6 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     auto find_closest_point_index = [&](const ring_type& ring)
     {
         const unsigned int size = ring.size();
-        const icoordpair& last_icp = toolpath.back()->back();
-        point_type last_point;
-
-        last_point.y(last_icp.second * scale);
-        if (mirror)
-            last_point.x(2 * mirror_axis - last_icp.first * scale);
-        else
-            last_point.x(last_icp.first * scale);
-
         auto min_distance = bg::comparable_distance(ring[0], last_point);
         unsigned int index = 0;
 
@@ -406,12 +399,22 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                 }
                 else
                 {
-                    if (bg::covered_by(**j, *biggest))
+                    if (bg::covered_by(**j, *prev))
                     {
-                        copy_ring_to_toolpath(**j, find_closest_point_index(**j));
-                        prev = *j;
-                        ring_j->erase(j);
-                        break;
+                        auto index = find_closest_point_index(**j);
+                        ring_type ring (prev->rbegin(), prev->rend());
+                        linestring_type segment;
+
+                        segment.push_back((**j)[index]);
+                        segment.push_back(last_point);
+
+                        if (bg::covered_by(segment, ring))
+                        {
+                            copy_ring_to_toolpath(**j, index);
+                            prev = *j;
+                            ring_j->erase(j);
+                            break;
+                        }
                     }
                 }
             }
