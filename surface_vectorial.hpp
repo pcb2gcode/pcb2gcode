@@ -88,14 +88,16 @@ protected:
     coordinate_type scale;
     box_type bounding_box;
     
+    shared_ptr<Surface_vectorial> mask;
+
     std::ofstream *svg;
     bg::svg_mapper<point_type_fp> *mapper;
     bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2> *scale_geometry;
 
-    static shared_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
+    shared_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            coordinate_type offset, unsigned int points_per_circle, size_t index,
-                            unsigned int steps, coordinate_type scale, bool mirror, ivalue_t mirror_axis);
+                            coordinate_type offset, size_t index, unsigned int steps,
+                            bool mirror, ivalue_t mirror_axis);
 
     static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
 };

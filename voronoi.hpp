@@ -26,6 +26,10 @@
 using std::vector;
 using std::pair;
 
+#include <memory>
+using std::shared_ptr;
+using std::make_shared;
+
 #include "geometry.hpp"
 
 namespace boost { namespace polygon { namespace detail {
@@ -67,7 +71,7 @@ typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 class Voronoi
 {
 public:
-    static void build_voronoi(const multi_polygon_type& input, multi_polygon_type &output,
+    static shared_ptr<multi_polygon_type> build_voronoi(const multi_polygon_type& input,
                                 coordinate_type bounding_box_offset, coordinate_type max_dist);
 
 protected:

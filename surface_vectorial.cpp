@@ -29,6 +29,7 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 
+using std::max;
 using std::max_element;
 using std::next;
 
@@ -60,31 +61,34 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror, bool mirror_absolute)
 {
-    coordinate_type grow = mill->tool_diameter / 2 * scale;
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
-    multi_polygon_type voronoi;
-    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
-    const int extra_passes = isolator ? isolator->extra_passes : 0;
-    const coordinate_type mirror_axis = mirror_absolute ? 
-        bounding_box.min_corner().x() :
-        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
+    shared_ptr<multi_polygon_type> voronoi;
+    coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
+                                            max(width_in, height_in) * scale * 10);
 
-    Voronoi::build_voronoi(*vectorial_surface, voronoi, grow * 3, mill->tolerance * scale);
+    voronoi = Voronoi::build_voronoi(*vectorial_surface,voronoi_offset, mill->tolerance * scale);
 
     init_debug_image(name + ".svg");
 
     srand(1);
-    add_debug_image(voronoi, 0.2, false);
+    add_debug_image(*voronoi, 0.2, false);
     srand(1);
+
+    coordinate_type grow = mill->tool_diameter / 2 * scale;
+    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    const int extra_passes = isolator ? isolator->extra_passes : 0;
+    const coordinate_type mirror_axis = mirror_absolute ?
+        bounding_box.min_corner().x() :
+        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
         shared_ptr<vector<polygon_type> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, grow,
-                        points_per_circle, i, extra_passes + 1, scale, mirror, mirror_axis);
-        
+        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, grow,
+                                    i, extra_passes + 1, mirror, mirror_axis);
+
         add_debug_image(*polygons, 0.6);
     }
 
@@ -261,11 +265,12 @@ void Surface_vectorial::fill_outline(double linewidth)
 
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 {
-    shared_ptr<multi_polygon_type> masked_vectorial_surface = make_shared<multi_polygon_type>();
-    shared_ptr<Surface_vectorial> mask = dynamic_pointer_cast<Surface_vectorial>(surface);
-    
+    mask = dynamic_pointer_cast<Surface_vectorial>(surface);
+
     if (mask)
     {
+        auto masked_vectorial_surface = make_shared<multi_polygon_type>();
+
         bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_vectorial_surface);
         swap(masked_vectorial_surface, vectorial_surface);
     }
@@ -275,8 +280,8 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 
 shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            coordinate_type offset, unsigned int points_per_circle, size_t index,
-                            unsigned int steps, coordinate_type scale, bool mirror, ivalue_t mirror_axis)
+                            coordinate_type offset, size_t index, unsigned int steps,
+                            bool mirror, ivalue_t mirror_axis)
 {
     auto polygons = make_shared<vector<polygon_type> >(steps);
     list<list<const ring_type *> > rings (steps);
@@ -343,7 +348,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     for (unsigned int i = 0; i < steps; i++)
     {
         multi_polygon_type mpoly_temp;
-        multi_polygon_type mpoly;
+        auto mpoly = make_shared<multi_polygon_type>();
 
         bg::buffer(input[index], mpoly_temp,
                    bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
@@ -353,10 +358,18 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                    bg::strategy::buffer::end_flat(),
                    bg::strategy::buffer::point_circle(30));
 
-        bg::intersection(mpoly_temp, voronoi[index], mpoly);
+        bg::intersection(mpoly_temp, voronoi[index], *mpoly);
 
-        (*polygons)[i] = mpoly[0];
-        mpoly.clear();
+        if (mask)
+        {
+            auto masked_mpoly = make_shared<multi_polygon_type>();
+
+            bg::intersection(*mpoly, *(mask->vectorial_surface), *masked_mpoly);
+            mpoly.swap(masked_mpoly);
+        }
+
+        (*polygons)[i] = (*mpoly)[0];
+        mpoly->clear();
 
         if (i == 0)
             copy_ring_to_toolpath((*polygons)[i].outer(), 0);

@@ -26,9 +26,10 @@
 using std::list;
 using std::map;
 
-void Voronoi::build_voronoi(const multi_polygon_type& input, multi_polygon_type &output,
-                            coordinate_type bounding_box_offset, coordinate_type max_dist)
+shared_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& input,
+                                coordinate_type bounding_box_offset, coordinate_type max_dist)
 {
+    auto output = make_shared<multi_polygon_type>();
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder_type voronoi_builder;
     vector<segment_type_p> segments;
@@ -65,9 +66,9 @@ void Voronoi::build_voronoi(const multi_polygon_type& input, multi_polygon_type 
     
     copy_ring(bounding_box_ring, segments);
 
-    output.resize(input.size());
+    output->resize(input.size());
     for (size_t i = 0; i < input.size(); i++)
-        output.at(i).inners().resize(input.at(i).inners().size());
+        (*output)[i].inners().resize(input.at(i).inners().size());
 
     boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
     voronoi_builder.construct(&voronoi_diagram);
@@ -84,7 +85,7 @@ void Voronoi::build_voronoi(const multi_polygon_type& input, multi_polygon_type 
 
             if (found_cell == visited_cells.end())
             {
-                pair<const polygon_type *, ring_type *> related_geometries = find_ring(input, cell, output);
+                pair<const polygon_type *, ring_type *> related_geometries = find_ring(input, cell, *output);
                 
                 if (related_geometries.first && related_geometries.second)
                 {
@@ -166,7 +167,8 @@ void Voronoi::build_voronoi(const multi_polygon_type& input, multi_polygon_type 
         }
     }
     
-    bg::correct(output);
+    bg::correct(*output);
+    return output;
 }
 
 void Voronoi::copy_ring(const ring_type& ring, vector<segment_type_p> &segments)
