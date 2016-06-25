@@ -103,11 +103,17 @@ If this distance can't be satisfied because copper areas are too close, a
 warning will be printed and the line will be drawn between the areas. This
 behavior can be used to get voronoi-style (flood-filling) areas; simply set the
 offset to a large value (like 1 inch).
+Alternatively, when the vectorial mode is in use, \fB\-\-voronoi\fP can be used.
+.TP
+\fB\-\-voronoi\fP
+enable the voronoi mode (requires  \fB\-\-vectorial\fP). This option is more
+efficient than a large \fB\-\-offset\fP value, and provides the same result.
 .TP
 \fB\-\-extra\-passes\fP \fInumber\fP
 number of additional isolation passes
 For each extra pass, engraving is repeated with the offset width increased by
 half its original value, creating wider isolation areas.
+This option is ignored when \fB\-\-voronoi\fP is in use.
 
 .PP
 The parameters that define drilling are:

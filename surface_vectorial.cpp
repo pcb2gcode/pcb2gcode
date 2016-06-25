@@ -263,17 +263,27 @@ void Surface_vectorial::fill_outline(double linewidth)
     vectorial_surface = filled_outline;
 }
 
+void Surface_vectorial::mask_surface(shared_ptr<multi_polygon_type>& surface)
+{
+    if (mask)
+    {
+        auto masked_surface = make_shared<multi_polygon_type>();
+
+        bg::intersection(*surface, *(mask->vectorial_surface), *masked_surface);
+        surface = masked_surface;
+    }
+}
+
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 {
     mask = dynamic_pointer_cast<Surface_vectorial>(surface);
 
+    /*
+     * We could mask it only once later, after the buffering, but if we can
+     * remove some polygons here, the following operations will be faster.
+     */
     if (mask)
-    {
-        auto masked_vectorial_surface = make_shared<multi_polygon_type>();
-
-        bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_vectorial_surface);
-        swap(masked_vectorial_surface, vectorial_surface);
-    }
+        mask_surface(vectorial_surface);
     else
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
@@ -283,6 +293,9 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                             coordinate_type offset, size_t index, unsigned int steps,
                             bool mirror, ivalue_t mirror_axis)
 {
+    if (offset < 0)
+        steps = 1;
+
     auto polygons = make_shared<vector<polygon_type> >(steps);
     list<list<const ring_type *> > rings (steps);
     auto ring_i = rings.begin();
@@ -347,29 +360,37 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     for (unsigned int i = 0; i < steps; i++)
     {
-        multi_polygon_type mpoly_temp;
-        auto mpoly = make_shared<multi_polygon_type>();
-
-        bg::buffer(input[index], mpoly_temp,
-                   bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
-                   bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_round(points_per_circle),
-                   //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                   bg::strategy::buffer::end_flat(),
-                   bg::strategy::buffer::point_circle(30));
-
-        bg::intersection(mpoly_temp, voronoi[index], *mpoly);
-
-        if (mask)
+        if (offset >= 0)
         {
-            auto masked_mpoly = make_shared<multi_polygon_type>();
+            auto mpoly = make_shared<multi_polygon_type>();
+            multi_polygon_type mpoly_temp;
 
-            bg::intersection(*mpoly, *(mask->vectorial_surface), *masked_mpoly);
-            mpoly.swap(masked_mpoly);
+            bg::buffer(input[index], mpoly_temp,
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
+                       bg::strategy::buffer::side_straight(),
+                       bg::strategy::buffer::join_round(points_per_circle),
+                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
+                       bg::strategy::buffer::end_flat(),
+                       bg::strategy::buffer::point_circle(30));
+
+            bg::intersection(mpoly_temp, voronoi[index], *mpoly);
+
+            mask_surface(mpoly);
+
+            (*polygons)[i] = (*mpoly)[0];
         }
+        else
+        {
+            if (mask)
+            {
+                multi_polygon_type mpoly_temp;
 
-        (*polygons)[i] = (*mpoly)[0];
-        mpoly->clear();
+                bg::intersection(voronoi[index], *(mask->vectorial_surface), mpoly_temp);
+                (*polygons)[i] = mpoly_temp[0];
+            }
+            else
+                (*polygons)[i] = voronoi[index];
+        }
 
         if (i == 0)
             copy_ring_to_toolpath((*polygons)[i].outer(), 0);
