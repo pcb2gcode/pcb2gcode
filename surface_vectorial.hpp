@@ -96,8 +96,8 @@ protected:
 
     shared_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            coordinate_type offset, size_t index, unsigned int steps,
-                            bool mirror, ivalue_t mirror_axis);
+                            bool& contentions, coordinate_type offset, size_t index,
+                            unsigned int steps, bool mirror, ivalue_t mirror_axis);
 
     void mask_surface(shared_ptr<multi_polygon_type>& surface);
 

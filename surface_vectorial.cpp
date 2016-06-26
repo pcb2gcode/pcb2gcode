@@ -21,6 +21,10 @@
 #include <limits>
 using std::numeric_limits;
 
+#include <iostream>
+using std::cerr;
+using std::endl;
+
 #include <boost/format.hpp>
 
 #include <glibmm/miscutils.h>
@@ -81,13 +85,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     const coordinate_type mirror_axis = mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
+    bool contentions = false;
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
         shared_ptr<vector<polygon_type> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, grow,
-                                    i, extra_passes + 1, mirror, mirror_axis);
+        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
+                                    grow, i, extra_passes + 1, mirror, mirror_axis);
 
         add_debug_image(*polygons, 0.6);
     }
@@ -95,6 +100,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     srand(1);
     add_debug_image(*vectorial_surface, 1, true);
     close_debug_image();
+
+    if (contentions)
+    {
+        cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
+             << " clearance requirements and tried a best effort approach"
+             << " instead. You may want to check the g-code output and"
+             << " possibly use a smaller milling width.\n";
+    }
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
@@ -290,8 +303,8 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 
 shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            coordinate_type offset, size_t index, unsigned int steps,
-                            bool mirror, ivalue_t mirror_axis)
+                            bool& contentions, coordinate_type offset, size_t index,
+                            unsigned int steps, bool mirror, ivalue_t mirror_axis)
 {
     if (offset < 0)
         steps = 1;
@@ -373,11 +386,14 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp, voronoi[index], *mpoly);
+            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
 
             mask_surface(mpoly);
 
             (*polygons)[i] = (*mpoly)[0];
+
+            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
+                contentions = true;
         }
         else
         {
