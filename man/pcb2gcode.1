@@ -64,8 +64,12 @@ gcode preamble file, inserted at the very beginning
 \fB\-\-postamble\fP \fIfilename.ngc\fP
 gcode postamble file, inserted before M9 and M2
 .TP
-\fB\-\-g64\fP \fIunit\fP
-maximum deviation from toolpath, overrides internal calculation
+\fB\-\-tolerance\fP \fIunit\fP
+maximum deviation from toolpath
+.TP
+\fB\-\-nog64\fP
+do not explicitly set G64 inside the output gcode. This option makes the gcode
+compatible with low-end cnc controllers (like grbl)
 
 .PP
 For every option \fB\-\-x\fP that takes a filename, there is an

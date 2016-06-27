@@ -70,8 +70,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     shared_ptr<multi_polygon_type> voronoi;
     coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
                                             max(width_in, height_in) * scale * 10);
+    coordinate_type tolerance = mill->tolerance * scale;
 
-    voronoi = Voronoi::build_voronoi(*vectorial_surface,voronoi_offset, mill->tolerance * scale);
+    if (tolerance <= 0)
+        tolerance = 0.0001 * scale;
+
+    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
     init_debug_image(name + ".svg");
 

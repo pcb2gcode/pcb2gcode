@@ -34,6 +34,7 @@ namespace po = boost::program_options;
 #include <istream>
 #include <string>
 using std::string;
+using std::to_string;
 
 enum ErrorCodes
 {
@@ -85,6 +86,8 @@ enum ErrorCodes
     ERR_UNKNOWNCUTSIDE = 46,
     ERR_VORONOINOVECTORIAL = 47,
     ERR_VORONOINOOUTLINE = 48,
+    ERR_BOTHTOLERANCEG64 = 49,
+    ERR_NEGATIVETOLERANCE = 50,
     ERR_INVALIDPARAMETER = 100,
     ERR_UNKNOWNPARAMETER = 101
 };

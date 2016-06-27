@@ -42,6 +42,7 @@ public:
     double zsafe;
     double zwork;
     double tolerance;
+    bool explicit_tolerance;
 };
 
 /******************************************************************************/

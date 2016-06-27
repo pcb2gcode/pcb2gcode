@@ -113,6 +113,41 @@ void options::parse(int argc, char** argv)
                         (char**) fake_outline_width_command_line,
                         generic, style), instance().vm);
 
+    if (instance().vm.count("tolerance"))
+    {
+        if (instance().vm.count("g64"))
+        {
+            cerr << "You can't specify both tolerance and g64!\n";
+            exit(ERR_BOTHTOLERANCEG64);
+        }
+    }
+    else
+    {
+        const double cfactor = instance().vm["metric"].as<bool>() ? 25.4 : 1;
+        double tolerance;
+
+        if (instance().vm.count("g64"))
+        {
+            tolerance = instance().vm["g64"].as<double>();
+        }
+        else
+        {
+            if (instance().vm["vectorial"].as<bool>())
+                tolerance = 0.0004 * cfactor;
+            else
+                tolerance = 2.0 / instance().vm["dpi"].as<int>() * cfactor;
+        }
+
+        string tolerance_str = "--tolerance=" + to_string(tolerance);
+
+        const char *fake_tolerance_command_line[] = { "",
+                                            tolerance_str.c_str() };
+
+        po::store(po::parse_command_line(2,
+                        (char**) fake_tolerance_command_line,
+                        generic, style), instance().vm);
+    }
+
     po::notify(instance().vm);
 }
 
@@ -235,7 +270,9 @@ options::options()
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
             "vectorial", po::value<bool>()->default_value(false)->implicit_value(true), "EXPERIMENTAL!! Enable the experimental vectorial core")(
             "zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")(
-            "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
+            "g64", po::value<double>(), "[DEPRECATED, use tolerance instead] maximum deviation from toolpath, overrides internal calculation")(
+            "tolerance", po::value<double>(), "maximum toolpath tolerance")(
+            "nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")(
             "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
@@ -271,26 +308,32 @@ static void check_generic_parameters(po::variables_map const& vm)
     //---------------------------------------------------------------------------
     //Check g64 parameter:
 
-    double g64th;      //Upper threshold value of g64 parameter for warning
-
-    if (vm.count("g64"))                    //g64 parameter is given
+    if (vm.count("g64"))
     {
-        if (vm["metric"].as<bool>())         //metric input
-        {
-            g64th = 0.1;                      //set threshold value
-        }
-        else                                 //imperial input
-        {
-            g64th = 0.003937008;              //set threshold value
-        }
+        cerr << "g64 is deprecated, use tolerance.\n";
+    }
 
-        if (vm["g64"].as<double>() > g64th)
-            cerr << "Warning: high G64 value (allowed deviation from toolpath) given.\n"
+    //---------------------------------------------------------------------------
+    //Check tolerance parameter:
+
+    //Upper threshold value of tolerance parameter for warning
+    double tolerance_th = vm["metric"].as<bool>() ? 0.2 : 0.008;
+
+    if (vm.count("tolerance"))              //tolerance parameter is given
+    {
+        if (vm["tolerance"].as<double>() > tolerance_th)
+            cerr << "Warning: high tolerance value (allowed deviation from toolpath) given.\n"
                  << endl;
 
-        if (vm["g64"].as<double>() == 0)
-            cerr << "Warning: Deviation from commanded toolpath set to 0 (g64=0). No smooth milling is most likely!\n"
+        else if (vm["tolerance"].as<double>() == 0)
+            cerr << "Warning: Deviation from commanded toolpath set to 0 (tolerance=0). No smooth milling is most likely!\n"
                  << endl;
+
+        else if (vm["tolerance"].as<double>() < 0)
+        {
+            cerr << "tolerance can't be negative!\n";
+            exit(ERR_NEGATIVETOLERANCE);
+        }
     }
 
     //---------------------------------------------------------------------------
