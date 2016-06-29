@@ -249,7 +249,7 @@ void Surface_vectorial::fill_outline(double linewidth)
     map<const ring_type *, const polygon_type *> rings_map;
     vector<pair<ring_type *, vector<ring_type *> > > grouped_rings;
     list<ring_type *> rings;
-    auto filled_outline = make_shared<multi_polygon_type>();
+    multi_polygon_type filled_outline;
 
     for (polygon_type& polygon : *vectorial_surface)
     {
@@ -258,26 +258,33 @@ void Surface_vectorial::fill_outline(double linewidth)
     }
 
     group_rings(rings, grouped_rings);
-    filled_outline->resize(grouped_rings.size());
+    filled_outline.resize(grouped_rings.size());
 
     for (unsigned int i = 0; i < grouped_rings.size(); i++)
     {
         const polygon_type *outer_polygon = rings_map.at(grouped_rings[i].first);
 
-        (*filled_outline)[i].outer() = outer_polygon->outer();
+        filled_outline[i].outer() = outer_polygon->outer();
 
         for (ring_type* ring : grouped_rings[i].second)
         {
             const vector<ring_type>& inners = rings_map.at(ring)->inners();
 
             if (!inners.empty())
-                (*filled_outline)[i].inners().push_back(inners.front());
+                filled_outline[i].inners().push_back(inners.front());
             else
-                (*filled_outline)[i].inners().push_back(rings_map[ring]->outer());
+                filled_outline[i].inners().push_back(rings_map[ring]->outer());
         }
     }
 
-    vectorial_surface = filled_outline;
+    vectorial_surface->clear();
+
+    bg::buffer(filled_outline, *vectorial_surface,
+           bg::strategy::buffer::distance_symmetric<coordinate_type>(-linewidth * scale / 2),
+           bg::strategy::buffer::side_straight(),
+           bg::strategy::buffer::join_round(points_per_circle),
+           bg::strategy::buffer::end_flat(),
+           bg::strategy::buffer::point_circle(30));
 }
 
 void Surface_vectorial::mask_surface(shared_ptr<multi_polygon_type>& surface)

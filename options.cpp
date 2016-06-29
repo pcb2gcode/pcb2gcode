@@ -630,7 +630,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
                     cerr << "Error: Specified outline width is less than zero!\n";
                     exit(ERR_NEGATIVEOUTLINEWIDTH);
                 }
-                else if (outline_width == 0)
+                else if (outline_width == 0 && !vm["vectorial"].as<bool>())
                 {
                     cerr << "Error. Specified outline width is zero!\n";
                     exit(ERR_ZEROOUTLINEWIDTH);
