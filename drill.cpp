@@ -365,13 +365,13 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
         while (z >= cutter->zwork)
         {
-            of << "G1 Z[" << cutter->zwork * cfactor << "+" << stepcount << "*" << cutter->stepsize * cfactor << "]\n";
+            of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
             of << "G2 I" << -millr * cfactor << " J0\n";
             z -= z_step;
             stepcount--;
         }
 
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n";
 
         return true;
     }
