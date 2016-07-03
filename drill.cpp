@@ -102,8 +102,11 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
         preamble = string("G94       (Inches per minute feed rate.)\n")
                    + "G20       (Units == INCHES.)\n";
     }
+
+    if (!options["nog91-1"].as<bool>())
+        preamble += "G91.1     (Incremental arc distance mode.)\n";
+
     preamble += "G90       (Absolute coordinates.)\n";
-    preamble += "G91.1     (Incremental arc distance mode.)\n";
 
     tiling = new Tiling( tileInfo, cfactor );
 }

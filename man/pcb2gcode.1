@@ -152,6 +152,12 @@ use only one drill bit size
 \fB\-\-nog81\fP
 replace G81 with G0+G1. This option makes the gcode compatible with low-end 
 cnc controllers (like grbl), but also makes it bigger and less clean
+.TP
+\fB\-\-nog91-1\fP
+do not explicitly set G91.1 (incremental arc mode distance) in drill headers.
+Some controllers (like Roland's) does not support G91.1 and they can wrongly
+interpret it as G91 (relative distance). Since the default mode is usually
+"incremental", you can safely remove G91.1 in most of the cases
 
 .PP
 Outline cutting takes another set of options:
