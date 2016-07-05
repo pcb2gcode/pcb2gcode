@@ -248,17 +248,6 @@ precision but also increase the probing time (but not the milling time)
 probe speed on the Z axis. Higher values decrease the probing time but also 
 increase the wear of the probing tool
 .TP
-\fB\-\-al-2ndprobefeed\fP \fIunit/second\fP
-if specified, use \fB\-\-al\-probefeed\fP as probing speed for the probing
-grid, then change tool and do a single probe at a speed of
-\fB\-\-al-2ndprobefeed\fP with the new tool. This option is useful if you want
-to reduce the wear of the tool during the probing without decreasing the probe
-speed; in this way you can use a "bad" bit for the probing, change bit and use
-the "real" bit just for one probe. Moreover, when \fB\-\-al-2ndprobefeed\fP is
-specified, you can set \fB\-\-al-probefeed\fP<=\fB0\fP in order to disable the
-probing grid. You can use this to start again a project without probing the
-whole grid again (don't close the control software).
-.TP
 \fB\-\-al-probe-on\fP \fIcommand(s)\fP
 insert these commands at the start of the probing sequence, replacing the 
 standard M0 command. You can use this argument to add a M64/M65 command

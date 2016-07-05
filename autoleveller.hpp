@@ -118,7 +118,6 @@ public:
     const string zsafe;
     const string zfail;
     const string feedrate;
-    const string feedrate2nd;
     const string probeOn;
     const string probeOff;
     const Software software;

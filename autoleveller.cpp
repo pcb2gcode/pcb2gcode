@@ -60,8 +60,7 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
-    feedrate( options["al-probefeed"].as<double>() > 0 ? to_string(options["al-probefeed"].as<double>() * unitconv) : "" ),
-    feedrate2nd( options.count("al-2ndprobefeed") ? to_string(options["al-2ndprobefeed"].as<double>() * unitconv) : "" ),
+    feedrate( boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
@@ -174,78 +173,60 @@ void autoleveller::header( std::ofstream &of )
     if( software == LINUXCNC )
         footerNoIf( of );
 
-    if( !feedrate.empty() )
+    if( tileInfo.enabled )
     {
-        if( tileInfo.enabled )
-        {
-            of << "#" << initialXOffsetVar << " = #5211\n";      //Save the initial offset
-            of << "#" << initialYOffsetVar << " = #5212\n\n";
-        }
-        else
-        {
-            of << "#" << initialXOffsetVar << " = 0\n";
-            of << "#" << initialYOffsetVar << " = 0\n\n";
-        }
-        of << probeOn << '\n';
-        of << "G0 Z" << zsafe << " ( Move Z to safe height )\n";
-        of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )\n";
-        of << "G0 Z" << zprobe << " ( Move Z to probe height )\n";
-        if( software != CUSTOM )
-            of << logFileOpenAndComment[software] << '\n';
-        of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z" << zfail 
-           << " F" << feedrate << " ( Z-probe )\n";
-        of << "#500 = 0 ( Probe point [0, 0] is our reference )\n";
-        of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
-           << " ( Set the current Z as zero-value )\n";
-        of << '\n';
-        of << "( We now start the real probing: move the Z axis to the probing height, move to )\n";
-        of << "( the probing XY position, probe it and save the result, parameter "
-           << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] ) << ", )\n";
-        of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )\n";
-        of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )\n";
-        of << '\n';
+        of << "#" << initialXOffsetVar << " = #5211\n";      //Save the initial offset
+        of << "#" << initialYOffsetVar << " = #5212\n\n";
+    }
+    else
+    {
+        of << "#" << initialXOffsetVar << " = 0\n";
+        of << "#" << initialYOffsetVar << " = 0\n\n";
+    }
+    of << probeOn << '\n';
+    of << "G0 Z" << zsafe << " ( Move Z to safe height )\n";
+    of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )\n";
+    of << "G0 Z" << zprobe << " ( Move Z to probe height )\n";
+    if( software != CUSTOM )
+        of << logFileOpenAndComment[software] << '\n';
+    of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z" << zfail 
+       << " F" << feedrate << " ( Z-probe )\n";
+    of << "#500 = 0 ( Probe point [0, 0] is our reference )\n";
+    of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
+       << " ( Set the current Z as zero-value )\n";
+    of << '\n';
+    of << "( We now start the real probing: move the Z axis to the probing height, move to )\n";
+    of << "( the probing XY position, probe it and save the result, parameter "
+       << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] ) << ", )\n";
+    of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )\n";
+    of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )\n";
+    of << '\n';
 
-        if( software != CUSTOM )
+    if( software != CUSTOM )
+    {
+        of << "#" << globalVar0 << " = 0 ( X iterator )\n";
+        of << "#" << globalVar1 << " = 1 ( Y iterator )\n";
+        of << "#" << globalVar2 << " = 1 ( UP or DOWN increment )\n";
+        of << "#" << globalVar3 << " = " << numYPoints - 1 << " ( number of Y points; the 1st Y row can be done one time less )\n";
+        of << silent_format( callSubRepeat[software] ) % xProbeNum % numXPoints % ocodes->getUniqueCode();
+    }
+    else
+    {
+        for(unsigned int i = 0; i < numXPoints; i++ )
         {
-            of << "#" << globalVar0 << " = 0 ( X iterator )\n";
-            of << "#" << globalVar1 << " = 1 ( Y iterator )\n";
-            of << "#" << globalVar2 << " = 1 ( UP or DOWN increment )\n";
-            of << "#" << globalVar3 << " = " << numYPoints - 1 << " ( number of Y points; the 1st Y row can be done one time less )\n";
-            of << silent_format( callSubRepeat[software] ) % xProbeNum % numXPoints % ocodes->getUniqueCode();
-        }
-        else
-        {
-            for(unsigned int i = 0; i < numXPoints; i++ )
+            unsigned int j = 1;
+
+            while (j <= numYPoints - 1)
             {
-                unsigned int j = 1;
-
-                while (j <= numYPoints - 1)
-                {
-                    of << "G0 Z" << zprobe << '\n';
-                    of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
-                    of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
-                    of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
-                    j += incr_decr;
-                }
-                incr_decr = -incr_decr;
+                of << "G0 Z" << zprobe << '\n';
+                of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
+                of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
+                of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
                 j += incr_decr;
             }
+            incr_decr = -incr_decr;
+            j += incr_decr;
         }
-    }
-
-    if( !feedrate2nd.empty() )
-    {
-        of << '\n';
-        of << "T2\n";
-        of << "(MSG, Insert the mill tool)\n";
-        of << "M0 (Temporary machine stop.)\n";
-        of << "G0 Z[" << zsafe << " + " << 0.2 * cfactor << "] ( Move Z to safe height )\n";
-        of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )\n";
-        of << "G0 Z[" << zprobe << " + " << 0.2 * cfactor << "] ( Move Z to probe height )\n";
-        of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z[" << zfail
-           << " - "<< 0.2 * cfactor << "] F" << feedrate2nd << " ( Probe )\n";
-        of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
-           << " ( Set the current Z as zero-value )\n";
     }
 
     of << '\n';

@@ -262,7 +262,6 @@ options::options()
             "al-x", po::value<double>(), "width of the x probes")(
             "al-y", po::value<double>(), "width of the y probes")(
             "al-probefeed", po::value<double>(), "speed during the probing")(
-            "al-2ndprobefeed", po::value<double>(), "speed during the probing of the 2nd tool")(
             "al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
             "al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
             "al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")(
@@ -423,16 +422,10 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "Error: autoleveller probe feed rate not specified.\n";
             exit(ERR_NOALPROBEFEED);
         }
-        else if ( !vm.count("al-2ndprobefeed") && vm["al-probefeed"].as<double>() <= 0)
+        else if (vm["al-probefeed"].as<double>() <= 0)
         {
             cerr << "Error: al-probefeed < 0!" << endl;
             exit(ERR_NEGATIVEPROBEFEED);
-        }
-
-        if (vm.count("al-2ndprobefeed") && vm["al-2ndprobefeed"].as<double>() <= 0)
-        {
-            cerr << "Error: al-2ndprobefeed < 0!" << endl;
-            exit(ERR_NEGATIVE2NDPROBEFEED);
         }
 
     }
