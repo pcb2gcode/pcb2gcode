@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2015-02-17"
+.TH PCB2GCODE 1 "2016-06-5"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -101,13 +101,14 @@ spindle speed during engraving (rounds per minute)
 .TP
 \fB\-\-offset\fP \fIunit\fP
 distance by which the tool movement will be outset from the contours in the
-gerber file to be engraved
+gerber file to be engraved. If you want to obtain a PCB as similar as possible
+to the original file, you should set this value to half of the tool diameter.
 
 If this distance can't be satisfied because copper areas are too close, a
 warning will be printed and the line will be drawn between the areas. This
 behavior can be used to get voronoi-style (flood-filling) areas; simply set the
 offset to a large value (like 1 inch).
-Alternatively, when the vectorial mode is in use, \fB\-\-voronoi\fP can be used.
+When the vectorial mode is in use, \fB\-\-voronoi\fP is preferred.
 .TP
 \fB\-\-voronoi\fP
 enable the voronoi mode (requires  \fB\-\-vectorial\fP). This option is more
@@ -367,9 +368,9 @@ Show version of program.
 For further information about \fBpcb2gcode\fP, see the
 .URL "https://github.com/pcb2gcode/pcb2gcode/wiki" "project wiki" "."
 .SH AUTHOR
-pcb2gcode was written by Patrick Birnzain, loosely based on an earlier program
-of the same name by Jeff Prothero (Cynbe ru Taren), which in term was based
-even more loosely on Matthew Sager's gerber_to_gcode.
+pcb2gcode was written by Patrick Birnzain and Nicola Corna, loosely based on an
+earlier program of the same name by Jeff Prothero (Cynbe ru Taren), which in
+term was based even more loosely on Matthew Sager's gerber_to_gcode.
 .PP
 This manual page was written by chrysn <chrysn@fsfe.org> and Nicola Corna 
 <nicola@corna.info> for the Debian project
