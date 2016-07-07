@@ -27,6 +27,9 @@ using std::cerr;
 using std::ios_base;
 using std::left;
 
+#include <cmath>
+using std::ceil;
+
 #include <iomanip>
 
 #include <glibmm/miscutils.h>
@@ -253,15 +256,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                     //--------------------------------------------------------------------
                     //cutting (outline)
 
-                    double z_step = cutter->stepsize;
-                    double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
+                    const unsigned int steps_num = ceil(-mill->zwork / cutter->stepsize);
 
                     if( bBridges )
                         if( i == 0 && j == 0 )  //Compute the bridges only the 1st time
                             bridges = layer->get_bridges( path );
 
-                    while (z >= mill->zwork)
+                    for (unsigned int i = 0; i < steps_num; i++)
                     {
+                        const double z = mill->zwork / steps_num * (i + 1);
+
                         of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
                         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                         of << "F" << mill->feed * cfactor << "\n";
@@ -317,7 +321,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                             svgexpo->close_path();
                             bSvgOnce = FALSE;
                         }
-                        z -= z_step;
                     }
                 }
                 else
