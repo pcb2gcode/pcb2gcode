@@ -290,19 +290,21 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                         svgexpo->line_to(iter->first, iter->second);
                                 }
 
-                                if( bBridges && currentBridge != bridges.end() )
+                                if (bBridges && currentBridge != bridges.end())
                                 {
-                                    double bridges_depth = cutter->bridges_height >= 0 ?
-                                        cutter->bridges_height : cutter->bridges_height * z / mill->zwork;
-
-                                    if( *currentBridge == iter - path->begin() )
-                                        of << "Z" << bridges_depth * cfactor << '\n';
-                                    else if( *currentBridge == last - path->begin() )
+                                    if (z < cutter->bridges_height)
                                     {
-                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                        of << "F" << cutter->feed * cfactor;
-                                        ++currentBridge;
+                                        if (*currentBridge == iter - path->begin())
+                                            of << "Z" << cutter->bridges_height * cfactor << '\n';
+                                        else if (*currentBridge == last - path->begin())
+                                        {
+                                            of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+                                            of << "F" << cutter->feed * cfactor;
+                                        }
                                     }
+
+                                    if (*currentBridge == last - path->begin())
+                                        ++currentBridge;
                                 }
                             }
 
