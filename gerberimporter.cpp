@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <utility>
 #include <cstdint>
+using std::reverse;
 
 #include <boost/format.hpp>
 
@@ -349,35 +350,44 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
 }
 void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source)
 {
-    const size_t source_size = source.size();
-
     if (!destination.empty())
     {
-        linestring_type& last_ls = destination.back();
-    
-        if (bg::equals(last_ls.back(), source.front()))
+        multi_linestring_type::reverse_iterator ls;
+
+        for (ls = destination.rbegin(); ls != destination.rend(); ls++)
         {
-            for (size_t i = 0; i < source_size - 1; i++)
-                last_ls.push_back(source[i + 1]);
+            if (bg::equals(ls->back(), source.front()))
+            {
+                ls->insert(ls->end(), source.begin() + 1, source.end());
+                break;
+            }
+            else if (bg::equals(ls->back(), source.back()))
+            {
+                ls->insert(ls->end(), source.rbegin() + 1, source.rend());
+                break;
+            }
+
+            /*
+             * The following two cases does not happen very often, and they
+             * usually happen when the size of destination is small (often 2),
+             * therefore there shouldn't be the need to replace a standard
+             * linestring_type (std::vector) with a std::deque
+             */
+            else if (bg::equals(ls->front(), source.front()))
+            {
+                reverse(ls->begin(), ls->end());
+                ls->insert(ls->end(), source.begin() + 1, source.end());
+                break;
+            }
+            else if (bg::equals(ls->front(), source.back()))
+            {
+                reverse(ls->begin(), ls->end());
+                ls->insert(ls->end(), source.rbegin() + 1, source.rend());
+                break;
+            }
         }
-        else if (bg::equals(last_ls.back(), source.back()))
-        {
-            for (size_t i = 0; i < source_size - 1; i++)
-                last_ls.push_back(source[source_size - i - 2]);
-        }
-        else if (bg::equals(last_ls.front(), source.front()))
-        {
-            std::reverse(last_ls.begin(), last_ls.end());
-            for (size_t i = 0; i < source_size - 1; i++)
-                last_ls.push_back(source[i + 1]);
-        }
-        else if (bg::equals(last_ls.front(), source.back()))
-        {
-            std::reverse(last_ls.begin(), last_ls.end());
-            for (size_t i = 0; i < source_size - 1; i++)
-                last_ls.push_back(source[source_size - i - 2]);
-        }
-        else
+
+        if (ls == destination.rend())
         {
             destination.push_back(source);
         }
