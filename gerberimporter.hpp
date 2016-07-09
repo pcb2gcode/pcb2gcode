@@ -23,6 +23,10 @@
 #include <string>
 using std::string;
 
+#include <iostream>
+using std::cerr;
+using std::endl;
+
 #include "importer.hpp"
 
 using std::make_shared;
@@ -44,10 +48,6 @@ struct gerber_exception: virtual import_exception
 
  GerberImporter is using libgerbv and hence features its suberb support for
  different file formats and gerber dialects.
- 
- Vectorial TODO:
-  1 - test all the RS274X macros
-  3 - test negative regions
  */
 /******************************************************************************/
 class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
@@ -131,9 +131,9 @@ protected:
 
     inline static void unsupported_polarity_throw_exception()
     {
-        std::cerr << "Non-positive image polarity is deprecated by the Gerber "
+        cerr << "Non-positive image polarity is deprecated by the Gerber "
                 "standard and unsupported; re-run pcb2gcode without the "
-                "--vectorial flag" << std::endl;
+                "--vectorial flag" << endl;
         throw gerber_exception();
     }
 

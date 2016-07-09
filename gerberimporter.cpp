@@ -17,11 +17,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <algorithm>
+using std::reverse;
+using std::copy;
+using std::swap;
+
 #include <utility>
 #include <cstdint>
-using std::reverse;
 
 #include <boost/format.hpp>
 
@@ -272,7 +274,7 @@ void GerberImporter::linear_draw_rectangular_aperture(point_type startpoint, poi
                                 coordinate_type height, ring_type& ring)
 {
     if (startpoint.y() > endpoint.y())
-        std::swap(startpoint, endpoint);
+        swap(startpoint, endpoint);
     
     if (startpoint.x() > endpoint.x())
     {
@@ -308,7 +310,7 @@ void GerberImporter::linear_draw_circular_aperture(point_type startpoint, point_
         ++circle_points;
 
     if (startpoint.x() > endpoint.x())
-        std::swap(startpoint, endpoint);
+        swap(startpoint, endpoint);
 
     angle_step = 2 * bg::math::pi<double>() / circle_points;
     
@@ -634,12 +636,12 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                            case GERBV_APTYPE_RECTANGLE:
 	                            case GERBV_APTYPE_OVAL:
 	                            case GERBV_APTYPE_POLYGON:
-	                                std::cerr << "Non-macro aperture during macro drawing: skipping" << std::endl;
+	                                cerr << "Non-macro aperture during macro drawing: skipping" << endl;
 	                                simplified_amacro = simplified_amacro->next;
 	                                continue;
 	
 	                            case GERBV_APTYPE_MACRO:
-	                                std::cerr << "Macro start aperture during macro drawing: skipping" << std::endl;
+	                                cerr << "Macro start aperture during macro drawing: skipping" << endl;
 	                                simplified_amacro = simplified_amacro->next;
 	                                continue;
 	
@@ -727,7 +729,7 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                                break;
 
 	                            default:
-                                    std::cerr << "Unrecognized aperture: skipping" << std::endl;
+                                    cerr << "Unrecognized aperture: skipping" << endl;
                                     simplified_amacro = simplified_amacro->next;
                                     continue;
                             }
@@ -748,7 +750,7 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                     }
                     else
                     {
-                        std::cerr << "Macro aperture " << i << " is not simplified: skipping" << std::endl;
+                        cerr << "Macro aperture " << i << " is not simplified: skipping" << endl;
                         continue;
                     }
                     break;
@@ -761,11 +763,11 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	            case GERBV_APTYPE_MACRO_LINE20:
 	            case GERBV_APTYPE_MACRO_LINE21:
 	            case GERBV_APTYPE_MACRO_LINE22:
-	                std::cerr << "Macro aperture during non-macro drawing: skipping" << std::endl;
+	                cerr << "Macro aperture during non-macro drawing: skipping" << endl;
 	                continue;
 	            
 	            default:
-	                std::cerr << "Unrecognized aperture: skipping" << std::endl;
+	                cerr << "Unrecognized aperture: skipping" << endl;
                     continue;
             }
 
@@ -920,9 +922,9 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                         merge_ring(mpoly.back().outer());
                     }
                     else
-                        std::cerr << "Drawing with an aperture different from a circle "
+                        cerr << "Drawing with an aperture different from a circle "
                                      "or a rectangle is forbidden by the Gerber standard; skipping."
-                                  << std::endl;
+                                  << endl;
                 }
             }
             
@@ -930,8 +932,8 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
 
                 if (contour)
                 {
-                    std::cerr << "D03 during contour mode is forbidden by the Gerber "
-                                    "standard; skipping" << std::endl;
+                    cerr << "D03 during contour mode is forbidden by the Gerber "
+                                    "standard; skipping" << endl;
                 }
                 else
                 {
@@ -940,8 +942,8 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                     if (aperture_mpoly != apertures_map.end())
                         bg::transform(aperture_mpoly->second, mpoly, translate(stop.x(), stop.y()));
                     else
-                        std::cerr << "Macro aperture " << currentNet->aperture <<
-                                    " not found in macros list; skipping" << std::endl;
+                        cerr << "Macro aperture " << currentNet->aperture <<
+                                    " not found in macros list; skipping" << endl;
 
                     merge_mpoly(mpoly);
                 }
@@ -959,7 +961,7 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
             }
             else
             {
-                std::cerr << "Unrecognized aperture state: skipping" << std::endl;
+                cerr << "Unrecognized aperture state: skipping" << endl;
             }
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_START)
@@ -992,37 +994,37 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
                     if (contour)
                     {
                         if (region.empty())
-                            std::copy(path.begin(), path.end(), region.end());
+                            copy(path.begin(), path.end(), region.end());
                         else
-                            std::copy(path.begin() + 1, path.end(), region.end());
+                            copy(path.begin() + 1, path.end(), region.end());
                     }
                     else
                     {
                         if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
                             merge_paths(paths[coordinate_type(gerber->aperture[currentNet->aperture]->parameter[0] * cfactor / 2)], path);
                         else
-                            std::cerr << "Drawing an arc with an aperture different from a circle "
+                            cerr << "Drawing an arc with an aperture different from a circle "
                                          "is forbidden by the Gerber standard; skipping."
-                                      << std::endl;
+                                      << endl;
                     }
                 }
                 else
-                    std::cerr << "Circular arc requested but cirseg == NULL" << std::endl;
+                    cerr << "Circular arc requested but cirseg == NULL" << endl;
             }
             else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
-                std::cerr << "D03 during circular arc mode is forbidden by the Gerber "
-                                "standard; skipping" << std::endl;
+                cerr << "D03 during circular arc mode is forbidden by the Gerber "
+                                "standard; skipping" << endl;
             }
         }
         else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
                  currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                  currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
-            std::cerr << "Linear zoomed interpolation modes are not supported "
-                         "(are them in the RS274X standard?)" << std::endl;
+            cerr << "Linear zoomed interpolation modes are not supported "
+                         "(are them in the RS274X standard?)" << endl;
         }
         else //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
         {
-            std::cerr << "Unrecognized interpolation mode" << std::endl;
+            cerr << "Unrecognized interpolation mode" << endl;
         }
     }
 
