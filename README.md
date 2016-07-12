@@ -37,7 +37,6 @@ There are pcb2gcode packages in the official repositories. You can install the w
     sudo apt-get install pcb2gcode
 
 Unfortunately, these packages are seriously outdated. If you want to download the latest development version, go to "Installation from GIT".
-I'm currently looking for a Debian/Ubuntu package maintainer: if you're interested [write me an email](mailto:nicola@corna.info).
 
 #### Windows
 Windows prebuilt binaries (with all the required DLLs) are available in the [release](https://github.com/pcb2gcode/pcb2gcode/releases) page.
@@ -53,14 +52,15 @@ If you want to install the latest version from git you'll need the autotools, Bo
 (dev, >= 1.56), gtkmm2.4 (dev) and libgerbv (dev).
 
 Unfortunately pcb2gcode requires a rather new version of Boost (1.56), often not included in the oldest distros (like Ubuntu < 15.10 or Debian Stable).
-You can [download](http://www.boost.org/users/download/) Boost >= 1.56 and build it manually with:
+Moreover Boost 1.56 sometimes freezes pcb2gcode, while Boost 1.59, 1.60 and 1.61 are affected by a [program options bug](https://svn.boost.org/trac/boost/ticket/11905).
+You can [download](http://www.boost.org/users/download/) a working version of Boost ([1.57](http://www.boost.org/users/history/version_1_57_0.html) and [1.58](http://www.boost.org/users/history/version_1_58_0.html) work well) and build it manually with:
 
     $ ./bootstrap.sh --with-libraries=program_options
-    $ ./b2 variant=release link=static --prefix=<somewhere> install
+    $ ./b2 variant=release link=static
 
-Then add `--with-boost=<same directory as before> --enable-static-boost` to the `./configure` command.
+Then add `--with-boost=<boost directory> --enable-static-boost` to the `./configure` command.
 
-Moreover Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
+Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
 
     $ sudo apt-get update
     $ sudo apt-get install software-properties-common python-software-properties
