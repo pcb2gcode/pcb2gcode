@@ -75,6 +75,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
+    bg::unique(*vectorial_surface);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
     init_debug_image(name + ".svg");

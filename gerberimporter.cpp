@@ -336,6 +336,9 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
                     double angle1, double angle2, unsigned int circle_points,
                     linestring_type& linestring)
 {
+    while (angle2 < angle1)
+        angle2 += 2 * bg::math::pi<double>();
+
     const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
     const double angle_step = (angle2 - angle1) / steps;
     
