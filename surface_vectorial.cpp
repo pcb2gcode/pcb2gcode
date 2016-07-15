@@ -54,9 +54,12 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(points_per_circle);
-    
+
+    if (bg::intersects(*vectorial_surface_not_simplified))
+        throw std::logic_error("Input geometry is self-intersecting");
+
     scale = importer->vectorial_scale();
-    
+
     //With a very small loss of precision we can reduce memory usage and processing time
     bg::simplify(*vectorial_surface_not_simplified, *vectorial_surface, scale / 10000);
     bg::envelope(*vectorial_surface, bounding_box);
