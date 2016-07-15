@@ -336,9 +336,6 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
                     double angle1, double angle2, unsigned int circle_points,
                     linestring_type& linestring)
 {
-    while (angle2 < angle1)
-        angle2 += 2 * bg::math::pi<double>();
-
     const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
     const double angle_step = (angle2 - angle1) / steps;
     
@@ -987,10 +984,24 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
 
                 if (cirseg != NULL)
                 {
+                    double angle1;
+                    double angle2;
+
+                    if (currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR)
+                    {
+                        angle1 = cirseg->angle1;
+                        angle2 = cirseg->angle2;
+                    }
+                    else
+                    {
+                        angle1 = cirseg->angle2;
+                        angle2 = cirseg->angle1;
+                    }
+
                     circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
                                     cirseg->width * scale / 2,
-                                    cirseg->angle1 * bg::math::pi<double>() / 180.0,
-                                    cirseg->angle2 * bg::math::pi<double>() / 180.0,
+                                    angle1 * bg::math::pi<double>() / 180.0,
+                                    angle2 * bg::math::pi<double>() / 180.0,
                                     points_per_circle,
                                     path);
 
