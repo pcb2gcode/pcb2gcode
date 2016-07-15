@@ -781,9 +781,9 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 
 bool GerberImporter::simplify_cutins(ring_type& ring, polygon_type& polygon)
 {
-    for (unsigned int i = 0; i < ring.size() - 2; i++)
+    for (int i = 0; i < int(ring.size()) - 2; i++)
     {
-        for (unsigned int j = i + 1; j < ring.size() - 1; j++)
+        for (int j = i + 1; j < int(ring.size()) - 1; j++)
         {
             if (bg::equals(ring.at(i), ring.at(j + 1)) &&
                 bg::equals(ring.at(i + 1), ring.at(j)))
