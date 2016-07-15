@@ -388,7 +388,11 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     for (unsigned int i = 0; i < steps; i++)
     {
-        if (offset >= 0)
+        if (offset == 0)
+        {
+            (*polygons)[i] = input[index];
+        }
+        else if (offset > 0)
         {
             auto mpoly = make_shared<multi_polygon_type>();
             multi_polygon_type mpoly_temp;
