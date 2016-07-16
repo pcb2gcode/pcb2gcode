@@ -400,18 +400,18 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
     }
 }
 
-shared_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
+unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
                                                                 coordinate_type cfactor, unsigned int points_per_circle)
 {
-    auto output = make_shared<multi_polygon_type>();
+    unique_ptr<multi_polygon_type> output (new multi_polygon_type());
 
     for (auto layer = layers.begin(); layer != layers.end(); layer++)
     {
-        auto temp_mpoly = make_shared<multi_polygon_type>();
+        unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
         const gerbv_polarity_t polarity = layer->first->polarity;
         const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
         map<coordinate_type, multi_linestring_type>& paths = layer->second.paths;
-        shared_ptr<multi_polygon_type>& draws = layer->second.draws;
+        unique_ptr<multi_polygon_type>& draws = layer->second.draws;
 
         for (auto i = paths.begin(); i != paths.end(); i++)
         {
@@ -433,16 +433,16 @@ shared_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
 
         for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++)
         {
-            auto translated_mpoly = make_shared<multi_polygon_type>();
-            auto united_mpoly = make_shared<multi_polygon_type>();
+            multi_polygon_type translated_mpoly;
+            unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
 
-            bg::transform(*draws, *translated_mpoly,
+            bg::transform(*draws, translated_mpoly,
                             translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
             
             if (sr_x == 1)
-                bg::union_(*translated_mpoly, *draws, *united_mpoly);
+                bg::union_(translated_mpoly, *draws, *united_mpoly);
             else
-                bg::union_(*translated_mpoly, *temp_mpoly, *united_mpoly);
+                bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
 
             united_mpoly.swap(temp_mpoly);
         }
@@ -455,16 +455,16 @@ shared_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
 
         for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++)
         {
-            auto translated_mpoly = make_shared<multi_polygon_type>();
-            auto united_mpoly = make_shared<multi_polygon_type>();
+            multi_polygon_type translated_mpoly;
+            unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
 
-            bg::transform(*draws, *translated_mpoly,
+            bg::transform(*draws, translated_mpoly,
                             translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
 
             if (sr_y == 1)
-                bg::union_(*translated_mpoly, *draws, *united_mpoly);
+                bg::union_(translated_mpoly, *draws, *united_mpoly);
             else
-                bg::union_(*translated_mpoly, *temp_mpoly, *united_mpoly);
+                bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
 
             united_mpoly.swap(temp_mpoly);
         }
@@ -504,8 +504,8 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
                                  coordinate_type cfactor, polygon_type& output)
 {
     const point_type center (parameters[0] * cfactor, parameters[1] * cfactor);
-    auto mpoly1 = make_shared<multi_polygon_type>();
-    auto mpoly2 = make_shared<multi_polygon_type>();
+    unique_ptr<multi_polygon_type> mpoly1 (new multi_polygon_type());
+    unique_ptr<multi_polygon_type> mpoly2 (new multi_polygon_type());
 
     mpoly2->resize(2);
 
@@ -566,8 +566,8 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
         if (aperture)
         {
             const double * const parameters = aperture->parameter;
-            auto input = make_shared<multi_polygon_type>();
-            auto output = make_shared<multi_polygon_type>();
+            unique_ptr<multi_polygon_type> input (new multi_polygon_type());
+            unique_ptr<multi_polygon_type> output (new multi_polygon_type());
 
             switch (aperture->type)
             {
@@ -809,12 +809,12 @@ bool GerberImporter::simplify_cutins(ring_type& ring, polygon_type& polygon)
         return false;
 }
 
-shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_circle)
+unique_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_circle)
 {
     map<int, multi_polygon_type> apertures_map;
     ring_type region;
     coordinate_type cfactor;
-    auto temp_mpoly = make_shared<multi_polygon_type>();
+    unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
     bool contour = false;
 
     vector<pair<const gerbv_layer_t *, gerberimporter_layer> >layers (1);
@@ -862,7 +862,7 @@ shared_ptr<multi_polygon_type> GerberImporter::render(unsigned int points_per_ci
         }
 
         map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
-        shared_ptr<multi_polygon_type>& draws = layers.back().second.draws;
+        unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
 
         auto merge_ring = [&](ring_type& ring)
         {

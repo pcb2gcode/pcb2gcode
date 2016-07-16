@@ -94,7 +94,7 @@ protected:
     bg::svg_mapper<point_type_fp> *mapper;
     bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2> *scale_geometry;
 
-    shared_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
+    unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps, bool mirror, ivalue_t mirror_axis);

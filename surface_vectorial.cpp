@@ -50,7 +50,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t wi
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
-    shared_ptr<multi_polygon_type> vectorial_surface_not_simplified;
+    unique_ptr<multi_polygon_type> vectorial_surface_not_simplified;
 
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(points_per_circle);
@@ -97,7 +97,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
-        shared_ptr<vector<polygon_type> > polygons;
+        unique_ptr<vector<polygon_type> > polygons;
     
         polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1, mirror, mirror_axis);
@@ -316,7 +316,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
-shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
+unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps, bool mirror, ivalue_t mirror_axis)
@@ -324,7 +324,7 @@ shared_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     if (offset < 0)
         steps = 1;
 
-    auto polygons = make_shared<vector<polygon_type> >(steps);
+    unique_ptr<vector<polygon_type> > polygons (new vector<polygon_type>(steps));
     list<list<const ring_type *> > rings (steps);
     auto ring_i = rings.begin();
     point_type last_point;

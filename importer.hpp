@@ -22,6 +22,7 @@
 
 #include <memory>
 using std::shared_ptr;
+using std::unique_ptr;
 
 #include <glibmm/ustring.h>
 using Glib::ustring;
@@ -68,7 +69,7 @@ public:
 class VectorialLayerImporter : virtual public LayerImporter
 {
 public:
-    virtual shared_ptr<multi_polygon_type> render(unsigned int points_per_circle = 30) = 0;
+    virtual unique_ptr<multi_polygon_type> render(unsigned int points_per_circle = 30) = 0;
     virtual unsigned int vectorial_scale() = 0;
 };
 

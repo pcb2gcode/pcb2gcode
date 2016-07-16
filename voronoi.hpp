@@ -27,8 +27,7 @@ using std::vector;
 using std::pair;
 
 #include <memory>
-using std::shared_ptr;
-using std::make_shared;
+using std::unique_ptr;
 
 #include "geometry.hpp"
 
@@ -71,7 +70,7 @@ typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 class Voronoi
 {
 public:
-    static shared_ptr<multi_polygon_type> build_voronoi(const multi_polygon_type& input,
+    static unique_ptr<multi_polygon_type> build_voronoi(const multi_polygon_type& input,
                                 coordinate_type bounding_box_offset, coordinate_type max_dist);
 
 protected:

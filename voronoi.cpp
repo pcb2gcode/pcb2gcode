@@ -26,10 +26,10 @@
 using std::list;
 using std::map;
 
-shared_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& input,
+unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& input,
                                 coordinate_type bounding_box_offset, coordinate_type max_dist)
 {
-    auto output = make_shared<multi_polygon_type>();
+    unique_ptr<multi_polygon_type> output (new multi_polygon_type());
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder_type voronoi_builder;
     vector<segment_type_p> segments;
