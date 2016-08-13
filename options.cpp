@@ -649,6 +649,11 @@ static void check_cutting_parameters(po::variables_map const& vm)
             cerr << "Error: Board cutting depth (--zcut) not specified.\n";
             exit(ERR_NOZCUT);
         }
+        else if (vm["zcut"].as<double>() > 0)
+        {
+            cerr << "Error: Cutting depth (--zcut) is greater than zero!\n";
+            exit(ERR_NEGATIVEZWORK);
+        }
 
         if (!vm.count("cutter-diameter"))
         {
