@@ -352,8 +352,10 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
     {
 
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
+        double targetx = ( x + millr ) * cfactor;
+        double targety = y * cfactor;
 
-        of << "G0 X" << ( x + millr ) * cfactor << " Y" << y * cfactor << '\n';
+        of << "G0 X" << targetx << " Y" << targety << '\n';
 
         double z_step = cutter->stepsize;
         double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
@@ -369,7 +371,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
         while (z >= cutter->zwork)
         {
             of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
-            of << "G2 I" << -millr * cfactor << " J0\n";
+            of << "G2 X" << targetx << " Y" << targety << " I" << -millr * cfactor << " J0\n";
             z -= z_step;
             stepcount--;
         }
