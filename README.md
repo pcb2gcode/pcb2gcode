@@ -55,10 +55,11 @@ Unfortunately pcb2gcode requires a rather new version of Boost (1.56), often not
 Moreover Boost 1.56 sometimes freezes pcb2gcode, while Boost 1.59, 1.60 and 1.61 are affected by a [program options bug](https://svn.boost.org/trac/boost/ticket/11905).
 You can [download](http://www.boost.org/users/download/) a working version of Boost ([1.57](http://www.boost.org/users/history/version_1_57_0.html) and [1.58](http://www.boost.org/users/history/version_1_58_0.html) work well) and build it manually with:
 
-    $ ./bootstrap.sh --with-libraries=program_options
+    $ ./bootstrap.sh --with-libraries=program_options --prefix=<somewhere>
     $ ./b2 variant=release link=static
+    $ ./b2 install
 
-Then add `--with-boost=<boost directory> --enable-static-boost` to the `./configure` command.
+Then add `--with-boost=<boost install directory> --enable-static-boost` to the `./configure` command.
 
 Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
 
