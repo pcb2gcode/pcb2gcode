@@ -717,9 +717,10 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEBRIDGE);
         }
 
-        if (vm["bridges"].as<double>() > 0 && !vm["optimise"].as<bool>() )
+        if (vm["bridges"].as<double>() > 0 && !vm["optimise"].as<bool>() &&
+                !vm["vectorial"].as<bool>() )
         {
-            cerr << "Error: \"bridges\" requires \"optimise\".\n";
+            cerr << "Error: \"bridges\" requires either \"optimise\" or \"vectorial\".\n";
             exit(ERR_BRIDGENOOPTIMISE);
         }
 
