@@ -135,21 +135,12 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
 
 box_type_fp autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths )
 {
-    box_type_fp bounding_box;
+    box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
 
-    boost::geometry::envelope(*(toolpaths.front()), bounding_box);
-
-    for (auto i = toolpaths.begin() + 1; i != toolpaths.end(); i++)
+    for (const shared_ptr<icoords>& toolpath : toolpaths)
     {
-        box_type_fp bounding_box_temp;
-        multi_point_type_fp points;
-
-        boost::geometry::envelope(**i, bounding_box_temp);
-        points.push_back(bounding_box_temp.min_corner());
-        points.push_back(bounding_box_temp.max_corner());
-        points.push_back(bounding_box.min_corner());
-        points.push_back(bounding_box.max_corner());
-        boost::geometry::envelope(points, bounding_box);
+        boost::geometry::expand(bounding_box,
+            boost::geometry::return_envelope<box_type_fp>(*toolpath));
     }
 
     bounding_box.min_corner().x(bounding_box.min_corner().x() - xoffset - quantization_error);
