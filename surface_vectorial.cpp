@@ -81,10 +81,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bg::unique(*vectorial_surface);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
-    init_debug_image(name + ".svg");
+    init_debug_image(name + ".svg", 2000);
 
     srand(1);
-    add_debug_image(*voronoi, 0.2, false);
+    add_debug_image(*voronoi, 0.3, false);
     srand(1);
 
     coordinate_type grow = mill->tool_diameter / 2 * scale;
@@ -135,38 +135,40 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
 void Surface_vectorial::save_debug_image(string message)
 {
-/*
     static unsigned int debug_image_index = 0;
-    vector<shared_ptr<const multi_polygon_type> > geometries (1);
-    
-    geometries.front() = vectorial_surface;
-    save_debug_image(geometries, (boost::format("outp%1%_%2%.svg") % debug_image_index % message).str());
+
+    srand(1);
+    init_debug_image((boost::format("outp%d_%s.svg") % debug_image_index % message).str(), 2000);
+    add_debug_image(*vectorial_surface, 1, true);
+    close_debug_image();
+
     ++debug_image_index;
-*/
 }
 
-void Surface_vectorial::init_debug_image(string filename)
+void Surface_vectorial::init_debug_image(string filename, unsigned int pixel_per_in)
 {
-    svg = new std::ofstream(build_filename(outputdir, filename));
-    mapper = new bg::svg_mapper<point_type_fp>(*svg, width_in * 1000, height_in * 1000);
-    scale_geometry = new bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(1000.0 / scale);
+    const coordinate_type width = bounding_box.max_corner().x() - bounding_box.min_corner().x();
+    const coordinate_type height = bounding_box.max_corner().y() - bounding_box.min_corner().y();
+
+    svg = new ofstream(build_filename(outputdir, filename));
+    mapper = new bg::svg_mapper<point_type>(*svg, width * pixel_per_in / scale, height * pixel_per_in / scale);
+    mapper->add(bounding_box);
 }
 
 void Surface_vectorial::add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke)
 {
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:1" : "";
+    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
     for (const polygon_type& poly : geometry)
     {
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        polygon_type_fp poly_scaled;
+        multi_polygon_type mpoly;
 
-        bg::transform(poly, poly_scaled, *scale_geometry);
+        bg::intersection(poly, bounding_box, mpoly);
 
-        mapper->add(poly_scaled);
-        mapper->map(poly_scaled,
+        mapper->map(mpoly,
             str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);" + stroke_str) %
             opacity % r % g % b));
     }
@@ -180,28 +182,25 @@ void Surface_vectorial::add_debug_image(const vector<polygon_type>& geometries, 
 
     for (unsigned int i = geometries.size(); i != 0; i--)
     {
-        polygon_type_fp poly_scaled;
-        
-        bg::transform(geometries[i - 1], poly_scaled, *scale_geometry);
+        multi_polygon_type mpoly;
 
-        mapper->add(poly_scaled);
+        bg::intersection(geometries[i - 1], bounding_box, mpoly);
         
         if (i == geometries.size())
         {
-            mapper->map(poly_scaled,
-                str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);stroke:rgb(0,0,0);stroke-width:1") %
+            mapper->map(mpoly,
+                str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);stroke:rgb(0,0,0);stroke-width:2") %
                 opacity % r % g % b));
         }
         else
         {
-            mapper->map(poly_scaled, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
+            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
         }
     }
 }
 
 void Surface_vectorial::close_debug_image()
 {
-    delete scale_geometry;
     delete mapper;
     delete svg;
 }

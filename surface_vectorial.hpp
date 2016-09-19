@@ -32,6 +32,7 @@ using std::map;
 using std::pair;
 using std::copy;
 using std::swap;
+using std::ofstream;
 
 #include <memory>
 using std::shared_ptr;
@@ -59,10 +60,6 @@ public:
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute);
     void save_debug_image(string message);
-    void init_debug_image(string filename);
-    void add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke);
-    void add_debug_image(const vector<polygon_type>& geometries, double opacity);
-    void close_debug_image();
     void fill_outline(double linewidth);
     void add_mask(shared_ptr<Core> surface);
     void render(shared_ptr<VectorialLayerImporter> importer);
@@ -90,9 +87,8 @@ protected:
     
     shared_ptr<Surface_vectorial> mask;
 
-    std::ofstream *svg;
-    bg::svg_mapper<point_type_fp> *mapper;
-    bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2> *scale_geometry;
+    ofstream *svg;
+    bg::svg_mapper<point_type> *mapper;
 
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
@@ -102,6 +98,11 @@ protected:
     void mask_surface(shared_ptr<multi_polygon_type>& surface);
 
     static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
+
+    void init_debug_image(string filename, unsigned int pixel_per_in);
+    void add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke);
+    void add_debug_image(const vector<polygon_type>& geometries, double opacity);
+    void close_debug_image();
 };
 
 #endif // SURFACE_VECTORIAL_H
