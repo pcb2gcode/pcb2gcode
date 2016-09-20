@@ -26,6 +26,7 @@
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::flush;
 
 #include <sstream>
 using std::stringstream;
@@ -396,7 +397,7 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
 
     //g_assert(drillfront == true);       //WHY?
     //g_assert(mirror_absolute == false); //WHY?
-    cout << "Exporting drill... ";
+    cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
     tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n" +

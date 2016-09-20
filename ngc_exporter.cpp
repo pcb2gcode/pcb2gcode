@@ -24,6 +24,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 using std::cerr;
+using std::flush;
 using std::ios_base;
 using std::left;
 
@@ -111,15 +112,15 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
-        cerr << "Exporting " << layername << "... ";
+        cout << "Exporting " << layername << "... " << flush;
         export_layer(board->get_layer(layername), of_name);
-        cerr << "DONE." << " (Height: " << board->get_height() * cfactor
+        cout << "DONE." << " (Height: " << board->get_height() * cfactor
              << (bMetricoutput ? "mm" : "in") << " Width: "
              << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
              << ")";
         if (layername == "outline")
-            cerr << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
-        cerr << endl;
+            cout << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
+        cout << endl;
     }
 }
 

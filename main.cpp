@@ -28,6 +28,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::flush;
 using std::fstream;
 using std::shared_ptr;
 
@@ -164,7 +165,7 @@ int main(int argc, char* argv[])
 
     if (vm.count("preamble-text"))
     {
-        cout << "Importing preamble text... ";
+        cout << "Importing preamble text... " << flush;
         string name = vm["preamble-text"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
@@ -198,7 +199,7 @@ int main(int argc, char* argv[])
 
     if (vm.count("preamble"))
     {
-        cout << "Importing preamble... ";
+        cout << "Importing preamble... " << flush;
         string name = vm["preamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
@@ -219,7 +220,7 @@ int main(int argc, char* argv[])
 
     if (vm.count("postamble"))
     {
-        cout << "Importing postamble... ";
+        cout << "Importing postamble... " << flush;
         string name = vm["postamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
@@ -260,7 +261,7 @@ int main(int argc, char* argv[])
     {
 
         //-----------------------------------------------------------------------
-        cout << "Importing front side... ";
+        cout << "Importing front side... " << flush;
 
         try
         {
@@ -280,7 +281,7 @@ int main(int argc, char* argv[])
         }
 
         //-----------------------------------------------------------------------
-        cout << "Importing back side... ";
+        cout << "Importing back side... " << flush;
 
         try
         {
@@ -301,7 +302,7 @@ int main(int argc, char* argv[])
         }
 
         //-----------------------------------------------------------------------
-        cout << "Importing outline... ";
+        cout << "Importing outline... " << flush;
 
         try
         {
@@ -338,8 +339,9 @@ int main(int argc, char* argv[])
 
     try
     {
-
+        cout << "Processing input files... " << flush;
         board->createLayers();      // throws std::logic_error
+        cout << "DONE.\n";
 
         if (vm.count("svg"))
         {
@@ -383,7 +385,7 @@ int main(int argc, char* argv[])
     //---------------------------------------------------------------------------
     //load and process the drill file
 
-    cout << "Importing drill... ";
+    cout << "Importing drill... " << flush;
 
     try
     {
