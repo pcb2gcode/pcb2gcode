@@ -197,6 +197,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    save_debug_image("traced");
 
     return toolpath;
 }

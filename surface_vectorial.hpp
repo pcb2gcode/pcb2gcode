@@ -32,6 +32,8 @@ using std::map;
 using std::pair;
 using std::copy;
 using std::swap;
+
+#include <fstream>
 using std::ofstream;
 
 #include <memory>
@@ -80,15 +82,13 @@ protected:
     const ivalue_t height_in;
     const string name;
     const string outputdir;
+    static unsigned int debug_image_index;
 
     shared_ptr<multi_polygon_type> vectorial_surface;
     coordinate_type scale;
     box_type bounding_box;
     
     shared_ptr<Surface_vectorial> mask;
-
-    ofstream *svg;
-    bg::svg_mapper<point_type> *mapper;
 
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
@@ -98,11 +98,20 @@ protected:
     void mask_surface(shared_ptr<multi_polygon_type>& surface);
 
     static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
+};
 
-    void init_debug_image(string filename, unsigned int pixel_per_in);
-    void add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke);
-    void add_debug_image(const vector<polygon_type>& geometries, double opacity);
-    void close_debug_image();
+class svg_writer
+{
+public:
+    svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
+    void add(const multi_polygon_type& geometry, double opacity, bool stroke);
+    void add(const vector<polygon_type>& geometries, double opacity,
+        int r = -1, int g = -1, int b = -1);
+
+protected:
+    ofstream output_file;
+    bg::svg_mapper<point_type> mapper;
+    box_type bounding_box;
 };
 
 #endif // SURFACE_VECTORIAL_H

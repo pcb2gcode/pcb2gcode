@@ -37,6 +37,8 @@ using std::max;
 using std::max_element;
 using std::next;
 
+unsigned int Surface_vectorial::debug_image_index = 0;
+
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
                                         ivalue_t height,string name, string outputdir) :
     points_per_circle(points_per_circle),
@@ -81,11 +83,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bg::unique(*vectorial_surface);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
-    init_debug_image(name + ".svg", 2000);
+    const string traced_filename = (boost::format("outp%d_traced.svg") % debug_image_index++).str();
+    svg_writer debug_image(build_filename(outputdir, name + ".svg"), 2000, scale, bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), 2000, scale, bounding_box);
 
     srand(1);
-    add_debug_image(*voronoi, 0.3, false);
-    srand(1);
+    debug_image.add(*voronoi, 0.3, false);
 
     coordinate_type grow = mill->tool_diameter / 2 * scale;
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
@@ -95,19 +98,25 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
     bool contentions = false;
 
+    srand(1);
+
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+
         unique_ptr<vector<polygon_type> > polygons;
     
         polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1, mirror, mirror_axis);
 
-        add_debug_image(*polygons, 0.6);
+        debug_image.add(*polygons, 0.6, r, g, b);
+        traced_debug_image.add(*polygons, 1, r, g, b);
     }
 
     srand(1);
-    add_debug_image(*vectorial_surface, 1, true);
-    close_debug_image();
+    debug_image.add(*vectorial_surface, 1, true);
 
     if (contentions)
     {
@@ -135,74 +144,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
 void Surface_vectorial::save_debug_image(string message)
 {
-    static unsigned int debug_image_index = 0;
+    const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
+    svg_writer debug_image(build_filename(outputdir, filename), 2000, scale, bounding_box);
 
     srand(1);
-    init_debug_image((boost::format("outp%d_%s.svg") % debug_image_index % message).str(), 2000);
-    add_debug_image(*vectorial_surface, 1, true);
-    close_debug_image();
+    debug_image.add(*vectorial_surface, 1, true);
 
     ++debug_image_index;
-}
-
-void Surface_vectorial::init_debug_image(string filename, unsigned int pixel_per_in)
-{
-    const coordinate_type width = bounding_box.max_corner().x() - bounding_box.min_corner().x();
-    const coordinate_type height = bounding_box.max_corner().y() - bounding_box.min_corner().y();
-
-    svg = new ofstream(build_filename(outputdir, filename));
-    mapper = new bg::svg_mapper<point_type>(*svg, width * pixel_per_in / scale, height * pixel_per_in / scale);
-    mapper->add(bounding_box);
-}
-
-void Surface_vectorial::add_debug_image(const multi_polygon_type& geometry, double opacity, bool stroke)
-{
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-    for (const polygon_type& poly : geometry)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        multi_polygon_type mpoly;
-
-        bg::intersection(poly, bounding_box, mpoly);
-
-        mapper->map(mpoly,
-            str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);" + stroke_str) %
-            opacity % r % g % b));
-    }
-}
-
-void Surface_vectorial::add_debug_image(const vector<polygon_type>& geometries, double opacity)
-{
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
-
-    for (unsigned int i = geometries.size(); i != 0; i--)
-    {
-        multi_polygon_type mpoly;
-
-        bg::intersection(geometries[i - 1], bounding_box, mpoly);
-        
-        if (i == geometries.size())
-        {
-            mapper->map(mpoly,
-                str(boost::format("fill-opacity:%d;fill:rgb(%d,%d,%d);stroke:rgb(0,0,0);stroke-width:2") %
-                opacity % r % g % b));
-        }
-        else
-        {
-            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
-        }
-    }
-}
-
-void Surface_vectorial::close_debug_image()
-{
-    delete mapper;
-    delete svg;
 }
 
 void Surface_vectorial::group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings)
@@ -498,5 +446,62 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     }
 
     return polygons;
+}
+
+svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
+    output_file(filename),
+    mapper(output_file,
+        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * pixel_per_in / scale,
+        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * pixel_per_in / scale),
+    bounding_box(bounding_box)
+{
+    mapper.add(bounding_box);
+}
+
+void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
+{
+    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
+
+    for (const polygon_type& poly : geometry)
+    {
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+        multi_polygon_type mpoly;
+
+        bg::intersection(poly, bounding_box, mpoly);
+
+        mapper.map(mpoly,
+            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
+            opacity % r % g % b));
+    }
+}
+
+void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int r, int g, int b)
+{
+    if (r < 0 || g < 0 || b < 0)
+    {
+        r = rand() % 256;
+        g = rand() % 256;
+        b = rand() % 256;
+    }
+
+    for (unsigned int i = geometries.size(); i != 0; i--)
+    {
+        multi_polygon_type mpoly;
+
+        bg::intersection(geometries[i - 1], bounding_box, mpoly);
+
+        if (i == geometries.size())
+        {
+            mapper.map(mpoly,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
+                opacity % r % g % b));
+        }
+        else
+        {
+            mapper.map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
+        }
+    }
 }
 
