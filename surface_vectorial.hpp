@@ -110,8 +110,8 @@ public:
 
 protected:
     ofstream output_file;
-    bg::svg_mapper<point_type> mapper;
     box_type bounding_box;
+    unique_ptr<bg::svg_mapper<point_type> > mapper;
 };
 
 #endif // SURFACE_VECTORIAL_H

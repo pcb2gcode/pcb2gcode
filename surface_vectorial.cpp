@@ -450,12 +450,20 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
-    mapper(output_file,
-        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * pixel_per_in / scale,
-        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * pixel_per_in / scale),
     bounding_box(bounding_box)
 {
-    mapper.add(bounding_box);
+    const coordinate_type width =
+        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * pixel_per_in / scale;
+    const coordinate_type height =
+        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * pixel_per_in / scale;
+
+    //Some SVG readers does not behave well when viewBox is not specified
+    const string svg_dimensions =
+        str(boost::format("width=\"100%%\" height=\"100%%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+
+    mapper = unique_ptr<bg::svg_mapper<point_type> >
+        (new bg::svg_mapper<point_type>(output_file, width, height, svg_dimensions));
+    mapper->add(bounding_box);
 }
 
 void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
@@ -471,7 +479,7 @@ void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool st
 
         bg::intersection(poly, bounding_box, mpoly);
 
-        mapper.map(mpoly,
+        mapper->map(mpoly,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
     }
@@ -494,13 +502,13 @@ void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int
 
         if (i == geometries.size())
         {
-            mapper.map(mpoly,
+            mapper->map(mpoly,
                 str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
                 opacity % r % g % b));
         }
         else
         {
-            mapper.map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
+            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
         }
     }
 }
