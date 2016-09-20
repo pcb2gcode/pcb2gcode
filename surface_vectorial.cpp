@@ -459,7 +459,7 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
 
     //Some SVG readers does not behave well when viewBox is not specified
     const string svg_dimensions =
-        str(boost::format("width=\"100%%\" height=\"100%%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
 
     mapper = unique_ptr<bg::svg_mapper<point_type> >
         (new bg::svg_mapper<point_type>(output_file, width, height, svg_dimensions));
