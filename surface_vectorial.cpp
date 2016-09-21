@@ -83,8 +83,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bg::unique(*vectorial_surface);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
-    const string traced_filename = (boost::format("outp%d_traced.svg") % debug_image_index++).str();
-    svg_writer debug_image(build_filename(outputdir, name + ".svg"), 2000, scale, bounding_box);
+    const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), 2000, scale, bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), 2000, scale, bounding_box);
 
     srand(1);

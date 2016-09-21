@@ -61,10 +61,11 @@ using std::endl;
  */
 /******************************************************************************/
 Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-                 ivalue_t max_y, string outputdir) :
+                 ivalue_t max_y, string name, string outputdir) :
     dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
         -min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
-            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin), outputdir(outputdir), clr(32)
+            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin),
+                name(name), outputdir(outputdir), clr(32)
 {
     guint8* pixels;
     int stride;
@@ -197,7 +198,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
-    save_debug_image("traced");
+    save_debug_image("traced_" + name);
 
     return toolpath;
 }

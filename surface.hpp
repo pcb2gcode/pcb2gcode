@@ -54,7 +54,7 @@ class Surface: public Core, virtual public boost::noncopyable
 {
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-            ivalue_t max_y, string outputdir);
+            ivalue_t max_y, string name, string outputdir);
     void render(shared_ptr<RasterLayerImporter> importer)
     throw (import_exception);
 
@@ -87,6 +87,7 @@ protected:
     const ivalue_t dpi;
     const ivalue_t min_x, max_x, min_y, max_y;
     const int zero_x, zero_y;
+    const string name;
     const string outputdir;
 
     void make_the_surface(unsigned int width, unsigned int height);

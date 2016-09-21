@@ -173,7 +173,8 @@ void Board::createLayers()
         {
             if (dynamic_pointer_cast<RasterLayerImporter>(importer))
             {
-                shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y, outputdir));   
+                shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
+                                                        it->first, outputdir));
                 surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
 
                 shared_ptr<Layer> layer(new Layer(it->first,
@@ -211,7 +212,7 @@ void Board::createLayers()
             if (it->second != outline_layer)
             {
                 it->second->add_mask(outline_layer);
-                it->second->surface->save_debug_image("masked");
+                it->second->surface->save_debug_image(string("masked_") + it->second->get_name());
             }
         }
     }
