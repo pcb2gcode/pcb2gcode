@@ -76,6 +76,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
                                             max(width_in, height_in) * scale * 10);
     coordinate_type tolerance = mill->tolerance * scale;
+    coordinate_type grow = mill->tool_diameter / 2 * scale;
+
+    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    const int extra_passes = isolator ? isolator->extra_passes : 0;
 
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
@@ -83,16 +87,20 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bg::unique(*vectorial_surface);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
+    box_type svg_bounding_box;
+
+    if (grow > 0)
+        bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
+    else
+        bg::assign(svg_bounding_box, bounding_box);
+
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), 2000, scale, bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), 2000, scale, bounding_box);
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), 2000, scale, svg_bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), 2000, scale, svg_bounding_box);
 
     srand(1);
     debug_image.add(*voronoi, 0.3, false);
 
-    coordinate_type grow = mill->tool_diameter / 2 * scale;
-    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
-    const int extra_passes = isolator ? isolator->extra_passes : 0;
     const coordinate_type mirror_axis = mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
@@ -238,27 +246,19 @@ void Surface_vectorial::fill_outline(double linewidth)
            bg::strategy::buffer::point_circle(30));
 }
 
-void Surface_vectorial::mask_surface(shared_ptr<multi_polygon_type>& surface)
-{
-    if (mask)
-    {
-        auto masked_surface = make_shared<multi_polygon_type>();
-
-        bg::intersection(*surface, *(mask->vectorial_surface), *masked_surface);
-        surface = masked_surface;
-    }
-}
-
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 {
     mask = dynamic_pointer_cast<Surface_vectorial>(surface);
 
-    /*
-     * We could mask it only once later, after the buffering, but if we can
-     * remove some polygons here, the following operations will be faster.
-     */
     if (mask)
-        mask_surface(vectorial_surface);
+    {
+        auto masked_surface = make_shared<multi_polygon_type>();
+
+        bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_surface);
+        vectorial_surface = masked_surface;
+
+        bg::envelope(*vectorial_surface, bounding_box);
+    }
     else
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
@@ -353,8 +353,6 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::point_circle(30));
 
             bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
-
-            mask_surface(mpoly);
 
             (*polygons)[i] = (*mpoly)[0];
 

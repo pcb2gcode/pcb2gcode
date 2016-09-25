@@ -95,8 +95,6 @@ protected:
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps, bool mirror, ivalue_t mirror_axis);
 
-    void mask_surface(shared_ptr<multi_polygon_type>& surface);
-
     static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
 };
 
