@@ -95,8 +95,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         bg::assign(svg_bounding_box, bounding_box);
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), 2000, scale, svg_bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), 2000, scale, svg_bounding_box);
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
     debug_image.add(*voronoi, 0.3, false);
@@ -153,7 +153,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 void Surface_vectorial::save_debug_image(string message)
 {
     const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
-    svg_writer debug_image(build_filename(outputdir, filename), 2000, scale, bounding_box);
+    svg_writer debug_image(build_filename(outputdir, filename), SVG_PIX_PER_IN, scale, bounding_box);
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);

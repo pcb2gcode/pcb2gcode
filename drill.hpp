@@ -88,8 +88,8 @@ public:
     void add_header(string);
     void set_preamble(string);
     void set_postamble(string);
-    void export_ngc(const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
-    void export_ngc(const string of_name, shared_ptr<Cutter> target);
+    void export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
+    void export_ngc(const string of_dir, const string of_name,shared_ptr<Cutter> target);
 
     shared_ptr< map<int, drillbit> > get_bits();
     shared_ptr< map<int, icoords> > get_holes();
@@ -104,10 +104,10 @@ private:
     shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
 
-    const ivalue_t board_width;
-    const ivalue_t board_height;
-    const ivalue_t board_center;
-    const ivalue_t board_minx;
+    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, icoords> > holes, const string of_dir);
+
+    const box_type_fp board_dimensions;
+    const ivalue_t board_center_x;
 
     shared_ptr<map<int, drillbit> > bits;
     shared_ptr<map<int, icoords> > holes;

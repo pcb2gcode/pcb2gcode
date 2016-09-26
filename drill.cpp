@@ -21,6 +21,8 @@
  */
  
 #include <fstream>
+using std::ofstream;
+
 #include <cstring>
 
 #include <iostream>
@@ -37,6 +39,9 @@ using std::fixed;
 
 #include <boost/format.hpp>
 using boost::format;
+
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
 
 #include "drill.hpp"
 #include "tsp_solver.hpp"
@@ -59,10 +64,9 @@ using std::left;
 ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map& options,
                                      const icoordpair min,
                                      const icoordpair max)
-    : board_width(max.first - min.first),
-      board_height(max.second - min.second),
-      board_center(min.first + board_width / 2),
-      board_minx(min.first),
+    : board_dimensions(point_type_fp(min.first, min.second),
+                        point_type_fp(max.first, max.second)),
+      board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
@@ -71,7 +75,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       ocodes(1),
       globalVars(100),
-      tileInfo( Tiling::generateTileInfo( options, ocodes, board_height, board_width ) )
+      tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
 {
 
     project = gerbv_create_project();
@@ -141,7 +145,6 @@ void ExcellonProcessor::add_header(string header)
 /******************************************************************************/
 double ExcellonProcessor::get_xvalue(double xvalue)
 {
-
     double retval;
 
     if (drillfront)        //drill from the front, no calculation needed
@@ -152,11 +155,11 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     {
         if (mirror_absolute)        //drill from back side, mirrored along y-axis
         {
-            retval = (2 * board_minx - xvalue);
+            retval = (2 * board_dimensions.min_corner().x() - xvalue);
         }
         else          //drill from back side, mirrored along board center
         {
-            retval = (2 * board_center - xvalue);
+            retval = (2 * board_center_x - xvalue);
         }
     }
 
@@ -174,7 +177,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
        2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
 {
     double xoffsetTot;
     double yoffsetTot;
@@ -189,7 +192,7 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
 
     //open output file
     std::ofstream of;
-    of.open(of_name.c_str());
+    of.open(build_filename(of_dir, of_dir));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
@@ -296,6 +299,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
     of << tiling->getGCodeEnd();
     
     of.close();
+
+    save_svg(bits, holes, of_dir);
 }
 
 /******************************************************************************/
@@ -358,7 +363,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
  mill larger holes by using a smaller mill-head
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> target)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, shared_ptr<Cutter> target)
 {
     unsigned int badHoles = 0;
     double xoffsetTot;
@@ -376,7 +381,7 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
 
     // open output file
     std::ofstream of;
-    of.open(outputname.c_str());
+    of.open(build_filename(of_dir, of_dir));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
@@ -457,6 +462,39 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
         badHoles /= tileInfo.tileX * tileInfo.tileY;    //Don't count the same bad hole multiple times
         cerr << "Warning: " << badHoles << ( badHoles == 1 ? " hole was" : " holes were" )
              << " bigger than the milling tool." << endl;
+    }
+
+    save_svg(bits, holes, of_dir);
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, icoords> > holes, const string of_dir)
+{
+    const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
+    const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
+
+    //Some SVG readers does not behave well when viewBox is not specified
+    const string svg_dimensions =
+        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+
+    ofstream svg_out (build_filename(of_dir, "original_drill.svg"));
+    bg::svg_mapper<point_type_fp> mapper (svg_out, width, height, svg_dimensions);
+
+    mapper.add(board_dimensions);
+
+    for (const pair<int, drillbit>& bit : *bits)
+    {
+        const icoords drills = holes->at(bit.first);
+        const double radius = bit.second.unit == "mm" ?
+                              (bit.second.diameter / 25.8) / 2 : bit.second.diameter / 2;
+
+        for (const icoordpair& hole : drills)
+        {
+            mapper.map(hole, "", radius * SVG_PIX_PER_IN);
+        }
     }
 }
 

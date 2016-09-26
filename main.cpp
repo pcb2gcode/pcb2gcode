@@ -417,11 +417,11 @@ int main(int argc, char* argv[])
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
                 }
-                ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()), cutter);
+                ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter);
             }
             else
             {
-                ep.export_ngc( build_filename(outputdir, vm["drill-output"].as<string>()),
+                ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
                                driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
             }
 
