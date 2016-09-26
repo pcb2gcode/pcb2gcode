@@ -192,7 +192,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
 
     //open output file
     std::ofstream of;
-    of.open(build_filename(of_dir, of_dir));
+    of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
@@ -381,7 +381,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
 
     // open output file
     std::ofstream of;
-    of.open(build_filename(of_dir, of_dir));
+    of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
     shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
