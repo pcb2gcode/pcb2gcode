@@ -90,6 +90,11 @@ public:
     void set_postamble(string);
     void export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
     void export_ngc(const string of_dir, const string of_name,shared_ptr<Cutter> target);
+    
+    inline void export_svg(const string of_dir)
+    {
+        save_svg(get_bits(), get_holes(), of_dir);
+    }
 
     shared_ptr< map<int, drillbit> > get_bits();
     shared_ptr< map<int, icoords> > get_holes();

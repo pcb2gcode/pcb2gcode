@@ -371,47 +371,51 @@ int main(int argc, char* argv[])
     //---------------------------------------------------------------------------
     //load and process the drill file
 
-    if (!vm["no-export"].as<bool>())
+    cout << "Importing drill... " << flush;
+
+    try
     {
-        cout << "Importing drill... " << flush;
+        icoordpair min;
+        icoordpair max;
 
-        try
+        //Check if there are layers in "board"; if not, we have to compute
+        //the size of the board now, based only on the size of the drill layer
+        //(the resulting drill gcode will be probably misaligned, but this is the
+        //best we can do)
+        if(board->get_layersnum() == 0)
         {
-            icoordpair min;
-            icoordpair max;
+            shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
+            min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
+            max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
+        }
+        else
+        {
+            min = std::make_pair( board->get_min_x(), board->get_min_y() );
+            max = std::make_pair( board->get_max_x(), board->get_max_y() );
+        }
 
-            //Check if there are layers in "board"; if not, we have to compute
-            //the size of the board now, based only on the size of the drill layer
-            //(the resulting drill gcode will be probably misaligned, but this is the
-            //best we can do)
-            if(board->get_layersnum() == 0)
-            {
-                shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
-                min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
-                max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
-            }
-            else
-            {
-                min = std::make_pair( board->get_min_x(), board->get_min_y() );
-                max = std::make_pair( board->get_max_x(), board->get_max_y() );
-            }
+        ExcellonProcessor ep(vm, min, max);
 
-            ExcellonProcessor ep(vm, min, max);
+        ep.add_header(PACKAGE_STRING);
 
-            ep.add_header(PACKAGE_STRING);
+        if (vm.count("preamble") || vm.count("preamble-text"))
+        {
+            ep.set_preamble(preamble);
+        }
 
-            if (vm.count("preamble") || vm.count("preamble-text"))
-            {
-                ep.set_preamble(preamble);
-            }
+        if (vm.count("postamble"))
+        {
+            ep.set_postamble(postamble);
+        }
 
-            if (vm.count("postamble"))
-            {
-                ep.set_postamble(postamble);
-            }
+        cout << "DONE.\n";
 
-            cout << "DONE.\n";
-
+        if (vm["no-export"].as<bool>())
+        {
+            ep.export_svg(outputdir);
+        }
+        else
+        {
             if (vm["milldrill"].as<bool>())
             {
                 if (vm.count("milldrill-diameter")) {
@@ -426,20 +430,20 @@ int main(int argc, char* argv[])
             }
 
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
+        }
 
-        }
-        catch (drill_exception& e)
-        {
-            cout << "ERROR.\n";
-        }
-        catch (import_exception& i)
-        {
-            cout << "ERROR.\n";
-        }
-        catch (boost::exception& e)
-        {
-            cout << "not specified.\n";
-        }
+    }
+    catch (drill_exception& e)
+    {
+        cout << "ERROR.\n";
+    }
+    catch (import_exception& i)
+    {
+        cout << "ERROR.\n";
+    }
+    catch (boost::exception& e)
+    {
+        cout << "not specified.\n";
     }
 
     cout << "END." << endl;
