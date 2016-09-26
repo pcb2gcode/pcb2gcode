@@ -74,7 +74,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       tileInfo( Tiling::generateTileInfo( options, ocodes, board_height, board_width ) )
 {
 
-    bDoSVG = false;      //clear flag for SVG export
     project = gerbv_create_project();
 
     const char* cfilename = options["drill"].as<string>().c_str();
@@ -120,16 +119,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 ExcellonProcessor::~ExcellonProcessor()
 {
     gerbv_destroy_project(project);
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void ExcellonProcessor::set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo)
-{
-    this->svgexpo = svgexpo;
-    bDoSVG = true;
 }
 
 /******************************************************************************/
@@ -187,13 +176,9 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
 {
-    ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
     double xoffsetTot;
     double yoffsetTot;
     stringstream zchange;
-
-    //SVG EXPORTER
-    int rad = 1.;
 
     cout << "Exporting drill... ";
 
@@ -282,15 +267,6 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
                 //coord_iter->first = x-coorinate (top view)
                 //coord_iter->second =y-coordinate (top view)
 
-                //SVG EXPORTER
-                if (bDoSVG)
-                {
-                    svgexpo->set_rand_color();      //set a random color
-                    svgexpo->circle((double_mirror_axis - coord_iter->first),
-                                    coord_iter->second, rad);      //draw first circle
-                    svgexpo->stroke();
-                }
-
                 while (coord_iter != drill_coords.end())
                 {
                     if( nog81 )
@@ -308,13 +284,7 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
                            * cfactor
                            << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
                     }
-                    //SVG EXPORTER
-                    if (bDoSVG)
-                    {
-                        svgexpo->circle((double_mirror_axis - coord_iter->first),
-                                        coord_iter->second, rad);      //make a whole
-                        svgexpo->stroke();
-                    }
+
                     ++coord_iter;
                 }
             }

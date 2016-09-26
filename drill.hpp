@@ -53,7 +53,6 @@ class drill_exception: virtual std::exception, virtual boost::exception
 };
 
 #include "mill.hpp"
-#include "svg_exporter.hpp"
 #include "tile.hpp"
 #include "unique_codes.hpp"
 
@@ -91,7 +90,6 @@ public:
     void set_postamble(string);
     void export_ngc(const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
     void export_ngc(const string of_name, shared_ptr<Cutter> target);
-    void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
 
     shared_ptr< map<int, drillbit> > get_bits();
     shared_ptr< map<int, icoords> > get_holes();
@@ -110,8 +108,7 @@ private:
     const ivalue_t board_height;
     const ivalue_t board_center;
     const ivalue_t board_minx;
-    bool bDoSVG;            //Flag to indicate SVG output
-    shared_ptr<SVG_Exporter> svgexpo;
+
     shared_ptr<map<int, drillbit> > bits;
     shared_ptr<map<int, icoords> > holes;
     gerbv_project_t* project;

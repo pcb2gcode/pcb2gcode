@@ -47,7 +47,6 @@ using Glib::build_filename;
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
-#include "svg_exporter.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -331,10 +330,6 @@ int main(int argc, char* argv[])
             std::cerr << "Import Error: No reason given.";
     }
 
-    //---------------------------------------------------------------------------
-    //SVG EXPORTER
-
-    shared_ptr<SVG_Exporter> svgexpo(new SVG_Exporter(board));
     Tiling::TileInfo *tileInfo = NULL;
 
     try
@@ -345,12 +340,6 @@ int main(int argc, char* argv[])
 
         if (!vm["no-export"].as<bool>())
         {
-            if (vm.count("svg"))
-            {
-                cout << "Create SVG File ... " << vm["svg"].as<string>() << endl;
-                svgexpo->create_svg( build_filename(outputdir, vm["svg"].as<string>()) );
-            }
-
             shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
             exporter->add_header(PACKAGE_STRING);
 
@@ -362,12 +351,6 @@ int main(int argc, char* argv[])
             if (vm.count("postamble"))
             {
                 exporter->set_postamble(postamble);
-            }
-
-            //SVG EXPORTER
-            if (vm.count("svg"))
-            {
-                exporter->set_svg_exporter(svgexpo);
             }
 
             exporter->export_all(vm);
@@ -425,12 +408,6 @@ int main(int argc, char* argv[])
             if (vm.count("postamble"))
             {
                 ep.set_postamble(postamble);
-            }
-
-            //SVG EXPORTER
-            if (vm.count("svg"))
-            {
-                ep.set_svg_exporter(svgexpo);
             }
 
             cout << "DONE.\n";

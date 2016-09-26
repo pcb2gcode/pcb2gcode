@@ -42,7 +42,6 @@ using std::dynamic_pointer_cast;
 #include "geometry.hpp"
 #include "mill.hpp"
 #include "exporter.hpp"
-#include "svg_exporter.hpp"
 #include "unique_codes.hpp"
 #include "autoleveller.hpp"
 #include "common.hpp"
@@ -59,7 +58,6 @@ public:
     /* virtual void add_path( vector< shared_ptr<icoords> > ); */
     void add_header(string);
     void export_all(boost::program_options::variables_map&);
-    void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
     void set_preamble(string);
     void set_postamble(string);
     inline Tiling::TileInfo getTileInfo()
@@ -75,8 +73,6 @@ protected:
                ( (p0->second == p1->second) && (p1->second == p2->second) );    //y-aligned
     }
 
-    bool bDoSVG;            //if true, export svg
-    shared_ptr<SVG_Exporter> svgexpo;
     shared_ptr<Board> board;
     vector<string> header;
     string preamble;        //Preamble from command line (user file)

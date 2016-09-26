@@ -48,18 +48,8 @@ NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
       quantization_error( 2.0 / dpi ), ocodes(1), globalVars(100)
 {
     this->board = board;
-    bDoSVG = false;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void NGC_Exporter::set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo)
-{
-    this->svgexpo = svgexpo;
-    bDoSVG = true;
-}
 /******************************************************************************/
 /*
  */
@@ -132,7 +122,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    bool bSvgOnce = TRUE;
     bool bAutolevelNow;
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
@@ -212,13 +201,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     
     tiling.header( of );
 
-    //SVG EXPORTER
-    if (bDoSVG)
-    {
-        //choose a color
-        svgexpo->set_rand_color();
-    }
-
     for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
     {
         yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -238,13 +220,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
                 of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
                    << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
-
-                //SVG EXPORTER
-                if (bDoSVG)
-                {
-                    svgexpo->move_to(path->begin()->first, path->begin()->second);
-                    bSvgOnce = TRUE;
-                }
 
                 /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
                  * i know this is partially repetitive, but this way it's easier to read
@@ -289,11 +264,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                             {
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                    << ( iter->second - yoffsetTot ) * cfactor << '\n';
-                                if (bDoSVG)
-                                {
-                                    if (bSvgOnce)
-                                        svgexpo->line_to(iter->first, iter->second);
-                                }
 
                                 if (bBridges && currentBridge != bridges.end())
                                 {
@@ -315,12 +285,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                             last = iter;
                             ++iter;
-                        }
-                        //SVG EXPORTER
-                        if (bDoSVG)
-                        {
-                            svgexpo->close_path();
-                            bSvgOnce = FALSE;
                         }
                     }
                 }
@@ -363,20 +327,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                             else
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                    << ( iter->second - yoffsetTot ) * cfactor << '\n';
-                            //SVG EXPORTER
-                            if (bDoSVG)
-                                if (bSvgOnce)
-                                    svgexpo->line_to(iter->first, iter->second);
                         }
 
                         last = iter;
                         ++iter;
-                    }
-                    //SVG EXPORTER
-                    if (bDoSVG)
-                    {
-                        svgexpo->close_path();
-                        bSvgOnce = FALSE;
                     }
                 }
             }
@@ -391,12 +345,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of.close();
-
-    //SVG EXPORTER
-    if (bDoSVG)
-    {
-        svgexpo->stroke();
-    }
 }
 
 /******************************************************************************/

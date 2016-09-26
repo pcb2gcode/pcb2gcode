@@ -5,8 +5,6 @@ bin_PROGRAMS = pcb2gcode
 pcb2gcode_SOURCES = \
     autoleveller.hpp \
     autoleveller.cpp \
-    svg_exporter.hpp \
-    svg_exporter.cpp \
     board.hpp \
     board.cpp \
     common.hpp \

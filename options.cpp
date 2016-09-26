@@ -216,7 +216,7 @@ options::options()
             "back", po::value<string>(), "back side RS274-X .gbr")(
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
-            "svg", po::value<string>(), "SVG output file. EXPERIMENTAL")(
+            "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
@@ -336,6 +336,14 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "tolerance can't be negative!\n";
             exit(ERR_NEGATIVETOLERANCE);
         }
+    }
+    
+    //---------------------------------------------------------------------------
+    //Check svg parameter:
+
+    if (vm.count("svg"))
+    {
+        cerr << "--svg is deprecated and has no effect anymore, use --vectorial to generate SVGs.\n";
     }
 
     //---------------------------------------------------------------------------
