@@ -184,7 +184,7 @@ void GerberImporter::draw_regular_polygon(point_type center, coordinate_type dia
     if (hole_diameter > 0)
     {
         polygon.inners().resize(1);
-        draw_regular_polygon(center, diameter, circle_points, 0, false, polygon.inners().front());
+        draw_regular_polygon(center, hole_diameter, circle_points, 0, false, polygon.inners().front());
     }
 }
 
@@ -195,9 +195,9 @@ void GerberImporter::draw_rectangle(point_type center, coordinate_type width, co
     const coordinate_type y = center.y();
 
     polygon.outer().push_back(point_type(x - width / 2, y - height / 2));
-    polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
-    polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
     polygon.outer().push_back(point_type(x - width / 2, y + height / 2));
+    polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
+    polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
     polygon.outer().push_back(polygon.outer().front());
     
     if (hole_diameter != 0)
@@ -517,8 +517,8 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
 
     for (unsigned int i = 0; i < parameters[5]; i++)
     {
-        const double external_diameter = parameters[2] - (parameters[3] + parameters[4]) * i;
-        double internal_diameter = external_diameter - parameters[3];
+        const double external_diameter = parameters[2] - 2 * (parameters[3] + parameters[4]) * i;
+        double internal_diameter = external_diameter - 2 * parameters[3];
         polygon_type poly;
 
         if (external_diameter <= 0)
@@ -548,9 +548,9 @@ void GerberImporter::draw_thermal(point_type center, coordinate_type external_di
     
     draw_regular_polygon(center, external_diameter, circle_points,
                             0, internal_diameter, circle_points, ring);
-    
-    draw_rectangle(center, gap_width, external_diameter + 1, 0, 0, rect1);
-    draw_rectangle(center, external_diameter + 1, gap_width, 0, 0, rect2);
+
+    draw_rectangle(center, gap_width, 2 * external_diameter, 0, 0, rect1);
+    draw_rectangle(center, 2 * external_diameter, gap_width, 0, 0, rect2);
     bg::union_(rect1, rect2, cross);
     bg::difference(ring, cross, output);
 }
