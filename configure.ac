@@ -10,7 +10,7 @@ AC_CONFIG_AUX_DIR([m4])
 
 AM_SILENT_RULES([yes])
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 # Checks for programs.
 AC_PROG_CXX

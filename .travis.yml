@@ -44,7 +44,7 @@ matrix:
       env: COMPILER=clang++
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget https://sourceforge.net/projects/pcb2gcode/files/pcb2gcode/boost_1_56_0_amd64.tar.gz && tar -xf boost_1_56_0_amd64.tar.gz && export BOOST_DIR=$PWD/boost_1_56_0_amd64; fi
 
 install:

@@ -91,7 +91,7 @@ Then follow the [common build steps](#commonbuild)
 
 #### Common build steps<a name="commonbuild"></a>
 
-    $ autoreconf -i
+    $ autoreconf -fvi
     $ ./configure
     $ make
     $ sudo make install
@@ -122,7 +122,7 @@ Finally, download and build pcb2gcode
     $ cd ..
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode/
-    $ autoreconf -i
+    $ autoreconf -fvi
     $ ./configure --prefix=/mingw32
     $ make LDFLAGS='-s'
 
