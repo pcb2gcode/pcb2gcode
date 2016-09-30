@@ -60,7 +60,7 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
-    feedrate( boost::lexical_cast<string>( options["al-probefeed"].as<double>() * unitconv ) ),
+    feedrate( std::to_string( options["al-probefeed"].as<double>() * unitconv ) ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
