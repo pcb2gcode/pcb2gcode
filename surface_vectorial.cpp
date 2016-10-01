@@ -257,7 +257,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_surface);
         vectorial_surface = masked_surface;
 
-        bg::envelope(*vectorial_surface, bounding_box);
+        bg::envelope(*(mask->vectorial_surface), bounding_box);
     }
     else
         throw std::logic_error("Can't cast Core to Surface_vectorial");
