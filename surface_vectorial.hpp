@@ -62,7 +62,7 @@ public:
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror, bool mirror_absolute);
     void save_debug_image(string message);
-    void fill_outline(double linewidth);
+    void enable_filling();
     void add_mask(shared_ptr<Core> surface);
     void render(shared_ptr<VectorialLayerImporter> importer);
     
@@ -84,6 +84,8 @@ protected:
     const string outputdir;
     static unsigned int debug_image_index;
 
+    bool fill;
+
     shared_ptr<multi_polygon_type> vectorial_surface;
     coordinate_type scale;
     box_type bounding_box;
@@ -94,8 +96,6 @@ protected:
                             const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps, bool mirror, ivalue_t mirror_axis);
-
-    static void group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings);
 };
 
 class svg_writer

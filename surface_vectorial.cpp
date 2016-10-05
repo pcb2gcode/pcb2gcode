@@ -40,12 +40,13 @@ using std::next;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
-                                        ivalue_t height,string name, string outputdir) :
+                                        ivalue_t height, string name, string outputdir) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
     name(name),
-    outputdir(outputdir)
+    outputdir(outputdir),
+    fill(false)
 {
 
 }
@@ -55,7 +56,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     unique_ptr<multi_polygon_type> vectorial_surface_not_simplified;
 
     vectorial_surface = make_shared<multi_polygon_type>();
-    vectorial_surface_not_simplified = importer->render(points_per_circle);
+    vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
     if (bg::intersects(*vectorial_surface_not_simplified))
         throw std::logic_error("Input geometry is self-intersecting");
@@ -161,89 +162,9 @@ void Surface_vectorial::save_debug_image(string message)
     ++debug_image_index;
 }
 
-void Surface_vectorial::group_rings(list<ring_type *> rings, vector<pair<ring_type *, vector<ring_type *> > >& grouped_rings)
+void Surface_vectorial::enable_filling()
 {
-    map<const ring_type *, coordinate_type> areas;
-    auto compare_2nd = [&](const ring_type *a, const ring_type *b) { return areas.at(a) < areas.at(b); };
-
-    for (const ring_type *ring : rings)
-        areas[ring] = coordinate_type(bg::area(*ring));
-
-    while (!rings.empty())
-    {
-        grouped_rings.resize(grouped_rings.size() + 1);
-        
-        auto biggest_ring = max_element(rings.begin(), rings.end(), compare_2nd);
-        pair<ring_type *, vector<ring_type *> >& current_ring = grouped_rings.back();
-        forward_list<list<ring_type *>::iterator> to_be_removed_rings;
-
-        current_ring.first = *biggest_ring;
-        rings.erase(biggest_ring);
-
-        for (auto i = rings.begin(); i != rings.end(); i++)
-        {
-            if (bg::covered_by(**i, **biggest_ring))
-            {
-                list<ring_type *>::iterator j;
-            
-                for (j = rings.begin(); j != rings.end(); j++)
-                    if (*i != *j && bg::covered_by(**i, **j))
-                            break;
-
-                if (j == rings.end())
-                {
-                    current_ring.second.push_back(*i);
-                    to_be_removed_rings.push_front(i);
-                }
-            }
-        }
-        
-        for (auto i : to_be_removed_rings)
-            rings.erase(i);
-    }
-}
-
-void Surface_vectorial::fill_outline(double linewidth)
-{
-    map<const ring_type *, const polygon_type *> rings_map;
-    vector<pair<ring_type *, vector<ring_type *> > > grouped_rings;
-    list<ring_type *> rings;
-    multi_polygon_type filled_outline;
-
-    for (polygon_type& polygon : *vectorial_surface)
-    {
-        rings.push_back(&(polygon.outer()));
-        rings_map[&(polygon.outer())] = &polygon;
-    }
-
-    group_rings(rings, grouped_rings);
-    filled_outline.resize(grouped_rings.size());
-
-    for (unsigned int i = 0; i < grouped_rings.size(); i++)
-    {
-        const polygon_type *outer_polygon = rings_map.at(grouped_rings[i].first);
-
-        filled_outline[i].outer() = outer_polygon->outer();
-
-        for (ring_type* ring : grouped_rings[i].second)
-        {
-            const vector<ring_type>& inners = rings_map.at(ring)->inners();
-
-            if (!inners.empty())
-                filled_outline[i].inners().push_back(inners.front());
-            else
-                filled_outline[i].inners().push_back(rings_map[ring]->outer());
-        }
-    }
-
-    vectorial_surface->clear();
-
-    bg::buffer(filled_outline, *vectorial_surface,
-           bg::strategy::buffer::distance_symmetric<coordinate_type>(-linewidth * scale / 2),
-           bg::strategy::buffer::side_straight(),
-           bg::strategy::buffer::join_round(points_per_circle),
-           bg::strategy::buffer::end_flat(),
-           bg::strategy::buffer::point_circle(30));
+    fill = true;
 }
 
 void Surface_vectorial::add_mask(shared_ptr<Core> surface)

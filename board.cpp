@@ -148,6 +148,7 @@ void Board::createLayers()
     {
         // prepare the surface
         shared_ptr<LayerImporter> importer = get<0>(it->second);
+        const bool fill = fill_outline && it->first == "outline";
 
         if (vectorial)
         {
@@ -156,6 +157,9 @@ void Board::createLayers()
                 shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
                                                                             max_y - min_y,
                                                                             it->first, outputdir));
+                if (fill)
+                    surface->enable_filling();
+
                 surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
 
                 shared_ptr<Layer> layer(new Layer(it->first,
@@ -175,6 +179,9 @@ void Board::createLayers()
             {
                 shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
                                                         it->first, outputdir));
+                if (fill)
+                    surface->enable_filling(outline_width);
+
                 surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
 
                 shared_ptr<Layer> layer(new Layer(it->first,
@@ -200,12 +207,6 @@ void Board::createLayers()
     if (prepared_layers.find("outline") != prepared_layers.end())
     {
         shared_ptr<Layer> outline_layer = layers.at("outline");
-
-        if (fill_outline)
-        {
-            outline_layer->surface->fill_outline(outline_width);
-            outline_layer->surface->save_debug_image("outline_filled");
-        }
 
         for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++)
         {

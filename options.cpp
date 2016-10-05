@@ -231,7 +231,7 @@ options::options()
             "nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")(
             "extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")(
             "fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")(
-            "outline-width", po::value<double>(), "width of the outline")(
+            "outline-width", po::value<double>(), "width of the outline, used only when vectorial is disabled")(
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
             "zcut", po::value<double>(), "PCB cutting depth in inches")(
             "cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")(
@@ -619,7 +619,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
     //only check the parameters if an outline file is given or milldrill is enabled
     if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
     {
-        if (vm["fill-outline"].as<bool>())
+        if (vm["fill-outline"].as<bool>() && !vm["vectorial"].as<bool>())
         {
             if (!vm.count("outline-width"))
             {
@@ -634,7 +634,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
                     cerr << "Error: Specified outline width is less than zero!\n";
                     exit(ERR_NEGATIVEOUTLINEWIDTH);
                 }
-                else if (outline_width == 0 && !vm["vectorial"].as<bool>())
+                else if (outline_width == 0)
                 {
                     cerr << "Error. Specified outline width is zero!\n";
                     exit(ERR_ZEROOUTLINEWIDTH);

@@ -76,7 +76,7 @@ public:
     ;
 
     void add_mask(shared_ptr<Core>);
-    void fill_outline(double linewidth);
+    void enable_filling(double linewidth);
 
 protected:
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
@@ -90,7 +90,11 @@ protected:
     const string name;
     const string outputdir;
 
+    bool fill;
+    double linewidth;
+
     void make_the_surface(unsigned int width, unsigned int height);
+    void fill_outline();
 
     // Image Processing Methods
 

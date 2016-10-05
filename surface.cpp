@@ -65,7 +65,7 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
     dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
         -min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
             -min_y * (ivalue_t) dpi + (ivalue_t) procmargin),
-                name(name), outputdir(outputdir), clr(32)
+                name(name), outputdir(outputdir), fill(false), clr(32)
 {
     guint8* pixels;
     int stride;
@@ -97,6 +97,9 @@ throw (import_exception)
     importer->render(cairo_surface, dpi,
                      min_x - static_cast<ivalue_t>(procmargin) / dpi,
                      min_y - static_cast<ivalue_t>(procmargin) / dpi);
+
+    if (fill)
+        fill_outline();
 }
 
 #include <iostream>
@@ -697,7 +700,17 @@ void Surface::opacify(Glib::RefPtr<Gdk::Pixbuf> pixbuf)
 /*
  */
 /******************************************************************************/
-void Surface::fill_outline(double linewidth)
+void Surface::enable_filling(double linewidth)
+{
+    fill = true;
+    this->linewidth = linewidth;
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+void Surface::fill_outline()
 {
     /* paint everything white that can not be reached from outside the image */
 

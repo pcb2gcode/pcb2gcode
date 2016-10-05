@@ -66,7 +66,7 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y) throw (import_exception);
 
-    virtual unique_ptr<multi_polygon_type> render(unsigned int points_per_circle = 30);
+    virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30);
     virtual inline unsigned int vectorial_scale()
     {
         return scale;
@@ -121,8 +121,10 @@ protected:
     
     static void merge_paths(multi_linestring_type &destination, const linestring_type& source);
 
-    static unique_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
+    static unique_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers, bool fill_rings,
                                                             coordinate_type cfactor, unsigned int points_per_circle);
+
+    static void rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly);
 
     static bool simplify_cutins(ring_type& ring, polygon_type& polygon);
 

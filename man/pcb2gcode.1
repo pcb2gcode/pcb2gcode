@@ -196,6 +196,11 @@ the centres of these lines.
 \fB\-\-outline\-width \fIunit\fP\fP
 thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is
 given); the default value is 0.15 mm/0.059 in.
+With \fB\-\-vectorial=false\fP pcb2gcode takes the external contour of the
+outline as the board contour so a small correction (equal to half of the
+graphical width of the outline line) is needed.
+With \fB\-\-vectorial=true\fP pcb2gcode consider the center of the line as
+contour, so no correction is needed and \fB\-\-outline\-width\fP is ignored.
 .TP
 \fB\-\-cut\-side\fP \fIside\fP
 choose the cut side. Valid choices are front, back or auto (default). In auto mode
@@ -300,7 +305,7 @@ These options govern the general behavior of \fBpcb2gcode\fP:
 enable the \fBEXPERIMENTAL\fP vectorial core. This new core offers much better
 performances, higher precision, smaller output files and support for internal
 cutoffs (like thermal pads). When \fB\-\-vectorial\fP is enabled, \fB\-\-dpi\fP
-is ignored.
+and \fB\-\-outline\-width\P are ignored.
 .TP
 \fB\-\-software\fP \fIsoftware\fP
 specify the gcode interpreter software; currently supported programs are
