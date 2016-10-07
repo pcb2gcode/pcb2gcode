@@ -524,17 +524,20 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
 
             rings.resize(layer_rings_offset + newrings * stepAndRepeat.X * stepAndRepeat.Y);
 
-            for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++)
+            for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++)
             {
-                for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++)
+                for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++)
                 {
-                    translate translate_strategy(stepAndRepeat.dist_X * sr_x * cfactor,
-                                                 stepAndRepeat.dist_Y * sr_y * cfactor);
-
-                    for (unsigned int i = 0; i < newrings; i++)
+                    if (sr_x != 0 || sr_y != 0)
                     {
-                        bg::transform(rings[layer_rings_offset + i], rings[translated_ring_offset], translate_strategy);
-                        ++translated_ring_offset;
+                        translate translate_strategy(stepAndRepeat.dist_X * sr_x * cfactor,
+                                                     stepAndRepeat.dist_Y * sr_y * cfactor);
+
+                        for (unsigned int i = 0; i < newrings; i++)
+                        {
+                            bg::transform(rings[layer_rings_offset + i], rings[translated_ring_offset], translate_strategy);
+                            ++translated_ring_offset;
+                        }
                     }
                 }
             }
