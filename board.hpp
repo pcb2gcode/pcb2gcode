@@ -68,16 +68,15 @@ public:
     Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial);
 
     void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
-                      shared_ptr<RoutingMill> manufacturer, bool backside,
-                      bool mirror_absolute);
-    void set_margins(double margins) { margin = margins;	};
+                      shared_ptr<RoutingMill> manufacturer, bool backside);
+    void set_margins(double margins) { margin = margins;	}
     ivalue_t get_width();
     ivalue_t get_height();
-    ivalue_t get_min_x() {	return min_x; };
-    ivalue_t get_max_x() {	return max_x; };
-    ivalue_t get_min_y() {	return min_y; };
-    ivalue_t get_max_y() {	return max_y; };
-    double get_layersnum() {  return layers.size(); };
+    ivalue_t get_min_x() {	return min_x; }
+    ivalue_t get_max_x() {	return max_x; }
+    ivalue_t get_min_y() {	return min_y; }
+    ivalue_t get_max_y() {	return max_y; }
+    double get_layersnum() {  return layers.size(); }
 
     vector<string> list_layers();
     shared_ptr<Layer> get_layer(string layername);
@@ -107,7 +106,7 @@ private:
      * prep_t tuples, whose signature must basically match the construction
      * signature of Layer.
      */
-    typedef tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool, bool> prep_t;
+    typedef tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
     map<string, prep_t> prepared_layers;
     map<string, shared_ptr<Layer> > layers;
 };

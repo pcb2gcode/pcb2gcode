@@ -41,7 +41,7 @@ class Core
 {
 public:
     virtual vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror, bool mirror_absolute) = 0;
+            bool mirror) = 0;
     virtual void save_debug_image(string message) = 0;
     virtual ivalue_t get_width_in() = 0;
     virtual ivalue_t get_height_in() = 0;

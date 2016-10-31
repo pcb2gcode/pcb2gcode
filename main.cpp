@@ -113,6 +113,7 @@ int main(int argc, char* argv[])
         isolator->optimise = vm["optimise"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
+        isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
     }
 
     shared_ptr<Cutter> cutter;
@@ -135,6 +136,7 @@ int main(int argc, char* argv[])
         cutter->optimise = vm["optimise"].as<bool>();
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
+        cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
         cutter->bridges_width = vm["bridges"].as<double>() * unit;
         if (vm.count("zbridges"))
@@ -154,6 +156,7 @@ int main(int argc, char* argv[])
         driller->speed = vm["drill-speed"].as<int>();
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
+        driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
         driller->zchange = vm["zchange"].as<double>() * unit;
     }
 
@@ -242,8 +245,8 @@ int main(int argc, char* argv[])
             vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
             vm["fill-outline"].as<bool>() ?
-            vm["outline-width"].as<double>() * unit :
-            INFINITY,
+                vm["outline-width"].as<double>() * unit :
+                INFINITY,
             outputdir,
             vm["vectorial"].as<bool>()));
 
@@ -266,8 +269,7 @@ int main(int argc, char* argv[])
         {
             string frontfile = vm["front"].as<string>();
             shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
-            board->prepareLayer("front", importer, isolator, false,
-                                vm["mirror-absolute"].as<bool>());
+            board->prepareLayer("front", importer, isolator, false);
             cout << "DONE.\n";
         }
         catch (import_exception& i)
@@ -287,8 +289,7 @@ int main(int argc, char* argv[])
             string backfile = vm["back"].as<string>();
             shared_ptr<LayerImporter> importer(
                 new GerberImporter(backfile));
-            board->prepareLayer("back", importer, isolator, true,
-                                vm["mirror-absolute"].as<bool>());
+            board->prepareLayer("back", importer, isolator, true);
             cout << "DONE.\n";
         }
         catch (import_exception& i)
@@ -307,9 +308,7 @@ int main(int argc, char* argv[])
         {
             string outline = vm["outline"].as<string>();                               //Filename
             shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-            board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"),
-                                vm["mirror-absolute"].as<bool>());
-
+            board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
             cout << "DONE.\n";
         }
         catch (import_exception& i)

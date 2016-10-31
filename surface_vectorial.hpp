@@ -60,7 +60,7 @@ public:
                         string name, string outputdir);
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror, bool mirror_absolute);
+            bool mirror);
     void save_debug_image(string message);
     void enable_filling();
     void add_mask(shared_ptr<Core> surface);

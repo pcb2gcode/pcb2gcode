@@ -69,7 +69,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 }
 
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirror, bool mirror_absolute)
+        bool mirror)
 {
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
@@ -102,7 +102,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     srand(1);
     debug_image.add(*voronoi, 0.3, false);
 
-    const coordinate_type mirror_axis = mirror_absolute ?
+    const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
     bool contentions = false;

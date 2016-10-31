@@ -25,12 +25,10 @@
  */
 /******************************************************************************/
 Layer::Layer(const string& name, shared_ptr<Core> surface,
-             shared_ptr<RoutingMill> manufacturer, bool backside,
-             bool mirror_absolute)
+             shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;
     this->mirrored = backside;
-    this->mirror_absolute = mirror_absolute;
     this->surface = surface;
     this->manufacturer = manufacturer;
 }
@@ -43,7 +41,7 @@ Layer::Layer(const string& name, shared_ptr<Core> surface,
 /******************************************************************************/
 vector<shared_ptr<icoords> > Layer::get_toolpaths()
 {
-    return surface->get_toolpath(manufacturer, mirrored, mirror_absolute);
+    return surface->get_toolpath(manufacturer, mirrored);
 }
 
 /******************************************************************************/

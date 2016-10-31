@@ -68,10 +68,10 @@ unsigned int Board::get_dpi()
 /*
  */
 /******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool mirror_absolute)
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     // see comment for prep_t in board.hpp
-    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside, mirror_absolute)));
+    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
 }
 
 /******************************************************************************/
@@ -165,8 +165,7 @@ void Board::createLayers()
                 shared_ptr<Layer> layer(new Layer(it->first,
                                                     surface,
                                                     get<1>(it->second),
-                                                    get<2>(it->second),
-                                                    get<3>(it->second))); // see comment for prep_t in board.hpp
+                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
 
                 layers.insert(std::make_pair(layer->get_name(), layer));
             }
@@ -187,8 +186,7 @@ void Board::createLayers()
                 shared_ptr<Layer> layer(new Layer(it->first,
                                                     surface, 
                                                     get<1>(it->second),
-                                                    get<2>(it->second),
-                                                    get<3>(it->second))); // see comment for prep_t in board.hpp
+                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
                 
                 layers.insert(std::make_pair(layer->get_name(), layer));
             }
