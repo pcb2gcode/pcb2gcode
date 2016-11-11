@@ -18,14 +18,17 @@
  */
 
 #include <algorithm>
+#include <utility>
 using std::reverse;
 using std::copy;
 using std::swap;
 
-#include <utility>
 #include <cstdint>
 #include <list>
+#include <iterator>
 using std::list;
+using std::next;
+using std::make_move_iterator;
 
 #include <forward_list>
 using std::forward_list;
@@ -456,6 +459,71 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
     {
         destination.push_back(source);
     }
+}
+
+void GerberImporter::simplify_paths(multi_linestring_type &paths)
+{
+    for (auto path1 = paths.begin(); path1 != paths.end(); path1++)
+    {
+        if (!path1->empty())
+        {
+            for (auto path2 = paths.begin(); path2 != paths.end(); path2++)
+            {
+                if (!path2->empty() && path1 != path2)
+                {
+                    if (bg::equals(path1->back(), path2->front()))
+                    {
+                        path1->insert(path1->end(),
+                                      make_move_iterator(next(path2->begin())),
+                                      make_move_iterator(path2->end()));
+
+                        path2->clear();
+                    }
+                    else if (bg::equals(path1->back(), path2->back()))
+                    {
+                        if (path1->size() < path2->size())
+                        {
+                            path2->insert(path2->end(),
+                                          make_move_iterator(next(path1->rbegin())),
+                                          make_move_iterator(path1->rend()));
+                            path1->swap(*path2);
+                        }
+                        else
+                            path1->insert(path1->end(),
+                                          make_move_iterator(next(path2->rbegin())),
+                                          make_move_iterator(path2->rend()));
+
+                        path2->clear();
+                    }
+                    else if (bg::equals(path1->front(), path2->back()))
+                    {
+                        path2->insert(path2->end(),
+                                      make_move_iterator(next(path1->begin())),
+                                      make_move_iterator(path1->end()));
+                        path1->swap(*path2);
+
+                        path2->clear();
+                    }
+                    else if (bg::equals(path1->front(), path2->front()))
+                    {
+                        std::reverse(path1->begin(), path1->end());
+                        path1->insert(path1->end(),
+                                      make_move_iterator(next(path2->begin())),
+                                      make_move_iterator(path2->end()));
+
+                        path2->clear();
+                    }
+                }
+            }
+        }
+    }
+
+    auto isEmpty = [&](const linestring_type& ls)
+    {
+        return ls.empty();
+    };
+
+    paths.erase(std::remove_if(paths.begin(), paths.end(), isEmpty), paths.end());
 }
 
 unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
@@ -1161,6 +1229,14 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
         else //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
         {
             cerr << "Unrecognized interpolation mode" << endl;
+        }
+    }
+
+    for (pair<const gerbv_layer_t *, gerberimporter_layer>& layer : layers)
+    {
+        for (pair<const coordinate_type, multi_linestring_type>& path : layer.second.paths)
+        {
+            simplify_paths(path.second);
         }
     }
 
