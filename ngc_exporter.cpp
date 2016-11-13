@@ -245,6 +245,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
                         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                         of << "F" << mill->feed * cfactor << "\n";
+                        of << "G01 ";
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -274,7 +275,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                         else if (*currentBridge == last - path->begin())
                                         {
                                             of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                            of << "F" << cutter->feed * cfactor;
+                                            of << "F" << cutter->feed * cfactor << '\n';
+                                            of << "G01 ";
                                         }
                                     }
 
@@ -306,6 +308,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                     of << "F" << mill->feed * cfactor << '\n';
+
+                    if (!bAutolevelNow)
+                        of << "G01 ";
 
                     icoords::iterator iter = path->begin();
                     icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
