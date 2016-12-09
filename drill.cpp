@@ -246,7 +246,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
                << " " << it->second.unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
-               << "M3      (Spindle on clockwise.)\n" << "\n";
+               << "M3      (Spindle on clockwise.)\n"
+               << "G0 Z" << driller->zsafe * cfactor << "\n\n";
         }
         
         if( nog81 )
