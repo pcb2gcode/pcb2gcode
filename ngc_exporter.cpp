@@ -68,6 +68,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
+    bZchangeG53 = options["zchange-absolute"].as<bool>();
     bFrontAutoleveller = options["al-front"].as<bool>();
     bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
@@ -130,8 +131,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     double xoffsetTot;
     double yoffsetTot;
     Tiling tiling( tileInfo, cfactor );
-    tiling.setGCodeEnd( "\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
-        "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
+    tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
+        + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 

@@ -177,7 +177,9 @@ double ExcellonProcessor::get_xvalue(double xvalue)
        2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
+                                    shared_ptr<Driller> driller, bool onedrill,
+                                    bool nog81, bool zchange_absolute)
 {
     double xoffsetTot;
     double yoffsetTot;
@@ -186,9 +188,10 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
     cout << "Exporting drill... ";
 
     zchange << setprecision(3) << fixed << driller->zchange * cfactor;
-    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n"
-                         + postamble_ext + "\nM5      (Spindle off.)\n"
-                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
+    tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
+                         " ( All done -- retract )\n" + postamble_ext +
+                         "\nM5      (Spindle off.)\nM9      (Coolant off.)\n"
+                         "M2      (Program end.)\n\n");
 
     //open output file
     std::ofstream of;
@@ -240,6 +243,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
         }
         else
         {
+            if (zchange_absolute)
+                of << "G53 ";
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "(MSG, Change tool bit to drill size " << it->second.diameter
@@ -364,7 +369,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
  mill larger holes by using a smaller mill-head
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, shared_ptr<Cutter> target)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
+                                    shared_ptr<Cutter> target, bool zchange_absolute)
 {
     unsigned int badHoles = 0;
     double xoffsetTot;
@@ -376,9 +382,10 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name, sh
     cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
-    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n" +
-                         postamble_ext + "\nM5      (Spindle off.)\n"
-                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
+    tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
+                         " ( All done -- retract )\n" + postamble_ext +
+                         "\nM5      (Spindle off.)\nM9      (Coolant off.)\n"
+                         "M2      (Program end.)\n\n");
 
     // open output file
     std::ofstream of;
