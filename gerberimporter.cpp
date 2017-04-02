@@ -37,6 +37,8 @@ using std::forward_list;
 
 #include "gerberimporter.hpp"
 
+#define GERBER_TOLERANCE 2
+
 namespace bg = boost::geometry;
 
 typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
@@ -413,18 +415,21 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
 }
 void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source)
 {
+    static const auto comparable_tolerance = bg::comparable_distance(point_type(0, 0),
+                                                                     point_type(0, GERBER_TOLERANCE));
+
     if (!destination.empty())
     {
         multi_linestring_type::reverse_iterator ls;
 
         for (ls = destination.rbegin(); ls != destination.rend(); ls++)
         {
-            if (bg::equals(ls->back(), source.front()))
+            if (bg::comparable_distance(ls->back(), source.front()) <= comparable_tolerance)
             {
                 ls->insert(ls->end(), source.begin() + 1, source.end());
                 break;
             }
-            else if (bg::equals(ls->back(), source.back()))
+            else if (bg::comparable_distance(ls->back(), source.back()) <= comparable_tolerance)
             {
                 ls->insert(ls->end(), source.rbegin() + 1, source.rend());
                 break;
@@ -436,13 +441,13 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
              * therefore there shouldn't be the need to replace a standard
              * linestring_type (std::vector) with a std::deque
              */
-            else if (bg::equals(ls->front(), source.front()))
+            else if (bg::comparable_distance(ls->front(), source.front()) <= comparable_tolerance)
             {
                 reverse(ls->begin(), ls->end());
                 ls->insert(ls->end(), source.begin() + 1, source.end());
                 break;
             }
-            else if (bg::equals(ls->front(), source.back()))
+            else if (bg::comparable_distance(ls->front(), source.back()) <= comparable_tolerance)
             {
                 reverse(ls->begin(), ls->end());
                 ls->insert(ls->end(), source.rbegin() + 1, source.rend());
