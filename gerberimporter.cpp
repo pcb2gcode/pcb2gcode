@@ -553,6 +553,21 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
             {
                 for (auto ls = i->second.begin(); ls != i->second.end(); )
                 {
+                    if (ls->size() >= 4)
+                    {
+                        multi_point_type intersection_points;
+                        segment_type first_segment(ls->front(), ls->at(1));
+                        segment_type last_segment(ls->back(), ls->at(ls->size() - 2));
+
+                        bg::intersection(first_segment, last_segment, intersection_points);
+
+                        if (!intersection_points.empty())
+                        {
+                            bg::assign(ls->front(), intersection_points.front());
+                            bg::assign(ls->back(), intersection_points.front());
+                        }
+                    }
+
                     if (bg::equals(ls->front(), ls->back()) && bg::is_valid(*ls))
                     {
                         rings.push_back(ring_type());
