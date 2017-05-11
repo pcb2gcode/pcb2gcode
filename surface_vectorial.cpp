@@ -58,10 +58,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
-    //Self-intersecting geometries are forbidden. However it may happen that outline
-    //geometries have small self-intersections at the vertexes, which can be often
-    //ignored.
-    if (name != "outline" && bg::intersects(*vectorial_surface_not_simplified))
+    if (bg::intersects(*vectorial_surface_not_simplified))
         throw std::logic_error("Input geometry is self-intersecting");
 
     scale = importer->vectorial_scale();
