@@ -485,8 +485,14 @@ void GerberImporter::merge_paths(multi_linestring_type &destination, const lines
 
         int case_num = (int(conn_lss[BACK].ls != destination.rend()) << 1) +
                         int(conn_lss[FRONT].ls != destination.rend());
+
         if (case_num == 3 && conn_lss[FRONT].ls == conn_lss[BACK].ls)
-            case_num = 2;
+        {
+            if (conn_lss[FRONT].side == BACK)
+                case_num = 1;
+            else
+                case_num = 2;
+        }
 
         switch (case_num)
         {
