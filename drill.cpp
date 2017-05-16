@@ -613,7 +613,12 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
 
         for (const icoordline& line : drill_lines)
         {
-            mapper.map(line, "", radius * SVG_PIX_PER_IN);
+            // start point
+            mapper.map(line.first, "", radius * SVG_PIX_PER_IN);
+            // rectangle between start and end
+            //TODO: mapper.add(
+            // end point
+            mapper.map(line.second, "", radius * SVG_PIX_PER_IN);
         }
     }
 }
@@ -647,7 +652,7 @@ void ExcellonProcessor::parse_holes()
     if (!bits)
         parse_bits();
 
-    holes = shared_ptr<map<int, ilines> >(new map<int, icoords>());
+    holes = shared_ptr<map<int, ilines> >(new map<int, ilines>());
 
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
@@ -702,7 +707,7 @@ shared_ptr< map<int, ilines> > ExcellonProcessor::get_holes()
 shared_ptr< map<int, ilines> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilines> > original_path, bool onedrill )
 {
     unsigned int size = 0;
-    map<int, icoords>::iterator i;
+    map<int, ilines>::iterator i;
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
@@ -716,7 +721,7 @@ shared_ptr< map<int, ilines> > ExcellonProcessor::optimise_path( shared_ptr< map
         original_path->begin()->second.reserve( size );
 
         //Then copy all the paths inside the first and delete the source vector
-        map<int, icoords>::iterator second_element;
+        map<int, ilines>::iterator second_element;
         while( original_path->size() > 1 )
         {
             second_element = boost::next( original_path->begin() );

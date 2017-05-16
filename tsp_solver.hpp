@@ -49,6 +49,13 @@ private:
         return path->front();
     }
 
+    static inline icoordpair get(icoordline line)
+    {
+        // For finding the nearest neighbor, assume that the drilling
+        // will begin and end at the start point.
+        return get(line.first);
+    }
+
 public:
     // This function computes the optimised path of a
     //  * icoordpair
