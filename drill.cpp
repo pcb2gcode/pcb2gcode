@@ -198,7 +198,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
-    shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
+    shared_ptr<const map<int, pair<icoords,icoords>> > holes = optimise_path( get_holes(), onedrill );
 
     //write header to .ngc file
     for (string s : header)
@@ -392,7 +392,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
-    shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
+    shared_ptr<const map<int, pair<icoords,icoords>> > holes = optimise_path( get_holes(), false );
 
     // write header to .ngc file
     for (string s : header)
@@ -479,7 +479,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 /*
  */
 /******************************************************************************/
-void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, icoords> > holes, const string of_dir)
+void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, pair<icoords,icoords>> > holes, const string of_dir)
 {
     const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
     const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
@@ -535,14 +535,15 @@ void ExcellonProcessor::parse_holes()
     if (!bits)
         parse_bits();
 
-    holes = shared_ptr<map<int, icoords> >(new map<int, icoords>());
+    holes = shared_ptr<map<int, pair<icoords, icoords>> >(new map<int, icoords>());
 
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
             (*holes)[currentNet->aperture].push_back(
-                icoordpair(currentNet->start_x, currentNet->start_y));
+                std::make_pair(icoordpair(currentNet->start_x, currentNet->start_y),
+                               icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
     for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
@@ -586,7 +587,7 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::get_holes()
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill )
+shared_ptr< map<int, pair<icoords,icoords>> > ExcellonProcessor::optimise_path( shared_ptr< map<int, pair<icoords,icoords>> > original_path, bool onedrill )
 {
     unsigned int size = 0;
     map<int, icoords>::iterator i;

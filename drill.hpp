@@ -40,7 +40,7 @@ using std::map;
 
 #include <memory>
 using std::shared_ptr;
-
+using std::pair;
 extern "C" {
 #include <gerbv.h>
 }
@@ -99,7 +99,7 @@ public:
     }
 
     shared_ptr< map<int, drillbit> > get_bits();
-    shared_ptr< map<int, icoords> > get_holes();
+    shared_ptr< map<int, pair<icoords,icoords>> > get_holes();
 
 private:
     void parse_holes();
@@ -108,16 +108,16 @@ private:
                   shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
 
-    shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
+    shared_ptr< map<int, pair<icoords,icoords>> > optimise_path( shared_ptr< map<int, pair<icoords,icoords>> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
 
-    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, icoords> > holes, const string of_dir);
+    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, pair<icoords,icoords>> > holes, const string of_dir);
 
     const box_type_fp board_dimensions;
     const ivalue_t board_center_x;
 
     shared_ptr<map<int, drillbit> > bits;
-    shared_ptr<map<int, icoords> > holes;
+    shared_ptr<map<int, pair<icoords,icoords>> > holes;
     gerbv_project_t* project;
     vector<string> header;
     string preamble;        //Preamble for output file
