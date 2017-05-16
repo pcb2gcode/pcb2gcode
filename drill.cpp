@@ -198,7 +198,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
-    shared_ptr<const map<int, pair<icoords,icoords>> > holes = optimise_path( get_holes(), onedrill );
+    shared_ptr<const map<int, ilines> > holes = optimise_path( get_holes(), onedrill );
 
     //write header to .ngc file
     for (string s : header)
@@ -271,30 +271,81 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             {
                 xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
 
-                const icoords drill_coords = holes->at(it->first);
-                icoords::const_iterator coord_iter = drill_coords.begin();
-                //coord_iter->first = x-coorinate (top view)
-                //coord_iter->second =y-coordinate (top view)
+                const ilines drill_coords = holes->at(it->first);
+                ilines::const_iterator line_iter = drill_coords.cbegin();
 
-                while (coord_iter != drill_coords.end())
+                while (line_iter != drill_coords.cend())
                 {
-                    if( nog81 )
-                    {
-                        of << "G0 X"
-                           << ( get_xvalue(coord_iter->first) - xoffsetTot ) * cfactor
-                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
-                        of << "G1 Z" << driller->zwork * cfactor << '\n';
-                        of << "G1 Z" << driller->zsafe * cfactor << '\n';
-                    }
-                    else
-                    {
-                        of << "X"
-                           << ( get_xvalue(coord_iter->first) - xoffsetTot )
-                           * cfactor
-                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
-                    }
+                    auto start_x = get_xvalue(line_iter->first.first);
+                    auto start_y = get_xvalue(line_iter->first.second);
+                    auto stop_x = line_iter->second.first;
+                    auto stop_y = line_iter->second.second;
+                    auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
+                                               (stop_y-start_y)*(stop_y-start_y));
+                    // Accord to the spec for G85, holes should be
+                    // drilled so that protrusions are no larger than
+                    // 0.0005inches.  The formula below determines the
+                    // maximum distance between drill centers.
+                    double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
 
-                    ++coord_iter;
+                    double max_protrusion = 0.0005;
+                    double step_size = sqrt(4*max_protrusion*(drill_diameter-max_protrusion));
+                    // The number of holes that need to be drilled. 0
+                    // is at start, drill_count-1 at the end.  Evenly
+                    // spaced.
+                    const unsigned int drill_count = ((unsigned int) ceil(distance/step_size)) + 1;
+                    
+                    // drills_to_do has pairs where is pair is the
+                    // inclusive range of drill holes that still need
+                    // to be made.  We try to drill in a way so that
+                    // the pressure on the drill is balanced.
+                    vector<pair<unsigned int, unsigned int>> drills_to_do;
+                    if (drill_count > 0) {
+                        // drill the start point
+                        drills_to_do.push_back(std::make_pair(0, 0));
+                    }
+                    if (drill_count > 1) {
+                        // drill the stop point
+                        drills_to_do.push_back(std::make_pair(drill_count - 1, drill_count - 1));
+                    }
+                    // drill all the rest
+                    drills_to_do.push_back(std::make_pair(1, drill_count-2));
+                    for (auto current_drill = drills_to_do.cbegin();
+                         current_drill != drills_to_do.cend();
+                         current_drill++) {
+                        const unsigned int start_drill = current_drill->first;
+                        const unsigned int end_drill = current_drill->second;
+                        if (start_drill > end_drill) {
+                            continue;
+                        }
+                        // find a point between start and end
+                        // inclusive.
+                        const unsigned int mid_drill = (start_drill+1)/2 + end_drill/2;
+                        // ratio = (mid_drill)/(drill_count-1)
+                        // drill the point that is that percentage between start and stop
+                        const auto x = start_x - start_x * mid_drill / (drill_count-1) +
+                            stop_x * mid_drill / (drill_count-1);
+                        const auto y = start_y - start_y * mid_drill / (drill_count-1) +
+                            stop_y * mid_drill / (drill_count-1);
+                        drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
+                        drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
+                        if( nog81 )
+                            {
+                                of << "G0 X"
+                                   << ( x - xoffsetTot ) * cfactor
+                                   << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                                of << "G1 Z" << driller->zwork * cfactor << '\n';
+                                of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                            }
+                        else
+                            {
+                                of << "X"
+                                   << ( x - xoffsetTot )
+                                    * cfactor
+                                   << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                            }
+                    }
+                    ++line_iter;
                 }
             }
         }
@@ -392,7 +443,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
-    shared_ptr<const map<int, pair<icoords,icoords>> > holes = optimise_path( get_holes(), false );
+    shared_ptr<const map<int, ilines> > holes = optimise_path( get_holes(), false );
 
     // write header to .ngc file
     for (string s : header)
@@ -443,9 +494,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                     it != bits->end(); it++)
             {
 
-                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
+                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
 
-                const icoords drill_coords = holes->at(it->first);
+                const ilines drill_coords = holes->at(it->first);
                 icoords::const_iterator coord_iter = drill_coords.begin();
 
                 do
@@ -479,7 +530,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 /*
  */
 /******************************************************************************/
-void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, pair<icoords,icoords>> > holes, const string of_dir)
+void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilines> > holes, const string of_dir)
 {
     const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
     const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
@@ -497,7 +548,7 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
     {
         const icoords drills = holes->at(bit.first);
         const double radius = bit.second.unit == "mm" ?
-                              (bit.second.diameter / 25.8) / 2 : bit.second.diameter / 2;
+                              (bit.second.diameter / 25.4) / 2 : bit.second.diameter / 2;
 
         for (const icoordpair& hole : drills)
         {
@@ -535,15 +586,15 @@ void ExcellonProcessor::parse_holes()
     if (!bits)
         parse_bits();
 
-    holes = shared_ptr<map<int, pair<icoords, icoords>> >(new map<int, icoords>());
+    holes = shared_ptr<map<int, ilines> >(new map<int, icoords>());
 
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
             (*holes)[currentNet->aperture].push_back(
-                std::make_pair(icoordpair(currentNet->start_x, currentNet->start_y),
-                               icoordpair(currentNet->stop_x, currentNet->stop_y)));
+                icoordline(icoordpair(currentNet->start_x, currentNet->start_y)),
+                icoordline(icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
     for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
@@ -587,7 +638,7 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::get_holes()
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-shared_ptr< map<int, pair<icoords,icoords>> > ExcellonProcessor::optimise_path( shared_ptr< map<int, pair<icoords,icoords>> > original_path, bool onedrill )
+shared_ptr< map<int, pair<icoords,icoords>> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilines> > original_path, bool onedrill )
 {
     unsigned int size = 0;
     map<int, icoords>::iterator i;
