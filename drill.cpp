@@ -277,11 +277,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                 while (line_iter != drill_coords.cend())
                 {
                     auto start_x = get_xvalue(line_iter->first.first);
-                    auto start_y = get_xvalue(line_iter->first.second);
-                    auto stop_x = line_iter->second.first;
+                    auto start_y = line_iter->first.second;
+                    auto stop_x = get_xvalue(line_iter->second.first);
                     auto stop_y = line_iter->second.second;
                     auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
-                                               (stop_y-start_y)*(stop_y-start_y));
+                                         (stop_y-start_y)*(stop_y-start_y));
                     // Accord to the spec for G85, holes should be
                     // drilled so that protrusions are no larger than
                     // 0.0005inches.  The formula below determines the
@@ -658,6 +658,10 @@ void ExcellonProcessor::parse_holes()
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
+            cerr << "start and stop are: "
+                 << currentNet->start_x << "," <<  currentNet->start_y << ","
+                 << currentNet->stop_x << "," <<  currentNet->stop_y << "\n";
+        
             (*holes)[currentNet->aperture].push_back(
                 icoordline(icoordpair(currentNet->start_x, currentNet->start_y),
                            icoordpair(currentNet->stop_x, currentNet->stop_y)));
