@@ -104,7 +104,9 @@ public:
 private:
     void parse_holes();
     void parse_bits();
-    bool millhole(std::ofstream &of, double x, double y,
+    bool millhole(std::ofstream &of,
+                  double start_x, double start_y,
+                  double stop_x, double stop_y,
                   shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
 
