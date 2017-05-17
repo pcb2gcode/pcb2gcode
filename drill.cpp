@@ -329,10 +329,10 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                 while (line_iter != drill_coords.cend())
                 {
                     unique_ptr<icoords> holes = line_to_holes(*line_iter, drill_diameter);
-                    for (auto hole = holes->cbegin();
-                         hole != holes->cend(); hole++) {
-                        const auto x = hole->first;
-                        const auto y = hole->second;
+                    for (auto& hole : *holes)
+                    {
+                        const auto x = hole.first;
+                        const auto y = hole.second;
 
                         if( nog81 )
                         {
@@ -622,13 +622,10 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
 
         for (const icoordline& line : drill_lines)
         {
-            // start point
-            mapper.map(line.first, "", radius * SVG_PIX_PER_IN);
-            if (line.first.first != line.second.first ||
-                line.first.second != line.second.second) {
-                // a row of drills
-                // end point
-                mapper.map(line.second, "", radius * SVG_PIX_PER_IN);
+            unique_ptr<icoords> holes = line_to_holes(line, radius*2);
+            for (auto& hole : *holes)
+            {
+                mapper.map(hole, "", radius * SVG_PIX_PER_IN);
             }
         }
     }
