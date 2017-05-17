@@ -194,7 +194,7 @@ unique_ptr<icoords> ExcellonProcessor::line_to_holes(const icoordline& line, dou
     }
     // drill all the rest
     drills_to_do.push_back(std::make_pair(1, drill_count-2));
-    unique_ptr<icoords> holes;
+    unique_ptr<icoords> holes(new icoords());
     for (unsigned int current_drill_index = 0;
          current_drill_index < drills_to_do.size();
          current_drill_index++) {
