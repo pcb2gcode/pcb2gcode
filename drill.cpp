@@ -449,7 +449,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                    << " I" << (start_x-start_targetx) * cfactor
                    << " J" << (start_y-start_targety) * cfactor << "\n";
                 // Now across to the second half circle
-                of << "GO X" << stop_targetx
+                of << "G1 X" << stop_targetx
                    << " Y" << stop_targety << "\n";
                 // Draw the second half circle
                 of << "G2 X" << stop2_targetx
@@ -457,7 +457,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                    << " I" << (stop_x-stop_targetx) * cfactor
                    << " J" << (stop_y-stop_targety) * cfactor << "\n";
                 // Now back to the start of the first half circle
-                of << "GO X" << start_targetx
+                of << "G1 X" << start_targetx
                    << " Y" << start_targety << "\n";
             }
             z -= z_step;
