@@ -39,8 +39,8 @@ typedef std::pair<value_t, value_t> coordpair;
 typedef std::vector<coordpair> coords;
 typedef std::pair<ivalue_t, ivalue_t> icoordpair;
 typedef std::vector<icoordpair> icoords;
-typedef std::pair<icoordpair, icoordpair> icoordline;
-typedef std::vector<icoordline> ilines;
+typedef std::pair<icoordpair, icoordpair> ilinesegment;
+typedef std::vector<ilinesegment> ilinesegments;
 
 //Adaptation of icoordpair to Boost Geometry (point)
 BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, second)

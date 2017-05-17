@@ -49,7 +49,7 @@ private:
         return path->front();
     }
 
-    static inline icoordpair get(icoordline line)
+    static inline icoordpair get(ilinesegment line)
     {
         // For finding the nearest neighbor, assume that the drilling
         // will begin and end at the start point.

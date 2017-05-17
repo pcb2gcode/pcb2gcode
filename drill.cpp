@@ -166,7 +166,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     return retval;
 }
 
-unique_ptr<icoords> ExcellonProcessor::line_to_holes(const icoordline& line, double drill_diameter)
+unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
     auto start_x = get_xvalue(line.first.first);
     auto start_y = line.first.second;
@@ -249,7 +249,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
-    shared_ptr<const map<int, ilines> > holes = optimise_path( get_holes(), onedrill );
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), onedrill );
 
     //write header to .ngc file
     for (string s : header)
@@ -323,8 +323,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             {
                 xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
 
-                const ilines drill_coords = holes->at(it->first);
-                ilines::const_iterator line_iter = drill_coords.cbegin();
+                const ilinesegments drill_coords = holes->at(it->first);
+                ilinesegments::const_iterator line_iter = drill_coords.cbegin();
 
                 while (line_iter != drill_coords.cend())
                 {
@@ -509,7 +509,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
-    shared_ptr<const map<int, ilines> > holes = optimise_path( get_holes(), false );
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), false );
 
     // write header to .ngc file
     for (string s : header)
@@ -562,8 +562,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
                 double diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
 
-                const ilines drill_coords = holes->at(it->first);
-                ilines::const_iterator line_iter = drill_coords.begin();
+                const ilinesegments drill_coords = holes->at(it->first);
+                ilinesegments::const_iterator line_iter = drill_coords.begin();
 
                 do
                 {
@@ -600,7 +600,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 /*
  */
 /******************************************************************************/
-void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilines> > holes, const string of_dir)
+void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir)
 {
     const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
     const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
@@ -616,11 +616,11 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
 
     for (const pair<int, drillbit>& bit : *bits)
     {
-        const ilines drill_lines = holes->at(bit.first);
+        const ilinesegments drill_lines = holes->at(bit.first);
         const double radius = bit.second.unit == "mm" ?
                               (bit.second.diameter / 25.4) / 2 : bit.second.diameter / 2;
 
-        for (const icoordline& line : drill_lines)
+        for (const ilinesegment& line : drill_lines)
         {
             unique_ptr<icoords> holes = line_to_holes(line, radius*2);
             for (auto& hole : *holes)
@@ -660,15 +660,15 @@ void ExcellonProcessor::parse_holes()
     if (!bits)
         parse_bits();
 
-    holes = shared_ptr<map<int, ilines> >(new map<int, ilines>());
+    holes = shared_ptr<map<int, ilinesegments> >(new map<int, ilinesegments>());
 
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
             (*holes)[currentNet->aperture].push_back(
-                icoordline(icoordpair(currentNet->start_x, currentNet->start_y),
-                           icoordpair(currentNet->stop_x, currentNet->stop_y)));
+                ilinesegment(icoordpair(currentNet->start_x, currentNet->start_y),
+                             icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
     for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
@@ -699,7 +699,7 @@ shared_ptr< map<int, drillbit> > ExcellonProcessor::get_bits()
 /*
  */
 /******************************************************************************/
-shared_ptr< map<int, ilines> > ExcellonProcessor::get_holes()
+shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes()
 {
     if (!holes)
         parse_holes();
@@ -712,10 +712,10 @@ shared_ptr< map<int, ilines> > ExcellonProcessor::get_holes()
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-shared_ptr< map<int, ilines> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilines> > original_path, bool onedrill )
+shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill )
 {
     unsigned int size = 0;
-    map<int, ilines>::iterator i;
+    map<int, ilinesegments>::iterator i;
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
@@ -729,7 +729,7 @@ shared_ptr< map<int, ilines> > ExcellonProcessor::optimise_path( shared_ptr< map
         original_path->begin()->second.reserve( size );
 
         //Then copy all the paths inside the first and delete the source vector
-        map<int, ilines>::iterator second_element;
+        map<int, ilinesegments>::iterator second_element;
         while( original_path->size() > 1 )
         {
             second_element = boost::next( original_path->begin() );
