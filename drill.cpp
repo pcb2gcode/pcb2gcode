@@ -370,7 +370,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
     g_assert(cutter);
     double cutdiameter = cutter->tool_diameter;
-    bool slot = (start_x != start_y || stop_x != stop_y);
+    bool slot = (start_x != stop_x ||
+                 start_y != stop_y);
 
     if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
     {
@@ -390,7 +391,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
         double mill_x;
         double mill_y;
-        if (!slot)
+        if (slot)
         {
             double delta_x = stop_x - start_x;
             double delta_y = stop_y - start_y;
@@ -463,7 +464,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             stepcount--;
         }
 
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n";
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return true;
     }
