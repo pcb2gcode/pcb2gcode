@@ -408,17 +408,17 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         // half circles attached on just two opposite sides.
 
         // add delta rotated 90 degrees clockwise then normalize to length millr
-        double start_targetx = start_x + mill_y;
-        double start_targety = start_y - mill_x;
+        double start_targetx = (start_x + mill_y) * cfactor;
+        double start_targety = (start_y - mill_x) * cfactor;
         // add delta rotated 90 degrees counterclockwise then normalize to length millr
-        double start2_targetx = start_x - mill_y;
-        double start2_targety = start_y + mill_x;
+        double start2_targetx = (start_x - mill_y) * cfactor;
+        double start2_targety = (start_y + mill_x) * cfactor;
         // add delta rotated 90 degrees counterclockwise then normalize to length millr
-        double stop_targetx = stop_x - mill_y;
-        double stop_targety = stop_y + mill_x;
+        double stop_targetx = (stop_x - mill_y) * cfactor;
+        double stop_targety = (stop_y + mill_x) * cfactor;
         // add delta rotated 90 degrees clockwise then normalize to length millr
-        double stop2_targetx = stop_x + mill_y;
-        double stop2_targety = stop_y - mill_x;
+        double stop2_targetx = (stop_x + mill_y) * cfactor;
+        double stop2_targety = (stop_y - mill_x) * cfactor;
 
         of << "G0 X" << start_targetx << " Y" << start_targety << '\n';
 
