@@ -443,7 +443,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                     it != bits->end(); it++)
             {
 
-                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
+                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
 
                 const icoords drill_coords = holes->at(it->first);
                 icoords::const_iterator coord_iter = drill_coords.begin();
@@ -497,7 +497,7 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
     {
         const icoords drills = holes->at(bit.first);
         const double radius = bit.second.unit == "mm" ?
-                              (bit.second.diameter / 25.8) / 2 : bit.second.diameter / 2;
+                              (bit.second.diameter / 25.4) / 2 : bit.second.diameter / 2;
 
         for (const icoordpair& hole : drills)
         {
