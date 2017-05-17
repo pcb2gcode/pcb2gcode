@@ -299,34 +299,31 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                     // inclusive range of drill holes that still need
                     // to be made.  We try to drill in a way so that
                     // the pressure on the drill is balanced.
-                    vector<pair<unsigned int, unsigned int>> drills_to_do;
-                    if (drill_count > 0) {
-                        // drill the start point
-                        drills_to_do.push_back(std::make_pair(0, 0));
-                    }
+                    vector<pair<int, int>> drills_to_do;
+                    // drill the start point
+                    drills_to_do.push_back(std::make_pair(0, 0));
                     if (drill_count > 1) {
                         // drill the stop point
                         drills_to_do.push_back(std::make_pair(drill_count - 1, drill_count - 1));
                     }
                     // drill all the rest
                     drills_to_do.push_back(std::make_pair(1, drill_count-2));
-                    for (auto current_drill = drills_to_do.cbegin();
-                         current_drill != drills_to_do.cend();
-                         current_drill++) {
-                        const unsigned int start_drill = current_drill->first;
-                        const unsigned int end_drill = current_drill->second;
+                    for (unsigned int current_drill_index = 0;
+                         current_drill_index < drills_to_do.size();
+                         current_drill_index++) {
+                        const auto& current_drill = drills_to_do[current_drill_index];
+                        const int start_drill = current_drill.first;
+                        const int end_drill = current_drill.second;
                         if (start_drill > end_drill) {
                             continue;
                         }
                         // find a point between start and end
                         // inclusive.
-                        const unsigned int mid_drill = (start_drill+1)/2 + end_drill/2;
-                        // ratio = (mid_drill)/(drill_count-1)
+                        const int mid_drill = (start_drill+1)/2 + end_drill/2;
                         // drill the point that is that percentage between start and stop
-                        const auto x = start_x - start_x * mid_drill / (drill_count-1) +
-                            stop_x * mid_drill / (drill_count-1);
-                        const auto y = start_y - start_y * mid_drill / (drill_count-1) +
-                            stop_y * mid_drill / (drill_count-1);
+                        double ratio = drill_count > 1 ? mid_drill / (drill_count-1.) : 0;
+                        const auto x = start_x * (1 - ratio) + stop_x * ratio;
+                        const auto y = start_y * (1 - ratio) + stop_y * ratio;
                         drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
                         drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
                         if( nog81 )
@@ -658,10 +655,6 @@ void ExcellonProcessor::parse_holes()
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
-            cerr << "start and stop are: "
-                 << currentNet->start_x << "," <<  currentNet->start_y << ","
-                 << currentNet->stop_x << "," <<  currentNet->stop_y << "\n";
-        
             (*holes)[currentNet->aperture].push_back(
                 icoordline(icoordpair(currentNet->start_x, currentNet->start_y),
                            icoordpair(currentNet->stop_x, currentNet->stop_y)));
