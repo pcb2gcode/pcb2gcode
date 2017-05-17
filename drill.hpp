@@ -40,6 +40,7 @@ using std::map;
 
 #include <memory>
 using std::shared_ptr;
+using std::unique_ptr;
 
 extern "C" {
 #include <gerbv.h>
@@ -88,6 +89,7 @@ public:
     void add_header(string);
     void set_preamble(string);
     void set_postamble(string);
+    unique_ptr<icoords> line_to_holes(const icoordline& line, double drill_diameter);
     void export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> target,
                     bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const string of_dir, const string of_name,shared_ptr<Cutter> target,

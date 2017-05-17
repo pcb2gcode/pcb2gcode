@@ -166,6 +166,57 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     return retval;
 }
 
+unique_ptr<icoords> ExcellonProcessor::line_to_holes(const icoordline& line, double drill_diameter)
+{
+    auto start_x = get_xvalue(line.first.first);
+    auto start_y = line.first.second;
+    auto stop_x = get_xvalue(line.second.first);
+    auto stop_y = line.second.second;
+    auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
+                         (stop_y-start_y)*(stop_y-start_y));
+    // According to the spec for G85, holes should be drilled so that
+    // protrusions are no larger than 0.0005inches.  The formula below
+    // determines the maximum distance between drill centers.
+    const double max_protrusion = 0.0005;
+    double step_size = sqrt(4*max_protrusion*(drill_diameter-max_protrusion));
+    // The number of holes that need to be drilled. 0 is at start,
+    // drill_count-1 at the stop.  Evenly spaced.
+    const unsigned int drill_count = ((unsigned int) ceil(distance/step_size)) + 1;
+    // drills_to_do has pairs where is pair is the inclusive range of
+    // drill holes that still need to be made.  We try to drill in a
+    // way so that the pressure on the drill is balanced.
+    vector<pair<int, int>> drills_to_do;
+    // drill the start point
+    drills_to_do.push_back(std::make_pair(0, 0));
+    if (drill_count > 1) {
+        // drill the stop point
+        drills_to_do.push_back(std::make_pair(drill_count - 1, drill_count - 1));
+    }
+    // drill all the rest
+    drills_to_do.push_back(std::make_pair(1, drill_count-2));
+    unique_ptr<icoords> holes;
+    for (unsigned int current_drill_index = 0;
+         current_drill_index < drills_to_do.size();
+         current_drill_index++) {
+        const auto& current_drill = drills_to_do[current_drill_index];
+        const int start_drill = current_drill.first;
+        const int end_drill = current_drill.second;
+        if (start_drill > end_drill) {
+            continue;
+        }
+        // find a point between start and end inclusive.
+        const int mid_drill = (start_drill+1)/2 + end_drill/2;
+        // drill the point that is the percentage between start and stop
+        double ratio = drill_count > 1 ? mid_drill / (drill_count-1.) : 0;
+        const auto x = start_x * (1 - ratio) + stop_x * ratio;
+        const auto y = start_y * (1 - ratio) + stop_y * ratio;
+        drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
+        drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
+        holes->push_back(icoordpair(x, y));
+    }
+    return holes;
+}
+
 /******************************************************************************/
 /*
  Exports the ngc file for drilling
@@ -263,6 +314,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
         }
         
+        double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
         for( unsigned int i = 0; i < tileInfo.tileY; i++ )
         {
             yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -276,71 +328,27 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
                 while (line_iter != drill_coords.cend())
                 {
-                    auto start_x = get_xvalue(line_iter->first.first);
-                    auto start_y = line_iter->first.second;
-                    auto stop_x = get_xvalue(line_iter->second.first);
-                    auto stop_y = line_iter->second.second;
-                    auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
-                                         (stop_y-start_y)*(stop_y-start_y));
-                    // Accord to the spec for G85, holes should be
-                    // drilled so that protrusions are no larger than
-                    // 0.0005inches.  The formula below determines the
-                    // maximum distance between drill centers.
-                    double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
+                    unique_ptr<icoords> holes = line_to_holes(*line_iter, drill_diameter);
+                    for (auto hole = holes->cbegin();
+                         hole != holes->cend(); hole++) {
+                        const auto x = hole->first;
+                        const auto y = hole->second;
 
-                    double max_protrusion = 0.0005;
-                    double step_size = sqrt(4*max_protrusion*(drill_diameter-max_protrusion));
-                    // The number of holes that need to be drilled. 0
-                    // is at start, drill_count-1 at the end.  Evenly
-                    // spaced.
-                    const unsigned int drill_count = ((unsigned int) ceil(distance/step_size)) + 1;
-                    
-                    // drills_to_do has pairs where is pair is the
-                    // inclusive range of drill holes that still need
-                    // to be made.  We try to drill in a way so that
-                    // the pressure on the drill is balanced.
-                    vector<pair<int, int>> drills_to_do;
-                    // drill the start point
-                    drills_to_do.push_back(std::make_pair(0, 0));
-                    if (drill_count > 1) {
-                        // drill the stop point
-                        drills_to_do.push_back(std::make_pair(drill_count - 1, drill_count - 1));
-                    }
-                    // drill all the rest
-                    drills_to_do.push_back(std::make_pair(1, drill_count-2));
-                    for (unsigned int current_drill_index = 0;
-                         current_drill_index < drills_to_do.size();
-                         current_drill_index++) {
-                        const auto& current_drill = drills_to_do[current_drill_index];
-                        const int start_drill = current_drill.first;
-                        const int end_drill = current_drill.second;
-                        if (start_drill > end_drill) {
-                            continue;
-                        }
-                        // find a point between start and end
-                        // inclusive.
-                        const int mid_drill = (start_drill+1)/2 + end_drill/2;
-                        // drill the point that is that percentage between start and stop
-                        double ratio = drill_count > 1 ? mid_drill / (drill_count-1.) : 0;
-                        const auto x = start_x * (1 - ratio) + stop_x * ratio;
-                        const auto y = start_y * (1 - ratio) + stop_y * ratio;
-                        drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
-                        drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
                         if( nog81 )
-                            {
-                                of << "G0 X"
-                                   << ( x - xoffsetTot ) * cfactor
-                                   << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
-                                of << "G1 Z" << driller->zwork * cfactor << '\n';
+                        {
+                            of << "G0 X"
+                               << ( x - xoffsetTot ) * cfactor
+                               << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                            of << "G1 Z" << driller->zwork * cfactor << '\n';
                                 of << "G1 Z" << driller->zsafe * cfactor << '\n';
-                            }
+                        }
                         else
-                            {
-                                of << "X"
-                                   << ( x - xoffsetTot )
-                                    * cfactor
+                        {
+                            of << "X"
+                               << ( x - xoffsetTot )
+                                * cfactor
                                    << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
-                            }
+                        }
                     }
                     ++line_iter;
                 }
@@ -616,10 +624,12 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
         {
             // start point
             mapper.map(line.first, "", radius * SVG_PIX_PER_IN);
-            // rectangle between start and end
-            //TODO: mapper.add(
-            // end point
-            mapper.map(line.second, "", radius * SVG_PIX_PER_IN);
+            if (line.first.first != line.second.first ||
+                line.first.second != line.second.second) {
+                // a row of drills
+                // end point
+                mapper.map(line.second, "", radius * SVG_PIX_PER_IN);
+            }
         }
     }
 }
