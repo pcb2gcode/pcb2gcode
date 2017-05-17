@@ -408,17 +408,17 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         // half circles attached on just two opposite sides.
 
         // add delta rotated 90 degrees clockwise then normalize to length millr
-        double start_targetx = (start_x + mill_y) * cfactor;
-        double start_targety = (start_y - mill_x) * cfactor;
+        double start_targetx = start_x + mill_y;
+        double start_targety = start_y - mill_x;
         // add delta rotated 90 degrees counterclockwise then normalize to length millr
-        double start2_targetx = (start_x - mill_y) * cfactor;
-        double start2_targety = (start_y + mill_x) * cfactor;
+        double start2_targetx = start_x - mill_y;
+        double start2_targety = start_y + mill_x;
         // add delta rotated 90 degrees counterclockwise then normalize to length millr
-        double stop_targetx = (stop_x - mill_y) * cfactor;
-        double stop_targety = (stop_y + mill_x) * cfactor;
+        double stop_targetx = stop_x - mill_y;
+        double stop_targety = stop_y + mill_x;
         // add delta rotated 90 degrees clockwise then normalize to length millr
-        double stop2_targetx = (stop_x + mill_y) * cfactor;
-        double stop2_targety = (stop_y - mill_x) * cfactor;
+        double stop2_targetx = stop_x + mill_y;
+        double stop2_targety = stop_y - mill_x;
 
         of << "G0 X" << start_targetx << " Y" << start_targety << '\n';
 
@@ -438,26 +438,29 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
             if (!slot) {
                 // Just drill a full-circle.
-                of << "G2 I" << (start_x-start_targetx) * cfactor
+                of << "G2 "
+                   << " X" << start_targetx * cfactor
+                   << " Y" << start_targety * cfactor
+                   << " I" << (start_x-start_targetx) * cfactor
                    << " J" << (start_y-start_targety) * cfactor << "\n";
             }
             else
             {
                 // Draw the first half circle
-                of << "G2 X" << start2_targetx
-                   << " Y" << start2_targety
+                of << "G2 X" << start2_targetx * cfactor
+                   << " Y" << start2_targety * cfactor
                    << " I" << (start_x-start_targetx) * cfactor
                    << " J" << (start_y-start_targety) * cfactor << "\n";
                 // Now across to the second half circle
-                of << "G1 X" << stop_targetx
-                   << " Y" << stop_targety << "\n";
+                of << "G1 X" << stop_targetx * cfactor
+                   << " Y" << stop_targety * cfactor << "\n";
                 // Draw the second half circle
-                of << "G2 X" << stop2_targetx
-                   << " Y" << stop2_targety
+                of << "G2 X" << stop2_targetx * cfactor
+                   << " Y" << stop2_targety * cfactor
                    << " I" << (stop_x-stop_targetx) * cfactor
                    << " J" << (stop_y-stop_targety) * cfactor << "\n";
                 // Now back to the start of the first half circle
-                of << "G1 X" << start_targetx
+                of << "G1 X" << start_targetx * cfactor
                    << " Y" << start_targety << "\n";
             }
             z -= z_step;
