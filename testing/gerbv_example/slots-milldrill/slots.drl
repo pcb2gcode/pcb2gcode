@@ -3,7 +3,7 @@ M48
 ;FORMAT={-:-/ absolute / metric / decimal}
 FMAT,2
 METRIC,TZ
-T1C0.800
+T1C0.400
 T2C1.001
 %
 G90
