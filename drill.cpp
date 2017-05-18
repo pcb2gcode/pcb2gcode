@@ -428,7 +428,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double stop2_targetx = stop_x + mill_y;
         double stop2_targety = stop_y - mill_x;
 
-        of << "G0 X" << start_targetx << " Y" << start_targety << '\n';
+        of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
         double z_step = cutter->stepsize;
         double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
