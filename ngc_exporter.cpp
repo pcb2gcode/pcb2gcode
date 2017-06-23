@@ -139,6 +139,25 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     tiling.initialXOffsetVar = globalVars.getUniqueCode();
     tiling.initialYOffsetVar = globalVars.getUniqueCode();
 
+    // Optimize rapid movements.
+    struct {
+            icoordpair base_point = icoordpair(0,0);
+            bool operator() (shared_ptr<icoords> ii,shared_ptr<icoords> jj) { 
+                    icoords *i = ii.get();
+                    icoords *j = jj.get();
+
+                    ivalue_t i2 = (i->begin()->first-base_point.first)*(i->begin()->first-base_point.first) +
+                            (i->begin()->second-base_point.second)*(i->begin()->second-base_point.second);
+                    ivalue_t j2 = (j->begin()->first-base_point.first)*(j->begin()->first-base_point.first) +
+                            (j->begin()->second-base_point.second)*(j->begin()->second-base_point.second);
+                    return i2 < j2;
+            }
+    } sortIcoords;
+    for(unsigned i=0;i<toolpaths.size()-1;i++) {
+            std::sort(toolpaths.begin()+i,toolpaths.end(),sortIcoords);
+            sortIcoords.base_point = *(toolpaths.begin()+i)->get()->begin();
+    }
+
     // open output file
     std::ofstream of;
     of.open(of_name.c_str());
