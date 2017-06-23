@@ -271,7 +271,22 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             {
                 xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
 
-                const icoords drill_coords = holes->at(it->first);
+                icoords drill_coords = holes->at(it->first);
+                struct {
+                    icoordpair base_point = icoordpair(0,0);
+                    bool operator() (icoordpair i,icoordpair j) {
+                        ivalue_t i2 = (i.first-base_point.first)*(i.first-base_point.first) +
+                                      (i.second-base_point.second)*(i.second-base_point.second);
+                        ivalue_t j2 = (j.first-base_point.first)*(j.first-base_point.first) +
+                                      (j.second-base_point.second)*(j.second-base_point.second);
+                        return i2 < j2;
+                    }
+                } sortPair;
+                std::sort(drill_coords.begin(),drill_coords.end(),sortPair);
+                for(unsigned i=1;i<drill_coords.size();i++) {
+                    sortPair.base_point = *(drill_coords.begin()+i-1);
+                    std::sort(drill_coords.begin()+i,drill_coords.end(),sortPair);
+                }
                 icoords::const_iterator coord_iter = drill_coords.begin();
                 //coord_iter->first = x-coorinate (top view)
                 //coord_iter->second =y-coordinate (top view)
