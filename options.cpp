@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,16 +10,16 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include "options.hpp"
 #include "config.h"
 
@@ -80,16 +80,20 @@ void options::parse(int argc, char** argv)
      * values of the --...-output parameters
      */
     string basename = "";
-
     if (instance().vm.count("basename"))
     {
         basename = instance().vm["basename"].as<string>() + "_";
     }
 
-    string front_output = "--front-output=" + basename + "front.ngc";
-    string back_output = "--back-output=" + basename + "back.ngc";
-    string outline_output = "--outline-output=" + basename + "outline.ngc";
-    string drill_output = "--drill-output=" + basename + "drill.ngc";
+    string gcode_extension = "gcode";
+    if (instance().vm.count("extension"))
+    {
+        gcode_extension = instance().vm["extension"].as<string>();
+    }
+    string front_output = "--front-output=" + basename + "front." + gcode_extension;
+    string back_output = "--back-output=" + basename + "back." + gcode_extension;
+    string outline_output = "--outline-output=" + basename + "outline." + gcode_extension;
+    string drill_output = "--drill-output=" + basename + "drill." + gcode_extension;
 
     const char *fake_basename_command_line[] = { "", front_output.c_str(),
                                                  back_output.c_str(),
@@ -210,18 +214,21 @@ options::options()
             "noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")(
             "help,?", "produce help message")(
             "version", "show the current software version");
-            
+
    cfg_options.add_options()(
             "front", po::value<string>(),"front side RS274-X .gbr")(
             "back", po::value<string>(), "back side RS274-X .gbr")(
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
-            "zwork", po::value<double>(),
-            "milling depth in inches (Z-coordinate while engraving)")(
+            "zwork", po::value<double>(),"milling depth in inches (Z-coordinate while engraving)")(
+            "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
-            "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
+            "x-offset", po::value<double>()->default_value(0.0), "distance between the PCB origin and the machine origin in the X axe")(
+            "y-offset", po::value<double>()->default_value(0.0), "distance between the PCB origin and the machine origin in the Y axe")(
+            "custom_milling_start_gcode", po::value<string>(), "custom gcode integrated when milling step start (used to activate pump or fan)")(
+            "custom_milling_stop_gcode", po::value<string>(), "custom gcode integrated when milling step stop(used to stop pump or fan)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
@@ -256,10 +263,8 @@ options::options()
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
             "tile-x", po::value<int>()->default_value(1), "number of tiling columns. Default value is 1")(
             "tile-y", po::value<int>()->default_value(1), "number of tiling rows. Default value is 1")(
-            "al-front", po::value<bool>()->default_value(false)->implicit_value(true),
-            "enable the z autoleveller for the front layer")(
-            "al-back", po::value<bool>()->default_value(false)->implicit_value(true),
-            "enable the z autoleveller for the back layer")(
+            "al-front", po::value<bool>()->default_value(false)->implicit_value(true), "enable the z autoleveller for the front layer")(
+            "al-back", po::value<bool>()->default_value(false)->implicit_value(true), "enable the z autoleveller for the back layer")(
             "software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")(
             "al-x", po::value<double>(), "width of the x probes")(
             "al-y", po::value<double>(), "width of the y probes")(
@@ -285,6 +290,7 @@ options::options()
             "preamble-text", po::value<string>(), "preamble text file, inserted at the very beginning as a comment.")(
             "preamble", po::value<string>(), "gcode preamble file, inserted at the very beginning.")(
             "postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.")(
+            "extension", po::value<string>(), "gcode file extension for output files")(
             "no-export", po::value<bool>()->default_value(false)->implicit_value(true), "skip the exporting process");
 }
 
@@ -338,7 +344,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVETOLERANCE);
         }
     }
-    
+
     //---------------------------------------------------------------------------
     //Check svg parameter:
 
@@ -355,7 +361,7 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
     }
-    
+
     //---------------------------------------------------------------------------
     //Check for tile parameters
 
@@ -364,7 +370,7 @@ static void check_generic_parameters(po::variables_map const& vm)
         cerr << "tile-x can't be negative!\n";
         exit(ERR_NEGATIVETILEX);
     }
-    
+
     if (vm["tile-y"].as<int>() < 1)
     {
         cerr << "tile-y can't be negative!\n";

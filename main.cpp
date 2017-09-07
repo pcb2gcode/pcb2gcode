@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,12 +10,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -114,6 +114,16 @@ int main(int argc, char* argv[])
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
         isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
+        if(vm.count("custom_milling_start_gcode"))
+        {
+          isolator->custom_milling_start_gcode = vm["custom_milling_start_gcode"].as<string>();
+          isolator->custom_milling_start_gcode = boost::replace_all_copy(isolator->custom_milling_start_gcode, "\"", "");
+        }
+        if(vm.count("custom_milling_stop_gcode"))
+        {
+          isolator->custom_milling_stop_gcode = vm["custom_milling_stop_gcode"].as<string>();
+          isolator->custom_milling_stop_gcode = boost::replace_all_copy(isolator->custom_milling_stop_gcode, "\"", "");
+        }
     }
 
     shared_ptr<Cutter> cutter;
