@@ -135,7 +135,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
              << " possibly use a smaller milling width.\n";
     }
 
-    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
+    tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0), 0.0001 );
 
     if (mill->optimise)
     {

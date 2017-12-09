@@ -616,7 +616,7 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
-        tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        tsp_solver::tsp_2opt( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
     }
 
     return original_path;
