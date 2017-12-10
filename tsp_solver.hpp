@@ -49,6 +49,13 @@ private:
         return path->front();
     }
 
+    // Return the Chebyshev distance, which is a good approximation
+    // for the time it takes to do a rapid move on a CNC router.
+    static inline double distance(icoordpair p0, icoordpair p1)
+    {
+        return std::max(std::abs(p0.first - p1.first),
+                        std::abs(p0.second - p1.second));
+    }
 public:
     // This function computes the optimised path of a
     //  * icoordpair
@@ -78,9 +85,9 @@ public:
             new_length = 0;
 
             //Find the original path length
-            original_length = boost::geometry::distance(startingPoint, get(temp_path.front()));
+            original_length = distance(startingPoint, get(temp_path.front()));
             for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
-                original_length += boost::geometry::distance(get(*point), get(*next(point)));
+                original_length += distance(get(*point), get(*next(point)));
 
             icoordpair currentPoint = startingPoint;
             while (temp_path.size() > 1)
@@ -88,7 +95,7 @@ public:
 
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++)
-                    distances.push_back(boost::geometry::comparable_distance(currentPoint, get(*i)));
+                    distances.push_back(distance(currentPoint, get(*i)));
 
                 //Find the minimum distance
                 minDistance = *min_element(distances.begin(), distances.end());
@@ -117,7 +124,7 @@ public:
                     chosenPoint = nearestPoints.begin(); //TODO choose it in a smarter way
                 }
 
-                new_length += boost::geometry::distance(currentPoint, get(*(chosenPoint->second))); //Update the new path total length
+                new_length += distance(currentPoint, get(*(chosenPoint->second))); //Update the new path total length
                 newpath.push_back(*(chosenPoint->second)); //Copy the chosen point into newpath
                 currentPoint = get(*(chosenPoint->second));        //Set the next currentPoint to the chosen point
                 temp_path.erase(chosenPoint->second);           //Remove the chosen point from the path list
@@ -126,7 +133,7 @@ public:
             }
 
             newpath.push_back(temp_path.front());    //Copy the last point into newpath
-            new_length += boost::geometry::distance(currentPoint, get(temp_path.front())); //Compute the distance and add it to new_length
+            new_length += distance(currentPoint, get(temp_path.front())); //Compute the distance and add it to new_length
 
             if (new_length < original_length)  //If the new path is better than the previous one
                 path = newpath;
