@@ -37,6 +37,7 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
     size_t segments_num = 0;
     ring_type bounding_box_ring;
 
+    // bounding_box_ring is a ring that is surely big enough to hold all milling.
     bg::assign(bounding_box_ring, bg::return_buffer<box_type>(
                                 bg::return_envelope<box_type>(input), bounding_box_offset));
 
@@ -80,7 +81,7 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 	auto source_index1 = edge.twin()->cell()->source_index();
 	for (const polygon_type& polygon : input)
 	{
-	    if (source_index0 > polygon.outer().size()-1 && source_index1 > polygon.outer().size()-1) {
+	    if (source_index0 >= polygon.outer().size()-1 && source_index1 >= polygon.outer().size()-1) {
 		source_index0 -= polygon.outer().size()-1;
 		source_index1 -= polygon.outer().size()-1;
 	    } else if(source_index0 < polygon.outer().size()-1 && source_index1 < polygon.outer().size()-1) {
@@ -91,7 +92,7 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 	    
 	    for (const ring_type& ring : polygon.inners())
 	    {
-		if (source_index0 > ring.size()-1 && source_index1 > ring.size()-1) {
+		if (source_index0 >= ring.size()-1 && source_index1 >= ring.size()-1) {
 		    source_index0 -= ring.size()-1;
 		    source_index1 -= ring.size()-1;
 		} else if(source_index0 < ring.size()-1 && source_index1 < ring.size()-1) {
@@ -103,14 +104,14 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 	}
 	goto skip;
       found:
-	if (edge.is_finite()) {
+	if (edge.is_finite() && edge.is_primary()) {
 	    if (edge.is_linear()) {
-		printf("%f %f %f %f\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y());//, edge.cell()->source_index(), edge.twin()->cell()->source_index());
+		printf("%f %f %f %f %lu %lu\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
 	    } else {
 		vector<point_type_fp_p> sampled_edge;
 		sample_curved_edge(&edge, segments, sampled_edge, max_dist);
 		for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++)
-		    printf("%f %f %f %f\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y());//, edge.cell()->source_index(), edge.twin()->cell()->source_index());
+		    printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
 	    }
 	}
 	

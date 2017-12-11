@@ -86,6 +86,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
+    if (mask) {
+      printf("there is a mask\n");
+    }
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
     box_type svg_bounding_box;
