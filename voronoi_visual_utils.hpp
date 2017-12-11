@@ -149,7 +149,7 @@ class voronoi_visual_utils {
   }
 
   static void clip_infinite_edge(
-      const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type& bounding_box) {
+      const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type_fp& bounding_box) {
     const cell_type& cell1 = *edge.cell();
     const cell_type& cell2 = *edge.twin()->cell();
     point_type_p origin, direction;
