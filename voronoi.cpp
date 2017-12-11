@@ -42,15 +42,17 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 
     for (const polygon_type& polygon : input)
     {
+	printf("length: %lu\n", polygon.outer().size()-1);
         segments_num += polygon.outer().size() - 1;
         
         for (const ring_type& ring : polygon.inners())
         {
+	    printf("length: %lu\n", ring.size()-1);
             segments_num += ring.size() - 1;
         }
     }
     
-    segments_num += bounding_box_ring.size() - 1;
+    //segments_num += bounding_box_ring.size() - 1;
     
     segments.reserve(segments_num);
     
@@ -64,7 +66,7 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
         }
     }
     
-    copy_ring(bounding_box_ring, segments);
+    //copy_ring(bounding_box_ring, segments);
 
     output->resize(input.size());
     for (size_t i = 0; i < input.size(); i++)
@@ -73,6 +75,53 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
     boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
     voronoi_builder.construct(&voronoi_diagram);
 
+    for (const edge_type& edge : voronoi_diagram.edges()) {
+	auto source_index0 = edge.cell()->source_index();
+	auto source_index1 = edge.twin()->cell()->source_index();
+	for (const polygon_type& polygon : input)
+	{
+	    if (source_index0 > polygon.outer().size()-1 && source_index1 > polygon.outer().size()-1) {
+		source_index0 -= polygon.outer().size()-1;
+		source_index1 -= polygon.outer().size()-1;
+	    } else if(source_index0 < polygon.outer().size()-1 && source_index1 < polygon.outer().size()-1) {
+		goto skip;
+	    } else {
+		goto found;
+	    }
+	    
+	    for (const ring_type& ring : polygon.inners())
+	    {
+		if (source_index0 > ring.size()-1 && source_index1 > ring.size()-1) {
+		    source_index0 -= ring.size()-1;
+		    source_index1 -= ring.size()-1;
+		} else if(source_index0 < ring.size()-1 && source_index1 < ring.size()-1) {
+		    goto skip;
+		} else {
+		    goto found;
+		}
+	    }
+	}
+	goto skip;
+      found:
+	if (edge.is_finite()) {
+	    if (edge.is_linear()) {
+		printf("%f %f %f %f\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y());//, edge.cell()->source_index(), edge.twin()->cell()->source_index());
+	    } else {
+		vector<point_type_fp_p> sampled_edge;
+		sample_curved_edge(&edge, segments, sampled_edge, max_dist);
+		for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++)
+		    printf("%f %f %f %f\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y());//, edge.cell()->source_index(), edge.twin()->cell()->source_index());
+	    }
+	}
+	
+      skip:
+	continue;
+	
+    }
+    printf("done\n");
+    
+    fflush(stdout);
+    
     for (const cell_type& cell : voronoi_diagram.cells())
     {
         if (!cell.is_degenerate())
@@ -173,9 +222,11 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 
 void Voronoi::copy_ring(const ring_type& ring, vector<segment_type_p> &segments)
 {
-    for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++)
-        segments.push_back(segment_type_p(point_type_p(iter->x(), iter->y()),
-                                        point_type_p((iter + 1)->x(), (iter + 1)->y())));
+  for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++) {
+    segments.push_back(segment_type_p(point_type_p(iter->x(), iter->y()),
+				      point_type_p((iter + 1)->x(), (iter + 1)->y())));
+    printf("%ld %ld %ld %ld\n", (iter)->x(), (iter)->y(), (iter+1)->x(), (iter+1)->y());
+  }
 }
 
 point_type_p Voronoi::retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments) {
