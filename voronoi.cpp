@@ -38,8 +38,9 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
     ring_type bounding_box_ring;
 
     // bounding_box_ring is a ring that is surely big enough to hold all milling.
-    bg::assign(bounding_box_ring, bg::return_buffer<box_type>(
-                                bg::return_envelope<box_type>(input), bounding_box_offset));
+    auto bounding_box = bg::return_envelope<box_type>(input);
+    bg::assign(bounding_box_ring,
+               bg::return_buffer<box_type>(bounding_box, bounding_box_offset));
 
     for (const polygon_type& polygon : input)
     {
@@ -104,18 +105,26 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 	}
 	goto skip;
       found:
-	if (edge.is_finite() && edge.is_primary()) {
+        if (edge.is_primary()) {
+          if (edge.is_finite()) {
 	    if (edge.is_linear()) {
-		printf("%f %f %f %f %lu %lu\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
+              printf("%f %f %f %f %lu %lu\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
 	    } else {
-		vector<point_type_fp_p> sampled_edge;
-		sample_curved_edge(&edge, segments, sampled_edge, max_dist);
-		for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++)
-		    printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
+              vector<point_type_fp_p> sampled_edge;
+              sample_curved_edge(&edge, segments, sampled_edge, max_dist);
+              for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++)
+                printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
 	    }
-	}
-	
-      skip:
+          } else {
+            // infinite edge
+            vector<point_type_fp_p> clipped_edge;
+            boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(edge, segments, &clipped_edge, bounding_box);
+            for (auto iterator = clipped_edge.begin() + 1; iterator != clipped_edge.end(); iterator++) {
+              printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
+            }
+          }
+        }
+    skip:
 	continue;
 	
     }

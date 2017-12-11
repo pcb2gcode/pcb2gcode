@@ -133,12 +133,12 @@ class voronoi_visual_utils {
     discretization->back() = last_point;
   }
 
-  segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p>& segments) {
+  static segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p>& segments) {
     source_index_type index = cell.source_index();
     return segments[index];
   }
 
-  point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p>& segments) {
+  static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p>& segments) {
     source_index_type index = cell.source_index();
     source_category_type category = cell.source_category();
     if (category == SOURCE_CATEGORY_SEGMENT_START_POINT) {
@@ -148,15 +148,15 @@ class voronoi_visual_utils {
     }
   }
 
-  void clip_infinite_edge(
-      const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type>* clipped_edge, box_type& bounding_box) {
+  static void clip_infinite_edge(
+      const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type& bounding_box) {
     const cell_type& cell1 = *edge.cell();
     const cell_type& cell2 = *edge.twin()->cell();
     point_type_p origin, direction;
     // Infinite edges could not be created by two segment sites.
     if (cell1.contains_point() && cell2.contains_point()) {
-      point_type p1 = retrieve_point(cell1, segments);
-      point_type p2 = retrieve_point(cell2, segments);
+      point_type_p p1 = retrieve_point(cell1, segments);
+      point_type_p p2 = retrieve_point(cell2, segments);
       origin.x((p1.x() + p2.x()) * 0.5);
       origin.y((p1.y() + p2.y()) * 0.5);
       direction.x(p1.y() - p2.y());
@@ -178,25 +178,24 @@ class voronoi_visual_utils {
         direction.y(dx);
       }
     }
-    auto foo = bounding_box.min_corner().x();
     coordinate_type side = bounding_box.max_corner().x() - bounding_box.min_corner().x();
     coordinate_type koef =
         side / (std::max)(fabs(direction.x()), fabs(direction.y()));
     if (edge.vertex0() == NULL) {
-      clipped_edge->push_back(point_type(
+      clipped_edge->push_back(point_type_fp_p(
           origin.x() - direction.x() * koef,
           origin.y() - direction.y() * koef));
     } else {
       clipped_edge->push_back(
-          point_type(edge.vertex0()->x(), edge.vertex0()->y()));
+          point_type_fp_p(edge.vertex0()->x(), edge.vertex0()->y()));
     }
     if (edge.vertex1() == NULL) {
-      clipped_edge->push_back(point_type(
+      clipped_edge->push_back(point_type_fp_p(
           origin.x() + direction.x() * koef,
           origin.y() + direction.y() * koef));
     } else {
       clipped_edge->push_back(
-          point_type(edge.vertex1()->x(), edge.vertex1()->y()));
+          point_type_fp_p(edge.vertex1()->x(), edge.vertex1()->y()));
     }
   }
 private:
