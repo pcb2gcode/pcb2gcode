@@ -6,8 +6,15 @@
 
 BOOST_AUTO_TEST_SUITE(eulerian_paths);
 
+struct PointLessThan {
+  bool operator()(const point_type& a, const point_type& b) const {
+    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+  }
+};
+
 BOOST_AUTO_TEST_CASE(do_nothing) {
   BOOST_CHECK(0==0);
+  get_eulerian_paths<point_type, PointLessThan>({{{1,1},{2,2},{3,3}}});
   get_eulerian_paths<int>({{1,2,3}, {}});
 }
 
