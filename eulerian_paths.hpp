@@ -23,6 +23,9 @@ std::vector<std::vector<point_p>> get_eulerian_paths(std::vector<std::vector<poi
    // Create a map from vertex to each path that starts or ends (or both) at that vertex.
   std::multimap<point_p, std::vector<point_p>> vertexToPath;
   for (auto path : paths) {
+    if (path.size() == 0) {
+      continue;
+    }
     point_p start = path.front();
     point_p end = path.back();
     vertexToPath.insert(std::pair<point_p, std::vector<point_p>>(start, path));
@@ -34,6 +37,7 @@ std::vector<std::vector<point_p>> get_eulerian_paths(std::vector<std::vector<poi
   for (auto& iter : vertexToPath) {
     for (auto& val : iter.second) {
       printf("%d, %d\n", iter.first, val);
+    }
   }
   return std::vector<std::vector<point_p>>{};
 }

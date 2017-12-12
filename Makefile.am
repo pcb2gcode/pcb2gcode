@@ -14,7 +14,6 @@ pcb2gcode_SOURCES = \
     drill.hpp \
     drill.cpp \
     eulerian_paths.hpp \
-    eulerian_paths.cpp \
     exporter.hpp \
     Fixed.hpp \
     geometry.hpp \
