@@ -2,7 +2,7 @@
 #define EULERIAN_PATHS_H
 
 #include <vector>
-using std::vector;
+#include <map>
 
 #include "geometry.hpp"
 
@@ -18,7 +18,23 @@ using std::vector;
  * cover all segments in the input paths with the minimum number of
  * paths as described above.
  */
-template <typename point>
-vector<vector<point>> get_eulerian_paths(vector<vector<point>> paths);
+template <typename point_p>
+std::vector<std::vector<point_p>> get_eulerian_paths(std::vector<std::vector<point_p>> paths) {
+   // Create a map from vertex to each path that starts or ends (or both) at that vertex.
+  std::multimap<point_p, std::vector<point_p>> vertexToPath;
+  for (auto path : paths) {
+    point_p start = path.front();
+    point_p end = path.back();
+    vertexToPath.insert(std::pair<point_p, std::vector<point_p>>(start, path));
+    if (start != end) {
+      vertexToPath.insert(std::pair<point_p, std::vector<point_p>>(end, path));
+    }
+  }
+  printf("done!\n");
+  for (auto& iter : vertexToPath) {
+    printf("%d, %d\n", iter.first, iter.second[0]);
+  }
+  return std::vector<std::vector<point_p>>{};
+}
 
 #endif //EULERIAN_PATHS_H
