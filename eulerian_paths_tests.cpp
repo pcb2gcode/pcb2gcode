@@ -83,4 +83,33 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
   BOOST_CHECK(euler_paths.size() == 2);
 }
 
+// Bridge
+// 5---2---1---6
+// |   |   |   |
+// 3---4   7---8
+BOOST_AUTO_TEST_CASE(bridge) {
+  BOOST_CHECK(0==0);
+  vector<vector<int>> euler_paths = get_eulerian_paths<int>({
+      {5,2},
+      {2,1},
+      {1,6},
+      {3,4},
+      {7,8},
+      {5,3},
+      {2,4},
+      {1,7},
+      {6,8},
+          });
+  int edges_visited = 0;
+  for (size_t i = 0; i < euler_paths.size(); i++) {
+    edges_visited += euler_paths[i].size()-1;
+    for (size_t j = 0; j < euler_paths[i].size(); j++) {
+      printf("%d ", euler_paths[i][j]);
+    }
+    printf("\n");
+  }
+  BOOST_CHECK(edges_visited == 9);
+  BOOST_CHECK(euler_paths.size() == 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
