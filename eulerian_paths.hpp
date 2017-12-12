@@ -109,7 +109,7 @@ std::vector<std::vector<point_p>> get_eulerian_paths(const std::vector<std::vect
       make_path(vertex, &new_path);
       euler_paths.push_back(new_path);
     }
-    // Advance to the next vertex.
+    // Advance to a different vertex.
     iter = vertex_to_unvisited_path_index.upper_bound(vertex);
   }
 
@@ -123,20 +123,21 @@ std::vector<std::vector<point_p>> get_eulerian_paths(const std::vector<std::vect
 
   // Anything remaining is on islands.  Make all those paths, too.  No
   // stitching needed because all vertices have an even number of
-  // edges
-  /*  for (auto iter = vertex_to_unvisited_path_index.cbegin(); iter != vertex_to_unvisited_path_index.cend();) {
+  // edges.
+  for (auto iter = vertex_to_unvisited_path_index.cbegin(); iter != vertex_to_unvisited_path_index.cend();) {
     auto& vertex = iter->first;
-    if (vertex_to_unvisited_path_index.count(vertex) % 2 == 1) {
-      // Make a path starting from vertex with odd count.
+    if (vertex_to_unvisited_path_index.count(vertex) > 0) {
       std::vector<point_p> new_path{vertex};
       make_path(vertex, &new_path);
+      // We can stitch right now because all vertices already have
+      // even number of edges.
+      stitch_loops(&new_path);
       euler_paths.push_back(new_path);
     }
     // Advance to the next vertex.
     iter = vertex_to_unvisited_path_index.upper_bound(vertex);
-    }*/
+  }
 
-  
   return euler_paths;
 }
 
