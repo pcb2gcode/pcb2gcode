@@ -71,18 +71,22 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
         do {
             auto source_index0 = incident_edge->cell()->source_index();
             auto source_index1 = incident_edge->twin()->cell()->source_index();
+            size_t segment_index0 = *std::lower_bound(segments_count.cbegin(), segments_count.cend(), source_index0);
+            size_t segment_index1 = *std::lower_bound(segments_count.cbegin(), segments_count.cend(), source_index1);
             // Do these two source segments come from different rings?
-            if (source_index0 < source_index1 && // Only use one side of the half-edges
-                // Differing input rings?
-                *std::lower_bound(segments_count.cbegin(), segments_count.cend(), source_index0) !=
-                *std::lower_bound(segments_count.cbegin(), segments_count.cend(), source_index1) &&
+            if (segment_index0 < segment_index1 && // Only use one side of the half-edges
                 incident_edge->is_primary()) { // Only actual voronoi edges.
                 // We want to use this edge and all the edges it leads
                 // to until the source_indices change.
                 vector<point_type_fp_p> new_voronoi_edge{};
                 const edge_type* current_edge = incident_edge;
-                while (current_edge->cell()->source_index() == source_index0 &&
-                       current_edge->cell()->source_index() == source_index1) {
+                auto current_source_index0 = current_edge->cell()->source_index();
+                auto current_source_index1 = current_edge->twin()->cell()->source_index();
+                size_t current_segment_index0 = *std::lower_bound(segments_count.cbegin(),
+                                                                  segments_count.cend(), current_source_index0);
+                size_t current_segment_index1 = *std::lower_bound(segments_count.cbegin(),
+                                                                  segments_count.cend(), current_source_index1);
+                while (current_segment_index0 == segment_index0 && current_segment_index1 == segment_index1) {
                     if (current_edge->is_finite()) {
                         if (current_edge->is_linear()) {
                             if (new_voronoi_edge.size() == 0) {
@@ -98,6 +102,7 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
                             if (new_voronoi_edge.size() == 0) {
                                 new_voronoi_edge.push_back(sampled_edge.front());
                             }
+                            printf("sampled edge length is: %ld", sampled_edge.size());
                             new_voronoi_edge.insert(new_voronoi_edge.end(), sampled_edge.cbegin()+1,
                                                     sampled_edge.cend());
                         }
@@ -117,7 +122,15 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
                         }
                     }
                     current_edge = current_edge->next();
+                    current_source_index0 = current_edge->cell()->source_index();
+                    current_source_index1 = current_edge->twin()->cell()->source_index();
+                    current_segment_index0 = *std::lower_bound(segments_count.cbegin(),
+                                                               segments_count.cend(), current_source_index0);
+                    current_segment_index1 = *std::lower_bound(segments_count.cbegin(),
+                                                               segments_count.cend(), current_source_index1);
+                    printf("next\n");
                 }
+                printf("done");
                 // Done with this edge, add it to the output.
                 output.push_back(new_voronoi_edge);
             }
@@ -138,6 +151,8 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
     size_t segments_num = 0;
     ring_type bounding_box_ring;
 
+    bg::assign(bounding_box_ring, bg::return_buffer<box_type>(
+                                bg::return_envelope<box_type>(input), bounding_box_offset));
     // bounding_box_ring is a ring that is surely big enough to hold all milling.
     box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
     bg::assign(bounding_box_ring,
@@ -145,17 +160,15 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
 
     for (const polygon_type& polygon : input)
     {
-	printf("length: %lu\n", polygon.outer().size()-1);
         segments_num += polygon.outer().size() - 1;
         
         for (const ring_type& ring : polygon.inners())
         {
-	    printf("length: %lu\n", ring.size()-1);
             segments_num += ring.size() - 1;
         }
     }
     
-    //segments_num += bounding_box_ring.size() - 1;
+    segments_num += bounding_box_ring.size() - 1;
     
     segments.reserve(segments_num);
     
@@ -169,7 +182,7 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
         }
     }
     
-    //copy_ring(bounding_box_ring, segments);
+    copy_ring(bounding_box_ring, segments);
 
     output->resize(input.size());
     for (size_t i = 0; i < input.size(); i++)
@@ -178,66 +191,6 @@ unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& 
     boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
     voronoi_builder.construct(&voronoi_diagram);
 
-    for (const edge_type& edge : voronoi_diagram.edges()) {
-	auto source_index0 = edge.cell()->source_index();
-	auto source_index1 = edge.twin()->cell()->source_index();
-	for (const polygon_type& polygon : input)
-	{
-	    if (source_index0 >= polygon.outer().size()-1 && source_index1 >= polygon.outer().size()-1) {
-		source_index0 -= polygon.outer().size()-1;
-		source_index1 -= polygon.outer().size()-1;
-	    } else if(source_index0 < polygon.outer().size()-1 && source_index1 < polygon.outer().size()-1) {
-		goto skip;
-	    } else {
-		goto found;
-	    }
-	    
-	    for (const ring_type& ring : polygon.inners())
-	    {
-		if (source_index0 >= ring.size()-1 && source_index1 >= ring.size()-1) {
-		    source_index0 -= ring.size()-1;
-		    source_index1 -= ring.size()-1;
-		} else if(source_index0 < ring.size()-1 && source_index1 < ring.size()-1) {
-		    goto skip;
-		} else {
-		    goto found;
-		}
-	    }
-	}
-	goto skip;
-      found:
-        if (edge.is_primary() && edge.cell()->source_index() < edge.twin()->cell()->source_index()) {
-          if (edge.is_finite()) {
-	    if (edge.is_linear()) {
-              printf("%f %f %f %f %lu %lu\n", edge.vertex0()->x(), edge.vertex0()->y(), edge.vertex1()->x(), edge.vertex1()->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
-	    } else {
-              vector<point_type_fp_p> sampled_edge;
-              sample_curved_edge(&edge, segments, sampled_edge, max_dist);
-              for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++) {
-                printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
-              }
-	    }
-          } else {
-            // infinite edge
-            vector<point_type_fp_p> clipped_edge;
-            if ((edge.vertex0() == NULL || bg::covered_by(point_type(edge.vertex0()->x(), edge.vertex0()->y()),
-                                                          bounding_box)) &&
-                (edge.vertex1() == NULL || bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
-                                                          bounding_box))) {
-              boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(edge, segments, &clipped_edge, bounding_box);
-              for (auto iterator = clipped_edge.begin() + 1; iterator != clipped_edge.end(); iterator++) {
-                printf("%f %f %f %f %lu %lu\n", (iterator-1)->x(), (iterator-1)->y(), (iterator)->x(), (iterator)->y(), edge.cell()->source_index(), edge.twin()->cell()->source_index());
-              }
-            }
-          }
-        }
-    skip:
-	continue;
-    }
-    printf("done\n");
-    
-    fflush(stdout);
-    
     for (const cell_type& cell : voronoi_diagram.cells())
     {
         if (!cell.is_degenerate())
