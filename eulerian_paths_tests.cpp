@@ -8,7 +8,7 @@ BOOST_AUTO_TEST_SUITE(eulerian_paths);
 
 BOOST_AUTO_TEST_CASE(do_nothing) {
   BOOST_CHECK(0==0);
-  get_eulerian_paths<int>({{1,2,3}});
+  get_eulerian_paths<int>({{1,2,3}, {});
 }
 
 BOOST_AUTO_TEST_SUITE_END()

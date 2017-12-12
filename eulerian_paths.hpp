@@ -32,7 +32,8 @@ std::vector<std::vector<point_p>> get_eulerian_paths(std::vector<std::vector<poi
   }
   printf("done!\n");
   for (auto& iter : vertexToPath) {
-    printf("%d, %d\n", iter.first, iter.second[0]);
+    for (auto& val : iter.second) {
+      printf("%d, %d\n", iter.first, val);
   }
   return std::vector<std::vector<point_p>>{};
 }
