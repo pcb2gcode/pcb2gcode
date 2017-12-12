@@ -19,54 +19,85 @@
  * paths as described above.
  */
 
-struct PointLessThan {
-  bool operator()(const point_type& a, const point_type& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
-
 bool operator !=(const point_type& x, const point_type& y) {
   return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
 }
 
+bool operator ==(const point_type& x, const point_type& y) {
+  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
+}
+
 
 template <typename point_p, typename point_less_than_p = std::less<point_p>>
-std::vector<std::vector<point_p>> get_eulerian_paths(std::vector<std::vector<point_p>> paths) {
+std::vector<std::vector<point_p>> get_eulerian_paths(const std::vector<std::vector<point_p>>& paths) {
   // Create a map from vertex to each path that starts or ends (or
   // both) at that vertex.  It's a map to an input into the input
   // paths.
-  std::multimap<point_p, size_t, point_less_than_p> vertex_to_path_index;
+  std::multimap<point_p, size_t, point_less_than_p> vertex_to_unvisited_path_index;
   for (size_t i = 0; i < paths.size(); i++) {
     auto& path = paths[i];
-    if (path.size() == 0) {
+    if (path.size() < 2) {
+      // Valid path must have a start and end.
       continue;
     }
     point_p start = path.front();
     point_p end = path.back();
-    vertex_to_path_index.emplace(start, i);
-    if (start != end) {
-      vertex_to_path_index.emplace(end, i);
-    }
+    vertex_to_unvisited_path_index.emplace(start, i);
+    vertex_to_unvisited_path_index.emplace(end, i);
   }
-  std::vector<bool> path_visited(paths.size()); // At first, no paths have been visited.
 
-  // We use Hierholzer's algorithm to find the minimum cycles.
-  // First, make a path from each vertex with odd path count until the path ends.
-  point_p& previous_vertex = paths[0][0];  // Doesn't matter what we put here.
-  int unvisited_count = 0;
-  for (auto& vertex_and_path_index : vertex_to_path_index) {
-    auto& vertex = vertex_and_path_index.first;
-    if (vertex != previous_vertex) {
-      unvisited_count = 0;
-      previous_vertex = vertex;
+  // Given a point, make a path from that point as long as possible
+  // until a dead end.  Assume that point itself is already in the
+  // list.
+  std::function<void(const point_p&, std::vector<point_p>*)> make_path = [&] (const point_p& point, std::vector<point_p>* new_path) -> void {
+    // Find an unvisited path that leads from point, any will do.
+    auto vertex_and_path_index = vertex_to_unvisited_path_index.find(point);
+    if (vertex_and_path_index == vertex_to_unvisited_path_index.end()) {
+      // No more paths to follow.
+      return;
     }
-    auto& path_index = vertex_and_path_index.second;
-    if (!path_visited[path_index]) {
-      unvisited_count++;
+    size_t path_index = vertex_and_path_index->second;
+    auto& path = paths[path_index];
+    if (point == path.front()) {
+      // Append  this path in the forward direction.
+      new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
+    } else {
+      // Append this path in the reverse direction.
+      new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
     }
-    printf("done!\n");
+    vertex_to_unvisited_path_index.erase(vertex_and_path_index); // Remove from the first vertex.
+    point_p& new_point = new_path->back();
+    // We're bound to find one, otherwise there is a serious error in
+    // the algorithm.
+    for (auto iter = vertex_to_unvisited_path_index.find(new_point); iter != vertex_to_unvisited_path_index.end(); iter++) {
+      if (iter->second == path_index) {
+        // Remove the path from the last vertex
+        vertex_to_unvisited_path_index.erase(iter);
+        break;
+      }
+    }
+    // Continue making the path from here.
+    make_path(new_point, new_path);
+  };
+
+
+  // We use Hierholzer's algorithm to find the minimum cycles.  First,
+  // make a path from each vertex with odd path count until the path
+  // ends.
+  std::vector<std::vector<point_p>> euler_paths{};
+  for (auto iter = vertex_to_unvisited_path_index.cbegin(); iter != vertex_to_unvisited_path_index.cend();) {
+    auto& vertex = iter->first;
+    if (vertex_to_unvisited_path_index.count(vertex) % 2 == 1) {
+      // Make a path starting from vertex with odd count.
+      std::vector<point_p> new_path{vertex};
+      make_path(vertex, &new_path);
+      euler_paths.push_back(new_path);
+    }
+    // Advance to the next vertex.
+    iter = vertex_to_unvisited_path_index.upper_bound(vertex);
   }
-  return std::vector<std::vector<point_p>>{};
+
+  return euler_paths;
 }
 
 #endif //EULERIAN_PATHS_H
