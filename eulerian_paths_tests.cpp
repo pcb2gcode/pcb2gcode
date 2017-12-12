@@ -5,7 +5,7 @@
 BOOST_AUTO_TEST_SUITE(eulerian_paths);
 
 BOOST_AUTO_TEST_CASE(is0) {
-  BOOST_CHECK(0==0);
+  BOOST_CHECK(0==1);
   BOOST_CHECK(4==4);
 }
 

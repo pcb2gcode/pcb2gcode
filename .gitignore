@@ -21,6 +21,11 @@
 *.exe
 *.out
 *.app
+*_tests
+
+#test generated files
+*.log
+*.trs
 
 #built or generated project files
 .deps/*
