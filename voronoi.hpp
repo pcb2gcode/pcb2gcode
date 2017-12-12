@@ -60,6 +60,7 @@ typedef voronoi_diagram_type::cell_type cell_type;
 typedef voronoi_diagram_type::cell_type::source_index_type source_index_type;
 typedef voronoi_diagram_type::cell_type::source_category_type source_category_type;
 typedef voronoi_diagram_type::edge_type edge_type;
+typedef voronoi_diagram_type::vertex_type vertex_type;
 typedef voronoi_diagram_type::cell_container_type cell_container_type;
 typedef voronoi_diagram_type::cell_container_type vertex_container_type;
 typedef voronoi_diagram_type::edge_container_type edge_container_type;
@@ -72,6 +73,23 @@ class Voronoi
 public:
     static unique_ptr<multi_polygon_type> build_voronoi(const multi_polygon_type& input,
                                 coordinate_type bounding_box_offset, coordinate_type max_dist);
+    /* Given many polygons, return all Voronoi edges.  A polygon has
+     * an outer perimeter that is a ring.  A ring is a list of points
+     * that starts and ends at the same location.  A polygon can also
+     * have holes in it, which are multiple inner rings.  None of a
+     * polygons inner rings should overlap and no segments should
+     * overlap.
+     *
+     * The returned edges are lists of points from the voronoi diagram
+     * between vertices where 3 or more edges met.  Infinite edges are
+     * converetd to finte edges that extend at least as far as output
+     * the bounding box of all the inputs + bounding_box_offset.
+     * max_dist is the maximum "error" for when sampling curved edges
+     * of the Voronoi diagram.
+     */
+    static vector<vector<point_type_fp_p>> get_voronoi_edges(
+        const multi_polygon_type& input,
+        coordinate_type bounding_box_offset, coordinate_type max_dist);
 
 protected:
     static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
