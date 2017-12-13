@@ -95,7 +95,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
         //printf("\n");
     }
-    //get_eulerian_paths<point_type_fp>(voronoi_edges);
+    struct PointLessThan {
+      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+        return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+    printf("count before is %ld\n", voronoi_edges.size());
+    voronoi_edges = get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(voronoi_edges);
+    printf("count after is %ld\n", voronoi_edges.size());
     box_type svg_bounding_box;
 
     // Make the svg file large enough to contains the width of all milling.
@@ -132,7 +139,22 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         for (int i = 0; i < extra_passes; i++) {
             // This is how far off the current path that we want to offset
             coordinate_type current_grow = grow * (i + 1);
-            //bg::buffer(voronoi_edge,
+            multi_polygon_type_fp buffered_linestring;
+            bg::buffer(voronoi_edge, buffered_linestring,
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
+                       bg::strategy::buffer::side_straight(),
+                       bg::strategy::buffer::join_round(points_per_circle),
+                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
+                       bg::strategy::buffer::end_flat(),
+                       bg::strategy::buffer::point_circle(points_per_circle));
+            // The buffered_linestring is now an oval surrounding the original path.  Let's extract all paths from it.
+            multi_linestring_type_fp mls;
+            for (const polygon_type_fp& poly : buffered_linestring) {
+              mls.push_back(linestring_type_fp(poly.outer().cbegin(), poly.outer().cend()));
+              for (const ring_type_fp& inner : poly.inners()) {
+                mls.push_back(linestring_type_fp(inner.cbegin(), inner.cend()));
+              }
+            }
         }
     }
 

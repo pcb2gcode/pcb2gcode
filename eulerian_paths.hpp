@@ -27,7 +27,11 @@ bool operator ==(const point_type& x, const point_type& y) {
   return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
 }
 
-bool operator <(const point_type_fp& x, const point_type_fp& y) {
+bool operator !=(const point_type_fp& x, const point_type_fp& y) {
+  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
+}
+
+bool operator ==(const point_type_fp& x, const point_type_fp& y) {
   return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
 }
 
