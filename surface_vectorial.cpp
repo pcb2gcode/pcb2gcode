@@ -71,35 +71,33 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    vector<shared_ptr<icoords> > toolpath;
-    vector<shared_ptr<icoords> > toolpath_optimised;
     shared_ptr<multi_polygon_type> voronoi;
     coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
                                             max(width_in, height_in) * scale * 10);
     coordinate_type tolerance = mill->tolerance * scale;
+    // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type grow = mill->tool_diameter / 2 * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    // extra passes are done on each trace if requested, each offset by half the tool diameter.
     const int extra_passes = isolator ? isolator->extra_passes : 0;
 
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    if (mask) {
-      printf("there is a mask\n");
-    }
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
     vector<vector<point_type_fp_p>> voronoi_edges =
            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
-    for (const auto& voronoi_edge : voronoi_edges) {
+    /*for (const auto& voronoi_edge : voronoi_edges) {
       for (auto iter = voronoi_edge.begin()+1; iter != voronoi_edge.end(); iter++) {
         printf("%f %f %f %f\n", (iter-1)->x(), (iter-1)->y(), (iter)->x(), (iter)->y());
       }
       //printf("\n");
-    }
+      }*/
     box_type svg_bounding_box;
 
+    // Make the svg file large enough to contains the width of all milling.
     if (grow > 0)
         bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
     else
@@ -119,6 +117,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     srand(1);
 
+    vector<shared_ptr<icoords> > toolpath;
+    vector<shared_ptr<icoords> > toolpath_optimised;
+
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
         const unsigned int r = rand() % 256;
@@ -126,7 +127,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         const unsigned int b = rand() % 256;
 
         unique_ptr<vector<polygon_type> > polygons;
-    
+
         polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1, mirror, mirror_axis);
 
