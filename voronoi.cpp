@@ -72,8 +72,6 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
         // Do these two source segments come from different rings?
         if (segment_index0 < segment_index1 && // Only use one side of the half-edges.
             edge.is_primary()) { // Only actual voronoi edges.
-            printf("%ld %ld\n", source_index0, source_index1);
-            printf("%ld %ld\n", segment_index0, segment_index1);
             // We want to use this edge.
             vector<point_type_fp_p> new_voronoi_edge{};
             if (edge.is_finite()) {
