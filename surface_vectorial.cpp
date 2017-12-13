@@ -32,7 +32,7 @@ using Glib::build_filename;
 
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
-
+#include "eulerian_paths.hpp"
 using std::max;
 using std::max_element;
 using std::next;
@@ -95,6 +95,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
         //printf("\n");
     }
+    //get_eulerian_paths<point_type_fp>(voronoi_edges);
     box_type svg_bounding_box;
 
     // Make the svg file large enough to contains the width of all milling.

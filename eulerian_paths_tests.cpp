@@ -16,7 +16,7 @@ struct PointLessThan {
 
 BOOST_AUTO_TEST_CASE(do_nothing_points) {
   BOOST_CHECK(0==0);
-  get_eulerian_paths<point_type, PointLessThan>({{{1,1},{2,2},{3,3}}});
+  get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>({{{1,1},{2,2},{3,3}}});
 }
 
 // 3x3 grid connected like a window pane:
@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane) {
   BOOST_CHECK(0==0);
-  vector<vector<int>> euler_paths = get_eulerian_paths<int>({
+  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {1,2},
       {2,3},
       {4,5},
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(window_pane) {
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
   BOOST_CHECK(0==0);
-  vector<vector<int>> euler_paths = get_eulerian_paths<int>({
+  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {4,5},
       {5,6},
       {4,7,8},
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(bridge) {
   BOOST_CHECK(0==0);
-  vector<vector<int>> euler_paths = get_eulerian_paths<int>({
+  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {5,2},
       {2,1},
       {1,6},
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(disjoint_loops) {
   BOOST_CHECK(0==0);
-  vector<vector<int>> euler_paths = get_eulerian_paths<int>({
+  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {5,2},
       {1,6},
       {3,4},
