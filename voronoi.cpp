@@ -95,8 +95,12 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
                     (edge.vertex1() == NULL ||
                      bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
                                     bounding_box))) {
-                    //boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
-                    //    edge, segments, &new_voronoi_edge, bounding_box);
+                    vector<point_type_fp_p> clipped_edge;
+                    boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
+                        edge, segments, &clipped_edge, bounding_box);
+                    for (const auto& point : clipped_edge) {
+                        new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+                    }
                 }
             }
             if (new_voronoi_edge.size() > 0) {

@@ -89,12 +89,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
     multi_linestring_type_fp voronoi_edges =
            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
-    /*for (const auto& voronoi_edge : voronoi_edges) {
-      for (auto iter = voronoi_edge.begin()+1; iter != voronoi_edge.end(); iter++) {
-        printf("%f %f %f %f\n", (iter-1)->x(), (iter-1)->y(), (iter)->x(), (iter)->y());
-      }
-      //printf("\n");
-      }*/
+    for (const auto& voronoi_edge : voronoi_edges) {
+        for (auto iter = voronoi_edge.begin()+1; iter != voronoi_edge.end(); iter++) {
+            printf("%f %f %f %f\n", (iter-1)->x(), (iter-1)->y(), (iter)->x(), (iter)->y());
+        }
+        //printf("\n");
+    }
     box_type svg_bounding_box;
 
     // Make the svg file large enough to contains the width of all milling.
