@@ -89,7 +89,7 @@ public:
      */
     static vector<vector<point_type_fp_p>> get_voronoi_edges(
         const multi_polygon_type& input,
-        coordinate_type bounding_box_offset, coordinate_type max_dist);
+        const box_type& bounding_box, coordinate_type max_dist);
 
 protected:
     static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,

@@ -91,7 +91,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
     vector<vector<point_type_fp_p>> voronoi_edges =
-           Voronoi::get_voronoi_edges(*vectorial_surface, voronoi_offset, tolerance);
+           Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
     for (const auto& voronoi_edge : voronoi_edges) {
       for (auto iter = voronoi_edge.begin()+1; iter != voronoi_edge.end(); iter++) {
         printf("%f %f %f %f\n", (iter-1)->x(), (iter-1)->y(), (iter)->x(), (iter)->y());

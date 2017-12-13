@@ -28,14 +28,12 @@ using std::map;
 
 vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
     const multi_polygon_type& input,
-    coordinate_type bounding_box_offset, coordinate_type max_dist) {
+    const box_type& mask_bounding_box, coordinate_type max_dist) {
 
-    // Bounding_box_ring is a ring that is surely big enough to hold all milling.
-    ring_type bounding_box_ring;
+    // Bounding_box is a box that is big enough to hold all milling.
     box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
-    // Expand that bounding box by the offset.
-    bg::assign(bounding_box_ring,
-               bg::return_buffer<box_type_fp>(bounding_box, bounding_box_offset));
+    // Expand that bounding box by the provided bounding_box.
+    bg::expand(bounding_box, mask_bounding_box);
 
     // For each input polygon, add all the segments of all the rings.
     vector<size_t> segments_count;
@@ -89,18 +87,20 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
                     sample_curved_edge(&edge, segments, new_voronoi_edge, max_dist);
                 }
             } else {
-                // Infinite edge, only make it if it is inside the bounding_box_ring.
+                // Infinite edge, only make it if it is inside the bounding_box.
                 if ((edge.vertex0() == NULL ||
                      bg::covered_by(point_type(edge.vertex0()->x(), edge.vertex0()->y()),
-                                    bounding_box_ring)) &&
+                                    bounding_box)) &&
                     (edge.vertex1() == NULL ||
                      bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
-                                    bounding_box_ring))) {
+                                    bounding_box))) {
                     boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
                         edge, segments, &new_voronoi_edge, bounding_box);
                 }
             }
-            output.push_back(new_voronoi_edge);
+            if (new_voronoi_edge.size() > 0) {
+              output.push_back(new_voronoi_edge);
+            }
         }
     }
     return output;
