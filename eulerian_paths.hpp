@@ -88,14 +88,14 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
   // will make a Euler circuit there and stitch it into the current
   // path.  This continues until the end of the path.
   auto stitch_loops = [&] (linestring_t *euler_path) -> void {
-    for (auto iter = euler_path->begin(); iter != euler_path->end(); iter++) {
+    for (size_t i = 0; i < euler_path->size(); i++) {
       // Does this vertex have any unvisited edges?
-      if (vertex_to_unvisited_path_index.count(*iter) > 0) {
+      if (vertex_to_unvisited_path_index.count((*euler_path)[i]) > 0) {
         // Make a path from here.  We don't need the first element, it's already in our path.
         linestring_t new_loop{};
-        make_path(*iter, &new_loop);
+        make_path((*euler_path)[i], &new_loop);
         // Now we stitch it in.
-        euler_path->insert(iter+1, new_loop.begin(), new_loop.end());
+        euler_path->insert(euler_path->begin()+i+1, new_loop.begin(), new_loop.end());
       }
     }
   };
