@@ -33,6 +33,7 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "eulerian_paths.hpp"
+//#include "buffer_end_none.hpp"
 using std::max;
 using std::max_element;
 using std::next;
@@ -129,40 +130,60 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
 
-    for (const linestring_type_fp& voronoi_edge : voronoi_edges) {
-        // For each edge, we need to make successive edges that are
-        // offset by grow on each side.  The number of edges that need
-        // to be made depends on the number of extra_passes.
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
+    auto copy_mls_to_toolpath = [&](const multi_linestring_type_fp& mls) {
+        for (const auto& ls : mls) {
+            toolpath.push_back(make_shared<icoords>());
+            for (const auto& point : ls) {
+                if (mirror) {
+                    toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                                                         point.y() / double(scale)));
+                } else {
+                    toolpath.back()->push_back(make_pair(point.x() / double(scale),
+                                                         point.y() / double(scale)));
+                }
+            }
+        }
+    };
+
+    copy_mls_to_toolpath(voronoi_edges);
+    if (grow > 0) {
         for (int i = 0; i < extra_passes; i++) {
-            // This is how far off the current path that we want to offset
-            coordinate_type current_grow = grow * (i + 1);
-            multi_polygon_type_fp buffered_linestring;
-            bg::buffer(voronoi_edge, buffered_linestring,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                       bg::strategy::buffer::end_flat(),
-                       bg::strategy::buffer::point_circle(points_per_circle));
-            // The buffered_linestring is now an oval surrounding the original path.  Let's extract all paths from it.
-            multi_linestring_type_fp mls;
-            for (const polygon_type_fp& poly : buffered_linestring) {
-              mls.push_back(linestring_type_fp(poly.outer().cbegin(), poly.outer().cend()));
-              for (const ring_type_fp& inner : poly.inners()) {
-                mls.push_back(linestring_type_fp(inner.cbegin(), inner.cend()));
-              }
+            for (const linestring_type_fp& voronoi_edge : voronoi_edges) {
+                // For each edge, we need to make successive edges that are
+                // offset by grow on each side.  The number of edges that need
+                // to be made depends on the number of extra_passes.
+                //const unsigned int r = rand() % 256;
+                //const unsigned int g = rand() % 256;
+                //const unsigned int b = rand() % 256;
+                // This is how far off the current path that we want to offset
+                coordinate_type current_grow = grow * (i + 1);
+                multi_polygon_type_fp buffered_linestring;
+                bg::buffer(voronoi_edge, buffered_linestring,
+                           bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
+                           bg::strategy::buffer::side_straight(),
+                           bg::strategy::buffer::join_round(points_per_circle),
+                           //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
+                           bg::strategy::buffer::end_flat(),
+                           bg::strategy::buffer::point_circle(points_per_circle));
+                // The buffered_linestring is now an oval surrounding the original path.  Let's extract all paths from it.
+                multi_linestring_type_fp mls;
+                for (const polygon_type_fp& poly : buffered_linestring) {
+                    mls.push_back(linestring_type_fp(poly.outer().cbegin(), poly.outer().cend()));
+                    for (const ring_type_fp& inner : poly.inners()) {
+                        mls.push_back(linestring_type_fp(inner.cbegin(), inner.cend()));
+                    }
+                }
+                traced_debug_image.add(mls, 0.3, true);
+                copy_mls_to_toolpath(mls);
             }
         }
     }
 
-    for (unsigned int i = 0; i < vectorial_surface->size(); i++)
+    /*for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
+        //const unsigned int r = rand() % 256;
+        //const unsigned int g = rand() % 256;
+        //const unsigned int b = rand() % 256;
 
         unique_ptr<vector<polygon_type> > polygons;
 
@@ -171,7 +192,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         //debug_image.add(*polygons, 0.6, r, g, b);
         //traced_debug_image.add(*polygons, 1, r, g, b);
-    }
+        }*/
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);
