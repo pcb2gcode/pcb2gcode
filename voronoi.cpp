@@ -26,10 +26,9 @@
 using std::list;
 using std::map;
 
-vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
+multi_linestring_type_fp Voronoi::get_voronoi_edges(
     const multi_polygon_type& input,
     const box_type& mask_bounding_box, coordinate_type max_dist) {
-
     // Bounding_box is a box that is big enough to hold all milling.
     box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
     // Expand that bounding box by the provided bounding_box.
@@ -63,7 +62,7 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
     voronoi_builder.construct(&voronoi_diagram);
 
     // Vertices are points where there are more than 2 half-edges meeting.  We traverse from those until we hit another vertex, which is where the adjacent cells change.
-    vector<vector<point_type_fp_p>> output{};
+    multi_linestring_type_fp output{};
     for (const edge_type& edge : voronoi_diagram.edges()) {
         auto source_index0 = edge.cell()->source_index();
         auto source_index1 = edge.twin()->cell()->source_index();
@@ -73,16 +72,16 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
         if (segment_index0 < segment_index1 && // Only use one side of the half-edges.
             edge.is_primary()) { // Only actual voronoi edges.
             // We want to use this edge.
-            vector<point_type_fp_p> new_voronoi_edge{};
+            linestring_type_fp new_voronoi_edge{};
             if (edge.is_finite()) {
                 if (edge.is_linear()) {
-                    new_voronoi_edge.push_back(point_type_fp_p(edge.vertex0()->x(),
-                                                               edge.vertex0()->y()));
-                    new_voronoi_edge.push_back(point_type_fp_p(edge.vertex1()->x(),
-                                                               edge.vertex1()->y()));
+                    new_voronoi_edge.push_back(point_type_fp(edge.vertex0()->x(),
+                                                             edge.vertex0()->y()));
+                    new_voronoi_edge.push_back(point_type_fp(edge.vertex1()->x(),
+                                                             edge.vertex1()->y()));
                 } else {
                     // It's a curve, it needs sampling.
-                    sample_curved_edge(&edge, segments, new_voronoi_edge, max_dist);
+                    //sample_curved_edge(&edge, segments, new_voronoi_edge, max_dist);
                 }
             } else {
                 // Infinite edge, only make it if it is inside the bounding_box.
@@ -92,8 +91,8 @@ vector<vector<point_type_fp_p>> Voronoi::get_voronoi_edges(
                     (edge.vertex1() == NULL ||
                      bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
                                     bounding_box))) {
-                    boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
-                        edge, segments, &new_voronoi_edge, bounding_box);
+                    //boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
+                    //    edge, segments, &new_voronoi_edge, bounding_box);
                 }
             }
             if (new_voronoi_edge.size() > 0) {

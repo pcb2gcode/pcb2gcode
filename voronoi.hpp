@@ -87,7 +87,7 @@ public:
      * max_dist is the maximum "error" for when sampling curved edges
      * of the Voronoi diagram.
      */
-    static vector<vector<point_type_fp_p>> get_voronoi_edges(
+    static multi_linestring_type_fp get_voronoi_edges(
         const multi_polygon_type& input,
         const box_type& bounding_box, coordinate_type max_dist);
 
