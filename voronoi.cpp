@@ -81,7 +81,11 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
                                                              edge.vertex1()->y()));
                 } else {
                     // It's a curve, it needs sampling.
-                    //sample_curved_edge(&edge, segments, new_voronoi_edge, max_dist);
+                    vector<point_type_fp_p> sampled_edge;
+                    sample_curved_edge(&edge, segments, sampled_edge, max_dist);
+                    for (const auto& point : sampled_edge) {
+                        new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+                    }
                 }
             } else {
                 // Infinite edge, only make it if it is inside the bounding_box.
