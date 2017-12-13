@@ -109,7 +109,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     srand(1);
     //debug_image.add(*voronoi, 0.3, false);
-    srand(1);
     traced_debug_image.add(voronoi_edges, 0.3, true);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
@@ -121,6 +120,20 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
+
+    for (const linestring_type_fp& voronoi_edge : voronoi_edges) {
+        // For each edge, we need to make successive edges that are
+        // offset by grow on each side.  The number of edges that need
+        // to be made depends on the number of extra_passes.
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+        for (int i = 0; i < extra_passes; i++) {
+            // This is how far off the current path that we want to offset
+            coordinate_type current_grow = grow * (i + 1);
+            //bg::buffer(voronoi_edge,
+        }
+    }
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
