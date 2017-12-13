@@ -103,6 +103,7 @@ class svg_writer
 public:
     svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
     void add(const multi_polygon_type& geometry, double opacity, bool stroke);
+    void add(const multi_linestring_type_fp& geometry, double opacity, bool stroke);
     void add(const vector<polygon_type>& geometries, double opacity,
         int r = -1, int g = -1, int b = -1);
 

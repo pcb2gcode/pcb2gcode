@@ -108,7 +108,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
-    debug_image.add(*voronoi, 0.3, false);
+    //debug_image.add(*voronoi, 0.3, false);
+    srand(1);
+    traced_debug_image.add(voronoi_edges, 0.3, true);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
@@ -131,8 +133,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1, mirror, mirror_axis);
 
-        debug_image.add(*polygons, 0.6, r, g, b);
-        traced_debug_image.add(*polygons, 1, r, g, b);
+        //debug_image.add(*polygons, 0.6, r, g, b);
+        //traced_debug_image.add(*polygons, 1, r, g, b);
     }
 
     srand(1);
@@ -410,6 +412,24 @@ void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool st
         bg::intersection(poly, bounding_box, mpoly);
 
         mapper->map(mpoly,
+            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
+            opacity % r % g % b));
+    }
+}
+
+void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity, bool stroke)
+{
+    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
+
+    for (const linestring_type_fp& linestring : geometry)
+    {
+        multi_linestring_type_fp mlinestring;
+        bg::intersection(linestring, bounding_box, mlinestring);
+
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+        mapper->map(mlinestring,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
     }
