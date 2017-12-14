@@ -125,7 +125,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (mask) {
         current_mask = *(mask->vectorial_surface);
     } else {
-        // TODO: test this
         // If there's no mask, we'll use the convex hull as a mask.
         polygon_type_fp current_mask_fp;
         multi_linestring_type_fp mls;
