@@ -167,10 +167,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     multi_linestring_type all_linestrings;
     // Now find eulerian paths in all those segments.
     for (const auto& segment : all_segments) {
-        // Make a little 1-edge linestrings.
-        all_linestrings.push_back(linestring_type{
-                point_type(segment.low().x(), segment.low().y()),
-                    point_type(segment.high().x(), segment.high().y())});
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls{
+            point_type(segment.low().x(), segment.low().y()),
+                point_type(segment.high().x(), segment.high().y())};
+        if (bg::covered_by(ls, current_mask)) {
+            all_linestrings.push_back(ls);
+        }
     }
     // make a minimal number of paths
     struct PointLessThan {
