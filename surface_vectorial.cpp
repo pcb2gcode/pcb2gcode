@@ -133,7 +133,21 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
     if (mask) {
-        //multi_point_type clipped_voronoi_edges;
+        // First get all the segments out of the mask.
+        multi_segment_type mask_segments;
+        auto mask_polys = mask->vectorial_surface;
+        for (const auto& mask_poly : *mask_polys) {
+            for (size_t i = 1; i < mask_poly.outer().size(); i++) {
+                mask_segments.push_back(segment_type(mask_poly.outer()[i-1], mask_poly.outer()[i]));
+            }
+            for (const auto& inner_ring : mask_poly.inners()) {
+                for (size_t i = 1; i < inner_ring.size(); i++) {
+                    mask_segments.push_back(segment_type(inner_ring[i-1], inner_ring[i]));
+                }
+            }
+        }
+        multi_segment_type clipped_voronoi_edges;
+        
         //bg::intersection(clipped_voronoi_edges);
         //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
         //bg::intersect_segments(a.cbegin(), a.cend(), b);
