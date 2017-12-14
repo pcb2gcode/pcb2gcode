@@ -88,7 +88,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     box_type svg_bounding_box;
 
-    // Make the svg file large enough to contains the width of all milling.
+    // Make the svg file large enough to contains the width of all milling.  If it's too large, that's okay, too.
     if (grow > 0)
         bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
     else
@@ -96,15 +96,11 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
-    srand(1);
-    traced_debug_image.add(voronoi_edges, 0.3, true); // Add the original voronoi edges to the svg
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
     bool contentions = false; // TODO: make this work
-
-    srand(1);
 
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
@@ -186,9 +182,18 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     all_linestrings = get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(all_linestrings);
 
     copy_mls_to_toolpath(all_linestrings);
-    if (grow > 0) {
+    int color_seed = 1;
+    for (const linestring_type& linestring : all_linestrings) {
+        srand(color_seed++);
+        debug_image.add(linestring, 0.6);
+        traced_debug_image.add(linestring, 1);
+    }
+    if (grow >= 0) {
         for (int i = 0; i < extra_passes; i++) {
+            int color_seed = 1;
             for (const linestring_type& linestring : all_linestrings) {
+                srand(color_seed++);
+
                 // For each edge, we need to make successive edges that are
                 // offset by grow on each side.  The number of edges that need
                 // to be made depends on the number of extra_passes.
@@ -210,7 +215,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                         mls.push_back(linestring_type(inner.cbegin(), inner.cend()));
                     }
                 }
-                traced_debug_image.add(mls, 0.3, true);
+                debug_image.add(mls, 0.6);
+                traced_debug_image.add(mls, 1);
                 copy_mls_to_toolpath(mls);
             }
         }
@@ -313,10 +319,8 @@ void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool st
     }
 }
 
-void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity, bool stroke)
+void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity)
 {
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
     for (const linestring_type_fp& linestring : geometry)
     {
         multi_linestring_type_fp mlinestring;
@@ -325,27 +329,30 @@ void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity, b
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
+        string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:1") % r % g % b);
         mapper->map(mlinestring,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
     }
 }
 
-void svg_writer::add(const multi_linestring_type& geometry, double opacity, bool stroke)
+void svg_writer::add(const linestring_type& geometry, double opacity)
 {
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
+    multi_linestring_type mlinestring;
+    bg::intersection(geometry, bounding_box, mlinestring);
 
-    for (const auto& linestring : geometry)
-    {
-        multi_linestring_type mlinestring;
-        bg::intersection(linestring, bounding_box, mlinestring);
+    const unsigned int r = rand() % 256;
+    const unsigned int g = rand() % 256;
+    const unsigned int b = rand() % 256;
+    string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:1") % r % g % b);
+    mapper->map(mlinestring,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
+                    opacity % r % g % b));
+}
 
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        mapper->map(mlinestring,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
+void svg_writer::add(const multi_linestring_type& geometry, double opacity) {
+    for (const auto& linestring : geometry) {
+        add(linestring, opacity);
     }
 }
 
