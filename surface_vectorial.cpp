@@ -42,7 +42,7 @@ using std::next;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
-                                        ivalue_t height, string name, string outputdir) :
+                                     ivalue_t height, string name, string outputdir) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
@@ -183,24 +183,44 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     all_linestrings = get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(all_linestrings);
 
-    copy_mls_to_toolpath(all_linestrings);
-    int color_seed = 1;
-    for (const linestring_type& linestring : all_linestrings) {
-        srand(color_seed++);
-        debug_image.add(linestring, 0.6);
-        traced_debug_image.add(linestring, 1);
+    if (extra_passes % 2 == 0) {
+        // If it's even then we need a center pass.
+        copy_mls_to_toolpath(all_linestrings);
+        int color_seed = 1;
+        for (const linestring_type& linestring : all_linestrings) {
+            srand(color_seed++);
+            debug_image.add(linestring, 0.6);
+            traced_debug_image.add(linestring, 1);
+        }
     }
-    if (grow >= 0) {
+    if (grow <= 0) {
+        // All extra passes are in place.
         for (int i = 0; i < extra_passes; i++) {
+            // If it's even then we need a center pass.
+            copy_mls_to_toolpath(all_linestrings);
+            int color_seed = 1;
+            for (const linestring_type& linestring : all_linestrings) {
+                srand(color_seed++);
+                debug_image.add(linestring, 0.6);
+                traced_debug_image.add(linestring, 1);
+            }
+        }
+    } else {
+        // extra passes are spaced at a distance of grow apart.  The
+        // spacing depends on whether or not the number is odd/even
+        // and we have a center pass.  Each loop is two passes.
+        for (int i = 0; i < extra_passes; i += 2) {
             int color_seed = 1;
             for (const linestring_type& linestring : all_linestrings) {
                 srand(color_seed++);
 
-                // For each edge, we need to make successive edges that are
-                // offset by grow on each side.  The number of edges that need
-                // to be made depends on the number of extra_passes.
-                // This is how far off the current path that we want to offset
-                coordinate_type current_grow = grow * (i + 1);
+                // For each edge, we need to make successive edges
+                // that are offset by grow on each side.  The number
+                // of edges that need to be made depends on the number
+                // of extra_passes.  This is how far off the current
+                // path that we want to offset.  The distance also
+                // depends on whether we have a center pass.
+                coordinate_type current_grow = (((extra_passes % 2 == 1) ? -grow : 0) + grow * (2+i))/2;
                 multi_polygon_type buffered_poly;
                 bg::buffer(linestring, buffered_poly,
                            bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
@@ -209,7 +229,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                            //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
                            bg::strategy::buffer::end_round(),
                            bg::strategy::buffer::point_circle(points_per_circle));
-                // The buffered_linestring is now an oval surrounding the original path.  Let's extract all paths from it.
+                // The buffered_linestring is now an oval surrounding
+                // the original path.  Let's extract all paths from
+                // it.
                 multi_linestring_type mls;
                 multi_poly_to_multi_linestring(buffered_poly, &mls);
                 debug_image.add(mls, 0.6);
