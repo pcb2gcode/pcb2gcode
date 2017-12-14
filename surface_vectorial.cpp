@@ -132,9 +132,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     };
+    // First get all the segments for a mask.
+    multi_segment_type mask_segments;
     if (mask) {
-        // First get all the segments out of the mask.
-        multi_segment_type mask_segments;
         auto mask_polys = mask->vectorial_surface;
         for (const auto& mask_poly : *mask_polys) {
             for (size_t i = 1; i < mask_poly.outer().size(); i++) {
@@ -146,13 +146,18 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 }
             }
         }
-        multi_segment_type clipped_voronoi_edges;
+    } else {
+        // if there's no mask, we'll use the convex hull as a mask.
+        ring_type_fp convex_hull;
+        bg::convex_hull(voronoi_edges, convex_hull);
+    }
+    multi_segment_type clipped_voronoi_edges;
         
         //bg::intersection(clipped_voronoi_edges);
         //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
         //bg::intersect_segments(a.cbegin(), a.cend(), b);
         //voronoi_edges = clipped_voronoi_edges;
-    }
+
     copy_mls_to_toolpath(voronoi_edges);
     if (grow > 0) {
         for (int i = 0; i < extra_passes; i++) {
