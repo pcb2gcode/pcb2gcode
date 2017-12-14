@@ -211,12 +211,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                            bg::strategy::buffer::point_circle(points_per_circle));
                 // The buffered_linestring is now an oval surrounding the original path.  Let's extract all paths from it.
                 multi_linestring_type mls;
-                for (const polygon_type& poly : buffered_poly) {
-                    mls.push_back(linestring_type(poly.outer().cbegin(), poly.outer().cend()));
-                    for (const ring_type& inner : poly.inners()) {
-                        mls.push_back(linestring_type(inner.cbegin(), inner.cend()));
-                    }
-                }
+                multi_poly_to_multi_linestring(buffered_poly, &mls);
                 debug_image.add(mls, 0.6);
                 traced_debug_image.add(mls, 1);
                 copy_mls_to_toolpath(mls);
