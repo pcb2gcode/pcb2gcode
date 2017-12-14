@@ -91,6 +91,10 @@ protected:
     box_type bounding_box;
     
     shared_ptr<Surface_vectorial> mask;
+
+private:
+    template <typename multi_poly, typename multi_linestring>
+    void multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls);
 };
 
 class svg_writer

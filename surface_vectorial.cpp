@@ -128,7 +128,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         // TODO: test this
         // If there's no mask, we'll use the convex hull as a mask.
         polygon_type_fp current_mask_fp;
-        bg::convex_hull(voronoi_edges, current_mask_fp);
+        multi_linestring_type_fp mls;
+        multi_poly_to_multi_linestring(*vectorial_surface, &mls);
+        bg::convex_hull(mls, current_mask_fp);
         bg::convert(current_mask_fp, current_mask);
     }
     vector<segment_type_p> all_segments;
@@ -282,6 +284,27 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
+template <typename multi_poly, typename multi_linestring>
+void Surface_vectorial::multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls) {
+    // Add all the linestrings from the mpoly to the mls.
+    for (const auto& poly : mpoly) {
+        typename multi_linestring::value_type ls;
+        for (const auto& point : poly.outer()) {
+            typename multi_linestring::value_type::value_type new_point(point.x(), point.y());
+            ls.push_back(new_point);
+        }
+        mls->push_back(ls);
+        for (const auto& inner : poly.inners()) {
+            typename multi_linestring::value_type ls;
+            for (const auto& point : inner) {
+                typename multi_linestring::value_type::value_type new_point(point.x(), point.y());
+                ls.push_back(new_point);
+            }
+            mls->push_back(ls);
+        }
+    }
+}
+
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
     bounding_box(bounding_box)
@@ -383,4 +406,3 @@ void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int
         }
     }
 }
-
