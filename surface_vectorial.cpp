@@ -33,7 +33,8 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "eulerian_paths.hpp"
-//#include "buffer_end_none.hpp"
+#include "segmentize.hpp"
+
 using std::max;
 using std::max_element;
 using std::next;
@@ -132,31 +133,48 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     };
-    //multi_segment_type mask_segments;
+
     // First get all the segments from the current mask.
     multi_polygon_type current_mask;
     if (mask) {
         current_mask = *(mask->vectorial_surface);
     } else {
-        // if there's no mask, we'll use the convex hull as a mask.
-        polygon_type_fp current_mask;
-        bg::convex_hull(voronoi_edges, current_mask);
+        // If there's no mask, we'll use the convex hull as a mask.
+        polygon_type_fp current_mask_fp;
+        bg::convex_hull(voronoi_edges, current_mask_fp);
+        bg::convert(current_mask_fp, current_mask);
     }
-/*    for (size_t i = 1; i < convex_hull.outer().size(); i++) {
-        mask_segments.push_back(segment_type(convex_hull.outer()[i-1], convex_hull.outer()[i]));
-    }
-    for (const auto& mask_poly : *mask_polys) {
+    vector<segment_type_p> all_segments;
+    for (const auto& mask_poly : current_mask) {
         for (size_t i = 1; i < mask_poly.outer().size(); i++) {
-            mask_segments.push_back(segment_type(mask_poly.outer()[i-1], mask_poly.outer()[i]));
+            all_segments.push_back(segment_type_p(point_type_p(mask_poly.outer()[i-1].x(), mask_poly.outer()[i-1].y()),
+                                                  point_type_p(mask_poly.outer()[i  ].x(), mask_poly.outer()[i  ].y())));
         }
         for (const auto& inner_ring : mask_poly.inners()) {
             for (size_t i = 1; i < inner_ring.size(); i++) {
-                mask_segments.push_back(segment_type(inner_ring[i-1], inner_ring[i]));
+                all_segments.push_back(segment_type_p(point_type_p(inner_ring[i-1].x(), inner_ring[i-1].y()),
+                                                      point_type_p(inner_ring[i  ].x(), inner_ring[i  ].y())));
             }
         }
-        }*/
-    multi_segment_type clipped_voronoi_edges;
-        
+    }
+    //Add the voronoi edges to all_segments
+    for (const linestring_type_fp& ls : voronoi_edges) {
+        for (size_t i = 1; i < ls.size(); i++) {
+            all_segments.push_back(segment_type_p(point_type_p(ls[i-1].x(), ls[i-1].y()),
+                                                  point_type_p(ls[i  ].x(), ls[i  ].y())));
+        }
+    }
+    // Split all segments where they cross and remove duplicates.
+    all_segments = segmentize(all_segments);
+    /*  for (size_t i = 0; i < all_segments.size(); i++) {
+        printf("%ld %ld %ld %ld\n",
+               bg::get<0,0>(all_segments[i]),
+               bg::get<0,1>(all_segments[i]),
+               bg::get<1,0>(all_segments[i]),
+               bg::get<1,1>(all_segments[i])
+              );
+              }*/
+      
         //bg::intersection(clipped_voronoi_edges);
         //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
         //bg::intersect_segments(a.cbegin(), a.cend(), b);

@@ -60,7 +60,19 @@ BOOST_AUTO_TEST_CASE(parallel_with_overlap) {
   ms.push_back(segment_type_p(point_type_p(9, 9), point_type_p(30, 30)));
   const auto& result = segmentize(ms);
   BOOST_CHECK(result.size() == 4);
-  print_result(result);
+  //print_result(result);
+}
+
+BOOST_AUTO_TEST_CASE(sort_segments) {
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(10, 10), point_type_p(13, -4)));
+  ms.push_back(segment_type_p(point_type_p(13, -4), point_type_p(10, 10)));
+  ms.push_back(segment_type_p(point_type_p(13, -4), point_type_p(10, 10)));
+  ms.push_back(segment_type_p(point_type_p(10, 10), point_type_p(13, -4)));
+  ms.push_back(segment_type_p(point_type_p(10, 10), point_type_p(13, -4)));
+  const auto& result = segmentize(ms);
+  BOOST_CHECK(result.size() == 1);
+  //print_result(result);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

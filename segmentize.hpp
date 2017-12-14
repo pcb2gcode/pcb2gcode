@@ -19,12 +19,13 @@ typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
  * shapes where the end of a linestring butts up against the center of
  * another.
  *
- * We do our best but because of floating point, we might get some
- * near crosses that are missed.
+ * Repeats are removed, as are segments that are identical but
+ * pointing in opposite directions.
  */
 std::vector<segment_type_p> segmentize(const std::vector<segment_type_p>& all_segments) {
   std::vector<segment_type_p> intersected_segments;
   boost::polygon::intersect_segments(intersected_segments, all_segments.cbegin(), all_segments.cend());
+  // Sort the segments themselves.
   std::sort(intersected_segments.begin(), intersected_segments.end());
   auto last = std::unique(intersected_segments.begin(), intersected_segments.end());
   intersected_segments.erase(last, intersected_segments.end());
