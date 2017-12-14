@@ -51,9 +51,12 @@ LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 EXTRA_DIST = millproject
 
-check_PROGRAMS = eulerian_paths_tests
+check_PROGRAMS = eulerian_paths_tests segmentize_tests
 
 eulerian_paths_tests_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 
-TESTS = eulerian_paths_tests
+segmentize_tests_LDADD = $(BOOST_UNIT_TEST_FRAMEWORK_LIBS)
+segmentize_tests_SOURCES = segmentize_tests.cpp
+
+TESTS = eulerian_paths_tests segmentize_tests

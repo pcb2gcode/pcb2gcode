@@ -144,9 +144,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     };
-    multi_linestring_type_fp clipped_voronoi_edges;
-    bg::intersection(voronoi_edges, bounding_box, clipped_voronoi_edges);
-    copy_mls_to_toolpath(clipped_voronoi_edges);
+    if (mask) {
+/*        multi_point_type clipped_voronoi_edges;
+        bg::intersection(a, b, clipped_voronoi_edges);
+        std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
+        bg::intersect_segments(a.cbegin(), a.cend(), b);
+        //voronoi_edges = clipped_voronoi_edges;*/
+    }
+    copy_mls_to_toolpath(voronoi_edges);
     if (grow > 0) {
         for (int i = 0; i < extra_passes; i++) {
             for (const linestring_type_fp& voronoi_edge : voronoi_edges) {

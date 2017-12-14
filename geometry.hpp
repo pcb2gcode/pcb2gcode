@@ -49,6 +49,7 @@ BOOST_GEOMETRY_REGISTER_RING(icoords)
 typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
 typedef boost::geometry::model::multi_point<point_type> multi_point_type;
 typedef boost::geometry::model::segment<point_type> segment_type;
+typedef std::vector<segment_type> multi_segment_type;
 typedef boost::geometry::model::ring<point_type> ring_type;
 typedef boost::geometry::model::box<point_type> box_type;
 typedef boost::geometry::model::linestring<point_type> linestring_type;
@@ -59,6 +60,7 @@ typedef boost::geometry::model::multi_polygon<polygon_type> multi_polygon_type;
 typedef boost::geometry::model::d2::point_xy<coordinate_type_fp> point_type_fp;
 typedef boost::geometry::model::multi_point<point_type_fp> multi_point_type_fp;
 typedef boost::geometry::model::segment<point_type_fp> segment_type_fp;
+typedef std::vector<segment_type_fp> multi_segment_type_fp;
 typedef boost::geometry::model::ring<point_type_fp> ring_type_fp;
 typedef boost::geometry::model::box<point_type_fp> box_type_fp;
 typedef boost::geometry::model::linestring<point_type_fp> linestring_type_fp;
