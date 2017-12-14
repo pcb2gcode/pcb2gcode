@@ -76,11 +76,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     coordinate_type tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type grow = mill->tool_diameter / 2 * scale;
-
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
-    // extra passes are done on each trace if requested, each offset by half the tool diameter.
+    // Extra passes are done on each trace if requested, each offset by half the tool diameter.
     const int extra_passes = isolator ? isolator->extra_passes : 0;
-
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
@@ -101,18 +99,16 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
     else
         bg::assign(svg_bounding_box, bounding_box);
-
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
-
     srand(1);
-    traced_debug_image.add(voronoi_edges, 0.3, true);
+    traced_debug_image.add(voronoi_edges, 0.3, true); // Add the original voronoi edges to the svg
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-    bool contentions = false;
+    bool contentions = false; // TODO: make this work
 
     srand(1);
 
@@ -174,7 +170,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                all_segments[i].high().x(),
                all_segments[i].high().y());
     }
-      
+    // Nowe 
         //bg::intersection(clipped_voronoi_edges);
         //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
         //bg::intersect_segments(a.cbegin(), a.cend(), b);
