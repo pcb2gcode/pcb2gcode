@@ -72,9 +72,6 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    shared_ptr<multi_polygon_type> voronoi;
-    coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
-                                            max(width_in, height_in) * scale * 10);
     coordinate_type tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type grow = mill->tool_diameter / 2 * scale;
@@ -87,23 +84,15 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
     multi_linestring_type_fp voronoi_edges =
            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
-    for (const auto& voronoi_edge : voronoi_edges) {
-        for (auto iter = voronoi_edge.begin()+1; iter != voronoi_edge.end(); iter++) {
-            printf("%f %f %f %f\n", (iter-1)->x(), (iter-1)->y(), (iter)->x(), (iter)->y());
-        }
-        //printf("\n");
-    }
+
     struct PointLessThan {
       bool operator()(const point_type_fp& a, const point_type_fp& b) const {
         return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
-    printf("count before is %ld\n", voronoi_edges.size());
     voronoi_edges = get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(voronoi_edges);
-    printf("count after is %ld\n", voronoi_edges.size());
     box_type svg_bounding_box;
 
     // Make the svg file large enough to contains the width of all milling.
@@ -117,7 +106,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
-    //debug_image.add(*voronoi, 0.3, false);
     traced_debug_image.add(voronoi_edges, 0.3, true);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
@@ -145,11 +133,11 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
     if (mask) {
-/*        multi_point_type clipped_voronoi_edges;
-        bg::intersection(a, b, clipped_voronoi_edges);
-        std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
-        bg::intersect_segments(a.cbegin(), a.cend(), b);
-        //voronoi_edges = clipped_voronoi_edges;*/
+        //multi_point_type clipped_voronoi_edges;
+        //bg::intersection(clipped_voronoi_edges);
+        //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
+        //bg::intersect_segments(a.cbegin(), a.cend(), b);
+        //voronoi_edges = clipped_voronoi_edges;
     }
     copy_mls_to_toolpath(voronoi_edges);
     if (grow > 0) {
@@ -184,21 +172,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     }
-
-    /*for (unsigned int i = 0; i < vectorial_surface->size(); i++)
-    {
-        //const unsigned int r = rand() % 256;
-        //const unsigned int g = rand() % 256;
-        //const unsigned int b = rand() % 256;
-
-        unique_ptr<vector<polygon_type> > polygons;
-
-        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
-                                    grow, i, extra_passes + 1, mirror, mirror_axis);
-
-        //debug_image.add(*polygons, 0.6, r, g, b);
-        //traced_debug_image.add(*polygons, 1, r, g, b);
-        }*/
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);
@@ -258,189 +231,6 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
     }
     else
         throw std::logic_error("Can't cast Core to Surface_vectorial");
-}
-
-unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis)
-{
-    if (offset < 0)
-        steps = 1;
-
-    unique_ptr<vector<polygon_type> > polygons (new vector<polygon_type>(steps));
-    list<list<const ring_type *> > rings (steps);
-    auto ring_i = rings.begin();
-    point_type last_point;
-
-    auto push_point = [&](const point_type& point)
-    {
-        if (mirror)
-            toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                                    point.y() / double(scale)));
-        else
-            toolpath.back()->push_back(make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
-    };
-
-    auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
-    {
-        const auto size_minus_1 = ring.size() - 1;
-        unsigned int i = start;
-
-        do
-        {
-            push_point(ring[i]);
-            i = (i + 1) % size_minus_1;
-        } while (i != start);
-
-        push_point(ring[i]);
-        last_point = ring[i];
-    };
-
-    auto find_first_nonempty = [&]()
-    {
-        for (auto i = rings.begin(); i != rings.end(); i++)
-            if (!i->empty())
-                return i;
-        return rings.end();
-    };
-
-    auto find_closest_point_index = [&](const ring_type& ring)
-    {
-        const unsigned int size = ring.size();
-        auto min_distance = bg::comparable_distance(ring[0], last_point);
-        unsigned int index = 0;
-
-        for (unsigned int i = 1; i < size; i++)
-        {
-            const auto distance = bg::comparable_distance(ring[i], last_point);
-
-            if (distance < min_distance)
-            {
-                min_distance = distance;
-                index = i;
-            }
-        }
-
-        return index;
-    };
-
-    toolpath.push_back(make_shared<icoords>());
-
-    bool outer_collapsed = false;
-
-    for (unsigned int i = 0; i < steps; i++)
-    {
-        if (offset == 0)
-        {
-            (*polygons)[i] = input[index];
-        }
-        else if (offset > 0)
-        {
-            auto mpoly = make_shared<multi_polygon_type>();
-            multi_polygon_type mpoly_temp;
-
-            bg::buffer(input[index], mpoly_temp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                       bg::strategy::buffer::end_flat(),
-                       bg::strategy::buffer::point_circle(30));
-
-            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
-
-            (*polygons)[i] = (*mpoly)[0];
-
-            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
-                contentions = true;
-        }
-        else
-        {
-            if (mask)
-            {
-                multi_polygon_type mpoly_temp;
-
-                bg::intersection(voronoi[index], *(mask->vectorial_surface), mpoly_temp);
-                (*polygons)[i] = mpoly_temp[0];
-            }
-            else
-                (*polygons)[i] = voronoi[index];
-        }
-
-        if (i == 0)
-            copy_ring_to_toolpath((*polygons)[i].outer(), 0);
-        else
-        {
-            if (!outer_collapsed && bg::equals((*polygons)[i].outer(), (*polygons)[i - 1].outer()))
-                outer_collapsed = true;
-
-            if (!outer_collapsed)
-                copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
-        }
-
-        for (const ring_type& ring : (*polygons)[i].inners())
-            ring_i->push_back(&ring);
-        
-        ++ring_i;
-    }
-
-    ring_i = find_first_nonempty();
-
-    while (ring_i != rings.end())
-    {
-        const ring_type *biggest = ring_i->front();
-        const ring_type *prev = biggest;
-        auto ring_j = next(ring_i);
-
-        toolpath.push_back(make_shared<icoords>());
-        copy_ring_to_toolpath(*biggest, 0);
-
-        while (ring_j != rings.end())
-        {
-            list<const ring_type *>::iterator j;
-
-            for (j = ring_j->begin(); j != ring_j->end(); j++)
-            {
-                if (bg::equals(**j, *prev))
-                {
-                    ring_j->erase(j);
-                    break;
-                }
-                else
-                {
-                    if (bg::covered_by(**j, *prev))
-                    {
-                        auto index = find_closest_point_index(**j);
-                        ring_type ring (prev->rbegin(), prev->rend());
-                        linestring_type segment;
-
-                        segment.push_back((**j)[index]);
-                        segment.push_back(last_point);
-
-                        if (bg::covered_by(segment, ring))
-                        {
-                            copy_ring_to_toolpath(**j, index);
-                            prev = *j;
-                            ring_j->erase(j);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (j == ring_j->end())
-                ring_j = rings.end();
-            else
-                ++ring_j;
-        }
-
-        ring_i->erase(ring_i->begin());
-        ring_i = find_first_nonempty();
-    }
-
-    return polygons;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
