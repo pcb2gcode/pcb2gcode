@@ -100,12 +100,22 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-    bool contentions = false; // TODO: make this work
+    bool contentions = false;
 
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
 
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
+        multi_polygon_type milling_poly;
+        bg::buffer(mls, milling_poly,
+                   bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
+                   bg::strategy::buffer::side_straight(),
+                   bg::strategy::buffer::join_round(points_per_circle),
+                   bg::strategy::buffer::end_round(),
+                   bg::strategy::buffer::point_circle(points_per_circle));
+        if (bg::intersects(milling_poly, *vectorial_surface)) {
+            contentions = true;
+        }
         for (const auto& ls : mls) {
             toolpath.push_back(make_shared<icoords>());
             for (const auto& point : ls) {
@@ -154,13 +164,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
     // Split all segments where they cross and remove duplicates.
     all_segments = segmentize(all_segments);
-    for (size_t i = 0; i < all_segments.size(); i++) {
+    /*for (size_t i = 0; i < all_segments.size(); i++) {
         printf("%ld %ld %ld %ld\n",
                all_segments[i].low().x(),
                all_segments[i].low().y(),
                all_segments[i].high().x(),
                all_segments[i].high().y());
-    }
+    }*/
     multi_linestring_type all_linestrings;
     // Now find eulerian paths in all those segments.
     for (const auto& segment : all_segments) {
@@ -225,7 +235,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                            bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
                            bg::strategy::buffer::side_straight(),
                            bg::strategy::buffer::join_round(points_per_circle),
-                           //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
                            bg::strategy::buffer::end_round(),
                            bg::strategy::buffer::point_circle(points_per_circle));
                 // The buffered_linestring is now an oval surrounding

@@ -2,12 +2,12 @@ back=multivibrator-B.Cu.gbr
 drill=multivibrator.drl
 outline=multivibrator-Edge.Cuts.gbr
 
-extra-passes=4
+extra-passes=5
 offset=0.001
 vectorial=true
 mill-feed=360
 mill-speed=12000
-voronoi=true
+voronoi=false
 zwork=-0.04
 drill-feed=30
 drill-side=auto
