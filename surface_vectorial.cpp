@@ -86,12 +86,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     multi_linestring_type_fp voronoi_edges =
            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
 
-    struct PointLessThan {
-      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-        return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
-    voronoi_edges = get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(voronoi_edges);
     box_type svg_bounding_box;
 
     // Make the svg file large enough to contains the width of all milling.
@@ -115,7 +109,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
 
-    auto copy_mls_to_toolpath = [&](const multi_linestring_type_fp& mls) {
+    auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
         for (const auto& ls : mls) {
             toolpath.push_back(make_shared<icoords>());
             for (const auto& point : ls) {
@@ -170,19 +164,27 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                all_segments[i].high().x(),
                all_segments[i].high().y());
     }
-    // Nowe 
-        //bg::intersection(clipped_voronoi_edges);
-        //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
-        //bg::intersect_segments(a.cbegin(), a.cend(), b);
-        //voronoi_edges = clipped_voronoi_edges;
+    multi_linestring_type all_linestrings;
+    // Now find eulerian paths in all those segments.
+    for (const auto& segment : all_segments) {
+        // Make a little 1-edge linestrings.
+        all_linestrings.push_back(linestring_type{
+                point_type(segment.low().x(), segment.low().y()),
+                    point_type(segment.high().x(), segment.high().y())});
+    }
+    // make a minimal number of paths
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
 
-    copy_mls_to_toolpath(voronoi_edges);
-    if (grow > 0) {
-        // TODO: make this work, turn off the check that sets grow to
-        // -1 when voronoi is on, and do this before the all_segments
-        // above
+    all_linestrings = get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(all_linestrings);
+
+    copy_mls_to_toolpath(all_linestrings);
+/*    if (grow > 0) {
         for (int i = 0; i < extra_passes; i++) {
-            for (const linestring_type_fp& voronoi_edge : voronoi_edges) {
+            for (const linestring_type_fp& voronoi_edge : all_linestrings) {
                 // For each edge, we need to make successive edges that are
                 // offset by grow on each side.  The number of edges that need
                 // to be made depends on the number of extra_passes.
@@ -208,10 +210,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                     }
                 }
                 traced_debug_image.add(mls, 0.3, true);
-                copy_mls_to_toolpath(mls);
+                //copy_mls_to_toolpath(mls);
             }
         }
-    }
+        }*/
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);
