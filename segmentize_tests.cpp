@@ -14,27 +14,53 @@ struct PointLessThan {
   }
 };
 
+void print_result(const vector<segment_type_p>& result) {
+  for (const auto& s : result) {
+    printf("%ld %ld %ld %ld\n", s.low().x(), s.low().y(), s.high().x(), s.high().y());
+  }
+}
+
+
 BOOST_AUTO_TEST_CASE(abuts) {
-  vector<segment_type_fp_p> ms;
-  ms.push_back(segment_type_fp_p(point_type_fp_p(0, 0), point_type_fp_p(2, 2)));
-  ms.push_back(segment_type_fp_p(point_type_fp_p(1, 1), point_type_fp_p(2, 0)));
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(0, 0), point_type_p(2, 2)));
+  ms.push_back(segment_type_p(point_type_p(1, 1), point_type_p(2, 0)));
   const auto& result = segmentize(ms);
   BOOST_CHECK(result.size() == 3);
-  //for (const auto& s : segmentize(ms)) {
-  //  printf("%f %f %f %f\n", s.low().x(), s.low().y(), s.high().x(), s.high().y());
-  //}
 }
 
 BOOST_AUTO_TEST_CASE(x_shape) {
-  vector<segment_type_fp_p> ms;
-  ms.push_back(segment_type_fp_p(point_type_fp_p(1.5, -1.5), point_type_fp_p(10, 10)));
-  ms.push_back(segment_type_fp_p(point_type_fp_p(10, 0), point_type_fp_p(0, 10)));
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(0, 10000), point_type_p(10000, 9000)));
+  ms.push_back(segment_type_p(point_type_p(10000, 10000), point_type_p(0, 0)));
   const auto& result = segmentize(ms);
   BOOST_CHECK(result.size() == 4);
-  printf("%d\n", boost::polygon::intersects(ms[0], ms[1]));
-  for (const auto& s : result) {
-    printf("%f %f %f %f\n", s.low().x(), s.low().y(), s.high().x(), s.high().y());
-  }
+}
+
+BOOST_AUTO_TEST_CASE(plus_shape) {
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(1, 2), point_type_p(3, 2)));
+  ms.push_back(segment_type_p(point_type_p(2, 1), point_type_p(2, 3)));
+  const auto& result = segmentize(ms);
+  BOOST_CHECK(result.size() == 4);
+}
+
+BOOST_AUTO_TEST_CASE(touching_no_overlap) {
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(1, 20), point_type_p(40, 50)));
+  ms.push_back(segment_type_p(point_type_p(40, 50), point_type_p(80, 90)));
+  const auto& result = segmentize(ms);
+  BOOST_CHECK(result.size() == 2);
+}
+
+BOOST_AUTO_TEST_CASE(parallel_with_overlap) {
+  vector<segment_type_p> ms;
+  ms.push_back(segment_type_p(point_type_p(10, 10), point_type_p(0, 0)));
+  ms.push_back(segment_type_p(point_type_p(9, 9), point_type_p(20, 20)));
+  ms.push_back(segment_type_p(point_type_p(9, 9), point_type_p(30, 30)));
+  const auto& result = segmentize(ms);
+  BOOST_CHECK(result.size() == 4);
+  print_result(result);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
