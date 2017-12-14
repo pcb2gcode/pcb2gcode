@@ -139,6 +139,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (mask) {
         current_mask = *(mask->vectorial_surface);
     } else {
+        // TODO: test this
         // If there's no mask, we'll use the convex hull as a mask.
         polygon_type_fp current_mask_fp;
         bg::convex_hull(voronoi_edges, current_mask_fp);
@@ -166,14 +167,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
     // Split all segments where they cross and remove duplicates.
     all_segments = segmentize(all_segments);
-    /*  for (size_t i = 0; i < all_segments.size(); i++) {
+    for (size_t i = 0; i < all_segments.size(); i++) {
         printf("%ld %ld %ld %ld\n",
-               bg::get<0,0>(all_segments[i]),
-               bg::get<0,1>(all_segments[i]),
-               bg::get<1,0>(all_segments[i]),
-               bg::get<1,1>(all_segments[i])
-              );
-              }*/
+               all_segments[i].low().x(),
+               all_segments[i].low().y(),
+               all_segments[i].high().x(),
+               all_segments[i].high().y());
+    }
       
         //bg::intersection(clipped_voronoi_edges);
         //std::cout << bg::wkt(clipped_voronoi_edges) << std::endl;
@@ -182,6 +182,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     copy_mls_to_toolpath(voronoi_edges);
     if (grow > 0) {
+        // TODO: make this work, turn off the check that sets grow to
+        // -1 when voronoi is on, and do this before the all_segments
+        // above
         for (int i = 0; i < extra_passes; i++) {
             for (const linestring_type_fp& voronoi_edge : voronoi_edges) {
                 // For each edge, we need to make successive edges that are
