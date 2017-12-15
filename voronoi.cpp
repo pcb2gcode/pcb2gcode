@@ -40,11 +40,10 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
     for (const polygon_type& polygon : input) {
         // How many segments in this outer ring?
         size_t current_segments = polygon.outer().size() - 1;
-        segments_count.push_back(segments_count.back() + current_segments);
         for (const ring_type& ring : polygon.inners()) {
-            current_segments = ring.size() - 1;
-            segments_count.push_back(segments_count.back() + current_segments);
+            current_segments += ring.size() - 1;
         }
+        segments_count.push_back(segments_count.back() + current_segments);
     }
 
     vector<segment_type_p> segments;
@@ -61,7 +60,7 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder.construct(&voronoi_diagram);
 
-    // Vertices are points where there are more than 2 half-edges meeting.  We traverse from those until we hit another vertex, which is where the adjacent cells change.
+    // Get all segments.
     multi_linestring_type_fp output{};
     for (const edge_type& edge : voronoi_diagram.edges()) {
         auto source_index0 = edge.cell()->source_index();
