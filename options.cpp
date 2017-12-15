@@ -469,13 +469,6 @@ static void check_milling_parameters(po::variables_map const& vm)
                 cerr << "Error: --voronoi requires --vectorial.\n";
                 exit(ERR_VORONOINOVECTORIAL);
             }
-
-            if (!vm.count("outline"))
-            {
-                cerr << "Error: --voronoi requires an outline.\n";
-                exit(ERR_VORONOINOOUTLINE);
-            }
-
             if (vm["extra-passes"].as<int>() > 0 && !vm.count("offset")) {
                 cerr << "Error: Engraving --offset not specified but required for extra-passes.\n";
                 exit(ERR_NOOFFSET);
