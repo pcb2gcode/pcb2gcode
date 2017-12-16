@@ -106,14 +106,17 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
         multi_polygon_type milling_poly;
-        bg::buffer(mls, milling_poly,
-                   bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
-                   bg::strategy::buffer::side_straight(),
-                   bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(),
-                   bg::strategy::buffer::point_circle(points_per_circle));
-        if (bg::intersects(milling_poly, *vectorial_surface)) {
-            contentions = true;
+        for (const auto& ls : mls) {
+            bg::buffer(ls, milling_poly,
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
+                       bg::strategy::buffer::side_straight(),
+                       bg::strategy::buffer::join_round(points_per_circle),
+                       bg::strategy::buffer::end_round(),
+                       bg::strategy::buffer::point_circle(points_per_circle));
+            if (bg::intersects(milling_poly, *vectorial_surface)) {
+                contentions = true;
+                break;
+            }
         }
         for (const auto& ls : mls) {
             toolpath.push_back(make_shared<icoords>());
