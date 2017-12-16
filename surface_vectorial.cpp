@@ -60,7 +60,8 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
-    cerr << "\nWarning: Input geometry is self-intersecting.\n";
+    if (bg::intersects(*vectorial_surface_not_simplified))
+        cerr << "\nWarning: Input geometry is self-intersecting.\n";
 
     scale = importer->vectorial_scale();
 
@@ -115,7 +116,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                        bg::strategy::buffer::point_circle(points_per_circle));
             if (bg::intersects(milling_poly, *vectorial_surface)) {
                 contentions = true;
-                break;
+                debug_image.add(milling_poly, 0.4, 255, 0, 0);
             }
         }
         for (const auto& ls : mls) {
@@ -348,6 +349,22 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
     mapper = unique_ptr<bg::svg_mapper<point_type> >
         (new bg::svg_mapper<point_type>(output_file, width, height, svg_dimensions));
     mapper->add(bounding_box);
+}
+
+void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke, int r, int g, int b)
+{
+    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
+
+    for (const polygon_type& poly : geometry)
+    {
+        multi_polygon_type mpoly;
+
+        bg::intersection(poly, bounding_box, mpoly);
+
+        mapper->map(mpoly,
+            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
+            opacity % r % g % b));
+    }
 }
 
 void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
