@@ -83,8 +83,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    multi_linestring_type_fp voronoi_edges =
-           Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
 
     box_type svg_bounding_box;
 
@@ -99,9 +97,23 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     bool contentions = false;
 
-    vector<shared_ptr<icoords> > toolpath;
-    vector<shared_ptr<icoords> > toolpath_optimised;
+    // First get all the segments from the current mask.
+    multi_polygon_type current_mask = get_mask();
+    vector<segment_type_p> all_segments;
+    add_as_segments(current_mask, &all_segments);
 
+    multi_linestring_type_fp voronoi_edges =
+        Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
+    //Add the voronoi edges to all_segments
+    add_as_segments(voronoi_edges, &all_segments);
+
+    // Split all segments where they cross and remove duplicates.
+    all_segments = segmentize(all_segments);
+
+    // Now find eulerian paths in all those segments.
+    multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
+
+    vector<shared_ptr<icoords> > toolpath;
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
         const coordinate_type mirror_axis = mill->mirror_absolute ?
             bounding_box.min_corner().x() :
@@ -132,20 +144,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     };
-
-    // First get all the segments from the current mask.
-    multi_polygon_type current_mask = get_mask();
-    vector<segment_type_p> all_segments;
-    add_as_segments(current_mask, &all_segments);
-
-    //Add the voronoi edges to all_segments
-    add_as_segments(voronoi_edges, &all_segments);
-
-    // Split all segments where they cross and remove duplicates.
-    all_segments = segmentize(all_segments);
-
-    // Now find eulerian paths in all those segments.
-    multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
 
     if (extra_passes % 2 == 0) {
         // If it's even then we need a center pass.
@@ -219,6 +217,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     if (mill->optimise)
     {
+        vector<shared_ptr<icoords> > toolpath_optimised;
         for (const shared_ptr<icoords>& ring : toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
