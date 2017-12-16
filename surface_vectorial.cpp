@@ -137,37 +137,15 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     multi_polygon_type current_mask = get_mask();
     vector<segment_type_p> all_segments;
     add_as_segments(current_mask, &all_segments);
+
     //Add the voronoi edges to all_segments
     add_as_segments(voronoi_edges, &all_segments);
+
     // Split all segments where they cross and remove duplicates.
     all_segments = segmentize(all_segments);
-    /*for (size_t i = 0; i < all_segments.size(); i++) {
-        printf("%ld %ld %ld %ld\n",
-               all_segments[i].low().x(),
-               all_segments[i].low().y(),
-               all_segments[i].high().x(),
-               all_segments[i].high().y());
-    }*/
-    multi_linestring_type all_linestrings;
-    // Now find eulerian paths in all those segments.
-    for (const auto& segment : all_segments) {
-        // Make a little 1-edge linestrings, filter out those that
-        // aren't in the mask.
-        linestring_type ls{
-            point_type(segment.low().x(), segment.low().y()),
-                point_type(segment.high().x(), segment.high().y())};
-        if (bg::covered_by(ls, current_mask)) {
-            all_linestrings.push_back(ls);
-        }
-    }
-    // make a minimal number of paths
-    struct PointLessThan {
-      bool operator()(const point_type& a, const point_type& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
 
-    all_linestrings = get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(all_linestrings);
+    // Now find eulerian paths in all those segments.
+    multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
 
     if (extra_passes % 2 == 0) {
         // If it's even then we need a center pass.
@@ -341,6 +319,30 @@ void Surface_vectorial::add_as_segments(const multi_linestring_t& mls, vector<se
         }
     }
 }
+
+multi_linestring_type Surface_vectorial::eulerian_paths(const vector<segment_type_p>& segments,
+                                                        const multi_polygon_type& mask) {
+    multi_linestring_type segments_as_linestrings;
+    for (const auto& segment : segments) {
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls{
+            point_type(segment.low().x(), segment.low().y()),
+                point_type(segment.high().x(), segment.high().y())};
+        if (bg::covered_by(ls, mask)) {
+            segments_as_linestrings.push_back(ls);
+        }
+    }
+    // make a minimal number of paths
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+
+    return get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(segments_as_linestrings);
+}
+
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),

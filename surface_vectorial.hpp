@@ -101,6 +101,8 @@ private:
     void add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> *segments);
     template <typename multi_linestring_t>
     void add_as_segments(const multi_linestring_t& mls, vector<segment_type_p> *segments);
+    multi_linestring_type eulerian_paths(const vector<segment_type_p>& segments,
+                                         const multi_polygon_type& mask);
 };
 
 class svg_writer
