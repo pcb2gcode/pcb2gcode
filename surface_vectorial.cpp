@@ -250,7 +250,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
 
     srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    debug_image.add(*vectorial_surface, 0.4, true);
 
     if (contentions)
     {
