@@ -136,18 +136,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     // First get all the segments from the current mask.
     multi_polygon_type current_mask = get_mask();
     vector<segment_type_p> all_segments;
-    for (const auto& mask_poly : current_mask) {
-        for (size_t i = 1; i < mask_poly.outer().size(); i++) {
-            all_segments.push_back(segment_type_p(point_type_p(mask_poly.outer()[i-1].x(), mask_poly.outer()[i-1].y()),
-                                                  point_type_p(mask_poly.outer()[i  ].x(), mask_poly.outer()[i  ].y())));
-        }
-        for (const auto& inner_ring : mask_poly.inners()) {
-            for (size_t i = 1; i < inner_ring.size(); i++) {
-                all_segments.push_back(segment_type_p(point_type_p(inner_ring[i-1].x(), inner_ring[i-1].y()),
-                                                      point_type_p(inner_ring[i  ].x(), inner_ring[i  ].y())));
-            }
-        }
-    }
+    add_as_segments(current_mask, all_segments);
     //Add the voronoi edges to all_segments
     for (const linestring_type_fp& ls : voronoi_edges) {
         for (size_t i = 1; i < ls.size(); i++) {
@@ -336,6 +325,21 @@ multi_polygon_type Surface_vectorial::get_mask() {
         bg::convert(current_mask_fp, current_mask);
     }
     return current_mask;
+}
+
+void Surface_vectorial::add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> segments) {
+    for (const auto& mask_poly : mp) {
+        for (size_t i = 1; i < mask_poly.outer().size(); i++) {
+            segments.push_back(segment_type_p(point_type_p(mask_poly.outer()[i-1].x(), mask_poly.outer()[i-1].y()),
+                                              point_type_p(mask_poly.outer()[i  ].x(), mask_poly.outer()[i  ].y())));
+        }
+        for (const auto& inner_ring : mask_poly.inners()) {
+            for (size_t i = 1; i < inner_ring.size(); i++) {
+                segments.push_back(segment_type_p(point_type_p(inner_ring[i-1].x(), inner_ring[i-1].y()),
+                                                  point_type_p(inner_ring[i  ].x(), inner_ring[i  ].y())));
+            }
+        }
+    }
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :

@@ -97,6 +97,8 @@ private:
     void multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls);
     // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
     multi_polygon_type get_mask();
+    // Convert all the pieces of the geometry to segments and add to the provided list.
+    void add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> segments);
 };
 
 class svg_writer
