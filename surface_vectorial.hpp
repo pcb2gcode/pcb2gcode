@@ -95,6 +95,8 @@ protected:
 private:
     template <typename multi_poly, typename multi_linestring>
     void multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls);
+    // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
+    multi_polygon_type get_mask();
 };
 
 class svg_writer

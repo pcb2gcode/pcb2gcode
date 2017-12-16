@@ -97,15 +97,15 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
-    const coordinate_type mirror_axis = mill->mirror_absolute ?
-        bounding_box.min_corner().x() :
-        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
     bool contentions = false;
 
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
 
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
+        const coordinate_type mirror_axis = mill->mirror_absolute ?
+            bounding_box.min_corner().x() :
+            ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
         multi_polygon_type milling_poly;
         for (const auto& ls : mls) {
             bg::buffer(ls, milling_poly,
@@ -134,17 +134,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     };
 
     // First get all the segments from the current mask.
-    multi_polygon_type current_mask;
-    if (mask) {
-        current_mask = *(mask->vectorial_surface);
-    } else {
-        // If there's no mask, we'll use the convex hull as a mask.
-        polygon_type_fp current_mask_fp;
-        multi_linestring_type_fp mls;
-        multi_poly_to_multi_linestring(*vectorial_surface, &mls);
-        bg::convex_hull(mls, current_mask_fp);
-        bg::convert(current_mask_fp, current_mask);
-    }
+    multi_polygon_type current_mask = get_mask();
     vector<segment_type_p> all_segments;
     for (const auto& mask_poly : current_mask) {
         for (size_t i = 1; i < mask_poly.outer().size(); i++) {
@@ -331,6 +321,21 @@ void Surface_vectorial::multi_poly_to_multi_linestring(const multi_poly& mpoly, 
             mls->push_back(ls);
         }
     }
+}
+
+multi_polygon_type Surface_vectorial::get_mask() {
+    multi_polygon_type current_mask;
+    if (mask) {
+        current_mask = *(mask->vectorial_surface);
+    } else {
+        // If there's no mask, we'll use the convex hull as a mask.
+        polygon_type_fp current_mask_fp;
+        multi_linestring_type_fp mls;
+        multi_poly_to_multi_linestring(*vectorial_surface, &mls);
+        bg::convex_hull(mls, current_mask_fp);
+        bg::convert(current_mask_fp, current_mask);
+    }
+    return current_mask;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
