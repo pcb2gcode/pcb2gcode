@@ -328,20 +328,16 @@ void Surface_vectorial::add_as_segments(const multi_polygon_type& mp, vector<seg
             segments->push_back(segment_type_p(point_type_p(mask_poly.outer()[i-1].x(), mask_poly.outer()[i-1].y()),
                                                point_type_p(mask_poly.outer()[i  ].x(), mask_poly.outer()[i  ].y())));
         }
-        for (const auto& inner_ring : mask_poly.inners()) {
-            for (size_t i = 1; i < inner_ring.size(); i++) {
-                segments->push_back(segment_type_p(point_type_p(inner_ring[i-1].x(), inner_ring[i-1].y()),
-                                                   point_type_p(inner_ring[i  ].x(), inner_ring[i  ].y())));
-            }
-        }
+        add_as_segments(mask_poly.inners(), segments);
     }
 }
 
-void Surface_vectorial::add_as_segments(const multi_linestring_type_fp& mls, vector<segment_type_p> *segments) {
-    for (const linestring_type_fp& ls : mls) {
+template <typename multi_linestring_t>
+void Surface_vectorial::add_as_segments(const multi_linestring_t& mls, vector<segment_type_p> *segments) {
+    for (const auto& ls : mls) {
         for (size_t i = 1; i < ls.size(); i++) {
             segments->push_back(segment_type_p(point_type_p(ls[i-1].x(), ls[i-1].y()),
-                                                  point_type_p(ls[i  ].x(), ls[i  ].y())));
+                                               point_type_p(ls[i  ].x(), ls[i  ].y())));
         }
     }
 }
