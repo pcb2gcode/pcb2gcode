@@ -60,8 +60,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface = make_shared<multi_polygon_type>();
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
-    if (bg::intersects(*vectorial_surface_not_simplified))
-        throw std::logic_error("Input geometry is self-intersecting");
+    cerr << "\nWarning: Input geometry is self-intersecting.\n";
 
     scale = importer->vectorial_scale();
 
