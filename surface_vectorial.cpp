@@ -138,12 +138,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     vector<segment_type_p> all_segments;
     add_as_segments(current_mask, &all_segments);
     //Add the voronoi edges to all_segments
-    for (const linestring_type_fp& ls : voronoi_edges) {
-        for (size_t i = 1; i < ls.size(); i++) {
-            all_segments.push_back(segment_type_p(point_type_p(ls[i-1].x(), ls[i-1].y()),
-                                                  point_type_p(ls[i  ].x(), ls[i  ].y())));
-        }
-    }
+    add_as_segments(voronoi_edges, &all_segments);
     // Split all segments where they cross and remove duplicates.
     all_segments = segmentize(all_segments);
     /*for (size_t i = 0; i < all_segments.size(); i++) {
@@ -338,6 +333,15 @@ void Surface_vectorial::add_as_segments(const multi_polygon_type& mp, vector<seg
                 segments->push_back(segment_type_p(point_type_p(inner_ring[i-1].x(), inner_ring[i-1].y()),
                                                    point_type_p(inner_ring[i  ].x(), inner_ring[i  ].y())));
             }
+        }
+    }
+}
+
+void Surface_vectorial::add_as_segments(const multi_linestring_type_fp& mls, vector<segment_type_p> *segments) {
+    for (const linestring_type_fp& ls : mls) {
+        for (size_t i = 1; i < ls.size(); i++) {
+            segments->push_back(segment_type_p(point_type_p(ls[i-1].x(), ls[i-1].y()),
+                                                  point_type_p(ls[i  ].x(), ls[i  ].y())));
         }
     }
 }
