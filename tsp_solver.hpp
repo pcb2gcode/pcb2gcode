@@ -49,6 +49,13 @@ private:
         return path->front();
     }
 
+    static inline icoordpair get(ilinesegment line)
+    {
+        // For finding the nearest neighbor, assume that the drilling
+        // will begin and end at the start point.
+        return get(line.first);
+    }
+
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
     static inline double distance(icoordpair p0, icoordpair p1)
