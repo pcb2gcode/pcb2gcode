@@ -743,7 +743,11 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
-        tsp_solver::tsp_2opt( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        if (tsp_2opt) {
+            tsp_solver::tsp_2opt( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        } else {
+            tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        }
     }
 
     return original_path;

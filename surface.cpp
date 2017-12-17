@@ -200,7 +200,11 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
              << " possibly use a smaller milling width.\n";
     }
 
-    tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    if (tsp_2opt) {
+        tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    } else {
+        tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    }
     save_debug_image("traced_" + name);
 
     return toolpath;
