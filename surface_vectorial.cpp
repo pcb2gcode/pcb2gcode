@@ -129,7 +129,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 if (j != source_poly_index) {
                     if (bg::intersects(milling_poly, (*vectorial_surface)[j])) {
                         contentions = true;
-                        debug_image.add(milling_poly, 0.4, 0.0);
+                        debug_image.add(milling_poly, 1, 0.0);
                     }
                 }
             }
@@ -359,7 +359,7 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const vector<segment_typ
 
 vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
     if (offset == 0) {
-        return vector<coordinate_type>(offset, total_passes);
+        return vector<coordinate_type>(total_passes, offset);
     } else if (voronoi) {
         if (total_passes % 2 == 1) {
             // It's odd, we need a center pass and then a bunch of
@@ -441,7 +441,9 @@ void svg_writer::add(const polygon_type& poly, double opacity, double which_colo
 }
 
 void svg_writer::get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue) {
-    double hue = (double) 360*(which_color);
+    srand((int) (which_color*INT_MAX));
+
+    double hue = rand() % 360;
     if (hue < 0) {
         hue = 0;
     } else if (hue > 360) {
