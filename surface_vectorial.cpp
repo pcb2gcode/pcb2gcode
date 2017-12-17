@@ -107,9 +107,18 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             bounding_box.min_corner().x() :
             ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
         multi_polygon_type milling_poly;
-        for (const auto& ls : mls) {
-            debug_image.add(ls, 0.6, (double) source_poly_index/vectorial_surface->size());
-            traced_debug_image.add(ls, 1, (double) source_poly_index/vectorial_surface->size());
+        for (unsigned int i = 0; i < mls.size(); i++) {
+            const auto& ls = mls[i];
+            double which_color;
+            if (source_poly_index >= 0) {
+                // The color is based on the poly it surrounds.
+                which_color = (double) source_poly_index / vectorial_surface->size();
+            } else {
+                // Sequential color.
+                which_color = (double) i / mls.size();
+            }
+            debug_image.add(ls, 0.6, which_color);
+            traced_debug_image.add(ls, 1, which_color);
             bg::buffer(ls, milling_poly,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
                        bg::strategy::buffer::side_straight(),
@@ -207,8 +216,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (contentions)
     {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
-             << " clearance requirements and tried a best effort approach"
-             << " instead. You may want to check the g-code output and"
+             << " clearance requirements."
+             << " You may want to check processed_" + name + ".svg, the g-code output, and"
              << " possibly use a smaller milling width.\n";
     }
 
@@ -358,7 +367,7 @@ vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offs
             vector<coordinate_type> result{0};
             total_passes--;
             for (unsigned int i = 0; i < total_passes/2; i++) {
-                result.push_back(offset * i);
+                result.push_back(offset * (i+1));
             }
             return result;
         } else {
