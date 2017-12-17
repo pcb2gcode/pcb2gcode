@@ -118,13 +118,12 @@ class svg_writer
 {
 public:
     svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
-    void add(const multi_polygon_type& geometry, double opacity, bool stroke);
-    void add(const multi_polygon_type& geometry, double opacity, bool stroke, int r, int g, int b);
-    void add(const multi_linestring_type_fp& geometry, double opacity);
-    void add(const multi_linestring_type& geometry, double opacity);
-    void add(const linestring_type& geometry, double opacity);
-    void add(const vector<polygon_type>& geometries, double opacity,
-        int r = -1, int g = -1, int b = -1);
+    template <typename multi_geo_t>
+    void add(const multi_geo_t& geometry, double opacity, double which_color);
+    void add(const linestring_type& geometry, double opacity, double which_color);
+    void add(const polygon_type& poly, double opacity, double which_color);
+    // Returns the visually unique color for which_color, which is evenly spaced from 0 to 1.
+    void get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue);
 
 protected:
     ofstream output_file;

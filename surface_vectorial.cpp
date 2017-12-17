@@ -108,8 +108,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
         multi_polygon_type milling_poly;
         for (const auto& ls : mls) {
-            debug_image.add(ls, 0.6);
-            traced_debug_image.add(ls, 1);
+            debug_image.add(ls, 0.6, (double) source_poly_index/vectorial_surface->size());
+            traced_debug_image.add(ls, 1, (double) source_poly_index/vectorial_surface->size());
             bg::buffer(ls, milling_poly,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
                        bg::strategy::buffer::side_straight(),
@@ -120,7 +120,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 if (j != source_poly_index) {
                     if (bg::intersects(milling_poly, (*vectorial_surface)[j])) {
                         contentions = true;
-                        debug_image.add(milling_poly, 0.4, 255, 0, 0);
+                        debug_image.add(milling_poly, 0.4, 0.0);
                     }
                 }
             }
@@ -200,8 +200,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     }
 
-    srand(1);
-    debug_image.add(*vectorial_surface, 0.4, true);
+    for (unsigned int i = 0; i < (*vectorial_surface).size(); i++) {
+        debug_image.add((*vectorial_surface)[i], 0.4, (double)i/vectorial_surface->size());
+    }
 
     if (contentions)
     {
@@ -233,8 +234,9 @@ void Surface_vectorial::save_debug_image(string message)
     const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
     svg_writer debug_image(build_filename(outputdir, filename), SVG_PIX_PER_IN, scale, bounding_box);
 
-    srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
+    }
 
     ++debug_image_index;
 }
@@ -395,102 +397,63 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
     mapper->add(bounding_box);
 }
 
-void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke, int r, int g, int b)
-{
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-    for (const polygon_type& poly : geometry)
-    {
-        multi_polygon_type mpoly;
-
-        bg::intersection(poly, bounding_box, mpoly);
-
-        mapper->map(mpoly,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
+template <typename multi_geo_t>
+void svg_writer::add(const multi_geo_t& geos, double opacity, double which_color) {
+    for (const auto& geo : geos) {
+        add(geo, opacity, which_color);
     }
 }
 
-void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
-{
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-    for (const polygon_type& poly : geometry)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        multi_polygon_type mpoly;
-
-        bg::intersection(poly, bounding_box, mpoly);
-
-        mapper->map(mpoly,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
-    }
-}
-
-void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity)
-{
-    for (const linestring_type_fp& linestring : geometry)
-    {
-        multi_linestring_type_fp mlinestring;
-        bg::intersection(linestring, bounding_box, mlinestring);
-
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:2") % r % g % b);
-        mapper->map(mlinestring,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
-    }
-}
-
-void svg_writer::add(const linestring_type& geometry, double opacity)
+void svg_writer::add(const linestring_type& geometry, double opacity, double which_color)
 {
     multi_linestring_type mlinestring;
     bg::intersection(geometry, bounding_box, mlinestring);
 
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+    get_color(which_color, &r, &g, &b);
     string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:2") % r % g % b);
     mapper->map(mlinestring,
                 str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
                     opacity % r % g % b));
 }
 
-void svg_writer::add(const multi_linestring_type& geometry, double opacity) {
-    for (const auto& linestring : geometry) {
-        add(linestring, opacity);
-    }
+void svg_writer::add(const polygon_type& poly, double opacity, double which_color)
+{
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+    get_color(which_color, &r, &g, &b);
+
+    mapper->map(poly,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
+                    opacity % r % g % b));
 }
 
-void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int r, int g, int b)
-{
-    if (r < 0 || g < 0 || b < 0)
-    {
-        r = rand() % 256;
-        g = rand() % 256;
-        b = rand() % 256;
+void svg_writer::get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue) {
+    double hue = (double) 360*(which_color);
+    if (hue < 0) {
+        hue = 0;
+    } else if (hue > 360) {
+        hue = 360;
     }
-
-    for (unsigned int i = geometries.size(); i != 0; i--)
-    {
-        multi_polygon_type mpoly;
-
-        bg::intersection(geometries[i - 1], bounding_box, mpoly);
-
-        if (i == geometries.size())
-        {
-            mapper->map(mpoly,
-                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
-                opacity % r % g % b));
-        }
-        else
-        {
-            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:2");
-        }
+    if (hue == 360) hue = 0;
+    hue /= 60;
+    int i = (int)hue;
+    double f = hue - i;
+    double q = 1 - f;
+    double t = f;
+    double r, g, b;
+    switch(i) {
+    case 0: r = 1; g = t; b = 0; break;
+    case 1: r = q; g = 1; b = 0; break;
+    case 2: r = 0; g = 1; b = t; break;
+    case 3: r = 0; g = q; b = 1; break;
+    case 4: r = t; g = 0; b = 1; break;
+    case 5: default: r = 1; g = 0; b = q; break;
     }
+    *red = (unsigned int)(r * 255 + 0.5);
+    *green = (unsigned int)(g * 255 + 0.5);
+    *blue = (unsigned int)(b * 255 + 0.5);
 }
