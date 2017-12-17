@@ -37,25 +37,44 @@ using std::next;
 class tsp_solver
 {
 private:
+    enum class Side { FRONT, BACK };
     // You can extend this class adding new overloads of get with this prototype:
-    //  icoordpair get(T _name_) { ... }
-    static inline icoordpair get(icoordpair point)
+    //  icoordpair get(T _name_, Side side) { ... }
+    //  icoordpair reverse(T _name_) { ... }
+    static inline icoordpair get(icoordpair point, Side side)
     {
         return point;
     }
 
-    static inline icoordpair get(shared_ptr<icoords> path)
-    {
-        return path->front();
+    static inline void reverse(icoordpair& point) {
+        return;
     }
 
-    static inline icoordpair get(ilinesegment line)
+    static inline icoordpair get(shared_ptr<icoords> path, Side side)
     {
-        // For finding the nearest neighbor, assume that the drilling
-        // will begin and end at the start point.
-        return get(line.first);
+        if (side == Side::FRONT) {
+            return path->front();
+        } else {
+            return path->back();
+        }
     }
 
+    static inline void reverse(shared_ptr<icoords>& path) {
+        std::reverse(path->begin(), path->end());
+    }
+
+    static inline icoordpair get(ilinesegment line, Side side)
+    {
+        if (side == Side::FRONT) {
+            return line.first;
+        } else {
+            return line.second;
+        }
+    }
+
+    static inline void reverse(ilinesegment& line) {
+        std::swap(line.first, line.second);
+    }
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
     static inline double distance(icoordpair p0, icoordpair p1)
@@ -72,75 +91,55 @@ public:
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
     template <typename T>
-    static void nearest_neighbour(vector<T> &path, icoordpair startingPoint, double quantization_error)
+    static void nearest_neighbour(vector<T> &path, icoordpair startingPoint)
     {
         if (path.size() > 0)
         {
             list<T> temp_path (path.begin(), path.end());
             vector<T> newpath;
-            vector<double> distances;
-            list<pair<vector<double>::iterator, typename list<T>::iterator> > nearestPoints;
             double original_length;
             double new_length;
             double minDistance;
             unsigned int size = path.size();
 
             //Reserve memory
-            distances.reserve(size);
             newpath.reserve(size);
 
             new_length = 0;
 
             //Find the original path length
-            original_length = distance(startingPoint, get(temp_path.front()));
+            original_length = distance(startingPoint, get(temp_path.front(), Side::FRONT));
             for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
-                original_length += distance(get(*point), get(*next(point)));
+                original_length += distance(get(*point, Side::BACK), get(*next(point), Side::FRONT));
 
             icoordpair currentPoint = startingPoint;
-            while (temp_path.size() > 1)
+            while (temp_path.size() > 0)
             {
-
+                minDistance = distance(currentPoint, get(*(temp_path.begin()), Side::FRONT));
+                auto nearestPoint = temp_path.begin();
+                Side side = Side::FRONT;
                 //Compute all the distances
-                for (auto i = temp_path.begin(); i != temp_path.end(); i++)
-                    distances.push_back(distance(currentPoint, get(*i)));
-
-                //Find the minimum distance
-                minDistance = *min_element(distances.begin(), distances.end());
-
-                //Find all the minimum distance points and copy their iterators in nearestPoints
-                auto point = temp_path.begin();
-                for (auto dist = distances.begin(); dist != distances.end(); dist++)
-                {
-                    if (*dist - minDistance <= 2 * quantization_error)
-                    {
-                        nearestPoints.push_front(make_pair(dist, point));
+                for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
+                    if (distance(currentPoint, get(*i, Side::FRONT)) < minDistance) {
+                        minDistance = distance(currentPoint, get(*i, Side::FRONT));
+                        nearestPoint = i;
+                        side = Side::FRONT;
                     }
-                    ++point;
+                    if (distance(currentPoint, get(*i, Side::BACK)) < minDistance) {
+                        minDistance = distance(currentPoint, get(*i, Side::BACK));
+                        nearestPoint = i;
+                        side = Side::BACK;
+                    }
                 }
 
-                typename list<pair<vector<double>::iterator, typename list<T>::iterator> >::iterator chosenPoint;
-                if (nearestPoints.size() == 1)
-                {
-                    //Simplest case: the minimum distance point is unique; just copy it into newpath
-                    chosenPoint = nearestPoints.begin();
+                new_length += distance(currentPoint, get(*(nearestPoint), side)); //Update the new path total length
+                if (side == Side::BACK) {
+                    reverse(*nearestPoint);
                 }
-                else
-                {
-                    //More complex case: we have multiple minimum distance points (like in a grid); we have
-                    //to choose one of them
-                    chosenPoint = nearestPoints.begin(); //TODO choose it in a smarter way
-                }
-
-                new_length += distance(currentPoint, get(*(chosenPoint->second))); //Update the new path total length
-                newpath.push_back(*(chosenPoint->second)); //Copy the chosen point into newpath
-                currentPoint = get(*(chosenPoint->second));        //Set the next currentPoint to the chosen point
-                temp_path.erase(chosenPoint->second);           //Remove the chosen point from the path list
-                distances.clear();                          //Clear the distances vector
-                nearestPoints.clear();                      //Clear the nearestPoints vector
+                newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
+                currentPoint = get(*(nearestPoint), Side::BACK); //Set the next currentPoint to the chosen point
+                temp_path.erase(nearestPoint);           //Remove the chosen point from the path list
             }
-
-            newpath.push_back(temp_path.front());    //Copy the last point into newpath
-            new_length += distance(currentPoint, get(temp_path.front())); //Compute the distance and add it to new_length
 
             if (new_length < original_length)  //If the new path is better than the previous one
                 path = newpath;

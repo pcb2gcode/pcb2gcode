@@ -744,9 +744,9 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
         if (tsp_2opt) {
-            tsp_solver::tsp_2opt( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+            tsp_solver::tsp_2opt( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset) );
         } else {
-            tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+            tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset) );
         }
     }
 

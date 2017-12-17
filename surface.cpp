@@ -201,9 +201,9 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+        tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+        tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0) );
     }
     save_debug_image("traced_" + name);
 
