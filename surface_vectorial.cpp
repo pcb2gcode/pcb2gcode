@@ -98,7 +98,11 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bool contentions = false;
 
     vector<shared_ptr<icoords>> toolpath;
-    auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
+    // source_poly_index is the vectorial_surface index against which
+    // we won't check for contentions (because it was the source of
+    // the toolpath and will overlap on the border).  Set it to -1 to
+    // not skip any checks.
+    auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls, int source_poly_index) {
         const coordinate_type mirror_axis = mill->mirror_absolute ?
             bounding_box.min_corner().x() :
             ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
@@ -112,9 +116,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                        bg::strategy::buffer::join_round(points_per_circle),
                        bg::strategy::buffer::end_round(),
                        bg::strategy::buffer::point_circle(points_per_circle));
-            if (bg::intersects(milling_poly, *vectorial_surface)) {
-                contentions = true;
-                debug_image.add(milling_poly, 0.4, 255, 0, 0);
+            for (int j = 0; j < (signed int) vectorial_surface->size(); j++) {
+                if (j != source_poly_index) {
+                    if (bg::intersects(milling_poly, (*vectorial_surface)[j])) {
+                        contentions = true;
+                        debug_image.add(milling_poly, 0.4, 255, 0, 0);
+                    }
+                }
             }
         }
         for (const auto& ls : mls) {
@@ -151,7 +159,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         all_linestrings = eulerian_paths(all_segments, current_mask);
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
             if (pass_offset == 0) {
-                copy_mls_to_toolpath(all_linestrings);
+                copy_mls_to_toolpath(all_linestrings, -1);
             } else {
                 multi_polygon_type buffered_poly;
                 bg::buffer(all_linestrings, buffered_poly,
@@ -162,19 +170,20 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                            bg::strategy::buffer::point_circle(points_per_circle));
                 multi_linestring_type mls;
                 multi_poly_to_multi_linestring(buffered_poly, &mls);
-                copy_mls_to_toolpath(mls);
+                copy_mls_to_toolpath(mls, -1);
             }
         }
     } else {
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
             // We need to do each line individually because they might
             // butt up against one another during the bg::buffer and give bad paths.
-            for (const auto& poly : *vectorial_surface) {
-                srand(1);
+            srand(1);
+            for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+                const auto& poly = (*vectorial_surface)[i];
                 if (pass_offset == 0) {
                     multi_linestring_type mls;
                     poly_to_multi_linestring(poly, &mls);
-                    copy_mls_to_toolpath(mls);
+                    copy_mls_to_toolpath(mls, i);
                 } else {
                     multi_polygon_type buffered_poly;
                     bg::buffer(poly, buffered_poly,
@@ -185,7 +194,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                                bg::strategy::buffer::point_circle(points_per_circle));
                     multi_linestring_type mls;
                     multi_poly_to_multi_linestring(buffered_poly, &mls);
-                    copy_mls_to_toolpath(mls);
+                    copy_mls_to_toolpath(mls, i);
                 }
             }
         }
@@ -481,7 +490,7 @@ void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int
         }
         else
         {
-            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
+            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:2");
         }
     }
 }
