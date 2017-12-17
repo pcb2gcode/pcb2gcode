@@ -93,16 +93,25 @@ protected:
     shared_ptr<Surface_vectorial> mask;
 
 private:
-    template <typename multi_poly, typename multi_linestring>
-    void multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls);
+    template <typename multi_poly_t, typename multi_linestring_t>
+    void multi_poly_to_multi_linestring(const multi_poly_t& mpoly, multi_linestring_t* mls);
+    template <typename poly_t, typename multi_linestring_t>
+    void poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls);
     // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
     multi_polygon_type get_mask();
     // Convert all the pieces of the geometry to segments and add to the provided list.
     void add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> *segments);
+    // Convert all the pieces of the geometry to segments and add to the provided list.
     template <typename multi_linestring_t>
     void add_as_segments(const multi_linestring_t& mls, vector<segment_type_p> *segments);
+    // Convert all the segments into multiple contiguous paths that
+    // together use each segment exactly once.  All segments that are
+    // outside the mask are not used.
     multi_linestring_type eulerian_paths(const vector<segment_type_p>& segments,
                                          const multi_polygon_type& mask);
+    // Grow the input linestring by the specified amount and return
+    // the result as a list of coordinates around the path.
+    vector<coordinate_type> get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi);
 };
 
 class svg_writer

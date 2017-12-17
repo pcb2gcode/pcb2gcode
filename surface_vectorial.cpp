@@ -97,29 +97,15 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     bool contentions = false;
 
-    // First get all the segments from the current mask.
-    multi_polygon_type current_mask = get_mask();
-    vector<segment_type_p> all_segments;
-    add_as_segments(current_mask, &all_segments);
-
-    multi_linestring_type_fp voronoi_edges =
-        Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
-    //Add the voronoi edges to all_segments
-    add_as_segments(voronoi_edges, &all_segments);
-
-    // Split all segments where they cross and remove duplicates.
-    all_segments = segmentize(all_segments);
-
-    // Now find eulerian paths in all those segments.
-    multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
-
-    vector<shared_ptr<icoords> > toolpath;
+    vector<shared_ptr<icoords>> toolpath;
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls) {
         const coordinate_type mirror_axis = mill->mirror_absolute ?
             bounding_box.min_corner().x() :
             ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
         multi_polygon_type milling_poly;
         for (const auto& ls : mls) {
+            debug_image.add(ls, 0.6);
+            traced_debug_image.add(ls, 1);
             bg::buffer(ls, milling_poly,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
                        bg::strategy::buffer::side_straight(),
@@ -145,59 +131,62 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
 
-    if (extra_passes % 2 == 0) {
-        // If it's even then we need a center pass.
-        copy_mls_to_toolpath(all_linestrings);
-        int color_seed = 1;
-        for (const linestring_type& linestring : all_linestrings) {
-            srand(color_seed++);
-            debug_image.add(linestring, 0.6);
-            traced_debug_image.add(linestring, 1);
-        }
-    }
-    if (grow <= 0) {
-        // All extra passes are in place.
-        for (int i = 0; i < extra_passes; i++) {
-            // If it's even then we need a center pass.
-            copy_mls_to_toolpath(all_linestrings);
-            int color_seed = 1;
-            for (const linestring_type& linestring : all_linestrings) {
-                srand(color_seed++);
-                debug_image.add(linestring, 0.6);
-                traced_debug_image.add(linestring, 1);
-            }
-        }
-    } else {
-        // extra passes are spaced at a distance of grow apart.  The
-        // spacing depends on whether or not the number is odd/even
-        // and we have a center pass.  Each loop is two passes.
-        for (int i = 0; i < extra_passes; i += 2) {
-            int color_seed = 1;
-            for (const linestring_type& linestring : all_linestrings) {
-                srand(color_seed++);
+    multi_linestring_type all_linestrings;
+    bool voronoi = isolator && isolator->voronoi;
+    if (voronoi) {
+        // First get all the segments from the current mask.
+        multi_polygon_type current_mask = get_mask();
+        vector<segment_type_p> all_segments;
+        add_as_segments(current_mask, &all_segments);
 
-                // For each edge, we need to make successive edges
-                // that are offset by grow on each side.  The number
-                // of edges that need to be made depends on the number
-                // of extra_passes.  This is how far off the current
-                // path that we want to offset.  The distance also
-                // depends on whether we have a center pass.
-                coordinate_type current_grow = (((extra_passes % 2 == 1) ? -grow : 0) + grow * (2+i))/2;
+        multi_linestring_type_fp voronoi_edges =
+            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
+        //Add the voronoi edges to all_segments
+        add_as_segments(voronoi_edges, &all_segments);
+
+        // Split all segments where they cross and remove duplicates.
+        all_segments = segmentize(all_segments);
+
+        // Now find eulerian paths in all those segments.
+        all_linestrings = eulerian_paths(all_segments, current_mask);
+        for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
+            if (pass_offset == 0) {
+                copy_mls_to_toolpath(all_linestrings);
+            } else {
                 multi_polygon_type buffered_poly;
-                bg::buffer(linestring, buffered_poly,
-                           bg::strategy::buffer::distance_symmetric<coordinate_type>(current_grow),
+                bg::buffer(all_linestrings, buffered_poly,
+                           bg::strategy::buffer::distance_symmetric<coordinate_type>(pass_offset),
                            bg::strategy::buffer::side_straight(),
                            bg::strategy::buffer::join_round(points_per_circle),
                            bg::strategy::buffer::end_round(),
                            bg::strategy::buffer::point_circle(points_per_circle));
-                // The buffered_linestring is now an oval surrounding
-                // the original path.  Let's extract all paths from
-                // it.
                 multi_linestring_type mls;
                 multi_poly_to_multi_linestring(buffered_poly, &mls);
-                debug_image.add(mls, 0.6);
-                traced_debug_image.add(mls, 1);
                 copy_mls_to_toolpath(mls);
+            }
+        }
+    } else {
+        for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
+            // We need to do each line individually because they might
+            // butt up against one another during the bg::buffer and give bad paths.
+            for (const auto& poly : *vectorial_surface) {
+                srand(1);
+                if (pass_offset == 0) {
+                    multi_linestring_type mls;
+                    poly_to_multi_linestring(poly, &mls);
+                    copy_mls_to_toolpath(mls);
+                } else {
+                    multi_polygon_type buffered_poly;
+                    bg::buffer(poly, buffered_poly,
+                               bg::strategy::buffer::distance_symmetric<coordinate_type>(pass_offset),
+                               bg::strategy::buffer::side_straight(),
+                               bg::strategy::buffer::join_round(points_per_circle),
+                               bg::strategy::buffer::end_round(),
+                               bg::strategy::buffer::point_circle(points_per_circle));
+                    multi_linestring_type mls;
+                    multi_poly_to_multi_linestring(buffered_poly, &mls);
+                    copy_mls_to_toolpath(mls);
+                }
             }
         }
     }
@@ -263,24 +252,30 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
-template <typename multi_poly, typename multi_linestring>
-void Surface_vectorial::multi_poly_to_multi_linestring(const multi_poly& mpoly, multi_linestring* mls) {
+template <typename multi_poly_t, typename multi_linestring_t>
+void Surface_vectorial::multi_poly_to_multi_linestring(const multi_poly_t& mpoly, multi_linestring_t* mls) {
     // Add all the linestrings from the mpoly to the mls.
     for (const auto& poly : mpoly) {
-        typename multi_linestring::value_type ls;
-        for (const auto& point : poly.outer()) {
-            typename multi_linestring::value_type::value_type new_point(point.x(), point.y());
+        poly_to_multi_linestring(poly, mls);
+    }
+}
+
+template <typename poly_t, typename multi_linestring_t>
+void Surface_vectorial::poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls) {
+    // Add all the linestrings from the poly to the mls.
+    typename multi_linestring_t::value_type ls;
+    for (const auto& point : poly.outer()) {
+        typename multi_linestring_t::value_type::value_type new_point(point.x(), point.y());
+        ls.push_back(new_point);
+    }
+    mls->push_back(ls);
+    for (const auto& inner : poly.inners()) {
+        typename multi_linestring_t::value_type ls;
+        for (const auto& point : inner) {
+            typename multi_linestring_t::value_type::value_type new_point(point.x(), point.y());
             ls.push_back(new_point);
         }
         mls->push_back(ls);
-        for (const auto& inner : poly.inners()) {
-            typename multi_linestring::value_type ls;
-            for (const auto& point : inner) {
-                typename multi_linestring::value_type::value_type new_point(point.x(), point.y());
-                ls.push_back(new_point);
-            }
-            mls->push_back(ls);
-        }
     }
 }
 
@@ -342,6 +337,36 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const vector<segment_typ
     return get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(segments_as_linestrings);
 }
 
+vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
+    if (offset == 0) {
+        return vector<coordinate_type>(offset, total_passes);
+    } else if (voronoi) {
+        if (total_passes % 2 == 1) {
+            // It's odd, we need a center pass and then a bunch of
+            // offset passes.
+            vector<coordinate_type> result{0};
+            total_passes--;
+            for (unsigned int i = 0; i < total_passes/2; i++) {
+                result.push_back(offset * i);
+            }
+            return result;
+        } else {
+            vector<coordinate_type> result;
+            // It's even, so we don't have a center pass.
+            for (unsigned int i = 0; i < total_passes/2; i++) {
+                result.push_back(offset/2 + offset * i);
+            }
+            return result;
+        }
+    } else {
+        // Not voronoi.
+        vector<coordinate_type> result;
+        for (unsigned int i = 0; i < total_passes; i++) {
+            result.push_back((i+1)*offset);
+        }
+        return result;
+    }
+}
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
@@ -406,7 +431,7 @@ void svg_writer::add(const multi_linestring_type_fp& geometry, double opacity)
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:1") % r % g % b);
+        string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:2") % r % g % b);
         mapper->map(mlinestring,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
@@ -421,7 +446,7 @@ void svg_writer::add(const linestring_type& geometry, double opacity)
     const unsigned int r = rand() % 256;
     const unsigned int g = rand() % 256;
     const unsigned int b = rand() % 256;
-    string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:1") % r % g % b);
+    string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:2") % r % g % b);
     mapper->map(mlinestring,
                 str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
                     opacity % r % g % b));
