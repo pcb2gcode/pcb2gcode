@@ -70,6 +70,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
+      tsp_2opt(options["tsp-2opt"].as<bool>()),
       quantization_error(2.0 / options["dpi"].as<int>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),

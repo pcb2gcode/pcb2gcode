@@ -40,12 +40,14 @@ using std::next;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
-                                        ivalue_t height, string name, string outputdir) :
+                                     ivalue_t height, string name, string outputdir,
+                                     bool tsp_2opt) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
     name(name),
     outputdir(outputdir),
+    tsp_2opt(tsp_2opt),
     fill(false)
 {
 
