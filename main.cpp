@@ -420,12 +420,14 @@ int main(int argc, char* argv[])
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
                 }
-                ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter);
+                ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
+                                vm["zchange-absolute"].as<bool>());
             }
             else
             {
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
-                               driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>());
+                               driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                               vm["zchange-absolute"].as<bool>());
             }
 
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";

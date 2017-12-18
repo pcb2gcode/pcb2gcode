@@ -4,7 +4,7 @@
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
- * Copyright (C) 2014, 2015 Nicola Corna <nicola@corna.info>
+ * Copyright (C) 2014-2017 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -242,6 +242,7 @@ options::options()
             "cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")(
             "zdrill", po::value<double>(), "drill depth")(
             "zchange", po::value<double>(), "tool changing height")(
+            "zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")(
             "drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")(
             "drill-speed", po::value<int>(), "spindle rpm when drilling")(
             "drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")(

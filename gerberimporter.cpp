@@ -411,48 +411,110 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
     linestring.push_back(point_type(cos(angle2) * radius + center.x(),
                                     sin(angle2) * radius + center.y()));
 }
-void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source)
+void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source, double tolerance)
 {
+    const double comparable_tolerance = tolerance * tolerance;
+
     if (!destination.empty())
     {
+        auto check_connection = [&](const point_type &point, multi_linestring_type::reverse_iterator ls,
+                                    connected_linestring &conn_ls)
+        {
+            double comparable_distance = bg::comparable_distance(point, ls->back());
+            if (comparable_distance <= comparable_tolerance)
+            {
+                conn_ls.ls = ls;
+                conn_ls.side = BACK;
+                conn_ls.approximated = !(comparable_distance == 0);
+            }
+            else
+            {
+                comparable_distance = bg::comparable_distance(point, ls->front());
+                if (comparable_distance <= comparable_tolerance)
+                {
+                    conn_ls.ls = ls;
+                    conn_ls.side = FRONT;
+                    conn_ls.approximated = !(comparable_distance == 0);
+                }
+            }
+        };
+
+        auto merge_linestring = [](const linestring_type& source, Side source_side,
+                                   linestring_type& destination, Side destination_side, bool approximated)
+        {
+            if (destination_side == FRONT)
+                reverse(destination.begin(), destination.end());
+
+            if (source_side == FRONT)
+            {
+                if (approximated)
+                    destination.insert(destination.end(), source.begin(), source.end());
+                else
+                    destination.insert(destination.end(), source.begin() + 1, source.end());
+            }
+            else
+            {
+                if (approximated)
+                    destination.insert(destination.end(), source.rbegin(), source.rend());
+                else
+                    destination.insert(destination.end(), source.rbegin() + 1, source.rend());
+            }
+        };
+
+        auto close_if_necessary = [&](linestring_type& ls)
+        {
+            if (!bg::equals(ls.front(), ls.back()) &&
+                bg::comparable_distance(ls.front(), ls.back()) <= comparable_tolerance)
+                ls.push_back(ls.front());
+        };
+
+        const point_type *source_sides[2] = {&source.front(), &source.back()};
+        connected_linestring conn_lss[2];
         multi_linestring_type::reverse_iterator ls;
 
-        for (ls = destination.rbegin(); ls != destination.rend(); ls++)
-        {
-            if (bg::equals(ls->back(), source.front()))
-            {
-                ls->insert(ls->end(), source.begin() + 1, source.end());
-                break;
-            }
-            else if (bg::equals(ls->back(), source.back()))
-            {
-                ls->insert(ls->end(), source.rbegin() + 1, source.rend());
-                break;
-            }
+        conn_lss[FRONT].ls = destination.rend();
+        conn_lss[BACK].ls = destination.rend();
 
-            /*
-             * The following two cases does not happen very often, and they
-             * usually happen when the size of destination is small (often 2),
-             * therefore there shouldn't be the need to replace a standard
-             * linestring_type (std::vector) with a std::deque
-             */
-            else if (bg::equals(ls->front(), source.front()))
+        for (unsigned int i = 0; i < 2; i++)
+        {
+            for (ls = destination.rbegin(); ls != destination.rend() && conn_lss[i].ls == destination.rend(); ls++)
             {
-                reverse(ls->begin(), ls->end());
-                ls->insert(ls->end(), source.begin() + 1, source.end());
-                break;
-            }
-            else if (bg::equals(ls->front(), source.back()))
-            {
-                reverse(ls->begin(), ls->end());
-                ls->insert(ls->end(), source.rbegin() + 1, source.rend());
-                break;
+                check_connection(*source_sides[i], ls, conn_lss[i]);
             }
         }
 
-        if (ls == destination.rend())
+        int case_num = (int(conn_lss[BACK].ls != destination.rend()) << 1) +
+                        int(conn_lss[FRONT].ls != destination.rend());
+
+        if (case_num == 3 && conn_lss[FRONT].ls == conn_lss[BACK].ls)
         {
+            if (conn_lss[FRONT].side == BACK)
+                case_num = 1;
+            else
+                case_num = 2;
+        }
+
+        switch (case_num)
+        {
+        case 0: //No junctions
             destination.push_back(source);
+            break;
+
+        case 1: //Front can be connected
+            merge_linestring(source, FRONT, *conn_lss[FRONT].ls, conn_lss[FRONT].side, conn_lss[FRONT].approximated);
+            close_if_necessary(*conn_lss[FRONT].ls);
+            break;
+
+        case 2: //Back can be connected
+            merge_linestring(source, BACK, *conn_lss[BACK].ls, conn_lss[BACK].side, conn_lss[BACK].approximated);
+            close_if_necessary(*conn_lss[BACK].ls);
+            break;
+
+        case 3: //Both front and back can be connected
+            merge_linestring(source, FRONT, *conn_lss[FRONT].ls, conn_lss[FRONT].side, conn_lss[FRONT].approximated);
+            merge_linestring(*conn_lss[BACK].ls, conn_lss[BACK].side, *conn_lss[FRONT].ls, BACK, conn_lss[BACK].approximated);
+            destination.erase(prev(conn_lss[BACK].ls.base()));
+            break;
         }
     }
     else
@@ -548,6 +610,21 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
             {
                 for (auto ls = i->second.begin(); ls != i->second.end(); )
                 {
+                    if (ls->size() >= 4)
+                    {
+                        multi_point_type intersection_points;
+                        segment_type first_segment(ls->front(), ls->at(1));
+                        segment_type last_segment(ls->back(), ls->at(ls->size() - 2));
+
+                        bg::intersection(first_segment, last_segment, intersection_points);
+
+                        if (!intersection_points.empty())
+                        {
+                            bg::assign(ls->front(), intersection_points.front());
+                            bg::assign(ls->back(), intersection_points.front());
+                        }
+                    }
+
                     if (bg::equals(ls->front(), ls->back()) && bg::is_valid(*ls))
                     {
                         rings.push_back(ring_type());
@@ -1096,12 +1173,13 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
                 {
                     if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
                     {
+                        const double diameter = parameters[0] * cfactor;
                         linestring_type new_segment;
-                        
+
                         new_segment.push_back(start);
                         new_segment.push_back(stop);
-                        
-                        merge_paths(paths[coordinate_type(gerber->aperture[currentNet->aperture]->parameter[0] * cfactor / 2)], new_segment);
+
+                        merge_paths(paths[coordinate_type(diameter / 2)], new_segment, fill_closed_lines ? diameter : 0);
                     }
                     else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE)
                     {
@@ -1205,7 +1283,10 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
                     else
                     {
                         if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
-                            merge_paths(paths[coordinate_type(gerber->aperture[currentNet->aperture]->parameter[0] * cfactor / 2)], path);
+                        {
+                            const double diameter = parameters[0] * cfactor;
+                            merge_paths(paths[coordinate_type(diameter / 2)], path, fill_closed_lines ? diameter : 0);
+                        }
                         else
                             cerr << "Drawing an arc with an aperture different from a circle "
                                          "is forbidden by the Gerber standard; skipping."

@@ -75,12 +75,21 @@ public:
     virtual ~GerberImporter();
 
 protected:
+    enum Side { FRONT = 0, BACK = 1 } side;
+
     struct gerberimporter_layer
     {
         map<coordinate_type, multi_linestring_type> paths;
         unique_ptr<multi_polygon_type> draws;
 
         gerberimporter_layer() : draws(new multi_polygon_type()) { }
+    };
+
+    struct connected_linestring
+    {
+        multi_linestring_type::reverse_iterator ls;
+        Side side;
+        bool approximated;
     };
 
     static const unsigned int scale;
@@ -119,7 +128,7 @@ protected:
     static void circular_arc(point_type center, coordinate_type radius, double angle1,
                                 double angle2, unsigned int circle_points, linestring_type& linestring);
     
-    static void merge_paths(multi_linestring_type& destination, const linestring_type& source);
+    static void merge_paths(multi_linestring_type& destination, const linestring_type& source, double tolerance);
 
     static void simplify_paths(multi_linestring_type& paths);
 

@@ -68,6 +68,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
+    bZchangeG53 = options["zchange-absolute"].as<bool>();
     bFrontAutoleveller = options["al-front"].as<bool>();
     bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
@@ -130,8 +131,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     double xoffsetTot;
     double yoffsetTot;
     Tiling tiling( tileInfo, cfactor );
-    tiling.setGCodeEnd( "\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
-        "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
+    tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
+        + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
@@ -245,6 +246,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
                         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                         of << "F" << mill->feed * cfactor << "\n";
+                        of << "G01 ";
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -274,7 +276,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                         else if (*currentBridge == last - path->begin())
                                         {
                                             of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                            of << "F" << cutter->feed * cfactor;
+                                            of << "F" << cutter->feed * cfactor << '\n';
+                                            of << "G01 ";
                                         }
                                     }
 
@@ -306,6 +309,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                     of << "F" << mill->feed * cfactor << '\n';
+
+                    if (!bAutolevelNow)
+                        of << "G01 ";
 
                     icoords::iterator iter = path->begin();
                     icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
