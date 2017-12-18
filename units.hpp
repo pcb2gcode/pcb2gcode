@@ -23,8 +23,10 @@ class Unit {
       // We don't know the units so just use whatever factor was supplied.
       return value*factor;
       }*/
-    return value*one/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                                      boost::units::si::meter) * boost::units::si::meter);
+    printf("the value is %f\n", value);
+    return value*factor;
+    //    return value*one/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+    //                                                boost::units::si::meter) * boost::units::si::meter);
   }
  private:
   double value;
