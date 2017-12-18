@@ -95,7 +95,7 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
                      bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
                                     bounding_box))) {
                     vector<point_type_fp_p> clipped_edge;
-                    boost::polygon::voronoi_visual_utils<coordinate_type_fp>::clip_infinite_edge(
+                    clip_infinite_edge(
                         edge, segments, &clipped_edge, bounding_box);
                     for (const auto& point : clipped_edge) {
                         new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
@@ -149,4 +149,55 @@ void Voronoi::sample_curved_edge(const edge_type *edge, const vector<segment_typ
     sampled_edge.push_back(point_type_fp_p(edge->vertex1()->x(), edge->vertex1()->y()));
 
     boost::polygon::voronoi_visual_utils<coordinate_type_fp>::discretize(point, segment, max_dist, &sampled_edge);
+}
+
+void Voronoi::clip_infinite_edge(
+    const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type_fp& bounding_box) {
+    const cell_type& cell1 = *edge.cell();
+    const cell_type& cell2 = *edge.twin()->cell();
+    point_type_p origin, direction;
+    // Infinite edges could not be created by two segment sites.
+    if (cell1.contains_point() && cell2.contains_point()) {
+        point_type_p p1 = retrieve_point(cell1, segments);
+        point_type_p p2 = retrieve_point(cell2, segments);
+        origin.x((p1.x() + p2.x()) * 0.5);
+        origin.y((p1.y() + p2.y()) * 0.5);
+        direction.x(p1.y() - p2.y());
+        direction.y(p2.x() - p1.x());
+    } else {
+        origin = cell1.contains_segment() ?
+            retrieve_point(cell2, segments) :
+            retrieve_point(cell1, segments);
+        segment_type_p segment = cell1.contains_segment() ?
+            retrieve_segment(cell1, segments) :
+            retrieve_segment(cell2, segments);
+        coordinate_type dx = high(segment).x() - low(segment).x();
+        coordinate_type dy = high(segment).y() - low(segment).y();
+        if ((low(segment) == origin) ^ cell1.contains_point()) {
+            direction.x(dy);
+            direction.y(-dx);
+        } else {
+            direction.x(-dy);
+            direction.y(dx);
+        }
+    }
+    coordinate_type side = bounding_box.max_corner().x() - bounding_box.min_corner().x();
+    coordinate_type koef =
+        side / (std::max)(fabs(direction.x()), fabs(direction.y()));
+    if (edge.vertex0() == NULL) {
+        clipped_edge->push_back(point_type_fp_p(
+                                    origin.x() - direction.x() * koef,
+                                    origin.y() - direction.y() * koef));
+    } else {
+        clipped_edge->push_back(
+            point_type_fp_p(edge.vertex0()->x(), edge.vertex0()->y()));
+    }
+    if (edge.vertex1() == NULL) {
+        clipped_edge->push_back(point_type_fp_p(
+                                    origin.x() + direction.x() * koef,
+                                    origin.y() + direction.y() * koef));
+    } else {
+        clipped_edge->push_back(
+            point_type_fp_p(edge.vertex1()->x(), edge.vertex1()->y()));
+    }
 }
