@@ -6,6 +6,7 @@
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
 #include <boost/units/quantity.hpp>
+#include <boost/optional.hpp>
 #include <boost/units/systems/si/length.hpp>
 #include <boost/units/systems/si/velocity.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
@@ -70,8 +71,11 @@ void validate(boost::any& v,
           boost::program_options::validation_error::invalid_option_value);
     }
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
-
-    boost::units::quantity<dimension_t> one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+    // TODO: How do I specify unitless?
+    boost::units::quantity<dimension_t> one;// = 1.8 * boost::units::si::meter / boost::units::si::meter;
+    if (m.size() > 2) {
+      one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+    }
     v = boost::any(Unit<dimension_t>(value, one));
 }
 
