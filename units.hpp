@@ -28,9 +28,10 @@ void validate(boost::any& v,
     const std::string& s = boost::program_options::validators::get_single_string(values);
 
     // Figure out what unit it is.
-    //boost::match_results<std::string> m;
-    if (!regex_search(s, boost::regex("^\\s*[0-9.]\\s*([^ ]+)?"))) {
-      //throw boost::program_options::validation_error(validation_error::invalid_option_value);
+    boost::match_results<const char*> m;
+    if (!regex_search(s.c_str(), m, boost::regex("^\\s*[0-9.]\\s*([^ ]+)?"))) {
+      throw boost::program_options::validation_error(
+          boost::program_options::validation_error::invalid_option_value);
     }
     //boost::units::quantity<dimension_t> result(1.0 * boost::units::si::meter);
     v = boost::any(Unit<dimension_t>(s));
