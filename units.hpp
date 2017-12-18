@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <boost/units/quantity.hpp>
 #include <boost/units/systems/si/length.hpp>
+#include <boost/units/base_units/imperial/inch.hpp>
 
 // dimension_t is "length" or "speed", for example.
 template<typename dimension_t>
@@ -24,13 +25,21 @@ class Unit {
   boost::units::quantity<dimension_t> one;
 };
 
+
+
 template<typename dimension_t>
 boost::units::quantity<dimension_t> get_unit(const std::string& s) {
-  if (s == "mm") {
+  if (s == "mm" ||
+      s == "millimeter" ||
+      s == "millimeters") {
+    return boost::units::si::meter/1000.0;
+  }
+  if (s == "inch" ||
+      s == "inches") {
     return boost::units::si::meter/1000.0;
   }
   throw boost::program_options::validation_error(
-      boost::program_options::validation_error::invalid_option_value);
+                                                 boost::program_options::validation_error::invalid_option_value);
 }
 
 template<typename dimension_t>
