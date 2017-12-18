@@ -36,21 +36,40 @@ class Unit {
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::velocity> Velocity;
 
-template<typename dimension_t>
-boost::units::quantity<dimension_t> get_unit(const std::string& s) {
-  if (s == "mm" ||
-      s == "millimeter" ||
-      s == "millimeters") {
-    return boost::units::si::meter/1000.0;
+
+// worker class -- return a reference to the given value
+template< typename dimension_t > struct worker
+{
+  typedef dimension_t const & type;
+  static boost::units::quantity<type> get_unit(const std::string& s) {
+    throw boost::program_options::validation_error(
+                                                   boost::program_options::validation_error::invalid_option_value);
   }
-  if (s == "inch" ||
-      s == "inches") {
-    return boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                           boost::units::si::meter) * boost::units::si::meter;
+};
+
+// worker class specialization -- convert 'unsigned char' to 'int'
+template<> struct worker<boost::units::si::length> {
+  typedef boost::units::si::length type;
+  static boost::units::quantity<type> get_unit(const std::string& s) {
+    if (s == "mm" ||
+        s == "millimeter" ||
+        s == "millimeters") {
+      return boost::units::si::meter/1000.0;
+    }
+    if (s == "inch" ||
+        s == "inches") {
+      return boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+                                             boost::units::si::meter) * boost::units::si::meter;
+    }
+    std::cerr << "Don't recognize units: " << s << std::endl;
+    throw boost::program_options::validation_error(
+                                                   boost::program_options::validation_error::invalid_option_value);
   }
-  std::cerr << "Don't recognize units: " << s << std::endl;
-  throw boost::program_options::validation_error(
-                                                 boost::program_options::validation_error::invalid_option_value);
+};
+
+// mapper function
+template< typename dimension_t > typename boost::units::quantity<dimension_t> mapper( const std::string& s) {
+  return worker<dimension_t>::get_unit(s);
 }
 
 template<typename dimension_t>
@@ -74,7 +93,8 @@ void validate(boost::any& v,
     // TODO: How do I specify unitless?
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
-      one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+        boost::units::quantity<boost::units::si::length> foo = mapper<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+        one=foo;
     }
     v = boost::any(Unit<dimension_t>(value, one));
 }
