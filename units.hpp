@@ -16,6 +16,9 @@ class Unit {
   double asDouble() const {
     return value;
   }
+  double asMeter() const {
+    return value*one/boost::units::si::meter;
+  }
  private:
   double value;
   boost::units::quantity<dimension_t> one;
@@ -24,7 +27,7 @@ class Unit {
 template<typename dimension_t>
 boost::units::quantity<dimension_t> get_unit(const std::string& s) {
   if (s == "mm") {
-    return 1.0*boost::units::si::meter;
+    return boost::units::si::meter/1000.0;
   }
   throw boost::program_options::validation_error(
       boost::program_options::validation_error::invalid_option_value);

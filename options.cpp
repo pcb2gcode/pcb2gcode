@@ -377,7 +377,7 @@ static void check_generic_parameters(po::variables_map const& vm)
     //---------------------------------------------------------------------------
     //Check for safety height parameter:
     if (vm.count("unit")) {
-        cerr << vm["unit"].as<Unit<boost::units::si::length>>().asDouble() << endl;
+        cerr << vm["unit"].as<Unit<boost::units::si::length>>().asMeter() << endl;
     }
     
     if (!vm.count("zsafe"))
