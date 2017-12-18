@@ -47,7 +47,9 @@ using Glib::build_filename;
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
-
+#include <boost/units/systems/si/length.hpp>
+#include "units.hpp"
+ 
 #include <boost/algorithm/string.hpp>
 
 /******************************************************************************/

@@ -223,7 +223,7 @@ options::options()
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
@@ -376,10 +376,7 @@ static void check_generic_parameters(po::variables_map const& vm)
 
     //---------------------------------------------------------------------------
     //Check for safety height parameter:
-    if (vm.count("unit")) {
-        cerr << vm["unit"].as<Unit<boost::units::si::length>>().asMeter() << endl;
-    }
-    
+
     if (!vm.count("zsafe"))
     {
         cerr << "Error: Safety height not specified.\n";

@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <boost/units/quantity.hpp>
 #include <boost/units/systems/si/length.hpp>
+#include <boost/units/systems/si/velocity.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
 // dimension_t is "length" or "speed", for example.
@@ -17,15 +18,21 @@ class Unit {
   double asDouble() const {
     return value;
   }
-  double asMeter() const {
-    return value*one/boost::units::si::meter;
+  double asInch(double factor) const {
+    if (!one) {
+      // We don't know the units so just use whatever factor was supplied.
+      return value*factor;
+    }
+    return value*one/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+                                                      boost::units::si::meter) * boost::units::si::meter);
   }
  private:
   double value;
   boost::units::quantity<dimension_t> one;
 };
 
-
+typedef Unit<boost::units::si::length> Length;
+typedef Unit<boost::units::si::velocity> Velocity;
 
 template<typename dimension_t>
 boost::units::quantity<dimension_t> get_unit(const std::string& s) {
