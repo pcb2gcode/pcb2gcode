@@ -8,15 +8,27 @@
 #include <boost/units/quantity.hpp>
 #include <boost/units/systems/si/length.hpp>
 
+// dimension_t is "length" or "speed", for example.
 template<typename dimension_t>
 class Unit {
  public:
-  Unit(std::string value) : value(value) {}
-  std::string value;
+  Unit(double value, boost::units::quantity<dimension_t> one) : value(value), one(one) {}
   double asDouble() const {
-    return boost::lexical_cast<double>(value.data(),1);
+    return value;
   }
+ private:
+  double value;
+  boost::units::quantity<dimension_t> one;
 };
+
+template<typename dimension_t>
+boost::units::quantity<dimension_t> get_unit(const std::string& s) {
+  if (s == "mm") {
+    return 1.0*boost::units::si::meter;
+  }
+  throw boost::program_options::validation_error(
+      boost::program_options::validation_error::invalid_option_value);
+}
 
 template<typename dimension_t>
 void validate(boost::any& v,
@@ -35,15 +47,15 @@ void validate(boost::any& v,
       throw boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
-    printf("%s\n\n", std::string(m[1].first, m[1].second).c_str());
-    printf("%s\n\n", std::string(m[2].first, m[2].second).c_str());
+    //printf("%s\n\n", std::string(m[1].first, m[1].second));
+    //printf("%s\n\n", std::string(m[2].first, m[2].second));
+    double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
 
-    dimension_t dimension = boost::units::si::meter;
+    boost::units::quantity<dimension_t> one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+    //dimension_t dimension = boost::units::si::meter;
     boost::units::quantity<dimension_t> result(1.0*boost::units::si::meter);
     result *= 1.0;
-    v = boost::any(Unit<dimension_t>(s));
+    v = boost::any(Unit<dimension_t>(value, one));
 }
-
-
 
 #endif // UNITS_HPP
