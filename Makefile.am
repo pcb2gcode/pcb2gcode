@@ -35,6 +35,7 @@ pcb2gcode_SOURCES = \
     options.cpp \
     outline_bridges.hpp \
     outline_bridges.cpp \
+    units.hpp \
     unique_codes.hpp \
     voronoi.hpp \
     voronoi.cpp \

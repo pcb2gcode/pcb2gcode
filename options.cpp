@@ -27,6 +27,8 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/units/systems/si/length.hpp>
+#include "units.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -206,16 +208,17 @@ void options::parse_files()
 options::options()
          : cli_options("command line only options"), cfg_options("generic options (CLI and config files)") {
 
-   cli_options.add_options()(
-            "noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")(
-            "help,?", "produce help message")(
-            "version", "show the current software version");
+  cli_options.add_options()
+      ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
+      ("help,?", "produce help message")
+      ("version", "show the current software version");
             
-   cfg_options.add_options()(
-            "front", po::value<string>(),"front side RS274-X .gbr")(
-            "back", po::value<string>(), "back side RS274-X .gbr")(
-            "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
-            "drill", po::value<string>(), "Excellon drill file")(
+   cfg_options.add_options()
+       ("unit", po::value<Unit<boost::units::si::length>>(), "foo in units of length")
+       ("front", po::value<string>(),"front side RS274-X .gbr")
+       ("back", po::value<string>(), "back side RS274-X .gbr")
+       ("outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")
+       ("drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
@@ -373,7 +376,10 @@ static void check_generic_parameters(po::variables_map const& vm)
 
     //---------------------------------------------------------------------------
     //Check for safety height parameter:
-
+    if (vm.count("unit")) {
+        cerr << vm["unit"].as<Unit<boost::units::si::length>>().asDouble() << endl;
+    }
+    
     if (!vm.count("zsafe"))
     {
         cerr << "Error: Safety height not specified.\n";
