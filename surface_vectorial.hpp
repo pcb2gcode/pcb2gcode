@@ -125,7 +125,7 @@ public:
     void add(const multi_geo_t& geometry, double opacity, double which_color);
     void add(const linestring_type& geometry, double opacity, double which_color);
     void add(const polygon_type& poly, double opacity, double which_color);
-    // Returns the visually unique color for which_color, which is evenly spaced from 0 to 1.
+    // Returns the visually unique color indexed by which_color.
     void get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue);
 
 protected:

@@ -103,9 +103,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     // the toolpath and will overlap on the border).  Set it to -1 to
     // not skip any checks.
     auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls, int source_poly_index) {
-        const coordinate_type mirror_axis = mill->mirror_absolute ?
-            bounding_box.min_corner().x() :
-            ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
         for (unsigned int i = 0; i < mls.size(); i++) {
             double which_color;
             if (source_poly_index >= 0) {
@@ -132,6 +129,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             toolpath.push_back(make_shared<icoords>());
             for (const auto& point : ls) {
                 if (mirror) {
+                    const coordinate_type mirror_axis = mill->mirror_absolute ?
+                        bounding_box.min_corner().x() :
+                        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
                     toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
                                                          point.y() / double(scale)));
                 } else {
@@ -158,8 +158,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         // Split all segments where they cross and remove duplicates.
         all_segments = segmentize(all_segments);
 
-        // Now find eulerian paths in all those segments.
+        // Now find eulerian paths in all those segments, removing
+        // those outside the current_mask.
         all_linestrings = eulerian_paths(all_segments, current_mask);
+
+        // Compute the offsets for each path and add toolpaths to the
+        // output.
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
             if (pass_offset == 0) {
                 copy_mls_to_toolpath(all_linestrings, -1);
@@ -173,11 +177,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     } else {
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
             // We need to do each line individually because they might
-            // butt up against one another during the bg::buffer and give bad paths.
-            srand(1);
+            // butt up against one another during the bg::buffer and
+            // merge.
             for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
                 const auto& poly = (*vectorial_surface)[i];
                 if (pass_offset == 0) {
+                    // No buffering needed.
                     multi_linestring_type mls;
                     poly_to_multi_linestring(poly, &mls);
                     copy_mls_to_toolpath(mls, i);
@@ -195,8 +200,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         debug_image.add((*vectorial_surface)[i], 0.4, (double)i/vectorial_surface->size());
     }
 
-    if (contentions)
-    {
+    if (contentions) {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
              << " clearance requirements."
              << " You may want to check processed_" + name + ".svg, the g-code output, and"
