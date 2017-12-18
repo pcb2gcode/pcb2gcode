@@ -19,10 +19,10 @@ class Unit {
     return value;
   }
   double asInch(double factor) const {
-    if (!one) {
+    /*    if (!one) {
       // We don't know the units so just use whatever factor was supplied.
       return value*factor;
-    }
+      }*/
     return value*one/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
                                                       boost::units::si::meter) * boost::units::si::meter);
   }
