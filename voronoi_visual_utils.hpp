@@ -133,22 +133,7 @@ class voronoi_visual_utils {
     discretization->back() = last_point;
   }
 
-  static segment_type_p retrieve_segment(const cell_type& cell, const vector<segment_type_p>& segments) {
-    source_index_type index = cell.source_index();
-    return segments[index];
-  }
-
-  static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p>& segments) {
-    source_index_type index = cell.source_index();
-    source_category_type category = cell.source_category();
-    if (category == SOURCE_CATEGORY_SEGMENT_START_POINT) {
-      return low(segments[index]);
-    } else {
-      return high(segments[index]);
-    }
-  }
-
-private:
+ private:
   // Compute y(x) = ((x - a) * (x - a) + b * b) / (2 * b).
   static CT parabola_y(CT x, CT a, CT b) {
     return ((x - a) * (x - a) + b * b) / (b + b);
