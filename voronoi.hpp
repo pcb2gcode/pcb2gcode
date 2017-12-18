@@ -71,8 +71,6 @@ typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 class Voronoi
 {
 public:
-    static unique_ptr<multi_polygon_type> build_voronoi(const multi_polygon_type& input,
-                                coordinate_type bounding_box_offset, coordinate_type max_dist);
     /* Given many polygons, return all Voronoi edges.  A polygon has
      * an outer perimeter that is a ring.  A ring is a list of points
      * that starts and ends at the same location.  A polygon can also
@@ -92,13 +90,11 @@ public:
         const box_type& bounding_box, coordinate_type max_dist);
 
 protected:
-    static pair<const polygon_type *,ring_type *> find_ring (const multi_polygon_type& input,
-                                                             const cell_type& cell, multi_polygon_type& output);
+    static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
     static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
     static const segment_type_p& retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
     static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments,
                                     vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
-    static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
 };
 
 #endif
