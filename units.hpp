@@ -36,7 +36,8 @@ boost::units::quantity<dimension_t> get_unit(const std::string& s) {
   }
   if (s == "inch" ||
       s == "inches") {
-    return boost::units::si::meter/1000.0;
+    return boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+                                           boost::units::si::meter) * boost::units::si::meter;
   }
   throw boost::program_options::validation_error(
                                                  boost::program_options::validation_error::invalid_option_value);
@@ -59,14 +60,9 @@ void validate(boost::any& v,
       throw boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
-    //printf("%s\n\n", std::string(m[1].first, m[1].second));
-    //printf("%s\n\n", std::string(m[2].first, m[2].second));
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
 
     boost::units::quantity<dimension_t> one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
-    //dimension_t dimension = boost::units::si::meter;
-    boost::units::quantity<dimension_t> result(1.0*boost::units::si::meter);
-    result *= 1.0;
     v = boost::any(Unit<dimension_t>(value, one));
 }
 
