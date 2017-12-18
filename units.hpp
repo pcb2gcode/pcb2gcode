@@ -5,6 +5,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 #include <boost/regex.hpp>
+#include <boost/units/quantity.hpp>
+#include <boost/units/systems/si/length.hpp>
 
 template<typename dimension_t>
 class Unit {
@@ -29,13 +31,19 @@ void validate(boost::any& v,
 
     // Figure out what unit it is.
     boost::match_results<const char*> m;
-    if (!regex_search(s.c_str(), m, boost::regex("^\\s*[0-9.]\\s*([^ ]+)?"))) {
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(\\S+)\\s*"))) {
       throw boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
-    //boost::units::quantity<dimension_t> result(1.0 * boost::units::si::meter);
+    printf("%s\n\n", std::string(m[1].first, m[1].second).c_str());
+    printf("%s\n\n", std::string(m[2].first, m[2].second).c_str());
+
+    dimension_t dimension = boost::units::si::meter;
+    boost::units::quantity<dimension_t> result(1.0*boost::units::si::meter);
+    result *= 1.0;
     v = boost::any(Unit<dimension_t>(s));
 }
+
 
 
 #endif // UNITS_HPP
