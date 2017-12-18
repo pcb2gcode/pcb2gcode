@@ -1,6 +1,7 @@
 #ifndef UNITS_HPP
 #define UNITS_HPP
 
+#include <iostream>
 #include <string>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
@@ -15,23 +16,21 @@
 template<typename dimension_t>
 class Unit {
  public:
-  Unit(double value, boost::units::quantity<dimension_t> one) : value(value), one(one) {}
+  Unit(double value, boost::optional<boost::units::quantity<dimension_t>> one) : value(value), one(one) {}
   double asDouble() const {
     return value;
   }
   double asInch(double factor) const {
-    /*    if (!one) {
+    if (!one) {
       // We don't know the units so just use whatever factor was supplied.
       return value*factor;
-      }*/
-    printf("the value is %f\n", value);
-    return value*factor;
-    //    return value*one/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-    //                                                boost::units::si::meter) * boost::units::si::meter);
+    }
+    return value*(*one)/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+                                                      boost::units::si::meter) * boost::units::si::meter);
   }
  private:
   double value;
-  boost::units::quantity<dimension_t> one;
+  boost::optional<boost::units::quantity<dimension_t>> one;
 };
 
 typedef Unit<boost::units::si::length> Length;
@@ -49,6 +48,7 @@ boost::units::quantity<dimension_t> get_unit(const std::string& s) {
     return boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
                                            boost::units::si::meter) * boost::units::si::meter;
   }
+  std::cerr << "Don't recognize units: " << s << std::endl;
   throw boost::program_options::validation_error(
                                                  boost::program_options::validation_error::invalid_option_value);
 }
@@ -66,14 +66,14 @@ void validate(boost::any& v,
 
     // Figure out what unit it is.
     boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(\\S+)\\s*"))) {
-      throw boost::program_options::validation_error(
-          boost::program_options::validation_error::invalid_option_value);
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(\\S*)\\s*"))) {
+      throw std::logic_error("foo");//boost::program_options::validation_error(
+      //boost::program_options::validation_error::invalid_option_value);
     }
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
     // TODO: How do I specify unitless?
-    boost::units::quantity<dimension_t> one;// = 1.8 * boost::units::si::meter / boost::units::si::meter;
-    if (m.size() > 2) {
+    boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
+    if (m[2].length() > 0) {
       one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
     }
     v = boost::any(Unit<dimension_t>(value, one));

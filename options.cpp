@@ -188,6 +188,7 @@ void options::parse_files()
         {
             cerr << "Error parsing configuration file \"" << file << "\": "
                  << e.what() << endl;
+            exit(ERR_INVALIDPARAMETER);
         }
 
         stream.close();
@@ -196,6 +197,7 @@ void options::parse_files()
     {
         cerr << "Error reading configuration file \"" << file << "\": "
              << e.what() << endl;
+        exit(ERR_INVALIDPARAMETER);
     }
 
     po::notify(instance().vm);
