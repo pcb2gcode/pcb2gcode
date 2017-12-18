@@ -112,6 +112,9 @@ private:
     // Grow the input linestring by the specified amount and return
     // the result as a list of coordinates around the path.
     vector<coordinate_type> get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi);
+    // Exapnd a shape by an offset and return the new shape.
+    template <typename geo_t>
+    multi_polygon_type buffer(geo_t geo, coordinate_type offset);
 };
 
 class svg_writer

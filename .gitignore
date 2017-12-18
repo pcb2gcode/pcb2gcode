@@ -23,7 +23,7 @@
 *.app
 *_tests
 
-#test generated files
+#make check generated files
 *.log
 *.trs
 

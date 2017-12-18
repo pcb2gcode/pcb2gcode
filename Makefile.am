@@ -25,6 +25,7 @@ pcb2gcode_SOURCES = \
     mill.hpp \
     ngc_exporter.hpp \
     ngc_exporter.cpp \
+    segmentize.hpp \
     surface.hpp \
     surface.cpp \
     surface_vectorial.hpp \

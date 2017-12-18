@@ -106,9 +106,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         const coordinate_type mirror_axis = mill->mirror_absolute ?
             bounding_box.min_corner().x() :
             ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-        multi_polygon_type milling_poly;
         for (unsigned int i = 0; i < mls.size(); i++) {
-            const auto& ls = mls[i];
             double which_color;
             if (source_poly_index >= 0) {
                 // The color is based on the poly it surrounds.
@@ -117,14 +115,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 // Sequential color.
                 which_color = (double) i / mls.size();
             }
+            const auto& ls = mls[i];
             debug_image.add(ls, 0.6, which_color);
             traced_debug_image.add(ls, 1, which_color);
-            bg::buffer(ls, milling_poly,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(grow),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       bg::strategy::buffer::end_round(),
-                       bg::strategy::buffer::point_circle(points_per_circle));
+            multi_polygon_type milling_poly = buffer(ls, grow);
             for (int j = 0; j < (signed int) vectorial_surface->size(); j++) {
                 if (j != source_poly_index) {
                     if (bg::intersects(milling_poly, (*vectorial_surface)[j])) {
@@ -170,13 +164,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             if (pass_offset == 0) {
                 copy_mls_to_toolpath(all_linestrings, -1);
             } else {
-                multi_polygon_type buffered_poly;
-                bg::buffer(all_linestrings, buffered_poly,
-                           bg::strategy::buffer::distance_symmetric<coordinate_type>(pass_offset),
-                           bg::strategy::buffer::side_straight(),
-                           bg::strategy::buffer::join_round(points_per_circle),
-                           bg::strategy::buffer::end_round(),
-                           bg::strategy::buffer::point_circle(points_per_circle));
+                multi_polygon_type buffered_poly = buffer(all_linestrings, pass_offset);
                 multi_linestring_type mls;
                 multi_poly_to_multi_linestring(buffered_poly, &mls);
                 copy_mls_to_toolpath(mls, -1);
@@ -194,13 +182,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                     poly_to_multi_linestring(poly, &mls);
                     copy_mls_to_toolpath(mls, i);
                 } else {
-                    multi_polygon_type buffered_poly;
-                    bg::buffer(poly, buffered_poly,
-                               bg::strategy::buffer::distance_symmetric<coordinate_type>(pass_offset),
-                               bg::strategy::buffer::side_straight(),
-                               bg::strategy::buffer::join_round(points_per_circle),
-                               bg::strategy::buffer::end_round(),
-                               bg::strategy::buffer::point_circle(points_per_circle));
+                    multi_polygon_type buffered_poly = buffer(poly, pass_offset);
                     multi_linestring_type mls;
                     multi_poly_to_multi_linestring(buffered_poly, &mls);
                     copy_mls_to_toolpath(mls, i);
@@ -386,6 +368,18 @@ vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offs
         }
         return result;
     }
+}
+
+template <typename geo_t>
+multi_polygon_type Surface_vectorial::buffer(geo_t geo, coordinate_type offset) {
+    multi_polygon_type buffered_poly;
+    bg::buffer(geo, buffered_poly,
+               bg::strategy::buffer::distance_symmetric<coordinate_type>(offset),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    return buffered_poly;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
