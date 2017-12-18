@@ -109,7 +109,7 @@ public:
 
             //Find the original path length
             original_length = distance(startingPoint, get(temp_path.front(), Side::FRONT));
-            for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
+            for (auto point = temp_path.cbegin(); next(point) != temp_path.cend(); point++)
                 original_length += distance(get(*point, Side::BACK), get(*next(point), Side::FRONT));
 
             icoordpair currentPoint = startingPoint;
@@ -154,20 +154,33 @@ public:
         bool found_one = true;
         while (found_one) {
             found_one = false;
-            for (auto a = path.begin(); a != path.end(); a++) {
-                auto b = a + 1;
-                for (auto c = a + 1; c != path.end(); c++) {
-                    auto d = c + 1;
+            for (unsigned int i = 0; i < path.size(); i++) {
+                for (unsigned int j = i; j < path.size(); j++) {
+                    double old_gap = 0;
+                    double new_gap = 0;
+                    if (i==0) {
+                        old_gap += distance(startingPoint, get(path[i], Side::FRONT));
+                        new_gap += distance(startingPoint, get(path[j], Side::BACK));
+                    } else {
+                        old_gap = distance(get(path[i-1], Side::BACK), get(path[i], Side::FRONT));
+                        new_gap = distance(get(path[i-1], Side::BACK), get(path[j], Side::BACK));
+                    }
+                    if (j==path.size()-1) {
+                        old_gap += 0;
+                        new_gap += 0;
+                    } else {
+                        new_gap += distance(get(path[i], Side::FRONT), get(path[j+1], Side::FRONT));
+                        old_gap += distance(get(path[j], Side::BACK), get(path[j+1], Side::FRONT));
+                    }
                     // Should we make this 2opt swap?
-                    if (distance(get(*a, Side::BACK), get(*b, Side::FRONT)) +
-                        distance(get(*c, Side::BACK), get(*d, Side::FRONT)) >
-                        distance(get(*a, Side::BACK), get(*c, Side::BACK)) +
-                        distance(get(*b, Side::FRONT), get(*d, Side::FRONT))) {
+                    if (new_gap < old_gap) {
                         // Do the 2opt swap.
-                        for (auto& to_reverse = b; b != d; d++) {
+                        const auto reverse_start = path.begin() + i;
+                        const auto reverse_end = path.begin() + j + 1;
+                        for (auto to_reverse = reverse_start;  to_reverse < reverse_end; to_reverse++) {
                             reverse(*to_reverse);
                         }
-                        std::reverse(b, d);
+                        std::reverse(reverse_start, reverse_end);
                         found_one = true;
                     }
                 }
