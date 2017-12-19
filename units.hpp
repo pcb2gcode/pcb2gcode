@@ -109,7 +109,7 @@ void validate(boost::any& v,
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
-      one = Unit<boost::units::si::length>::get_unit(std::string(m[2].first, m[2].second).c_str());
+      one = Unit<dimension_t>::get_unit(std::string(m[2].first, m[2].second).c_str());
     }
     v = boost::any(Unit<dimension_t>(value, one));
 }

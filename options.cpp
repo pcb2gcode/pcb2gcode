@@ -27,8 +27,6 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/units/systems/si/length.hpp>
-#include "units.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -188,7 +186,6 @@ void options::parse_files()
         {
             cerr << "Error parsing configuration file \"" << file << "\": "
                  << e.what() << endl;
-            exit(ERR_INVALIDPARAMETER);
         }
 
         stream.close();
@@ -197,7 +194,6 @@ void options::parse_files()
     {
         cerr << "Error reading configuration file \"" << file << "\": "
              << e.what() << endl;
-        exit(ERR_INVALIDPARAMETER);
     }
 
     po::notify(instance().vm);
@@ -210,22 +206,21 @@ void options::parse_files()
 options::options()
          : cli_options("command line only options"), cfg_options("generic options (CLI and config files)") {
 
-  cli_options.add_options()
-      ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
-      ("help,?", "produce help message")
-      ("version", "show the current software version");
+   cli_options.add_options()(
+            "noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")(
+            "help,?", "produce help message")(
+            "version", "show the current software version");
             
-   cfg_options.add_options()
-       ("unit", po::value<Unit<boost::units::si::length>>(), "foo in units of length")
-       ("front", po::value<string>(),"front side RS274-X .gbr")
-       ("back", po::value<string>(), "back side RS274-X .gbr")
-       ("outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")
-       ("drill", po::value<string>(), "Excellon drill file")(
+   cfg_options.add_options()(
+            "front", po::value<string>(),"front side RS274-X .gbr")(
+            "back", po::value<string>(), "back side RS274-X .gbr")(
+            "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
+            "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
