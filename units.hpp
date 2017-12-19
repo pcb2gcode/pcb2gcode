@@ -28,7 +28,7 @@ class UnitBase {
 
 // dimension_t is "length" or "velocity", for example.
 template<typename dimension_t>
-class Unit : UnitBase<dimension_t> {};
+class Unit : public UnitBase<dimension_t> {};
 
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch = (boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
@@ -42,12 +42,9 @@ typedef Unit<boost::units::si::time> Time;
 typedef Unit<boost::units::si::velocity> Velocity;
 
 template<>
-class Unit<boost::units::si::length> : UnitBase<boost::units::si::length> {
+class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::length>> one) : UnitBase(value, one) {}
-  double asDouble() const {
-    return value;
-  }
   double asInch(double factor) const {
     if (!one) {
       // We don't know the units so just use whatever factor was supplied.
@@ -73,12 +70,9 @@ class Unit<boost::units::si::length> : UnitBase<boost::units::si::length> {
 };
 
 template<>
-class Unit<boost::units::si::time> : UnitBase<boost::units::si::time> {
+class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::time>> one) : UnitBase(value, one) {}
-  double asDouble() const {
-    return value;
-  }
   double asSecond(double factor) const {
     if (!one) {
       // We don't know the units so just use whatever factor was supplied.
@@ -105,12 +99,9 @@ class Unit<boost::units::si::time> : UnitBase<boost::units::si::time> {
 };
 
 template<>
-class Unit<boost::units::si::velocity> : UnitBase<boost::units::si::velocity> {
+class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : UnitBase(value, one) {}
-  double asDouble() const {
-    return value;
-  }
   double asInchPerMinute(double factor) const {
     if (!one) {
       // We don't know the units so just use whatever factor was supplied.
