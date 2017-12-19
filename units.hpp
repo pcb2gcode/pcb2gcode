@@ -36,19 +36,11 @@ class Unit {
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::velocity> Velocity;
 
+// worker class with no implementations because there is no default.
+template< typename dimension_t > struct get_units_worker;
 
-// worker class -- return a reference to the given value
-template< typename dimension_t > struct worker
-{
-  typedef dimension_t const & type;
-  static boost::units::quantity<type> get_unit(const std::string& s) {
-    throw boost::program_options::validation_error(
-                                                   boost::program_options::validation_error::invalid_option_value);
-  }
-};
-
-// worker class specialization -- convert 'unsigned char' to 'int'
-template<> struct worker<boost::units::si::length> {
+// worker class specialization -- get units of length
+template<> struct get_units_worker<boost::units::si::length> {
   typedef boost::units::si::length type;
   static boost::units::quantity<type> get_unit(const std::string& s) {
     if (s == "mm" ||
@@ -67,9 +59,10 @@ template<> struct worker<boost::units::si::length> {
   }
 };
 
-// mapper function
-template< typename dimension_t > typename boost::units::quantity<dimension_t> mapper( const std::string& s) {
-  return worker<dimension_t>::get_unit(s);
+// This calls the functions that actual do the work that are wrapped
+// in a struct so that we can template on the return type.
+template<typename dimension_t> typename boost::units::quantity<dimension_t> get_units(const std::string& s) {
+  return get_units_worker<dimension_t>::get_unit(s);
 }
 
 template<typename dimension_t>
@@ -93,7 +86,7 @@ void validate(boost::any& v,
     // TODO: How do I specify unitless?
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
-        boost::units::quantity<boost::units::si::length> foo = mapper<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+        boost::units::quantity<boost::units::si::length> foo = get_units<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
         one=foo;
     }
     v = boost::any(Unit<dimension_t>(value, one));
