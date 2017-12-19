@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
             isolator->tool_diameter = -1;
         else
             isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
-        isolator->zwork = vm["zwork"].as<double>() * unit;
+        isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<double>() * unit;
         isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-vertfeed"))

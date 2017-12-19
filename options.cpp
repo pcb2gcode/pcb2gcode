@@ -218,7 +218,7 @@ options::options()
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
-            "zwork", po::value<double>(),
+            "zwork", po::value<Length>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
@@ -450,6 +450,10 @@ static void check_generic_parameters(po::variables_map const& vm)
 static void check_milling_parameters(po::variables_map const& vm)
 {
 
+    double unit;      //factor for imperial/metric conversion
+
+    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
+
     if (vm.count("front") || vm.count("back"))
     {
 
@@ -458,7 +462,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             cerr << "Error: --zwork not specified.\n";
             exit(ERR_NOZWORK);
         }
-        else if (vm["zwork"].as<double>() > 0)
+        else if (vm["zwork"].as<Length>().asDouble() > 0)
         {
             cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
         }
@@ -499,7 +503,7 @@ static void check_milling_parameters(po::variables_map const& vm)
         }
 
         // required parameters present. check for validity.
-        if (vm["zsafe"].as<double>() <= vm["zwork"].as<double>())
+        if (vm["zsafe"].as<double>() <= vm["zwork"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the milling "
                  << "height --zwork. Are you sure this is correct?\n";

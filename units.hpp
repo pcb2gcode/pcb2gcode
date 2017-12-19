@@ -171,11 +171,18 @@ void validate(boost::any& v,
 
     // Figure out what unit it is.
     boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(.*?)\\s*"))) {
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*([-0-9.]+)\\s*(.*?)\\s*"))) {
       boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
-    double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
+    string value_string(m[1].first, m[1].second);
+    double value;
+    try {
+      value = boost::lexical_cast<double>(value_string);
+    } catch (std::exception& e) {
+      std::cerr << "Error parsing as number: " << value_string << std::endl;
+      throw;
+    }
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
       one = Unit<dimension_t>::get_unit(std::string(m[2].first, m[2].second).c_str());
