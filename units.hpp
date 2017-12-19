@@ -18,6 +18,14 @@ template <typename dimension_t>
 class UnitBase {
  public:
   UnitBase(double value, boost::optional<boost::units::quantity<dimension_t>> one) : value(value), one(one) {}
+  double as(double factor, boost::units::quantity<dimension_t> wanted_unit) const {
+    if (!one) {
+      // We don't know the units so just use whatever factor was supplied.
+      return value*factor;
+    }
+    return value*(*one)/wanted_unit;
+  }
+
   double asDouble() const {
     return value;
   }
@@ -46,11 +54,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::length>> one) : UnitBase(value, one) {}
   double asInch(double factor) const {
-    if (!one) {
-      // We don't know the units so just use whatever factor was supplied.
-      return value*factor;
-    }
-    return value*(*one)/inch;
+    return as(factor, inch);
   }
   static boost::units::quantity<boost::units::si::length> get_unit(const std::string& s) {
     if (s == "mm" ||
@@ -74,11 +78,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::time>> one) : UnitBase(value, one) {}
   double asSecond(double factor) const {
-    if (!one) {
-      // We don't know the units so just use whatever factor was supplied.
-      return value*factor;
-    }
-    return value*(*one)/boost::units::si::second;
+    return as(factor, 1.0*boost::units::si::second);
   }
   static boost::units::quantity<boost::units::si::time> get_unit(const std::string& s) {
     if (s == "s" ||
@@ -103,11 +103,7 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : UnitBase(value, one) {}
   double asInchPerMinute(double factor) const {
-    if (!one) {
-      // We don't know the units so just use whatever factor was supplied.
-      return value*factor;
-    }
-    return value*(*one)/(inch/minute);
+    return as(factor, inch/minute);
   }
   static boost::units::quantity<boost::units::si::velocity> get_unit(const std::string& s) {
     // It's either "length/time" or "length per time".
