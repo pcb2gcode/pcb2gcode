@@ -52,7 +52,7 @@ class Unit<boost::units::si::length> {
         s == "inches") {
       return inch;
     }
-    std::cerr << "Didn't recognize units: " << s << std::endl;
+    std::cerr << "Didn't recognize units of length: " << s << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
@@ -88,7 +88,7 @@ class Unit<boost::units::si::time> {
         s == "minutes") {
       return minute;
     }
-    std::cerr << "Didn't recognize units: " << s << std::endl;
+    std::cerr << "Didn't recognize units of time: " << s << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
@@ -115,12 +115,12 @@ class Unit<boost::units::si::velocity> {
   static boost::units::quantity<boost::units::si::velocity> get_unit(const std::string& s) {
     // It's either "length/time" or "length per time".
     boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*(\\S*)(?:/|\\s[pP][eE][rR]\\s)\\s*(\\S*)\\s*"))) {
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*(\\S*)\\s*(?:/|\\s[pP][eE][rR]\\s)\\s*(\\S*)\\s*"))) {
       boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
     const std::string numerator(m[1].first, m[1].second);
-    const std::string denominator(m[1].first, m[1].second);
+    const std::string denominator(m[2].first, m[2].second);
     return Length::get_unit(numerator)/Time::get_unit(denominator);
   }
 
@@ -142,7 +142,7 @@ void validate(boost::any& v,
 
     // Figure out what unit it is.
     boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(\\S*)\\s*"))) {
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(.*?)\\s*"))) {
       boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }

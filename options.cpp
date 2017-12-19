@@ -27,6 +27,7 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include "units.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -222,7 +223,7 @@ options::options()
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
-            "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
+            "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
@@ -505,7 +506,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             exit(ERR_ZSAFELOWERZWORK);
         }
 
-        if (vm["mill-feed"].as<double>() <= 0)
+        if (vm["mill-feed"].as<Velocity>().asDouble() <= 0)
         {
             cerr << "Error: Negative or equal to 0 milling feed (--mill-feed).\n";
             exit(ERR_NEGATIVEMILLFEED);
