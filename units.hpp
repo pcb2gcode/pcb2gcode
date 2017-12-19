@@ -15,6 +15,10 @@
 // dimension_t is "length" or "velocity", for example.
 template<typename dimension_t> class Unit;
 
+// Any non-SI base units that you want to use go here.
+const boost::units::quantity<boost::units::si::length> inch = (boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
+                                                                                               boost::units::si::meter) * boost::units::si::meter);
+
 template<>
 class Unit<boost::units::si::length> {
  public:
@@ -27,8 +31,7 @@ class Unit<boost::units::si::length> {
       // We don't know the units so just use whatever factor was supplied.
       return value*factor;
     }
-    return value*(*one)/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                                         boost::units::si::meter) * boost::units::si::meter);
+    return value*(*one)/inch;
   }
   static boost::units::quantity<boost::units::si::length> get_unit(const std::string& s) {
     if (s == "mm" ||
@@ -38,8 +41,7 @@ class Unit<boost::units::si::length> {
     }
     if (s == "inch" ||
         s == "inches") {
-      return boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                             boost::units::si::meter) * boost::units::si::meter;
+      return inch;
     }
     std::cerr << "Don't recognize units: " << s << std::endl;
     throw boost::program_options::validation_error(
@@ -51,14 +53,9 @@ class Unit<boost::units::si::length> {
   boost::optional<boost::units::quantity<boost::units::si::length>> one;
 };
 
+// shortcuts for Units defined above.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::velocity> Velocity;
-
-// This calls the functions that actual do the work that are wrapped
-// in a struct so that we can template on the return type.
-template<typename dimension_t> typename boost::units::quantity<dimension_t> get_unit(const std::string& s) {
-  return Unit<dimension_t>::get_unit(s);
-}
 
 template<typename dimension_t>
 void validate(boost::any& v,
