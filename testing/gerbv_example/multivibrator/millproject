@@ -3,7 +3,7 @@ drill=multivibrator.drl
 outline=multivibrator-Edge.Cuts.gbr
 
 vectorial=true
-mill-feed=9144mm per min
+mill-feed=360 in/min
 mill-speed=12000
 voronoi=true
 zwork=-0.04

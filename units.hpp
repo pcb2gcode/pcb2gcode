@@ -48,7 +48,8 @@ class Unit<boost::units::si::length> {
         s == "millimeters") {
       return boost::units::si::meter/1000.0;
     }
-    if (s == "inch" ||
+    if (s == "in" ||
+        s == "inch" ||
         s == "inches") {
       return inch;
     }
