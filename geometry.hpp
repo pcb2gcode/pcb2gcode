@@ -53,6 +53,7 @@ typedef boost::geometry::model::multi_point<point_type> multi_point_type;
 typedef boost::geometry::model::segment<point_type> segment_type;
 typedef std::vector<segment_type> multi_segment_type;
 typedef boost::geometry::model::ring<point_type> ring_type;
+typedef std::vector<ring_type> multi_ring_type;
 typedef boost::geometry::model::box<point_type> box_type;
 typedef boost::geometry::model::linestring<point_type> linestring_type;
 typedef boost::geometry::model::multi_linestring<linestring_type> multi_linestring_type;

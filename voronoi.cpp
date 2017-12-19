@@ -26,6 +26,37 @@
 using std::list;
 using std::map;
 
+multi_ring_fp Voronoi::get_voronoi_rings(
+    const multi_polygon_type& input,
+    const box_type& mask_bounding_box, coordinate_type max_dist) {
+    // Bounding_box is a box that is big enough to hold all milling.
+    box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
+    // Expand that bounding box by the provided bounding_box.
+    bg::expand(bounding_box, mask_bounding_box);
+
+    // For each input polygon, add all the segments of all the rings.
+    vector<size_t> segments_count;
+    segments_count.push_back(0);
+    for (const polygon_type& polygon : input) {
+        // How many segments in this outer ring?
+        size_t current_segments = polygon.outer().size() - 1;
+        for (const ring_type& ring : polygon.inners()) {
+            current_segments += ring.size() - 1;
+        }
+        segments_count.push_back(segments_count.back() + current_segments);
+    }
+
+    vector<segment_type_p> segments;
+    segments.reserve(segments_count.back());
+    for (const polygon_type& polygon : input) {
+        copy_ring(polygon.outer(), segments);
+        for (const ring_type& ring : polygon.inners()) {
+            copy_ring(ring, segments);
+        }
+    }
+}
+    
+
 multi_linestring_type_fp Voronoi::get_voronoi_edges(
     const multi_polygon_type& input,
     const box_type& mask_bounding_box, coordinate_type max_dist) {
