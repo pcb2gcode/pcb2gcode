@@ -12,7 +12,7 @@
 #include <boost/units/systems/si/velocity.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
-// dimension_t is "length" or "speed", for example.
+// dimension_t is "length" or "velocity", for example.
 template<typename dimension_t>
 class Unit {
  public:
@@ -28,21 +28,7 @@ class Unit {
     return value*(*one)/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
                                                       boost::units::si::meter) * boost::units::si::meter);
   }
- private:
-  double value;
-  boost::optional<boost::units::quantity<dimension_t>> one;
-};
-
-typedef Unit<boost::units::si::length> Length;
-typedef Unit<boost::units::si::velocity> Velocity;
-
-// worker class with no implementations because there is no default.
-template< typename dimension_t > struct get_units_worker;
-
-// worker class specialization -- get units of length
-template<> struct get_units_worker<boost::units::si::length> {
-  typedef boost::units::si::length type;
-  static boost::units::quantity<type> get_unit(const std::string& s) {
+  static boost::units::quantity<dimension_t> get_unit(const std::string& s) {
     if (s == "mm" ||
         s == "millimeter" ||
         s == "millimeters") {
@@ -55,14 +41,21 @@ template<> struct get_units_worker<boost::units::si::length> {
     }
     std::cerr << "Don't recognize units: " << s << std::endl;
     throw boost::program_options::validation_error(
-                                                   boost::program_options::validation_error::invalid_option_value);
+        boost::program_options::validation_error::invalid_option_value);
   }
+
+ private:
+  double value;
+  boost::optional<boost::units::quantity<dimension_t>> one;
 };
+
+typedef Unit<boost::units::si::length> Length;
+typedef Unit<boost::units::si::velocity> Velocity;
 
 // This calls the functions that actual do the work that are wrapped
 // in a struct so that we can template on the return type.
-template<typename dimension_t> typename boost::units::quantity<dimension_t> get_units(const std::string& s) {
-  return get_units_worker<dimension_t>::get_unit(s);
+template<typename dimension_t> typename boost::units::quantity<dimension_t> get_unit(const std::string& s) {
+  return Unit<dimension_t>::get_unit(s);
 }
 
 template<typename dimension_t>
@@ -79,15 +72,14 @@ void validate(boost::any& v,
     // Figure out what unit it is.
     boost::match_results<const char*> m;
     if (!regex_match(s.c_str(), m, boost::regex("\\s*([0-9.]+)\\s*(\\S*)\\s*"))) {
-      throw std::logic_error("foo");//boost::program_options::validation_error(
-      //boost::program_options::validation_error::invalid_option_value);
+      boost::program_options::validation_error(
+          boost::program_options::validation_error::invalid_option_value);
     }
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
     // TODO: How do I specify unitless?
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
-        boost::units::quantity<boost::units::si::length> foo = get_units<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
-        one=foo;
+      one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
     }
     v = boost::any(Unit<dimension_t>(value, one));
 }
