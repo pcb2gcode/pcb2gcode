@@ -14,8 +14,21 @@
 #include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
+template <typename dimension_t>
+class UnitBase {
+ public:
+  UnitBase(double value, boost::optional<boost::units::quantity<dimension_t>> one) : value(value), one(one) {}
+  double asDouble() const {
+    return value;
+  }
+ protected:
+  double value;
+  boost::optional<boost::units::quantity<dimension_t>> one;
+};
+
 // dimension_t is "length" or "velocity", for example.
-template<typename dimension_t> class Unit;
+template<typename dimension_t>
+class Unit : UnitBase<dimension_t> {};
 
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch = (boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
@@ -29,9 +42,9 @@ typedef Unit<boost::units::si::time> Time;
 typedef Unit<boost::units::si::velocity> Velocity;
 
 template<>
-class Unit<boost::units::si::length> {
+class Unit<boost::units::si::length> : UnitBase<boost::units::si::length> {
  public:
-  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::length>> one) : value(value), one(one) {}
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::length>> one) : UnitBase(value, one) {}
   double asDouble() const {
     return value;
   }
@@ -57,16 +70,12 @@ class Unit<boost::units::si::length> {
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
-
- private:
-  double value;
-  boost::optional<boost::units::quantity<boost::units::si::length>> one;
 };
 
 template<>
-class Unit<boost::units::si::time> {
+class Unit<boost::units::si::time> : UnitBase<boost::units::si::time> {
  public:
-  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::time>> one) : value(value), one(one) {}
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::time>> one) : UnitBase(value, one) {}
   double asDouble() const {
     return value;
   }
@@ -93,16 +102,12 @@ class Unit<boost::units::si::time> {
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
-
- private:
-  double value;
-  boost::optional<boost::units::quantity<boost::units::si::time>> one;
 };
 
 template<>
-class Unit<boost::units::si::velocity> {
+class Unit<boost::units::si::velocity> : UnitBase<boost::units::si::velocity> {
  public:
-  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : value(value), one(one) {}
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : UnitBase(value, one) {}
   double asDouble() const {
     return value;
   }
@@ -124,10 +129,6 @@ class Unit<boost::units::si::velocity> {
     const std::string denominator(m[2].first, m[2].second);
     return Length::get_unit(numerator)/Time::get_unit(denominator);
   }
-
- private:
-  double value;
-  boost::optional<boost::units::quantity<boost::units::si::velocity>> one;
 };
 
 template<typename dimension_t>
