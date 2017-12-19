@@ -9,6 +9,7 @@
 #include <boost/units/quantity.hpp>
 #include <boost/optional.hpp>
 #include <boost/units/systems/si/length.hpp>
+#include <boost/units/systems/si/time.hpp>
 #include <boost/units/systems/si/velocity.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
@@ -53,8 +54,39 @@ class Unit<boost::units::si::length> {
   boost::optional<boost::units::quantity<boost::units::si::length>> one;
 };
 
+template<>
+class Unit<boost::units::si::time> {
+ public:
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::time>> one) : value(value), one(one) {}
+  double asDouble() const {
+    return value;
+  }
+  double asSecond(double factor) const {
+    if (!one) {
+      // We don't know the units so just use whatever factor was supplied.
+      return value*factor;
+    }
+    return value*(*one)/boost::units::si::second;
+  }
+  static boost::units::quantity<boost::units::si::time> get_unit(const std::string& s) {
+    if (s == "s" ||
+        s == "second" ||
+        s == "seconds") {
+      return 1.0*boost::units::si::second;
+    }
+    std::cerr << "Don't recognize units: " << s << std::endl;
+    throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value);
+  }
+
+ private:
+  double value;
+  boost::optional<boost::units::quantity<boost::units::si::time>> one;
+};
+
 // shortcuts for Units defined above.
 typedef Unit<boost::units::si::length> Length;
+typedef Unit<boost::units::si::time> Time;
 typedef Unit<boost::units::si::velocity> Velocity;
 
 template<typename dimension_t>
