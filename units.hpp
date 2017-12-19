@@ -13,10 +13,12 @@
 #include <boost/units/base_units/imperial/inch.hpp>
 
 // dimension_t is "length" or "velocity", for example.
-template<typename dimension_t>
-class Unit {
+template<typename dimension_t> class Unit;
+
+template<>
+class Unit<boost::units::si::length> {
  public:
-  Unit(double value, boost::optional<boost::units::quantity<dimension_t>> one) : value(value), one(one) {}
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::length>> one) : value(value), one(one) {}
   double asDouble() const {
     return value;
   }
@@ -26,9 +28,9 @@ class Unit {
       return value*factor;
     }
     return value*(*one)/(boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                                      boost::units::si::meter) * boost::units::si::meter);
+                                                         boost::units::si::meter) * boost::units::si::meter);
   }
-  static boost::units::quantity<dimension_t> get_unit(const std::string& s) {
+  static boost::units::quantity<boost::units::si::length> get_unit(const std::string& s) {
     if (s == "mm" ||
         s == "millimeter" ||
         s == "millimeters") {
@@ -46,7 +48,7 @@ class Unit {
 
  private:
   double value;
-  boost::optional<boost::units::quantity<dimension_t>> one;
+  boost::optional<boost::units::quantity<boost::units::si::length>> one;
 };
 
 typedef Unit<boost::units::si::length> Length;
@@ -76,10 +78,9 @@ void validate(boost::any& v,
           boost::program_options::validation_error::invalid_option_value);
     }
     double value = boost::lexical_cast<double>(std::string(m[1].first, m[1].second));
-    // TODO: How do I specify unitless?
     boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
     if (m[2].length() > 0) {
-      one = get_unit<boost::units::si::length>(std::string(m[2].first, m[2].second).c_str());
+      one = Unit<boost::units::si::length>::get_unit(std::string(m[2].first, m[2].second).c_str());
     }
     v = boost::any(Unit<dimension_t>(value, one));
 }
