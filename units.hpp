@@ -8,9 +8,7 @@
 #include <boost/regex.hpp>
 #include <boost/units/quantity.hpp>
 #include <boost/optional.hpp>
-#include <boost/units/systems/si/length.hpp>
-#include <boost/units/systems/si/time.hpp>
-#include <boost/units/systems/si/velocity.hpp>
+#include <boost/units/systems/si.hpp>
 #include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
@@ -47,7 +45,9 @@ const boost::units::quantity<boost::units::si::time> minute = (boost::units::con
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::time> Time;
+typedef Unit<boost::units::si::dimensionless> Dimensionless;
 typedef Unit<boost::units::si::velocity> Velocity;
+typedef Unit<boost::units::si::frequency> Frequency;
 
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
@@ -99,6 +99,26 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
 };
 
 template<>
+class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
+ public:
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::dimensionless>> one) : UnitBase(value, one) {}
+  double asSecond(double factor) const {
+    return as(factor, 1.0*boost::units::si::si_dimensionless);
+  }
+  static boost::units::quantity<boost::units::si::dimensionless> get_unit(const std::string& s) {
+    if (s == "rotation" ||
+        s == "rotations" ||
+        s == "cycle" ||
+        s == "cycles") {
+      return 1.0*boost::units::si::si_dimensionless;
+    }
+    std::cerr << "Didn't recognize units of time: " << s << std::endl;
+    throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value);
+  }
+};
+
+template<>
 class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : UnitBase(value, one) {}
@@ -115,6 +135,26 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
     const std::string numerator(m[1].first, m[1].second);
     const std::string denominator(m[2].first, m[2].second);
     return Length::get_unit(numerator)/Time::get_unit(denominator);
+  }
+};
+
+template<>
+class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
+ public:
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::frequency>> one) : UnitBase(value, one) {}
+  double asPerMinute(double factor) const {
+    return as(factor, 1.0/minute);
+  }
+  static boost::units::quantity<boost::units::si::frequency> get_unit(const std::string& s) {
+    // It's either "dimensionless/time" or "dimensionless per time".
+    boost::match_results<const char*> m;
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*(\\S*)\\s*(?:/|\\s[pP][eE][rR]\\s)\\s*(\\S*)\\s*"))) {
+      boost::program_options::validation_error(
+          boost::program_options::validation_error::invalid_option_value);
+    }
+    const std::string numerator(m[1].first, m[1].second);
+    const std::string denominator(m[2].first, m[2].second);
+    return Dimensionless::get_unit(numerator)/Time::get_unit(denominator);
   }
 };
 
