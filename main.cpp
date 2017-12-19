@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
             isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
         else
             isolator->vertfeed = isolator->feed / 2;
-        isolator->speed = vm["mill-speed"].as<int>();
+        isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();

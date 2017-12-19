@@ -225,7 +225,7 @@ options::options()
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
-            "mill-speed", po::value<int>(), "spindle rpm when milling")(
+            "mill-speed", po::value<Frequency>(), "spindle rpm when milling")(
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
             "milldrill-diameter", po::value<double>(), "diameter of the end mill used for drilling with --milldrill")(
             "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
@@ -518,7 +518,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEMILLVERTFEED);
         }
 
-        if (vm["mill-speed"].as<int>() < 0)
+        if (vm["mill-speed"].as<Frequency>().asDouble() < 0)
         {
             cerr << "Error: --mill-speed < 0.\n";
             exit(ERR_NEGATIVEMILLSPEED);
