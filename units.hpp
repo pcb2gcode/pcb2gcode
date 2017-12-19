@@ -11,6 +11,7 @@
 #include <boost/units/systems/si/length.hpp>
 #include <boost/units/systems/si/time.hpp>
 #include <boost/units/systems/si/velocity.hpp>
+#include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
 // dimension_t is "length" or "velocity", for example.
@@ -19,6 +20,13 @@ template<typename dimension_t> class Unit;
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch = (boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
                                                                                                boost::units::si::meter) * boost::units::si::meter);
+const boost::units::quantity<boost::units::si::time> minute = (boost::units::conversion_factor(boost::units::metric::minute_base_unit::unit_type(),
+                                                                                               boost::units::si::second) * boost::units::si::second);
+
+// shortcuts for Units defined below.
+typedef Unit<boost::units::si::length> Length;
+typedef Unit<boost::units::si::time> Time;
+typedef Unit<boost::units::si::velocity> Velocity;
 
 template<>
 class Unit<boost::units::si::length> {
@@ -44,7 +52,7 @@ class Unit<boost::units::si::length> {
         s == "inches") {
       return inch;
     }
-    std::cerr << "Don't recognize units: " << s << std::endl;
+    std::cerr << "Didn't recognize units: " << s << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
@@ -74,7 +82,13 @@ class Unit<boost::units::si::time> {
         s == "seconds") {
       return 1.0*boost::units::si::second;
     }
-    std::cerr << "Don't recognize units: " << s << std::endl;
+    if (s == "min" ||
+        s == "mins" ||
+        s == "minute" ||
+        s == "minutes") {
+      return minute;
+    }
+    std::cerr << "Didn't recognize units: " << s << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
@@ -84,10 +98,36 @@ class Unit<boost::units::si::time> {
   boost::optional<boost::units::quantity<boost::units::si::time>> one;
 };
 
-// shortcuts for Units defined above.
-typedef Unit<boost::units::si::length> Length;
-typedef Unit<boost::units::si::time> Time;
-typedef Unit<boost::units::si::velocity> Velocity;
+template<>
+class Unit<boost::units::si::velocity> {
+ public:
+  Unit(double value, boost::optional<boost::units::quantity<boost::units::si::velocity>> one) : value(value), one(one) {}
+  double asDouble() const {
+    return value;
+  }
+  double asInchPerMinute(double factor) const {
+    if (!one) {
+      // We don't know the units so just use whatever factor was supplied.
+      return value*factor;
+    }
+    return value*(*one)/(inch/minute);
+  }
+  static boost::units::quantity<boost::units::si::velocity> get_unit(const std::string& s) {
+    // It's either "length/time" or "length per time".
+    boost::match_results<const char*> m;
+    if (!regex_match(s.c_str(), m, boost::regex("\\s*(\\S*)(?:/|\\s[pP][eE][rR]\\s)\\s*(\\S*)\\s*"))) {
+      boost::program_options::validation_error(
+          boost::program_options::validation_error::invalid_option_value);
+    }
+    const std::string numerator(m[1].first, m[1].second);
+    const std::string denominator(m[1].first, m[1].second);
+    return Length::get_unit(numerator)/Time::get_unit(denominator);
+  }
+
+ private:
+  double value;
+  boost::optional<boost::units::quantity<boost::units::si::velocity>> one;
+};
 
 template<typename dimension_t>
 void validate(boost::any& v,
