@@ -88,6 +88,14 @@ public:
     static multi_linestring_type_fp get_voronoi_edges(
         const multi_polygon_type& input,
         const box_type& bounding_box, coordinate_type max_dist);
+    /* The returned rings are loops around the input polygons that
+     * follow the voronoi diagram.  The loops might extend outside the
+     * bounding_box provided.  The loops don't overlap and will
+     * together cover at least the entire bounding_box.
+     */
+    static multi_ring_type_fp get_voronoi_rings(
+        const multi_polygon_type& input,
+        const box_type& bounding_box, coordinate_type max_dist);
 
 protected:
     static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);

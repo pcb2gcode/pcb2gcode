@@ -152,6 +152,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         multi_linestring_type_fp voronoi_edges =
             Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
+        multi_ring_type_fp voronoi_rings =
+            Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
+        for (const auto& ring : voronoi_rings) {
+            for (size_t i = 1; i < ring.size(); i++) {
+                printf("%f  %f  %f  %f\n", ring[i-1].x(), ring[i-1].y(), ring[i].x(), ring[i].y());
+            }
+        }
         //Add the voronoi edges to all_segments
         add_as_segments(voronoi_edges, &all_segments);
 
