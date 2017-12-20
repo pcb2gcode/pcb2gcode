@@ -149,20 +149,31 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
 
+    for (unsigned int i = 0; i < (*vectorial_surface).size(); i++) {
+        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
+    }
+    const auto pass_offsets = get_pass_offsets(grow, extra_passes + 1, voronoi);
     if (voronoi) {
         // Voronoi means that we mill the voronoi cell and possibly
         // have offset milling going inward toward the net.
-
-        // Compute the offsets for each path and add toolpaths to the
-        // output.
-        for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
-            for (size_t i = 0; i < voronoi_cells.size(); i++) {
+        for (size_t i = 0; i < voronoi_cells.size(); i++) {
+            for (auto pass_offset : pass_offsets) {
                 const auto buffered_poly = buffer(voronoi_cells[i], pass_offset);
                 copy_mp_to_toolpath(buffered_poly, i);
             }
+            // The last pass_offset will be the most contentious
+            // because it's the biggest area.  Check if it was trying
+            // to overlap any input traces.
+            const auto& max_milling = buffer(voronoi_cells[i], pass_offsets.back() + grow);
+            multi_polygon_type contentions_poly;
+            bg::difference((*vectorial_surface)[i], max_milling, contentions_poly);
+            if (bg::area(contentions_poly) > 0) {
+                contentions = true;
+                debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+            }
         }
     } else { // Not voronoi.
-        for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
+        for (auto pass_offset : pass_offsets) {
             for (size_t i = 0; i < vectorial_surface->size(); i++) {
                 const auto& poly = (*vectorial_surface)[i];
                 const auto buffered_poly = buffer(poly, pass_offset);
@@ -171,10 +182,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     }
 
-    for (unsigned int i = 0; i < (*vectorial_surface).size(); i++) {
-        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
-    }
+    
 
+    
+    
     if (contentions) {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
              << " clearance requirements."
@@ -384,6 +395,13 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
 }
 
 template <typename multi_geo_t>
+void svg_writer::add(const multi_geo_t& geos, double opacity, unsigned int r, unsigned int g, unsigned int b) {
+    for (const auto& geo : geos) {
+        add(geo, opacity, r, g, b);
+    }
+}
+
+template <typename multi_geo_t>
 void svg_writer::add(const multi_geo_t& geos, double opacity, double which_color) {
     for (const auto& geo : geos) {
         add(geo, opacity, which_color);
@@ -417,13 +435,20 @@ void svg_writer::add(const polygon_type& poly, double opacity, double which_colo
                     opacity % r % g % b));
 }
 
+void svg_writer::add(const polygon_type& poly, double opacity, unsigned int r, unsigned int g, unsigned int b)
+{
+    mapper->map(poly,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
+                    opacity % r % g % b));
+}
+
 // From https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
 void svg_writer::get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue) {
     srand((int) (which_color*INT_MAX));
 
     double hh = rand() % 360;
-    double s = 0.75;
-    double v = 0.75;
+    double s = 0.6;
+    double v = 0.6;
 
     hh /= 60;
     int i = (int)hh;

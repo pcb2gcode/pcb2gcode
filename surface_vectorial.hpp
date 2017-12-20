@@ -123,8 +123,11 @@ public:
     svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
     template <typename multi_geo_t>
     void add(const multi_geo_t& geometry, double opacity, double which_color);
+    template <typename multi_geo_t>
+    void add(const multi_geo_t& geometry, double opacity, unsigned int r, unsigned int g, unsigned int b);
     void add(const linestring_type& geometry, double opacity, double which_color);
     void add(const polygon_type& poly, double opacity, double which_color);
+    void add(const polygon_type& poly, double opacity, unsigned int r, unsigned int g, unsigned int b);
     // Returns the visually unique color indexed by which_color.
     void get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue);
 
