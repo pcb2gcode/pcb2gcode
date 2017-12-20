@@ -111,7 +111,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     bool contentions = false;
 
-    vector<shared_ptr<icoords>> toolpath;
+    multi_linestring_type toolpath;
     const auto& keep_in = voronoi_cells;
     vector<multi_polygon_type> keep_out;
     for (const auto& input : *vectorial_surface) {
@@ -133,19 +133,19 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         multi_linestring_type mls;
         multi_poly_to_multi_linestring(clipped2, &mls);
         for (const auto& ls : mls) {
-            toolpath.push_back(make_shared<icoords>());
+            linestring_type new_ls;
             for (const auto& point : ls) {
                 if (mirror) {
                     const coordinate_type mirror_axis = mill->mirror_absolute ?
                         bounding_box.min_corner().x() :
                         ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-                    toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                                         point.y() / double(scale)));
+                    new_ls.push_back(point_type(2 * mirror_axis - point.x(),
+                                                point.y()));
                 } else {
-                    toolpath.back()->push_back(make_pair(point.x() / double(scale),
-                                                         point.y() / double(scale)));
+                    new_ls.push_back(point);
                 }
             }
+            toolpath.push_back(new_ls);
         }
     };
 
@@ -207,7 +207,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (mill->eulerian_paths) {
         toolpath = eulerian_paths(toolpath);
     }
-
+/*
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
     if (mill->optimise)
@@ -222,7 +222,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         return toolpath_optimised;
     }
     else
-        return toolpath;
+    return toolpath;*/
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -301,15 +301,15 @@ multi_polygon_type Surface_vectorial::get_mask() {
     return current_mask;
 }
 
-vector<shared_ptr<icoords>> Surface_vectorial::eulerian_paths(const vector<shared_ptr<icoords>>& toolpaths) {
+multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
     // First we need to split all paths so that they don't cross.
     vector<segment_type_p> all_segments;
     for (const auto& toolpath : toolpaths) {
-        for (size_t i = 1; i < toolpath->size(); i++) {
+        for (size_t i = 1; i < toolpath.size(); i++) {
             all_segments.push_back(
                 segment_type_p(
-                    point_type_p((*toolpath)[i-1].first*double(scale), (*toolpath)[i-1].second*double(scale)),
-                    point_type_p((*toolpath)[i  ].first*double(scale), (*toolpath)[i  ].second*double(scale))));
+                    point_type_p(toolpath[i-1].x(), toolpath[i-1].y()),
+                    point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
     }
     vector<segment_type_p> split_segments = segmentize(all_segments);
@@ -331,20 +331,10 @@ vector<shared_ptr<icoords>> Surface_vectorial::eulerian_paths(const vector<share
       }
     };
 
-    const auto& paths = get_eulerian_paths<point_type,
-                                           linestring_type,
-                                           multi_linestring_type,
-                                           PointLessThan>(segments_as_linestrings);
-
-    vector<shared_ptr<icoords>> new_paths;
-    for (const auto& path : paths) {
-        shared_ptr<icoords> new_path = make_shared<icoords>();
-        for (const auto& point : path) {
-            new_path->push_back(icoordpair(point.x()/double(scale), point.y()/double(scale)));
-        }
-        new_paths.push_back(new_path);
-    }
-    return new_paths;
+    return get_eulerian_paths<point_type,
+                              linestring_type,
+                              multi_linestring_type,
+                              PointLessThan>(segments_as_linestrings);
 }
 
 vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
