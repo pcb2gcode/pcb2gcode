@@ -95,8 +95,11 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
         }
         const edge_type *start_edge = current_edge;
         do {
-            output[segment_index1].push_back(point_type_fp(current_edge->vertex0()->x(),
-                                                           current_edge->vertex0()->y()));
+            linestring_type_fp discrete_edge = edge_to_linestring(*current_edge, segments, bounding_box, max_dist);
+            // Don't push the last one because it's a repeat.
+            for (size_t i = 0; i < discrete_edge.size()-1; i++) {
+                output[segment_index1].push_back(discrete_edge[i]);
+            }
             current_edge = current_edge->next();
             size_t new_segment_index0 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->cell()->source_index()));
             size_t new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
@@ -108,8 +111,7 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
                 new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
             }
         } while (current_edge != start_edge);
-        output[segment_index1].push_back(point_type_fp(current_edge->vertex0()->x(),
-                                                       current_edge->vertex0()->y()));
+        output[segment_index1].push_back(output[segment_index1].front());
     }
     return output;
 }
