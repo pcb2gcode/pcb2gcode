@@ -297,47 +297,33 @@ multi_polygon_type Surface_vectorial::get_mask() {
     return current_mask;
 }
 
-void Surface_vectorial::add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> *segments) {
-    for (const auto& mask_poly : mp) {
-        for (size_t i = 1; i < mask_poly.outer().size(); i++) {
-            segments->push_back(segment_type_p(point_type_p(mask_poly.outer()[i-1].x(), mask_poly.outer()[i-1].y()),
-                                               point_type_p(mask_poly.outer()[i  ].x(), mask_poly.outer()[i  ].y())));
+vector<shared_ptr<icoords>> Surface_vectorial::eulerian_paths(const vector<shared_ptr<icoords>>& toolpaths) {
+    vector<icoords> segments;
+    for (const auto& toolpath : toolpaths) {
+        for (size_t i = 1; i < toolpath->size(); i++) {
+            segments.push_back(
+                icoords{
+                    icoordpair{(*toolpath)[i-1].first, (*toolpath)[i-1].second},
+                    icoordpair{(*toolpath)[i  ].first, (*toolpath)[i  ].second}});
         }
-        add_as_segments(mask_poly.inners(), segments);
     }
-}
 
-template <typename multi_linestring_t>
-void Surface_vectorial::add_as_segments(const multi_linestring_t& mls, vector<segment_type_p> *segments) {
-    for (const auto& ls : mls) {
-        for (size_t i = 1; i < ls.size(); i++) {
-            segments->push_back(segment_type_p(point_type_p(ls[i-1].x(), ls[i-1].y()),
-                                               point_type_p(ls[i  ].x(), ls[i  ].y())));
-        }
-    }
-}
-
-multi_linestring_type Surface_vectorial::eulerian_paths(const vector<segment_type_p>& segments,
-                                                        const multi_polygon_type& mask) {
-    multi_linestring_type segments_as_linestrings;
-    for (const auto& segment : segments) {
-        // Make a little 1-edge linestrings, filter out those that
-        // aren't in the mask.
-        linestring_type ls{
-            point_type(segment.low().x(), segment.low().y()),
-                point_type(segment.high().x(), segment.high().y())};
-        if (bg::covered_by(ls, mask)) {
-            segments_as_linestrings.push_back(ls);
-        }
-    }
     // make a minimal number of paths
     struct PointLessThan {
-      bool operator()(const point_type& a, const point_type& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      bool operator()(const icoordpair& a, const icoordpair& b) const {
+          return std::tie(a.first, a.second) < std::tie(b.first, b.second);
       }
     };
 
-    return get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(segments_as_linestrings);
+    const auto& paths = get_eulerian_paths<icoordpair,
+                                           icoords,
+                                           vector<icoords>,
+                                           PointLessThan>(segments);
+    vector<shared_ptr<icoords>> new_paths;
+    for (const icoords& path : paths) {
+        new_paths.push_back(make_shared<icoords>(path));
+    }
+    return new_paths;
 }
 
 vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {

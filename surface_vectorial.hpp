@@ -107,8 +107,7 @@ private:
     // Convert all the segments into multiple contiguous paths that
     // together use each segment exactly once.  All segments that are
     // outside the mask are not used.
-    multi_linestring_type eulerian_paths(const vector<segment_type_p>& segments,
-                                         const multi_polygon_type& mask);
+    vector<shared_ptr<icoords>> eulerian_paths(const vector<shared_ptr<icoords>>& toolpaths);
     // Grow the input linestring by the specified amount and return
     // the result as a list of coordinates around the path.
     vector<coordinate_type> get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi);
