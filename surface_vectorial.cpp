@@ -417,29 +417,28 @@ void svg_writer::add(const polygon_type& poly, double opacity, double which_colo
                     opacity % r % g % b));
 }
 
+// From https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
 void svg_writer::get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue) {
     srand((int) (which_color*INT_MAX));
 
-    double hue = rand() % 360;
-    if (hue < 0) {
-        hue = 0;
-    } else if (hue > 360) {
-        hue = 360;
-    }
-    if (hue == 360) hue = 0;
-    hue /= 60;
-    int i = (int)hue;
-    double f = hue - i;
-    double q = 1 - f;
-    double t = f;
+    double hh = rand() % 360;
+    double s = 0.75;
+    double v = 0.75;
+
+    hh /= 60;
+    int i = (int)hh;
+    double ff = hh - i;
+    double p = v * (1.0 - s);
+    double q = v * (1.0 - (s * ff));
+    double t = v * (1.0 - (s * (1.0 -ff)));
     double r, g, b;
     switch(i) {
-    case 0: r = 1; g = t; b = 0; break;
-    case 1: r = q; g = 1; b = 0; break;
-    case 2: r = 0; g = 1; b = t; break;
-    case 3: r = 0; g = q; b = 1; break;
-    case 4: r = t; g = 0; b = 1; break;
-    case 5: default: r = 1; g = 0; b = q; break;
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    case 5: default: r = v; g = p; b = q; break;
     }
     *red = (unsigned int)(r * 255 + 0.5);
     *green = (unsigned int)(g * 255 + 0.5);
