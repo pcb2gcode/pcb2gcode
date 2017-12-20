@@ -87,20 +87,20 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
         if (segment_index0 == segment_index1) {
             continue; // This is not between different polygons.
         }
-        if (segment_index0 >= output.size()) {
+        if (segment_index1 >= output.size()) {
             continue; // This is the bounding box, ignore it.
         }
-        if (output[segment_index0].size() > 0) {
+        if (output[segment_index1].size() > 0) {
             continue; // Already did this loop.
         }
         const edge_type *start_edge = current_edge;
         do {
-            output[segment_index0].push_back(point_type_fp(current_edge->vertex0()->x(),
+            output[segment_index1].push_back(point_type_fp(current_edge->vertex0()->x(),
                                                            current_edge->vertex0()->y()));
             current_edge = current_edge->next();
             size_t new_segment_index0 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->cell()->source_index()));
             size_t new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
-            while (segment_index0 != new_segment_index0 ||
+            while (segment_index1 != new_segment_index1 ||
                    new_segment_index0 == new_segment_index1 ||
                    !current_edge->is_primary()) {
                 current_edge = current_edge->rot_next();
@@ -108,7 +108,7 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
                 new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
             }
         } while (current_edge != start_edge);
-        output[segment_index0].push_back(point_type_fp(current_edge->vertex0()->x(),
+        output[segment_index1].push_back(point_type_fp(current_edge->vertex0()->x(),
                                                        current_edge->vertex0()->y()));
     }
     return output;
@@ -159,43 +159,48 @@ multi_linestring_type_fp Voronoi::get_voronoi_edges(
         if (segment_index0 < segment_index1 && // Only use one side of the half-edges.
             edge.is_primary()) { // Only actual voronoi edges.
             // We want to use this edge.
-            linestring_type_fp new_voronoi_edge{};
-            if (edge.is_finite()) {
-                if (edge.is_linear()) {
-                    new_voronoi_edge.push_back(point_type_fp(edge.vertex0()->x(),
-                                                             edge.vertex0()->y()));
-                    new_voronoi_edge.push_back(point_type_fp(edge.vertex1()->x(),
-                                                             edge.vertex1()->y()));
-                } else {
-                    // It's a curve, it needs sampling.
-                    vector<point_type_fp_p> sampled_edge;
-                    sample_curved_edge(&edge, segments, sampled_edge, max_dist);
-                    for (const auto& point : sampled_edge) {
-                        new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
-                    }
-                }
-            } else {
-                // Infinite edge, only make it if it is inside the bounding_box.
-                if ((edge.vertex0() == NULL ||
-                     bg::covered_by(point_type(edge.vertex0()->x(), edge.vertex0()->y()),
-                                    bounding_box)) &&
-                    (edge.vertex1() == NULL ||
-                     bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
-                                    bounding_box))) {
-                    vector<point_type_fp_p> clipped_edge;
-                    clip_infinite_edge(
-                        edge, segments, &clipped_edge, bounding_box);
-                    for (const auto& point : clipped_edge) {
-                        new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
-                    }
-                }
-            }
+            linestring_type_fp new_voronoi_edge = edge_to_linestring(edge, segments, bounding_box, max_dist);
             if (new_voronoi_edge.size() > 0) {
-              output.push_back(new_voronoi_edge);
+                output.push_back(new_voronoi_edge);
             }
         }
     }
     return output;
+}
+
+linestring_type_fp Voronoi::edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist) {
+    linestring_type_fp new_voronoi_edge;
+    if (edge.is_finite()) {
+        if (edge.is_linear()) {
+            new_voronoi_edge.push_back(point_type_fp(edge.vertex0()->x(),
+                                                     edge.vertex0()->y()));
+            new_voronoi_edge.push_back(point_type_fp(edge.vertex1()->x(),
+                                                     edge.vertex1()->y()));
+        } else {
+            // It's a curve, it needs sampling.
+            vector<point_type_fp_p> sampled_edge;
+            sample_curved_edge(&edge, segments, sampled_edge, max_dist);
+            for (const auto& point : sampled_edge) {
+                new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+            }
+        }
+    } else {
+        // Infinite edge, only make it if it is inside the bounding_box.
+        if ((edge.vertex0() == NULL ||
+             bg::covered_by(point_type(edge.vertex0()->x(), edge.vertex0()->y()),
+                            bounding_box)) &&
+            (edge.vertex1() == NULL ||
+             bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
+                            bounding_box))) {
+            vector<point_type_fp_p> clipped_edge;
+            clip_infinite_edge(
+                edge, segments, &clipped_edge, bounding_box);
+            for (const auto& point : clipped_edge) {
+                new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+            }
+        }
+    }
+    return new_voronoi_edge;
 }
 
 // Make segments from the ring and put them in segments.
@@ -240,7 +245,7 @@ void Voronoi::sample_curved_edge(const edge_type *edge, const vector<segment_typ
 }
 
 void Voronoi::clip_infinite_edge(
-    const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type_fp& bounding_box) {
+    const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box) {
     const cell_type& cell1 = *edge.cell();
     const cell_type& cell2 = *edge.twin()->cell();
     point_type_p origin, direction;

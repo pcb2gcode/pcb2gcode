@@ -98,13 +98,14 @@ public:
         const box_type& bounding_box, coordinate_type max_dist);
 
 protected:
+    static linestring_type_fp edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist);
     static void copy_ring(const ring_type& ring, vector<segment_type_p> &segments);
     static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
     static const segment_type_p& retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
     static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments,
                                     vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
     static void clip_infinite_edge(
-        const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, box_type_fp& bounding_box);
+        const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box);
 };
 
 #endif
