@@ -155,17 +155,16 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         multi_ring_type_fp voronoi_rings =
             Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
         srand(1);
-        multi_polygon_type_fp current_mask_fp;
-        bg::convert(current_mask, current_mask_fp);
-        for (auto& ring : voronoi_rings) {
-            multi_polygon_type_fp bounded_ring;
-            bg::intersection(ring, current_mask_fp, bounded_ring);
+        for (const auto& ring : voronoi_rings) {
+            multi_polygon_type bounded_ring;
+            bg::convert(ring, bounded_ring); // converts to integral multi poly
+            bg::intersection(bounded_ring, current_mask, bounded_ring);
             int r = rand() % 256;
             int g = rand() % 256;
             int b = rand() % 256;
             for (const auto& bounded_poly : bounded_ring) {
                 for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
-                    printf("%f %f %f %f %d %d %d\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
+                    printf("%ld %ld %ld %ld %d %d %d\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
                 }
             }
         }
