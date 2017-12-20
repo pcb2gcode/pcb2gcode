@@ -142,18 +142,52 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
 
-    multi_linestring_type all_linestrings;
+    // Get the voronoi outlines of each equipotential net.  Milling
+    // should not go outside the region.  The rings are in the same order as the input
+    multi_polygon_type current_mask = get_mask();
+    multi_ring_type_fp voronoi_rings =
+        Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
+    vector<multi_polygon_type> voronoi_cells;
+    for (const auto& ring : voronoi_rings) {
+        multi_polygon_type integral_ring;
+        bg::convert(ring, integral_ring);
+        multi_polygon_type cell;
+        bg::intersection(integral_ring, current_mask, cell);
+        voronoi_cells.push_back(cell);
+    }
+
     bool voronoi = isolator && isolator->voronoi;
     if (voronoi) {
-        // First get all the segments from the current mask.
-        multi_polygon_type current_mask = get_mask();
+        // Voronoi means that we mill the voronoi cell and possibly
+        // have offset milling going inward toward the net.
         vector<segment_type_p> all_segments;
         add_as_segments(current_mask, &all_segments);
 
-        multi_ring_type_fp voronoi_rings =
-            Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
+        /*srand(1);
+        for (const auto& ring : voronoi_rings) {
+            multi_polygon_type integral_ring;
+            multi_polygon_type bounded_ring;
+            bg::convert(ring, integral_ring);
+            bg::intersection(integral_ring, current_mask, bounded_ring);
+            int r = rand() % 256;
+            int g = rand() % 256;
+            int b = rand() % 256;
+            for (const auto& bounded_poly : bounded_ring) {
+                printf("\n");
+                for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
+                    printf("%ld %ld %ld %ld %d %d %d\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
+                }
+            }
+            bounded_ring = buffer(bounded_ring, -grow);
+            for (const auto& bounded_poly : bounded_ring) {
+                printf("\n");
+                for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
+                    printf("%ld %ld %ld %ld %d %d %d b\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
+                }
+            }
+            }*/
 
-        //Add the voronoi edges to all_segments
+        //Add the voronoi edges to all_segm
         add_as_segments(voronoi_rings, &all_segments);
 
         // Split all segments where they cross and remove duplicates.
@@ -161,7 +195,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         // Now find eulerian paths in all those segments, removing
         // those outside the current_mask.
-        all_linestrings = eulerian_paths(all_segments, current_mask);
+        multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
 
         // Compute the offsets for each path and add toolpaths to the
         // output.
@@ -175,7 +209,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 copy_mls_to_toolpath(mls, -1);
             }
         }
-    } else {
+    } else { // Not voronoi.
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
             // We need to do each line individually because they might
             // butt up against one another during the bg::buffer and
