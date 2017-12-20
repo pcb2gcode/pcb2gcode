@@ -150,26 +150,11 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         vector<segment_type_p> all_segments;
         add_as_segments(current_mask, &all_segments);
 
-        multi_linestring_type_fp voronoi_edges =
-            Voronoi::get_voronoi_edges(*vectorial_surface, bounding_box, tolerance);
         multi_ring_type_fp voronoi_rings =
             Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
-        srand(1);
-        for (const auto& ring : voronoi_rings) {
-            multi_polygon_type bounded_ring;
-            bg::convert(ring, bounded_ring); // converts to integral multi poly
-            bg::intersection(bounded_ring, current_mask, bounded_ring);
-            int r = rand() % 256;
-            int g = rand() % 256;
-            int b = rand() % 256;
-            for (const auto& bounded_poly : bounded_ring) {
-                for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
-                    printf("%ld %ld %ld %ld %d %d %d\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
-                }
-            }
-        }
+
         //Add the voronoi edges to all_segments
-        add_as_segments(voronoi_edges, &all_segments);
+        add_as_segments(voronoi_rings, &all_segments);
 
         // Split all segments where they cross and remove duplicates.
         all_segments = segmentize(all_segments);
