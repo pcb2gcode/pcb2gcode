@@ -204,6 +204,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
              << " possibly use a smaller milling width.\n";
     }
 
+    if (mill->eulerian_paths) {
+        toolpath = eulerian_paths(toolpath);
+    }
+
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
     if (mill->optimise)
@@ -298,30 +302,47 @@ multi_polygon_type Surface_vectorial::get_mask() {
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::eulerian_paths(const vector<shared_ptr<icoords>>& toolpaths) {
-    vector<icoords> segments;
+    // First we need to split all paths so that they don't cross.
+    vector<segment_type_p> all_segments;
     for (const auto& toolpath : toolpaths) {
         for (size_t i = 1; i < toolpath->size(); i++) {
-            segments.push_back(
-                icoords{
-                    icoordpair{(*toolpath)[i-1].first, (*toolpath)[i-1].second},
-                    icoordpair{(*toolpath)[i  ].first, (*toolpath)[i  ].second}});
+            all_segments.push_back(
+                segment_type_p(
+                    point_type_p((*toolpath)[i-1].first*double(scale), (*toolpath)[i-1].second*double(scale)),
+                    point_type_p((*toolpath)[i  ].first*double(scale), (*toolpath)[i  ].second*double(scale))));
         }
     }
+    vector<segment_type_p> split_segments = segmentize(all_segments);
 
-    // make a minimal number of paths
+    multi_linestring_type segments_as_linestrings;
+    for (const auto& segment : split_segments) {
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls{
+            point_type(segment.low().x(), segment.low().y()),
+            point_type(segment.high().x(), segment.high().y())};
+        segments_as_linestrings.push_back(ls);
+    }
+
+    // Make a minimal number of paths from those segments.
     struct PointLessThan {
-      bool operator()(const icoordpair& a, const icoordpair& b) const {
-          return std::tie(a.first, a.second) < std::tie(b.first, b.second);
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
 
-    const auto& paths = get_eulerian_paths<icoordpair,
-                                           icoords,
-                                           vector<icoords>,
-                                           PointLessThan>(segments);
+    const auto& paths = get_eulerian_paths<point_type,
+                                           linestring_type,
+                                           multi_linestring_type,
+                                           PointLessThan>(segments_as_linestrings);
+
     vector<shared_ptr<icoords>> new_paths;
-    for (const icoords& path : paths) {
-        new_paths.push_back(make_shared<icoords>(path));
+    for (const auto& path : paths) {
+        shared_ptr<icoords> new_path = make_shared<icoords>();
+        for (const auto& point : path) {
+            new_path->push_back(icoordpair(point.x()/double(scale), point.y()/double(scale)));
+        }
+        new_paths.push_back(new_path);
     }
     return new_paths;
 }

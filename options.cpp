@@ -251,6 +251,7 @@ options::options()
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
             "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
+            "eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(

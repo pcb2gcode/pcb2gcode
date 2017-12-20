@@ -99,11 +99,6 @@ private:
     void poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls);
     // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
     multi_polygon_type get_mask();
-    // Convert all the pieces of the geometry to segments and add to the provided list.
-    void add_as_segments(const multi_polygon_type& mp, vector<segment_type_p> *segments);
-    // Convert all the pieces of the geometry to segments and add to the provided list.
-    template <typename multi_linestring_t>
-    void add_as_segments(const multi_linestring_t& mls, vector<segment_type_p> *segments);
     // Convert all the segments into multiple contiguous paths that
     // together use each segment exactly once.  All segments that are
     // outside the mask are not used.
