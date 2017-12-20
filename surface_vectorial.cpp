@@ -128,7 +128,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         bg::union_(mp, keep_out[source_poly_index], clipped1);
         multi_polygon_type clipped2;
         bg::intersection(clipped1, keep_in[source_poly_index], clipped2);
-        debug_image.add(clipped2, 0.7/extra_passes, which_color);
+        debug_image.add(clipped2, 0.7/(extra_passes+1), which_color);
         traced_debug_image.add(clipped2, 1, which_color);
         multi_linestring_type mls;
         multi_poly_to_multi_linestring(clipped2, &mls);
@@ -164,7 +164,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             // The last pass_offset will be the most contentious
             // because it's the biggest area.  Check if it was trying
             // to overlap any input traces.
-            const auto& max_milling = buffer(voronoi_cells[i], pass_offsets.back() + grow);
+            const auto& max_milling = buffer(voronoi_cells[i], pass_offsets.back() - grow);
             multi_polygon_type contentions_poly;
             bg::difference((*vectorial_surface)[i], max_milling, contentions_poly);
             if (bg::area(contentions_poly) > 0) {
@@ -173,19 +173,30 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             }
         }
     } else { // Not voronoi.
-        for (auto pass_offset : pass_offsets) {
-            for (size_t i = 0; i < vectorial_surface->size(); i++) {
+        for (size_t i = 0; i < vectorial_surface->size(); i++) {
+            for (auto pass_offset : pass_offsets) {
                 const auto& poly = (*vectorial_surface)[i];
                 const auto buffered_poly = buffer(poly, pass_offset);
                 copy_mp_to_toolpath(buffered_poly, i);
             }
+            // The last pass_offset will be the most contentious
+            // because it's the biggest area.  Check if it was trying
+            // to overlap any input traces.
+            const auto& max_milling = buffer((*vectorial_surface)[i], pass_offsets.back() + grow);
+            for (size_t j = 0; j < vectorial_surface->size(); j++) {
+                if (i != j) {
+                    // Check if the milling overlaps the other trace.
+                    multi_polygon_type contentions_poly;
+                    bg::intersection((*vectorial_surface)[j], max_milling, contentions_poly);
+                    if (bg::area(contentions_poly) > 0) {
+                        contentions = true;
+                        debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                    }
+                }
+            }
         }
     }
 
-    
-
-    
-    
     if (contentions) {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
              << " clearance requirements."
