@@ -114,7 +114,7 @@ private:
     vector<coordinate_type> get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi);
     // Exapnd a shape by an offset and return the new shape.
     template <typename geo_t>
-    multi_polygon_type buffer(geo_t geo, coordinate_type offset);
+    const multi_polygon_type buffer(const geo_t& poly, coordinate_type offset);
 };
 
 class svg_writer

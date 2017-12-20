@@ -95,36 +95,42 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
+    // Get the voronoi outlines of each equipotential net.  Milling
+    // should not go outside the region.  The rings are in the same order as the input
+    multi_polygon_type current_mask = get_mask();
+    multi_ring_type_fp voronoi_rings =
+        Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
+    vector<multi_polygon_type> voronoi_cells;
+    for (const auto& ring : voronoi_rings) {
+        multi_polygon_type integral_ring;
+        bg::convert(ring, integral_ring);
+        multi_polygon_type cell;
+        bg::intersection(integral_ring, current_mask, cell);
+        voronoi_cells.push_back(cell);
+    }
+
     bool contentions = false;
 
     vector<shared_ptr<icoords>> toolpath;
-    // source_poly_index is the vectorial_surface index against which
-    // we won't check for contentions (because it was the source of
-    // the toolpath and will overlap on the border).  Set it to -1 to
-    // not skip any checks.
-    auto copy_mls_to_toolpath = [&](const multi_linestring_type& mls, int source_poly_index) {
-        for (unsigned int i = 0; i < mls.size(); i++) {
-            double which_color;
-            if (source_poly_index >= 0) {
-                // The color is based on the poly it surrounds.
-                which_color = (double) source_poly_index / vectorial_surface->size();
-            } else {
-                // Sequential color.
-                which_color = (double) i / mls.size();
-            }
-            const auto& ls = mls[i];
-            debug_image.add(ls, 0.6, which_color);
-            traced_debug_image.add(ls, 1, which_color);
-            multi_polygon_type milling_poly = buffer(ls, grow);
-            for (int j = 0; j < (signed int) vectorial_surface->size(); j++) {
-                if (j != source_poly_index) {
-                    if (bg::intersects(milling_poly, (*vectorial_surface)[j])) {
-                        contentions = true;
-                        debug_image.add(milling_poly, 1, 0.0);
-                    }
-                }
-            }
-        }
+    const auto& keep_in = voronoi_cells;
+    vector<multi_polygon_type> keep_out;
+    for (const auto& input : *vectorial_surface) {
+        keep_out.push_back(buffer(input, grow));
+    }
+    // source_poly_index is the source of this poly in the vectorial_surface.
+    auto copy_mp_to_toolpath = [&](const multi_polygon_type& mp, int source_poly_index) {
+        // The color is based on the poly it surrounds.
+        double which_color = (double) source_poly_index / vectorial_surface->size();
+        // The path is clipped to be inside the voronoi cell and
+        // outside the grown source poly.
+        multi_polygon_type clipped1;
+        bg::intersection(mp, keep_in[source_poly_index], clipped1);
+        multi_polygon_type clipped2;
+        bg::union_(clipped1, keep_out[source_poly_index], clipped2);
+        debug_image.add(clipped2, 0.6, which_color);
+        traced_debug_image.add(clipped2, 1, which_color);
+        multi_linestring_type mls;
+        multi_poly_to_multi_linestring(clipped2, &mls);
         for (const auto& ls : mls) {
             toolpath.push_back(make_shared<icoords>());
             for (const auto& point : ls) {
@@ -142,91 +148,25 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
 
-    // Get the voronoi outlines of each equipotential net.  Milling
-    // should not go outside the region.  The rings are in the same order as the input
-    multi_polygon_type current_mask = get_mask();
-    multi_ring_type_fp voronoi_rings =
-        Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
-    vector<multi_polygon_type> voronoi_cells;
-    for (const auto& ring : voronoi_rings) {
-        multi_polygon_type integral_ring;
-        bg::convert(ring, integral_ring);
-        multi_polygon_type cell;
-        bg::intersection(integral_ring, current_mask, cell);
-        voronoi_cells.push_back(cell);
-    }
-
     bool voronoi = isolator && isolator->voronoi;
     if (voronoi) {
         // Voronoi means that we mill the voronoi cell and possibly
         // have offset milling going inward toward the net.
-        vector<segment_type_p> all_segments;
-        add_as_segments(current_mask, &all_segments);
-
-        /*srand(1);
-        for (const auto& ring : voronoi_rings) {
-            multi_polygon_type integral_ring;
-            multi_polygon_type bounded_ring;
-            bg::convert(ring, integral_ring);
-            bg::intersection(integral_ring, current_mask, bounded_ring);
-            int r = rand() % 256;
-            int g = rand() % 256;
-            int b = rand() % 256;
-            for (const auto& bounded_poly : bounded_ring) {
-                printf("\n");
-                for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
-                    printf("%ld %ld %ld %ld %d %d %d\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
-                }
-            }
-            bounded_ring = buffer(bounded_ring, -grow);
-            for (const auto& bounded_poly : bounded_ring) {
-                printf("\n");
-                for (size_t i = 1; i < bounded_poly.outer().size(); i++) {
-                    printf("%ld %ld %ld %ld %d %d %d b\n", bounded_poly.outer()[i-1].x(), bounded_poly.outer()[i-1].y(), bounded_poly.outer()[i].x(), bounded_poly.outer()[i].y(), r, g, b);
-                }
-            }
-            }*/
-
-        //Add the voronoi edges to all_segm
-        add_as_segments(voronoi_rings, &all_segments);
-
-        // Split all segments where they cross and remove duplicates.
-        all_segments = segmentize(all_segments);
-
-        // Now find eulerian paths in all those segments, removing
-        // those outside the current_mask.
-        multi_linestring_type all_linestrings = eulerian_paths(all_segments, current_mask);
 
         // Compute the offsets for each path and add toolpaths to the
         // output.
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
-            if (pass_offset == 0) {
-                copy_mls_to_toolpath(all_linestrings, -1);
-            } else {
-                multi_polygon_type buffered_poly = buffer(all_linestrings, pass_offset);
-                multi_linestring_type mls;
-                multi_poly_to_multi_linestring(buffered_poly, &mls);
-                copy_mls_to_toolpath(mls, -1);
+            for (size_t i = 0; i < voronoi_cells.size(); i++) {
+                const auto buffered_poly = buffer(voronoi_cells[i], pass_offset);
+                copy_mp_to_toolpath(buffered_poly, i);
             }
         }
     } else { // Not voronoi.
         for (auto pass_offset : get_pass_offsets(grow, extra_passes + 1, voronoi)) {
-            // We need to do each line individually because they might
-            // butt up against one another during the bg::buffer and
-            // merge.
-            for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+            for (size_t i = 0; i < vectorial_surface->size(); i++) {
                 const auto& poly = (*vectorial_surface)[i];
-                if (pass_offset == 0) {
-                    // No buffering needed.
-                    multi_linestring_type mls;
-                    poly_to_multi_linestring(poly, &mls);
-                    copy_mls_to_toolpath(mls, i);
-                } else {
-                    multi_polygon_type buffered_poly = buffer(poly, pass_offset);
-                    multi_linestring_type mls;
-                    multi_poly_to_multi_linestring(buffered_poly, &mls);
-                    copy_mls_to_toolpath(mls, i);
-                }
+                const auto buffered_poly = buffer(poly, pass_offset);
+                copy_mp_to_toolpath(buffered_poly, i);
             }
         }
     }
@@ -388,14 +328,14 @@ vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offs
             vector<coordinate_type> result{0};
             total_passes--;
             for (unsigned int i = 0; i < total_passes/2; i++) {
-                result.push_back(offset * (i+1));
+                result.push_back(-offset * (i+1));
             }
             return result;
         } else {
             vector<coordinate_type> result;
             // It's even, so we don't have a center pass.
             for (unsigned int i = 0; i < total_passes/2; i++) {
-                result.push_back(offset/2 + offset * i);
+                result.push_back(-offset/2 + -offset * i);
             }
             return result;
         }
@@ -410,9 +350,13 @@ vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offs
 }
 
 template <typename geo_t>
-multi_polygon_type Surface_vectorial::buffer(geo_t geo, coordinate_type offset) {
+const multi_polygon_type Surface_vectorial::buffer(const geo_t& poly, coordinate_type offset) {
     multi_polygon_type buffered_poly;
-    bg::buffer(geo, buffered_poly,
+    if (offset == 0) {
+        bg::convert(poly, buffered_poly);
+        return buffered_poly;
+    }
+    bg::buffer(poly, buffered_poly,
                bg::strategy::buffer::distance_symmetric<coordinate_type>(offset),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(points_per_circle),
