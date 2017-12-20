@@ -117,6 +117,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     for (const auto& input : *vectorial_surface) {
         keep_out.push_back(buffer(input, grow));
     }
+    bool voronoi = isolator && isolator->voronoi;
     // source_poly_index is the source of this poly in the vectorial_surface.
     auto copy_mp_to_toolpath = [&](const multi_polygon_type& mp, int source_poly_index) {
         // The color is based on the poly it surrounds.
@@ -124,10 +125,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         // The path is clipped to be inside the voronoi cell and
         // outside the grown source poly.
         multi_polygon_type clipped1;
-        bg::intersection(mp, keep_in[source_poly_index], clipped1);
+        bg::union_(mp, keep_out[source_poly_index], clipped1);
         multi_polygon_type clipped2;
-        bg::union_(clipped1, keep_out[source_poly_index], clipped2);
-        debug_image.add(clipped2, 0.6, which_color);
+        bg::intersection(clipped1, keep_in[source_poly_index], clipped2);
+        debug_image.add(clipped2, 0.7/extra_passes, which_color);
         traced_debug_image.add(clipped2, 1, which_color);
         multi_linestring_type mls;
         multi_poly_to_multi_linestring(clipped2, &mls);
@@ -148,7 +149,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         }
     };
 
-    bool voronoi = isolator && isolator->voronoi;
     if (voronoi) {
         // Voronoi means that we mill the voronoi cell and possibly
         // have offset milling going inward toward the net.
@@ -172,7 +172,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
 
     for (unsigned int i = 0; i < (*vectorial_surface).size(); i++) {
-        debug_image.add((*vectorial_surface)[i], 0.4, (double)i/vectorial_surface->size());
+        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
     }
 
     if (contentions) {
