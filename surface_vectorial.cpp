@@ -207,9 +207,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (mill->eulerian_paths) {
         toolpath = eulerian_paths(toolpath);
     }
-/*
-    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
 
+    tsp_solver::nearest_neighbour( toolpath, point_type(0, 0), 0.0001 );
+/*
     if (mill->optimise)
     {
         vector<shared_ptr<icoords> > toolpath_optimised;

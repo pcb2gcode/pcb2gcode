@@ -72,7 +72,7 @@ public:
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
     template <typename T>
-    static void nearest_neighbour(vector<T> &path, icoordpair startingPoint, double quantization_error)
+    static void nearest_neighbour(vector<T> &path, const T& startingPoint, double quantization_error)
     {
         if (path.size() > 0)
         {
