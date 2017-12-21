@@ -109,6 +109,8 @@ private:
     // Exapnd a shape by an offset and return the new shape.
     template <typename geo_t>
     const multi_polygon_type buffer(const geo_t& poly, coordinate_type offset);
+    template <typename multi_linestring_t>
+    static vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_t& mls, double scale);
 };
 
 class svg_writer

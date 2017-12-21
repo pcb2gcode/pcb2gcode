@@ -209,11 +209,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
 
     tsp_solver::nearest_neighbour( toolpath, point_type(0, 0), 0.0001 );
-/*
+
+    vector<shared_ptr<icoords>> scaled_toolpath = mls_to_icoords(toolpath, scale);
+
     if (mill->optimise)
     {
         vector<shared_ptr<icoords> > toolpath_optimised;
-        for (const shared_ptr<icoords>& ring : toolpath)
+        for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
             bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
@@ -222,7 +224,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         return toolpath_optimised;
     }
     else
-    return toolpath;*/
+        return scaled_toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -382,6 +384,19 @@ const multi_polygon_type Surface_vectorial::buffer(const geo_t& poly, coordinate
                bg::strategy::buffer::end_round(),
                bg::strategy::buffer::point_circle(points_per_circle));
     return buffered_poly;
+}
+
+template <typename multi_linestring_t>
+vector<shared_ptr<icoords>> Surface_vectorial::mls_to_icoords(const multi_linestring_t& mls, double scale) {
+    vector<shared_ptr<icoords>> output;
+    for (const auto& ls : mls) {
+        auto new_icoords = make_shared<icoords>();
+        for (const auto &point : ls) {
+            new_icoords->push_back(icoordpair(point.x()/scale, point.y()/scale));
+        }
+        output.push_back(new_icoords);
+    }
+    return output;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
