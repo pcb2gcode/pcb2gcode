@@ -99,9 +99,9 @@ private:
     void poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls);
     // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
     multi_polygon_type get_mask();
-    // Convert all the segments into multiple contiguous paths that
-    // together use each segment exactly once.  All segments that are
-    // outside the mask are not used.
+    // Returns a minimal number of toolpaths that include all the
+    // milling in the oroginal toolpaths.  Each path is traversed
+    // once.
     multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
     // Grow the input linestring by the specified amount and return
     // the result as a list of coordinates around the path.
@@ -109,6 +109,7 @@ private:
     // Exapnd a shape by an offset and return the new shape.
     template <typename geo_t>
     const multi_polygon_type buffer(const geo_t& poly, coordinate_type offset);
+    // Convert the linestrings to icoords and scale them back to original scale.
     template <typename multi_linestring_t>
     static vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_t& mls, double scale);
     static size_t merge_near_points(multi_linestring_type& mls);

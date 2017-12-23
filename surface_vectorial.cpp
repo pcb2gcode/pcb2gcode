@@ -101,6 +101,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     multi_ring_type_fp voronoi_rings =
         Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
     vector<multi_polygon_type> voronoi_cells;
+    // The rings cover the input but might be larger.  We'll crop each
+    // ring by the mask.
     for (const auto& ring : voronoi_rings) {
         multi_polygon_type integral_ring;
         bg::convert(ring, integral_ring);
@@ -112,9 +114,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bool contentions = false;
 
     multi_linestring_type toolpath;
-    const auto& keep_in = voronoi_cells;
-    vector<multi_polygon_type> keep_out;
+    const auto& keep_in = voronoi_cells;  // Don't mill outside these.
+    vector<multi_polygon_type> keep_out;  // Don't mill inside these.
     for (const auto& input : *vectorial_surface) {
+        // Take the width of the milling bit into account.
         keep_out.push_back(buffer(input, grow));
     }
     bool voronoi = isolator && isolator->voronoi;
@@ -122,8 +125,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     auto copy_mp_to_toolpath = [&](const multi_polygon_type& mp, int source_poly_index) {
         // The color is based on the poly it surrounds.
         double which_color = (double) source_poly_index / vectorial_surface->size();
-        // The path is clipped to be inside the voronoi cell and
-        // outside the grown source poly.
+        // The path is clipped to be outisde the trace but inside the
+        // voronoi cell.
         multi_polygon_type clipped1;
         bg::union_(mp, keep_out[source_poly_index], clipped1);
         multi_polygon_type clipped2;
@@ -162,8 +165,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                 copy_mp_to_toolpath(buffered_poly, i);
             }
             // The last pass_offset will be the most contentious
-            // because it's the biggest area.  Check if it was trying
-            // to overlap any input traces.
+            // because it's the most infringing on traces potentially.
+            // Check if it was trying to go into the trace.
             const auto& max_milling = buffer(voronoi_cells[i], pass_offsets.back() - grow);
             multi_polygon_type contentions_poly;
             bg::difference((*vectorial_surface)[i], max_milling, contentions_poly);
@@ -218,6 +221,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
+            // This does Douglas-Peucker optimization to reduce point count.
             bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
         }
 
