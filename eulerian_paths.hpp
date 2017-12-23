@@ -66,7 +66,7 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
     size_t path_index = vertex_and_path_index->second;
     auto& path = paths[path_index];
     if (point == path.front()) {
-      // Append  this path in the forward direction.
+      // Append this path in the forward direction.
       new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
     } else {
       // Append this path in the reverse direction.
@@ -76,7 +76,8 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
     point_t& new_point = new_path->back();
     // We're bound to find one, otherwise there is a serious error in
     // the algorithm.
-    for (auto iter = vertex_to_unvisited_path_index.find(new_point); iter != vertex_to_unvisited_path_index.end(); iter++) {
+    auto range = vertex_to_unvisited_path_index.equal_range(new_point);
+    for (auto iter = range.first; iter != range.second; iter++) {
       if (iter->second == path_index) {
         // Remove the path from the last vertex
         vertex_to_unvisited_path_index.erase(iter);
@@ -131,18 +132,14 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
   // Anything remaining is on islands.  Make all those paths, too.  No
   // stitching needed because all vertices have an even number of
   // edges.
-  for (auto iter = vertex_to_unvisited_path_index.cbegin(); iter != vertex_to_unvisited_path_index.cend();) {
-    auto& vertex = iter->first;
-    if (vertex_to_unvisited_path_index.count(vertex) > 0) {
-      linestring_t new_path{vertex};
-      make_path(vertex, &new_path);
-      // We can stitch right now because all vertices already have
-      // even number of edges.
-      stitch_loops(&new_path);
-      euler_paths.push_back(new_path);
-    }
-    // Advance to the next vertex.
-    iter = vertex_to_unvisited_path_index.upper_bound(vertex);
+  while(vertex_to_unvisited_path_index.size() > 0) {
+    const auto vertex = vertex_to_unvisited_path_index.cbegin()->first;
+    linestring_t new_path{vertex};
+    make_path(vertex, &new_path);
+    // We can stitch right now because all vertices already have
+    // even number of edges.
+    stitch_loops(&new_path);
+    euler_paths.push_back(new_path);
   }
 
   return euler_paths;
