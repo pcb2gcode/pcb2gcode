@@ -432,7 +432,6 @@ size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
             if (!bg::equals(j->second, i->second) &&
                 bg::comparable_distance(i->second, j->second) <= 100) {
                 points_merged++;
-                printf("merging %ld,%ld %ld,%ld\n", i->second.x(), i->second.y(), j->second.x(), j->second.y());
                 j->second = i->second;
             }
         }
