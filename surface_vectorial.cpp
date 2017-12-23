@@ -306,12 +306,12 @@ multi_polygon_type Surface_vectorial::get_mask() {
 multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
     // Merge points that are very close to each other because it makes
     // us more likely to find intersections that was can use.
-    multi_linestring_type new_toolpaths(toolpaths);
-    merge_near_points(new_toolpaths);
+    multi_linestring_type merged_toolpaths(toolpaths);
+    merge_near_points(merged_toolpaths);
 
     // First we need to split all paths so that they don't cross.
     vector<segment_type_p> all_segments;
-    for (const auto& toolpath : new_toolpaths) {
+    for (const auto& toolpath : merged_toolpaths) {
         for (size_t i = 1; i < toolpath.size(); i++) {
             all_segments.push_back(
                 segment_type_p(
@@ -338,15 +338,10 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       }
     };
 
-    new_toolpaths = get_eulerian_paths<point_type,
-                                      linestring_type,
-                                      multi_linestring_type,
-                                      PointLessThan>(segments_as_linestrings);
-    // Merge near points again because we get more of those mdae by
-    // segmentize above.
-    merge_near_points(new_toolpaths);
-
-    return new_toolpaths;
+    return get_eulerian_paths<point_type,
+                              linestring_type,
+                              multi_linestring_type,
+                              PointLessThan>(segments_as_linestrings);
 }
 
 vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
