@@ -111,10 +111,7 @@ private:
     const multi_polygon_type buffer(const geo_t& poly, coordinate_type offset);
     template <typename multi_linestring_t>
     static vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_t& mls, double scale);
-    static void merge_near_points(vector<multi_polygon_type>& multi_polys);
-    static void merge_near_points(multi_linestring_type& mls);
-    // Just like bg::intersection but with rounding instead of truncation.
-    static bool intersection(const multi_polygon_type& geo1, const multi_polygon_type& geo2, multi_polygon_type& out);
+    static size_t merge_near_points(multi_linestring_type& mls);
 };
 
 class svg_writer

@@ -105,15 +105,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         multi_polygon_type integral_ring;
         bg::convert(ring, integral_ring);
         multi_polygon_type cell;
-        intersection(integral_ring, current_mask, cell);
-        for (const auto& poly : cell) {
-            for (const auto& p : poly.outer()) {
-                printf("%ld %ld\n", p.x(), p.y());
-            }
-        }
+        bg::intersection(integral_ring, current_mask, cell);
         voronoi_cells.push_back(cell);
     }
-    merge_near_points(voronoi_cells);
 
     bool contentions = false;
 
@@ -133,7 +127,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         multi_polygon_type clipped1;
         bg::union_(mp, keep_out[source_poly_index], clipped1);
         multi_polygon_type clipped2;
-        intersection(clipped1, keep_in[source_poly_index], clipped2);
+        bg::intersection(clipped1, keep_in[source_poly_index], clipped2);
         debug_image.add(clipped2, 0.7/(extra_passes+1), which_color);
         traced_debug_image.add(clipped2, 1, which_color);
         multi_linestring_type mls;
@@ -210,7 +204,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
              << " possibly use a smaller milling width.\n";
     }
 
-    merge_near_points(toolpath);
     if (mill->eulerian_paths) {
         toolpath = eulerian_paths(toolpath);
     }
@@ -311,9 +304,14 @@ multi_polygon_type Surface_vectorial::get_mask() {
 }
 
 multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
+    // Merge points that are very close to each other because it makes
+    // us more likely to find intersections that was can use.
+    multi_linestring_type new_toolpaths(toolpaths);
+    merge_near_points(new_toolpaths);
+
     // First we need to split all paths so that they don't cross.
     vector<segment_type_p> all_segments;
-    for (const auto& toolpath : toolpaths) {
+    for (const auto& toolpath : new_toolpaths) {
         for (size_t i = 1; i < toolpath.size(); i++) {
             all_segments.push_back(
                 segment_type_p(
@@ -340,10 +338,15 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       }
     };
 
-    return get_eulerian_paths<point_type,
-                              linestring_type,
-                              multi_linestring_type,
-                              PointLessThan>(segments_as_linestrings);
+    new_toolpaths = get_eulerian_paths<point_type,
+                                      linestring_type,
+                                      multi_linestring_type,
+                                      PointLessThan>(segments_as_linestrings);
+    // Merge near points again because we get more of those mdae by
+    // segmentize above.
+    merge_near_points(new_toolpaths);
+
+    return new_toolpaths;
 }
 
 vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
@@ -406,53 +409,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::mls_to_icoords(const multi_linest
     return output;
 }
 
-void Surface_vectorial::merge_near_points(vector<multi_polygon_type>& multi_polys) {
-    struct PointLessThan {
-      bool operator()(const point_type& a, const point_type& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
-
-    std::map<point_type, point_type, PointLessThan> points;
-    for (const auto& multi_poly : multi_polys) {
-        for (const auto& poly : multi_poly) {
-            for (const auto& point : poly.outer()) {
-                points[point] = point;
-            }
-            for (const auto& inner : poly.inners()) {
-                for (const auto& point : inner) {
-                    points[point] = point;
-                }
-            }
-        }
-    }
-    // Merge points that are near one another.
-    for (auto i = points.begin(); i != points.end(); i++) {
-        for (auto j = i; j != points.end(); j++) {
-            if (bg::comparable_distance(i->first, j->first) < 10 &&
-                !bg::equals(j->second, i->second)) {
-                printf("merging\n");
-                printf("%ld,%ld %ld,%ld\n", i->second.x(), i->second.y(),
-                       j->second.x(), j->second.y());
-                j->second = i->second;
-            }
-        }
-    }
-    for (auto& multi_poly : multi_polys) {
-        for (auto& poly : multi_poly) {
-            for (auto& point : poly.outer()) {
-                point = points[point];
-            }
-            for (auto& inner : poly.inners()) {
-                for (auto& point : inner) {
-                    point = points[point];
-                }
-            }
-        }
-    }
-}
-
-void Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
+size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
     struct PointLessThan {
       bool operator()(const point_type& a, const point_type& b) const {
           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
@@ -466,52 +423,24 @@ void Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
         }
     }
     // Merge points that are near one another.
+    size_t points_merged = 0;
     for (auto i = points.begin(); i != points.end(); i++) {
         for (auto j = i; j != points.end(); j++) {
-            if (bg::comparable_distance(i->first, j->first) < 10 &&
+            if (bg::comparable_distance(i->first, j->first) <= 100 &&
                 !bg::equals(j->second, i->second)) {
-                printf("merging\n");
-                printf("%ld,%ld %ld,%ld\n", i->second.x(), i->second.y(),
-                       j->second.x(), j->second.y());
+                points_merged++;
                 j->second = i->second;
             }
         }
     }
-    for (auto& ls : mls) {
-        for (auto& point : ls) {
-            point = points[point];
+    if (points_merged > 0) {
+        for (auto& ls : mls) {
+            for (auto& point : ls) {
+                point = points[point];
+            }
         }
     }
-}
-
-bool Surface_vectorial::intersection(
-    const multi_polygon_type& geo1,
-    const multi_polygon_type& geo2,
-    multi_polygon_type& out) {
-
-    multi_polygon_type geo1_scaled, geo2_scaled, out_scaled;
-
-    struct {
-      inline void operator()(point_type& p) {
-          p.x(p.x()*10);
-          p.y(p.y()*10);
-      }
-    } scale_up;
-
-    struct {
-      inline void operator()(point_type& p) {
-          p.x((p.x()+5)/10);
-          p.y((p.y()+5)/10);
-      }
-    } scale_down;
-
-    bg::convert(geo1, geo1_scaled);
-    bg::convert(geo2, geo2_scaled);
-    bg::for_each_point(geo1_scaled, scale_up);
-    bg::for_each_point(geo2_scaled, scale_up);
-    bool ret = bg::intersection(geo1_scaled, geo2_scaled, out);
-    bg::for_each_point(out, scale_down);
-    return ret;
+    return points_merged;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
