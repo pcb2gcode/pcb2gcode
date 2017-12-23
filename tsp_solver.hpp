@@ -79,7 +79,7 @@ private:
     static inline double distance(const point_type& p0, const point_type& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
-                        std::abs(p0.y() - p1.x()));
+                        std::abs(p0.y() - p1.y()));
     }
 
 public:
