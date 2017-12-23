@@ -26,3 +26,4 @@ fill-outline=true
 zsafe=0.08
 zchange=1.0
 metricoutput=true
+eulerian-paths=true

@@ -421,13 +421,18 @@ size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
             points[point] = point;
         }
     }
-    // Merge points that are near one another.
+    // Merge points that are near one another.  This doesn't do a
+    // great job but it's fast enough.
     size_t points_merged = 0;
     for (auto i = points.begin(); i != points.end(); i++) {
-        for (auto j = i; j != points.end(); j++) {
-            if (bg::comparable_distance(i->first, j->first) <= 100 &&
-                !bg::equals(j->second, i->second)) {
+        for (auto j = i;
+             j != points.upper_bound(point_type(i->second.x()+100,
+                                                i->second.y()+100));
+             j++) {
+            if (!bg::equals(j->second, i->second) &&
+                bg::comparable_distance(i->second, j->second) <= 100) {
                 points_merged++;
+                printf("merging %ld,%ld %ld,%ld\n", i->second.x(), i->second.y(), j->second.x(), j->second.y());
                 j->second = i->second;
             }
         }
