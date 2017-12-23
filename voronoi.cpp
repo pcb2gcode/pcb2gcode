@@ -116,60 +116,6 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
     return output;
 }
 
-multi_linestring_type_fp Voronoi::get_voronoi_edges(
-    const multi_polygon_type& input,
-    const box_type& mask_bounding_box, coordinate_type max_dist) {
-    // Bounding_box is a box that is big enough to hold all milling.
-    box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
-    // Expand that bounding box by the provided bounding_box.
-    bg::expand(bounding_box, mask_bounding_box);
-
-    // For each input polygon, add all the segments of all the rings.
-    vector<size_t> segments_count;
-    segments_count.push_back(0);
-    for (const polygon_type& polygon : input) {
-        // How many segments in this outer ring?
-        size_t current_segments = polygon.outer().size() - 1;
-        for (const ring_type& ring : polygon.inners()) {
-            current_segments += ring.size() - 1;
-        }
-        segments_count.push_back(segments_count.back() + current_segments);
-    }
-
-    vector<segment_type_p> segments;
-    segments.reserve(segments_count.back());
-    for (const polygon_type& polygon : input) {
-        copy_ring(polygon.outer(), segments);
-        for (const ring_type& ring : polygon.inners()) {
-            copy_ring(ring, segments);
-        }
-    }
-
-    voronoi_builder_type voronoi_builder;
-    boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
-    voronoi_diagram_type voronoi_diagram;
-    voronoi_builder.construct(&voronoi_diagram);
-
-    // Get all segments.
-    multi_linestring_type_fp output{};
-    for (const edge_type& edge : voronoi_diagram.edges()) {
-        auto source_index0 = edge.cell()->source_index();
-        auto source_index1 = edge.twin()->cell()->source_index();
-        size_t segment_index0 = *std::upper_bound(segments_count.cbegin(), segments_count.cend(), source_index0);
-        size_t segment_index1 = *std::upper_bound(segments_count.cbegin(), segments_count.cend(), source_index1);
-        // Do these two source segments come from different rings?
-        if (segment_index0 < segment_index1 && // Only use one side of the half-edges.
-            edge.is_primary()) { // Only actual voronoi edges.
-            // We want to use this edge.
-            linestring_type_fp new_voronoi_edge = edge_to_linestring(edge, segments, bounding_box, max_dist);
-            if (new_voronoi_edge.size() > 0) {
-                output.push_back(new_voronoi_edge);
-            }
-        }
-    }
-    return output;
-}
-
 linestring_type_fp Voronoi::edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist) {
     linestring_type_fp new_voronoi_edge;
     if (edge.is_finite()) {

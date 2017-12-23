@@ -71,23 +71,6 @@ typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 class Voronoi
 {
 public:
-    /* Given many polygons, return all Voronoi edges.  A polygon has
-     * an outer perimeter that is a ring.  A ring is a list of points
-     * that starts and ends at the same location.  A polygon can also
-     * have holes in it, which are multiple inner rings.  None of a
-     * polygons inner rings should overlap and no segments should
-     * overlap.
-     *
-     * The returned edges are lists of points from the voronoi diagram
-     * between vertices where 3 or more edges met.  Infinite edges are
-     * converetd to finte edges that extend at least as far as output
-     * the bounding box of all the inputs + bounding_box_offset.
-     * max_dist is the maximum "error" for when sampling curved edges
-     * of the Voronoi diagram.
-     */
-    static multi_linestring_type_fp get_voronoi_edges(
-        const multi_polygon_type& input,
-        const box_type& bounding_box, coordinate_type max_dist);
     /* The returned rings are loops around the input polygons that
      * follow the voronoi diagram.  The loops might extend outside the
      * bounding_box provided.  The loops don't overlap and will
