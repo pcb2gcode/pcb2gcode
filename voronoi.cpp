@@ -26,7 +26,7 @@
 using std::list;
 using std::map;
 
-multi_polygon_type_fp Voronoi::get_voronoi_rings(
+multi_polygon_type_fp Voronoi::get_voronoi_polygons(
     const multi_polygon_type& input,
     const box_type& mask_bounding_box, coordinate_type max_dist) {
     // Bounding_box is a box that is big enough to hold all milling.

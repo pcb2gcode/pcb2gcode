@@ -76,7 +76,7 @@ public:
      * bounding_box provided.  The loops don't overlap and will
      * together cover at least the entire bounding_box.
      */
-    static multi_polygon_type_fp get_voronoi_rings(
+    static multi_polygon_type_fp get_voronoi_polygons(
         const multi_polygon_type& input,
         const box_type& bounding_box, coordinate_type max_dist);
 
