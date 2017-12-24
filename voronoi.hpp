@@ -89,7 +89,8 @@ protected:
                                     vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
     static void clip_infinite_edge(
         const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box);
-    static ring_type_fp* edge_to_ring(const edge_type& edge, const std::map<size_t, ring_type_fp*>& segments_count);
+    template <typename result_type>
+    static result_type edge_lookup(const edge_type& edge, const std::map<size_t, result_type>& segments_to_result);
 };
 
 #endif

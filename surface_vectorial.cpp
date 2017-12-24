@@ -98,16 +98,16 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     // Get the voronoi outlines of each equipotential net.  Milling
     // should not go outside the region.  The rings are in the same order as the input
     multi_polygon_type current_mask = get_mask();
-    multi_ring_type_fp voronoi_rings =
-        Voronoi::get_voronoi_rings(*vectorial_surface, bounding_box, tolerance);
+    multi_polygon_type_fp voronoi_polygons =
+        Voronoi::get_voronoi_polygons(*vectorial_surface, bounding_box, tolerance);
     vector<multi_polygon_type> voronoi_cells;
-    // The rings cover the input but might be larger.  We'll crop each
-    // ring by the mask.
-    for (const auto& ring : voronoi_rings) {
-        multi_polygon_type integral_ring;
-        bg::convert(ring, integral_ring);
+    // The voronoi polygons cover the input but might cover outside
+    // the mask.  We'll crop each polygon by the mask.
+    for (const auto& poly : voronoi_polygons) {
+        multi_polygon_type integral_poly;
+        bg::convert(poly, integral_poly);
         multi_polygon_type cell;
-        bg::intersection(integral_ring, current_mask, cell);
+        bg::intersection(integral_poly, current_mask, cell);
         voronoi_cells.push_back(cell);
     }
 
