@@ -76,7 +76,7 @@ public:
      * bounding_box provided.  The loops don't overlap and will
      * together cover at least the entire bounding_box.
      */
-    static multi_ring_type_fp get_voronoi_rings(
+    static multi_polygon_type_fp get_voronoi_rings(
         const multi_polygon_type& input,
         const box_type& bounding_box, coordinate_type max_dist);
 
@@ -89,6 +89,7 @@ protected:
                                     vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
     static void clip_infinite_edge(
         const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box);
+    static ring_type_fp* edge_to_ring(const edge_type& edge, const std::map<size_t, ring_type_fp*>& segments_count);
 };
 
 #endif

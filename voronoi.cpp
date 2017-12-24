@@ -26,7 +26,7 @@
 using std::list;
 using std::map;
 
-multi_ring_type_fp Voronoi::get_voronoi_rings(
+multi_polygon_type_fp Voronoi::get_voronoi_rings(
     const multi_polygon_type& input,
     const box_type& mask_bounding_box, coordinate_type max_dist) {
     // Bounding_box is a box that is big enough to hold all milling.
@@ -41,26 +41,27 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
     bounding_box.min_corner().x(bounding_box.min_corner().x() - 2*bounding_box_width);
     bounding_box.max_corner().y(bounding_box.max_corner().y() + 2*bounding_box_height);
     bounding_box.min_corner().y(bounding_box.min_corner().y() - 2*bounding_box_height);
-    // For each input polygon, add all the segments of all the rings.
-    vector<size_t> segments_count;
+    // Maps from segment index to the voronoi ring to build.
     size_t current_segments = 0;
-    for (const polygon_type& polygon : input) {
-        // How many segments in this outer ring?
-        current_segments += polygon.outer().size() - 1;
-        for (const ring_type& ring : polygon.inners()) {
-            current_segments += ring.size() - 1;
-        }
-        segments_count.push_back(current_segments);
-    }
-
+    std::map<size_t, ring_type_fp*> segments_count;
+    // The output polygons which are voronoi rings.  The outputs match
+    // the inputs.
+    multi_polygon_type_fp output;
+    // Each line segment from all the inputs.
     vector<segment_type_p> segments;
-    segments.reserve(current_segments);
     for (const polygon_type& polygon : input) {
+        output.push_back(polygon_type_fp());
+        current_segments += polygon.outer().size() - 1;
+        segments_count[current_segments] = &output.back().outer();
         copy_ring(polygon.outer(), segments);
         for (const ring_type& ring : polygon.inners()) {
+            output.back().inners().push_back(ring_type_fp());
+            current_segments += ring.size() - 1;
+            segments_count[current_segments] = &output.back().inners().back();
             copy_ring(ring, segments);
         }
     }
+
     ring_type bounding_box_ring;
     bg::convert(bounding_box, bounding_box_ring);
     copy_ring(bounding_box_ring, segments);
@@ -70,50 +71,50 @@ multi_ring_type_fp Voronoi::get_voronoi_rings(
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder.construct(&voronoi_diagram);
 
-    multi_ring_type_fp output;
-    output.resize(segments_count.size());
-    for (const cell_type& cell : voronoi_diagram.cells()) {
-        if (cell.is_degenerate()) {
-            continue;
-        }
-        const edge_type *current_edge = cell.incident_edge();
+    for (const edge_type& edge : voronoi_diagram.edges()) {
+        const edge_type* current_edge = &edge;
         if (!current_edge->is_primary()) {
             continue;
         }
-        auto source_index0 = current_edge->cell()->source_index();
-        auto source_index1 = current_edge->twin()->cell()->source_index();
-        size_t segment_index0 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(), source_index0));
-        size_t segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(), source_index1));
-        if (segment_index0 == segment_index1) {
+        ring_type_fp* ring0 = edge_to_ring(*current_edge, segments_count);
+        ring_type_fp* ring1 = edge_to_ring(*current_edge->twin(), segments_count);
+        if (ring0 == ring1) {
             continue; // This is not between different polygons.
         }
-        if (segment_index1 >= output.size()) {
+        if (ring1 == nullptr) {
             continue; // This is the bounding box, ignore it.
         }
-        if (output[segment_index1].size() > 0) {
+        if (ring1->size() > 0) {
             continue; // Already did this loop.
         }
         const edge_type *start_edge = current_edge;
         do {
             linestring_type_fp discrete_edge = edge_to_linestring(*current_edge, segments, bounding_box, max_dist);
             // Don't push the last one because it's a repeat.
-            for (size_t i = 0; i < discrete_edge.size()-1; i++) {
-                output[segment_index1].push_back(discrete_edge[i]);
-            }
+            ring1->insert(ring1->end(), discrete_edge.cbegin(), discrete_edge.cend()-1);
             current_edge = current_edge->next();
-            size_t new_segment_index0 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->cell()->source_index()));
-            size_t new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
-            while (segment_index1 != new_segment_index1 ||
-                   new_segment_index0 == new_segment_index1 ||
+            ring_type_fp* new_ring0 = edge_to_ring(*current_edge, segments_count);
+            ring_type_fp* new_ring1 = edge_to_ring(*current_edge->twin(), segments_count);
+            while (ring1 != new_ring1 ||
+                   new_ring0 == new_ring1 ||
                    !current_edge->is_primary()) {
                 current_edge = current_edge->rot_next();
-                new_segment_index0 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->cell()->source_index()));
-                new_segment_index1 = std::distance(segments_count.cbegin(), std::upper_bound(segments_count.cbegin(), segments_count.cend(),current_edge->twin()->cell()->source_index()));
+                new_ring0 = edge_to_ring(*current_edge, segments_count);
+                new_ring1 = edge_to_ring(*current_edge->twin(), segments_count);
             }
         } while (current_edge != start_edge);
-        output[segment_index1].push_back(output[segment_index1].front());
+        ring1->push_back(ring1->front());  // Close the ring.
     }
     return output;
+}
+
+ring_type_fp* Voronoi::edge_to_ring(const edge_type& edge, const std::map<size_t, ring_type_fp*>& segments_count) {
+    auto source_index = edge.cell()->source_index();
+    auto upper = segments_count.upper_bound(source_index);
+    if (upper == segments_count.cend()) {
+        return nullptr;
+    }
+    return upper->second;
 }
 
 linestring_type_fp Voronoi::edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist) {
