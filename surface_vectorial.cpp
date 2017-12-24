@@ -92,8 +92,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     else
         bg::assign(svg_bounding_box, bounding_box);
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
+    const string contentions_filename = (boost::format("contentions_%s.svg") % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
+    svg_writer contentions_debug_image(build_filename(outputdir, contentions_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     // Get the voronoi outlines of each equipotential net.  Milling
     // should not go outside the region.  The rings are in the same order as the input
@@ -173,6 +175,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
             if (bg::area(contentions_poly) > 0) {
                 contentions = true;
                 debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                contentions_debug_image.add(contentions_poly, 1.0, 255, 0, 0);
             }
         }
     } else { // Not voronoi.
@@ -194,6 +197,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
                     if (bg::area(contentions_poly) > 0) {
                         contentions = true;
                         debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                        contentions_debug_image.add(contentions_poly, 1.0, 255, 0, 0);
                     }
                 }
             }
@@ -203,7 +207,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (contentions) {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
              << " clearance requirements."
-             << " You may want to check processed_" + name + ".svg, the g-code output, and"
+             << " You may want to check " + contentions_filename + ", the g-code output, and"
              << " possibly use a smaller milling width.\n";
     }
 
@@ -508,8 +512,8 @@ void svg_writer::add(const polygon_type& poly, double opacity, double which_colo
 void svg_writer::add(const polygon_type& poly, double opacity, unsigned int r, unsigned int g, unsigned int b)
 {
     mapper->map(poly,
-                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
-                    opacity % r % g % b));
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(%u,%u,%u);stroke-width:2") %
+                    opacity % r % g % b % r % g % b));
 }
 
 // From https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
