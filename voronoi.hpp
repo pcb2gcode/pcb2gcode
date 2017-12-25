@@ -21,6 +21,7 @@
 #define VORONOI_H
 
 #include <boost/polygon/voronoi.hpp>
+#include <boost/optional.hpp>
 
 #include <vector>
 using std::vector;
@@ -86,11 +87,16 @@ protected:
     static point_type_p retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments);
     static const segment_type_p& retrieve_segment(const cell_type& cell, const vector<segment_type_p> &segments);
     static void sample_curved_edge(const edge_type *edge, const vector<segment_type_p> &segments,
-                                    vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
+                                   vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
     static void clip_infinite_edge(
         const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box);
-    template <typename result_type>
-    static result_type edge_lookup(const edge_type& edge, const std::map<size_t, result_type>& segments_to_result);
+    // Given an edge, return the ring that we need to fill.  If the
+    // edge is for an outer ring, return that ring.  If it's for an
+    // inner ring, make a new inner ring for the output polygon and
+    // return that.
+    static boost::optional<ring_type_fp&> edge_to_ring(const edge_type& edge, const std::map<size_t, boost::variant<ring_type_fp*, std::vector<ring_type_fp>*>>& segments_to_ring);
+    // Do these edges belong to the same polygon?
+    static bool same_poly(const edge_type& edge0, const edge_type& edge1, const std::vector<size_t>& segments_to_poly);
 };
 
 #endif
