@@ -90,11 +90,6 @@ protected:
                                    vector<point_type_fp_p>& sampled_edge, coordinate_type_fp max_dist);
     static void clip_infinite_edge(
         const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box);
-    // Given an edge, return the ring that we need to fill.  If the
-    // edge is for an outer ring, return that ring.  If it's for an
-    // inner ring, make a new inner ring for the output polygon and
-    // return that.
-    static boost::optional<ring_type_fp&> edge_to_ring(const edge_type& edge, const std::map<size_t, boost::variant<ring_type_fp*, std::vector<ring_type_fp>*>>& segments_to_ring);
     // Do these edges belong to the same polygon?
     static bool same_poly(const edge_type& edge0, const edge_type& edge1, const std::vector<size_t>& segments_to_poly);
 };

@@ -42,31 +42,19 @@ multi_polygon_type_fp Voronoi::get_voronoi_polygons(
     bounding_box.min_corner().x(bounding_box.min_corner().x() - 2*bounding_box_width);
     bounding_box.max_corner().y(bounding_box.max_corner().y() + 2*bounding_box_height);
     bounding_box.min_corner().y(bounding_box.min_corner().y() - 2*bounding_box_height);
-    // The output polygons which are voronoi shapes.  The outputs
-    // match the inputs in number and position but the number of inner
-    // rings for each output polygon might not match.
-    multi_polygon_type_fp output;
-
     // Each line segment from all the inputs.
     vector<segment_type_p> segments;
-    // Each segment belongs to a polygon and comes from either the
-    // outline or the inner holes.
-    std::map<size_t, boost::variant<ring_type_fp*, std::vector<ring_type_fp>*>> segments_to_ring;
     // From which polygon each segment is sourced.
     std::vector<size_t> segments_to_poly;
-    // Pre-allocate because we are going to store pointers to it above.
-    output.resize(input.size());
-    for (size_t p = 0; p < input.size(); p++) {
-        const polygon_type& polygon = input[p];
+    for (const auto& polygon : input) {
         copy_ring(polygon.outer(), segments);
-        segments_to_ring[segments.size()] = &output[p].outer();
         for (const ring_type& ring : polygon.inners()) {
             copy_ring(ring, segments);
         }
-        segments_to_ring[segments.size()] = &output[p].inners();
         segments_to_poly.push_back(segments.size());
     }
-
+    // Add the bounding box but without putting it in segments_to_poly
+    // so that we won't put voronoi cells from it into the output.
     ring_type bounding_box_ring;
     bg::convert(bounding_box, bounding_box_ring);
     copy_ring(bounding_box_ring, segments);
@@ -76,62 +64,58 @@ multi_polygon_type_fp Voronoi::get_voronoi_polygons(
     voronoi_diagram_type voronoi_diagram;
     voronoi_builder.construct(&voronoi_diagram);
 
+    // The output polygons which are voronoi shapes.  The outputs
+    // match the inputs in number and position but the number of inner
+    // rings for each output polygon might not match.
+    multi_polygon_type_fp output;
+    // Pre-allocate because we are going to add elements out of order.
+    output.resize(input.size());
+
+    // To keep it simply, we first mark each edge as used if it won't
+    // be part of the output.
+    const int VISITED = 1;
     for (const edge_type& edge : voronoi_diagram.edges()) {
-        const edge_type* current_edge = &edge;
-        if (!current_edge->is_primary()) {
-            continue;
+        if (!edge.is_primary() || // Not a real voronoi edge.
+            same_poly(edge, *edge.twin(), segments_to_poly) || // This edge doesn't divide different shapes.
+            // The edge belongs to the boundary.
+            std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()) == segments_to_poly.cend()) {
+            edge.color(edge.color() | VISITED);
         }
-        if ((current_edge->color() & 1) == 1) {
+    }
+    for (const edge_type& edge : voronoi_diagram.edges()) {
+        if ((edge.color() & VISITED) == VISITED) {
             continue;  // Used already.
         }
-        if (same_poly(*current_edge, *current_edge->twin(), segments_to_poly)) {
-            continue; // This is not between different polygons.
-        }
-        boost::optional<ring_type_fp&> ring = edge_to_ring(*current_edge->twin(), segments_to_ring);
-        if (!ring) {
-            continue; // This is the bounding box, ignore it.
-        }
-        if (ring->size() > 0) {
-            continue; // Already did this loop.
-        }
-        const edge_type *start_edge = current_edge;
+        const edge_type* current_edge = &edge;
+        const edge_type* const start_edge = current_edge;
+        ring_type_fp ring;
         do {
             linestring_type_fp discrete_edge = edge_to_linestring(*current_edge, segments, bounding_box, max_dist);
-            // Don't push the last one because it's a repeat.
-            ring->insert(ring->end(), discrete_edge.cbegin(), discrete_edge.cend()-1);
+            // Don't push the last one because we'll put it at the end.
+            ring.insert(ring.end(), discrete_edge.cbegin(), discrete_edge.cend()-1);
             current_edge->color(current_edge->color() | 1);  // Mark used
             current_edge = current_edge->next();
             // Check that we are still circling the same polygon for
             // our ring, and that we are on edge that is between
             // different traces, and that it's a primary edge.
-            while (!same_poly(*current_edge->twin(), *start_edge->twin(), segments_to_poly) ||
-                   same_poly(*current_edge, *current_edge->twin(), segments_to_poly) ||
-                   !current_edge->is_primary()) {
+            while (current_edge != start_edge &&
+                   ((current_edge->color() & VISITED) == VISITED ||
+                    // Still circling the same twin.  We look at twin because we need clockwise outer loops.
+                    !same_poly(*current_edge->twin(), *start_edge->twin(), segments_to_poly))) {
                 current_edge = current_edge->rot_next();
             }
         } while (current_edge != start_edge);
-        ring->push_back(ring->front());  // Close the ring.
+        ring.push_back(ring.front());  // Close the ring.
+        size_t poly_index = std::distance(segments_to_poly.cbegin(), std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()));
+        if (bg::area(ring) > 0) {
+            // This is the outer ring of the poly.
+            output[poly_index].outer().swap(ring);
+        } else {
+            // This has negative area, it must be a hole in the outer.
+            output[poly_index].inners().push_back(ring);
+        }
     }
     return output;
-}
-
-boost::optional<ring_type_fp&> Voronoi::edge_to_ring(const edge_type& edge, const std::map<size_t, boost::variant<ring_type_fp*, std::vector<ring_type_fp>*>>& segments_to_ring) {
-    auto source_index = edge.cell()->source_index();
-    auto upper = segments_to_ring.upper_bound(source_index);
-    if (upper == segments_to_ring.cend()) {
-        return boost::none;
-    }
-    struct get_ring : public boost::static_visitor<ring_type_fp&> {
-        ring_type_fp& operator()(ring_type_fp* ring) const {
-            return *ring;
-        }
-        ring_type_fp& operator()(vector<ring_type_fp>* rings) const {
-            rings->push_back(ring_type_fp());
-            return rings->back();
-        }
-    };
-
-    return boost::apply_visitor(get_ring(), upper->second);
 }
 
 bool Voronoi::same_poly(const edge_type& edge0, const edge_type& edge1, const std::vector<size_t>& segments_to_poly) {
