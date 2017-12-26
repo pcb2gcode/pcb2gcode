@@ -8,7 +8,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-4.8', 'libboost-program-options1.56-dev', 'libboost-test1.56-dev', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['g++-4.8', 'libboost-program-options1.55-dev', 'libboost-test1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=g++-4.8
 
     - os: linux
@@ -16,7 +16,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-5', 'libboost-program-options1.56-dev', 'libboost-test1.56-dev', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['g++-5', 'libboost-program-options1.55-dev', 'libboost-test1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=g++-5
 
     - os: linux
@@ -24,7 +24,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-6', 'libboost-program-options1.56-dev', 'libboost-test1.56-dev', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['g++-6', 'libboost-program-options1.55-dev', 'libboost-test1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=g++-6
 
     - os: linux
@@ -32,7 +32,7 @@ matrix:
       addons:
         apt:
           sources: ['boost-latest']
-          packages: ['libboost-program-options1.56-dev', 'libboost-test1.56-dev', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['libboost-program-options1.55-dev', 'libboost-test1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=clang++
 
     - os: osx
