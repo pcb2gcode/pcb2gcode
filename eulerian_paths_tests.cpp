@@ -1,15 +1,11 @@
-#include "config.h"
-#if !STATIC_BOOST
-#define BOOST_TEST_DYN_LINK // to use shared libs
-#endif
-#define BOOST_TEST_MODULE eulerian_paths_tests
-#include <boost/test/unit_test.hpp>
+#define BOOST_TEST_MODULE eulerian paths tests
+#include <boost/test/included/unit_test.hpp>
 
 #include "eulerian_paths.hpp"
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(eulerian_paths);
+BOOST_AUTO_TEST_SUITE(eulerian_paths_tests);
 
 struct PointLessThan {
   bool operator()(const point_type& a, const point_type& b) const {

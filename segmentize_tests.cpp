@@ -1,9 +1,5 @@
-#include "config.h"
-#if !STATIC_BOOST
-#define BOOST_TEST_DYN_LINK // to use shared libs
-#endif
-#define BOOST_TEST_MODULE segmentize_tests
-#include <boost/test/unit_test.hpp>
+#define BOOST_TEST_MODULE segmentize tests
+#include <boost/test/included/unit_test.hpp>
 
 #include "segmentize.hpp"
 
