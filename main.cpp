@@ -96,10 +96,8 @@ int main(int argc, char* argv[])
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        if (vm["voronoi"].as<bool>())
-            isolator->tool_diameter = -1;
-        else
-            isolator->tool_diameter = vm["offset"].as<double>() * 2 * unit;
+        isolator->tool_diameter = vm["offset"].as<double>() * 2 * unit;
+        isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<double>() * unit;
         isolator->zsafe = vm["zsafe"].as<double>() * unit;
         isolator->feed = vm["mill-feed"].as<double>() * unit;
@@ -111,6 +109,7 @@ int main(int argc, char* argv[])
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
+        isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
         isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
@@ -134,6 +133,7 @@ int main(int argc, char* argv[])
         cutter->do_steps = true;
         cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
         cutter->optimise = vm["optimise"].as<bool>();
+        cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
         cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();

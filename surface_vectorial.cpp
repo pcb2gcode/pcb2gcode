@@ -32,6 +32,8 @@ using Glib::build_filename;
 
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
+#include "eulerian_paths.hpp"
+#include "segmentize.hpp"
 
 using std::max;
 using std::max_element;
@@ -40,7 +42,7 @@ using std::next;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
-                                        ivalue_t height, string name, string outputdir) :
+                                     ivalue_t height, string name, string outputdir) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
@@ -59,7 +61,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
     if (bg::intersects(*vectorial_surface_not_simplified))
-        throw std::logic_error("Input geometry is self-intersecting");
+        cerr << "\nWarning: Input geometry is self-intersecting.\n";
 
     scale = importer->vectorial_scale();
 
@@ -71,84 +73,166 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    vector<shared_ptr<icoords> > toolpath;
-    vector<shared_ptr<icoords> > toolpath_optimised;
-    shared_ptr<multi_polygon_type> voronoi;
-    coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
-                                            max(width_in, height_in) * scale * 10);
     coordinate_type tolerance = mill->tolerance * scale;
+    // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type grow = mill->tool_diameter / 2 * scale;
-
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    // Extra passes are done on each trace if requested, each offset by half the tool diameter.
     const int extra_passes = isolator ? isolator->extra_passes : 0;
-
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
 
     box_type svg_bounding_box;
 
+    // Make the svg file large enough to contains the width of all milling.  If it's too large, that's okay, too.
     if (grow > 0)
         bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
     else
         bg::assign(svg_bounding_box, bounding_box);
-
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
+    const string contentions_filename = (boost::format("contentions_%s.svg") % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
+    svg_writer contentions_debug_image(build_filename(outputdir, contentions_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
-    srand(1);
-    debug_image.add(*voronoi, 0.3, false);
-
-    const coordinate_type mirror_axis = mill->mirror_absolute ?
-        bounding_box.min_corner().x() :
-        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-    bool contentions = false;
-
-    srand(1);
-
-    for (unsigned int i = 0; i < vectorial_surface->size(); i++)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-
-        unique_ptr<vector<polygon_type> > polygons;
-    
-        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
-                                    grow, i, extra_passes + 1, mirror, mirror_axis);
-
-        debug_image.add(*polygons, 0.6, r, g, b);
-        traced_debug_image.add(*polygons, 1, r, g, b);
+    // Get the voronoi outlines of each equipotential net.  Milling
+    // should not go outside the region.  The rings are in the same order as the input
+    multi_polygon_type current_mask = get_mask();
+    multi_polygon_type_fp voronoi_polygons =
+        Voronoi::get_voronoi_polygons(*vectorial_surface, bounding_box, tolerance);
+    vector<multi_polygon_type> voronoi_cells;
+    // The voronoi polygons cover the input but might cover outside
+    // the mask.  We'll crop each polygon by the mask.
+    for (const auto& poly : voronoi_polygons) {
+        multi_polygon_type integral_poly;
+        bg::convert(poly, integral_poly);
+        multi_polygon_type cell;
+        bg::intersection(integral_poly, current_mask, cell);
+        voronoi_cells.push_back(cell);
     }
 
-    srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    bool contentions = false;
 
-    if (contentions)
-    {
+    multi_linestring_type toolpath;
+    const auto& keep_in = voronoi_cells;  // Don't mill outside these.
+    vector<multi_polygon_type> keep_out;  // Don't mill inside these.
+    for (const auto& input : *vectorial_surface) {
+        // Take the width of the milling bit into account.
+        keep_out.push_back(buffer(input, grow));
+    }
+    bool voronoi = isolator && isolator->voronoi;
+    // source_poly_index is the source of this poly in the vectorial_surface.
+    auto copy_mp_to_toolpath = [&](const multi_polygon_type& mp, int source_poly_index) {
+        // The color is based on the poly it surrounds.
+        double which_color = (double) source_poly_index / vectorial_surface->size();
+        // The path is clipped to be outisde the trace but inside the
+        // voronoi cell.
+        multi_polygon_type clipped1;
+        bg::union_(mp, keep_out[source_poly_index], clipped1);
+        multi_polygon_type clipped2;
+        bg::intersection(clipped1, keep_in[source_poly_index], clipped2);
+        debug_image.add(clipped2, 0.7/(extra_passes+1), which_color);
+        traced_debug_image.add(clipped2, 1, which_color);
+        multi_linestring_type mls;
+        multi_poly_to_multi_linestring(clipped2, &mls);
+        for (const auto& ls : mls) {
+            linestring_type new_ls;
+            for (const auto& point : ls) {
+                if (mirror) {
+                    const coordinate_type mirror_axis = mill->mirror_absolute ?
+                        bounding_box.min_corner().x() :
+                        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
+                    new_ls.push_back(point_type(2 * mirror_axis - point.x(),
+                                                point.y()));
+                } else {
+                    new_ls.push_back(point);
+                }
+            }
+            toolpath.push_back(new_ls);
+        }
+    };
+
+    for (unsigned int i = 0; i < (*vectorial_surface).size(); i++) {
+        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
+    }
+    const auto pass_offsets = get_pass_offsets(grow, extra_passes + 1, voronoi);
+    if (voronoi) {
+        // Voronoi means that we mill the voronoi cell and possibly
+        // have offset milling going inward toward the net.
+        for (size_t i = 0; i < voronoi_cells.size(); i++) {
+            for (auto pass_offset : pass_offsets) {
+                const auto buffered_poly = buffer(voronoi_cells[i], pass_offset);
+                copy_mp_to_toolpath(buffered_poly, i);
+            }
+            // The last pass_offset will be the most contentious
+            // because it's the most infringing on traces potentially.
+            // Check if it was trying to go into the trace.
+            const auto& max_milling = buffer(voronoi_cells[i], pass_offsets.back() - grow);
+            multi_polygon_type contentions_poly;
+            bg::difference((*vectorial_surface)[i], max_milling, contentions_poly);
+            if (bg::area(contentions_poly) > 0) {
+                contentions = true;
+                debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                contentions_debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+            }
+        }
+    } else { // Not voronoi.
+        for (size_t i = 0; i < vectorial_surface->size(); i++) {
+            for (auto pass_offset : pass_offsets) {
+                const auto& poly = (*vectorial_surface)[i];
+                const auto buffered_poly = buffer(poly, pass_offset);
+                copy_mp_to_toolpath(buffered_poly, i);
+            }
+            // The last pass_offset will be the most contentious
+            // because it's the biggest area.  Check if it was trying
+            // to overlap any input traces.
+            const auto& max_milling = buffer((*vectorial_surface)[i], pass_offsets.back() + grow);
+            for (size_t j = 0; j < vectorial_surface->size(); j++) {
+                if (i != j) {
+                    // Check if the milling overlaps the other trace.
+                    multi_polygon_type contentions_poly;
+                    bg::intersection((*vectorial_surface)[j], max_milling, contentions_poly);
+                    if (bg::area(contentions_poly) > 0) {
+                        contentions = true;
+                        debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                        contentions_debug_image.add(contentions_poly, 1.0, 255, 0, 0);
+                    }
+                }
+            }
+        }
+    }
+
+    if (contentions) {
         cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
-             << " clearance requirements and tried a best effort approach"
-             << " instead. You may want to check the g-code output and"
+             << " clearance requirements."
+             << " You may want to check " + contentions_filename + ", the g-code output, and"
              << " possibly use a smaller milling width.\n";
     }
 
-    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
+    if (mill->eulerian_paths) {
+        toolpath = eulerian_paths(toolpath);
+    }
+
+    tsp_solver::nearest_neighbour( toolpath, point_type(0, 0), 0.0001 );
+
+    vector<shared_ptr<icoords>> scaled_toolpath = mls_to_icoords(toolpath, scale);
 
     if (mill->optimise)
     {
-        for (const shared_ptr<icoords>& ring : toolpath)
+        vector<shared_ptr<icoords> > toolpath_optimised;
+        for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
+            // This does Douglas-Peucker optimization to reduce point count.
             bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
         }
 
         return toolpath_optimised;
     }
     else
-        return toolpath;
+        return scaled_toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -156,8 +240,9 @@ void Surface_vectorial::save_debug_image(string message)
     const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
     svg_writer debug_image(build_filename(outputdir, filename), SVG_PIX_PER_IN, scale, bounding_box);
 
-    srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+        debug_image.add((*vectorial_surface)[i], 1, (double)i/vectorial_surface->size());
+    }
 
     ++debug_image_index;
 }
@@ -184,187 +269,185 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
-unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis)
-{
-    if (offset < 0)
-        steps = 1;
+template <typename multi_poly_t, typename multi_linestring_t>
+void Surface_vectorial::multi_poly_to_multi_linestring(const multi_poly_t& mpoly, multi_linestring_t* mls) {
+    // Add all the linestrings from the mpoly to the mls.
+    for (const auto& poly : mpoly) {
+        poly_to_multi_linestring(poly, mls);
+    }
+}
 
-    unique_ptr<vector<polygon_type> > polygons (new vector<polygon_type>(steps));
-    list<list<const ring_type *> > rings (steps);
-    auto ring_i = rings.begin();
-    point_type last_point;
-
-    auto push_point = [&](const point_type& point)
-    {
-        if (mirror)
-            toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                                    point.y() / double(scale)));
-        else
-            toolpath.back()->push_back(make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
-    };
-
-    auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
-    {
-        const auto size_minus_1 = ring.size() - 1;
-        unsigned int i = start;
-
-        do
-        {
-            push_point(ring[i]);
-            i = (i + 1) % size_minus_1;
-        } while (i != start);
-
-        push_point(ring[i]);
-        last_point = ring[i];
-    };
-
-    auto find_first_nonempty = [&]()
-    {
-        for (auto i = rings.begin(); i != rings.end(); i++)
-            if (!i->empty())
-                return i;
-        return rings.end();
-    };
-
-    auto find_closest_point_index = [&](const ring_type& ring)
-    {
-        const unsigned int size = ring.size();
-        auto min_distance = bg::comparable_distance(ring[0], last_point);
-        unsigned int index = 0;
-
-        for (unsigned int i = 1; i < size; i++)
-        {
-            const auto distance = bg::comparable_distance(ring[i], last_point);
-
-            if (distance < min_distance)
-            {
-                min_distance = distance;
-                index = i;
-            }
+template <typename poly_t, typename multi_linestring_t>
+void Surface_vectorial::poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls) {
+    // Add all the linestrings from the poly to the mls.
+    typename multi_linestring_t::value_type ls;
+    for (const auto& point : poly.outer()) {
+        typename multi_linestring_t::value_type::value_type new_point(point.x(), point.y());
+        ls.push_back(new_point);
+    }
+    mls->push_back(ls);
+    for (const auto& inner : poly.inners()) {
+        typename multi_linestring_t::value_type ls;
+        for (const auto& point : inner) {
+            typename multi_linestring_t::value_type::value_type new_point(point.x(), point.y());
+            ls.push_back(new_point);
         }
+        mls->push_back(ls);
+    }
+}
 
-        return index;
-    };
+multi_polygon_type Surface_vectorial::get_mask() {
+    multi_polygon_type current_mask;
+    if (mask) {
+        current_mask = *(mask->vectorial_surface);
+    } else {
+        // If there's no mask, we'll use the convex hull as a mask.
+        polygon_type_fp current_mask_fp;
+        multi_linestring_type_fp mls;
+        multi_poly_to_multi_linestring(*vectorial_surface, &mls);
+        bg::convex_hull(mls, current_mask_fp);
+        bg::convert(current_mask_fp, current_mask);
+    }
+    return current_mask;
+}
 
-    toolpath.push_back(make_shared<icoords>());
+multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
+    // Merge points that are very close to each other because it makes
+    // us more likely to find intersections that was can use.
+    multi_linestring_type merged_toolpaths(toolpaths);
+    merge_near_points(merged_toolpaths);
 
-    bool outer_collapsed = false;
-
-    for (unsigned int i = 0; i < steps; i++)
-    {
-        if (offset == 0)
-        {
-            (*polygons)[i] = input[index];
+    // First we need to split all paths so that they don't cross.
+    vector<segment_type_p> all_segments;
+    for (const auto& toolpath : merged_toolpaths) {
+        for (size_t i = 1; i < toolpath.size(); i++) {
+            all_segments.push_back(
+                segment_type_p(
+                    point_type_p(toolpath[i-1].x(), toolpath[i-1].y()),
+                    point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
-        else if (offset > 0)
-        {
-            auto mpoly = make_shared<multi_polygon_type>();
-            multi_polygon_type mpoly_temp;
+    }
+    vector<segment_type_p> split_segments = segmentize(all_segments);
 
-            bg::buffer(input[index], mpoly_temp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                       bg::strategy::buffer::end_flat(),
-                       bg::strategy::buffer::point_circle(30));
-
-            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
-
-            (*polygons)[i] = (*mpoly)[0];
-
-            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
-                contentions = true;
-        }
-        else
-        {
-            if (mask)
-            {
-                multi_polygon_type mpoly_temp;
-
-                bg::intersection(voronoi[index], *(mask->vectorial_surface), mpoly_temp);
-                (*polygons)[i] = mpoly_temp[0];
-            }
-            else
-                (*polygons)[i] = voronoi[index];
-        }
-
-        if (i == 0)
-            copy_ring_to_toolpath((*polygons)[i].outer(), 0);
-        else
-        {
-            if (!outer_collapsed && bg::equals((*polygons)[i].outer(), (*polygons)[i - 1].outer()))
-                outer_collapsed = true;
-
-            if (!outer_collapsed)
-                copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
-        }
-
-        for (const ring_type& ring : (*polygons)[i].inners())
-            ring_i->push_back(&ring);
-        
-        ++ring_i;
+    multi_linestring_type segments_as_linestrings;
+    for (const auto& segment : split_segments) {
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls;
+        ls.push_back(point_type(segment.low().x(), segment.low().y()));
+        ls.push_back(point_type(segment.high().x(), segment.high().y()));
+        segments_as_linestrings.push_back(ls);
     }
 
-    ring_i = find_first_nonempty();
+    // Make a minimal number of paths from those segments.
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
 
-    while (ring_i != rings.end())
-    {
-        const ring_type *biggest = ring_i->front();
-        const ring_type *prev = biggest;
-        auto ring_j = next(ring_i);
+    return get_eulerian_paths<point_type,
+                              linestring_type,
+                              multi_linestring_type,
+                              PointLessThan>(segments_as_linestrings);
+}
 
-        toolpath.push_back(make_shared<icoords>());
-        copy_ring_to_toolpath(*biggest, 0);
-
-        while (ring_j != rings.end())
-        {
-            list<const ring_type *>::iterator j;
-
-            for (j = ring_j->begin(); j != ring_j->end(); j++)
-            {
-                if (bg::equals(**j, *prev))
-                {
-                    ring_j->erase(j);
-                    break;
-                }
-                else
-                {
-                    if (bg::covered_by(**j, *prev))
-                    {
-                        auto index = find_closest_point_index(**j);
-                        ring_type ring (prev->rbegin(), prev->rend());
-                        linestring_type segment;
-
-                        segment.push_back((**j)[index]);
-                        segment.push_back(last_point);
-
-                        if (bg::covered_by(segment, ring))
-                        {
-                            copy_ring_to_toolpath(**j, index);
-                            prev = *j;
-                            ring_j->erase(j);
-                            break;
-                        }
-                    }
-                }
+vector<coordinate_type> Surface_vectorial::get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi) {
+    if (offset == 0) {
+        return vector<coordinate_type>(total_passes, offset);
+    } else if (voronoi) {
+        if (total_passes % 2 == 1) {
+            // It's odd, we need a center pass and then a bunch of
+            // offset passes.
+            vector<coordinate_type> result{0};
+            total_passes--;
+            for (unsigned int i = 0; i < total_passes/2; i++) {
+                result.push_back(-offset * (i+1));
             }
-
-            if (j == ring_j->end())
-                ring_j = rings.end();
-            else
-                ++ring_j;
+            return result;
+        } else {
+            vector<coordinate_type> result;
+            // It's even, so we don't have a center pass.
+            for (unsigned int i = 0; i < total_passes/2; i++) {
+                result.push_back(-offset/2 + -offset * i);
+            }
+            return result;
         }
-
-        ring_i->erase(ring_i->begin());
-        ring_i = find_first_nonempty();
+    } else {
+        // Not voronoi.
+        vector<coordinate_type> result;
+        for (unsigned int i = 0; i < total_passes; i++) {
+            result.push_back((i+1)*offset);
+        }
+        return result;
     }
+}
 
-    return polygons;
+template <typename geo_t>
+const multi_polygon_type Surface_vectorial::buffer(const geo_t& poly, coordinate_type offset) {
+    multi_polygon_type buffered_poly;
+    if (offset == 0) {
+        bg::convert(poly, buffered_poly);
+        return buffered_poly;
+    }
+    bg::buffer(poly, buffered_poly,
+               bg::strategy::buffer::distance_symmetric<coordinate_type>(offset),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    return buffered_poly;
+}
+
+template <typename multi_linestring_t>
+vector<shared_ptr<icoords>> Surface_vectorial::mls_to_icoords(const multi_linestring_t& mls, double scale) {
+    vector<shared_ptr<icoords>> output;
+    for (const auto& ls : mls) {
+        auto new_icoords = make_shared<icoords>();
+        for (const auto &point : ls) {
+            new_icoords->push_back(icoordpair(point.x()/scale, point.y()/scale));
+        }
+        output.push_back(new_icoords);
+    }
+    return output;
+}
+
+size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+
+    std::map<point_type, point_type, PointLessThan> points;
+    for (const auto& ls : mls) {
+        for (const auto& point : ls) {
+            points[point] = point;
+        }
+    }
+    // Merge points that are near one another.  This doesn't do a
+    // great job but it's fast enough.
+    size_t points_merged = 0;
+    for (auto i = points.begin(); i != points.end(); i++) {
+        for (auto j = i;
+             j != points.upper_bound(point_type(i->second.x()+100,
+                                                i->second.y()+100));
+             j++) {
+            if (!bg::equals(j->second, i->second) &&
+                bg::comparable_distance(i->second, j->second) <= 100) {
+                points_merged++;
+                j->second = i->second;
+            }
+        }
+    }
+    if (points_merged > 0) {
+        for (auto& ls : mls) {
+            for (auto& point : ls) {
+                point = points[point];
+            }
+        }
+    }
+    return points_merged;
 }
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
@@ -385,50 +468,78 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
     mapper->add(bounding_box);
 }
 
-void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
-{
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-    for (const polygon_type& poly : geometry)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        multi_polygon_type mpoly;
-
-        bg::intersection(poly, bounding_box, mpoly);
-
-        mapper->map(mpoly,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
+template <typename multi_geo_t>
+void svg_writer::add(const multi_geo_t& geos, double opacity, unsigned int r, unsigned int g, unsigned int b) {
+    for (const auto& geo : geos) {
+        add(geo, opacity, r, g, b);
     }
 }
 
-void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int r, int g, int b)
-{
-    if (r < 0 || g < 0 || b < 0)
-    {
-        r = rand() % 256;
-        g = rand() % 256;
-        b = rand() % 256;
+template <typename multi_geo_t>
+void svg_writer::add(const multi_geo_t& geos, double opacity, double which_color) {
+    for (const auto& geo : geos) {
+        add(geo, opacity, which_color);
     }
+}
 
-    for (unsigned int i = geometries.size(); i != 0; i--)
-    {
-        multi_polygon_type mpoly;
+void svg_writer::add(const linestring_type& geometry, double opacity, double which_color)
+{
+    multi_linestring_type mlinestring;
+    bg::intersection(geometry, bounding_box, mlinestring);
 
-        bg::intersection(geometries[i - 1], bounding_box, mpoly);
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+    get_color(which_color, &r, &g, &b);
+    string stroke_str = str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:2") % r % g % b);
+    mapper->map(mlinestring,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
+                    opacity % r % g % b));
+}
 
-        if (i == geometries.size())
-        {
-            mapper->map(mpoly,
+void svg_writer::add(const polygon_type& poly, double opacity, double which_color)
+{
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+    get_color(which_color, &r, &g, &b);
+
+    mapper->map(poly,
                 str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
-                opacity % r % g % b));
-        }
-        else
-        {
-            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
-        }
-    }
+                    opacity % r % g % b));
 }
 
+void svg_writer::add(const polygon_type& poly, double opacity, unsigned int r, unsigned int g, unsigned int b)
+{
+    mapper->map(poly,
+                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(%u,%u,%u);stroke-width:2") %
+                    opacity % r % g % b % r % g % b));
+}
+
+// From https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
+void svg_writer::get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue) {
+    srand((int) (which_color*INT_MAX));
+
+    double hh = rand() % 360;
+    double s = 0.6;
+    double v = 0.6;
+
+    hh /= 60;
+    int i = (int)hh;
+    double ff = hh - i;
+    double p = v * (1.0 - s);
+    double q = v * (1.0 - (s * ff));
+    double t = v * (1.0 - (s * (1.0 -ff)));
+    double r, g, b;
+    switch(i) {
+    case 0: r = v; g = t; b = p; break;
+    case 1: r = q; g = v; b = p; break;
+    case 2: r = p; g = v; b = t; break;
+    case 3: r = p; g = q; b = v; break;
+    case 4: r = t; g = p; b = v; break;
+    case 5: default: r = v; g = p; b = q; break;
+    }
+    *red = (unsigned int)(r * 255 + 0.5);
+    *green = (unsigned int)(g * 255 + 0.5);
+    *blue = (unsigned int)(b * 255 + 0.5);
+}

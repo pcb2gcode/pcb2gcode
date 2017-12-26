@@ -56,6 +56,7 @@ class RoutingMill: public Mill
 public:
     double tool_diameter;
     bool optimise;
+    bool eulerian_paths;
 };
 
 /******************************************************************************/
@@ -66,6 +67,7 @@ class Isolator: public RoutingMill
 {
 public:
     int extra_passes;
+    bool voronoi;
 };
 
 /******************************************************************************/

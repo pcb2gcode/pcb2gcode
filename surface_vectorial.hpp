@@ -92,19 +92,42 @@ protected:
     
     shared_ptr<Surface_vectorial> mask;
 
-    unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
-                            bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis);
+private:
+    template <typename multi_poly_t, typename multi_linestring_t>
+    void multi_poly_to_multi_linestring(const multi_poly_t& mpoly, multi_linestring_t* mls);
+    template <typename poly_t, typename multi_linestring_t>
+    void poly_to_multi_linestring(const poly_t& poly, multi_linestring_t* mls);
+    // Returns the mask if it exists or the convex hull of the vectorial surfaces if not.
+    multi_polygon_type get_mask();
+    // Returns a minimal number of toolpaths that include all the
+    // milling in the oroginal toolpaths.  Each path is traversed
+    // once.
+    multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
+    // Grow the input linestring by the specified amount and return
+    // the result as a list of coordinates around the path.
+    vector<coordinate_type> get_pass_offsets(coordinate_type offset, unsigned int total_passes, bool voronoi);
+    // Exapnd a shape by an offset and return the new shape.
+    template <typename geo_t>
+    const multi_polygon_type buffer(const geo_t& poly, coordinate_type offset);
+    // Convert the linestrings to icoords and scale them back to original scale.
+    template <typename multi_linestring_t>
+    static vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_t& mls, double scale);
+    static size_t merge_near_points(multi_linestring_type& mls);
 };
 
 class svg_writer
 {
 public:
     svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
-    void add(const multi_polygon_type& geometry, double opacity, bool stroke);
-    void add(const vector<polygon_type>& geometries, double opacity,
-        int r = -1, int g = -1, int b = -1);
+    template <typename multi_geo_t>
+    void add(const multi_geo_t& geometry, double opacity, double which_color);
+    template <typename multi_geo_t>
+    void add(const multi_geo_t& geometry, double opacity, unsigned int r, unsigned int g, unsigned int b);
+    void add(const linestring_type& geometry, double opacity, double which_color);
+    void add(const polygon_type& poly, double opacity, double which_color);
+    void add(const polygon_type& poly, double opacity, unsigned int r, unsigned int g, unsigned int b);
+    // Returns the visually unique color indexed by which_color.
+    void get_color(double which_color, unsigned int *red, unsigned int *green, unsigned int *blue);
 
 protected:
     ofstream output_file;

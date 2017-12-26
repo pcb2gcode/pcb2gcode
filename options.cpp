@@ -220,7 +220,7 @@ options::options()
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<double>()->default_value(0), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
@@ -251,6 +251,7 @@ options::options()
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
             "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
+            "eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
@@ -468,12 +469,6 @@ static void check_milling_parameters(po::variables_map const& vm)
             {
                 cerr << "Error: --voronoi requires --vectorial.\n";
                 exit(ERR_VORONOINOVECTORIAL);
-            }
-
-            if (!vm.count("outline"))
-            {
-                cerr << "Error: --voronoi requires an outline.\n";
-                exit(ERR_VORONOINOOUTLINE);
             }
         }
         else
