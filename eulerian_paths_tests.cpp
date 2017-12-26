@@ -1,5 +1,8 @@
+#include "config.h"
+#if !STATIC_BOOST
 #define BOOST_TEST_DYN_LINK // to use shared libs
-#define BOOST_TEST_MODULE eulerian_paths_test
+#endif
+#define BOOST_TEST_MODULE eulerian_paths_tests
 #include <boost/test/unit_test.hpp>
 
 #include "eulerian_paths.hpp"
