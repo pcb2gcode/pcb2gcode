@@ -37,6 +37,10 @@ BOOST_GEOMETRY
 BOOST_STRING_ALGO
 BOOST_FORMAT
 BOOST_TEST
+AS_IF([test "x$enable_static_boost" = "xyes"],
+      [AC_DEFINE_UNQUOTED([STATIC_BOOST],
+                          1,
+                          [Defined if enable-static-boost was set])])
 
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
