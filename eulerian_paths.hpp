@@ -113,7 +113,8 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
     auto& vertex = iter->first;
     if (vertex_to_unvisited_path_index.count(vertex) % 2 == 1) {
       // Make a path starting from vertex with odd count.
-      linestring_t new_path{vertex};
+      linestring_t new_path;
+      new_path.push_back(vertex);
       make_path(vertex, &new_path);
       euler_paths.push_back(new_path);
     }
@@ -134,7 +135,8 @@ multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths) {
   // edges.
   while(vertex_to_unvisited_path_index.size() > 0) {
     const auto vertex = vertex_to_unvisited_path_index.cbegin()->first;
-    linestring_t new_path{vertex};
+    linestring_t new_path;
+    new_path.push_back(vertex);
     make_path(vertex, &new_path);
     // We can stitch right now because all vertices already have
     // even number of edges.

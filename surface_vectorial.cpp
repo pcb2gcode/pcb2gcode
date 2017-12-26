@@ -333,9 +333,9 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
     for (const auto& segment : split_segments) {
         // Make a little 1-edge linestrings, filter out those that
         // aren't in the mask.
-        linestring_type ls{
-            point_type(segment.low().x(), segment.low().y()),
-            point_type(segment.high().x(), segment.high().y())};
+        linestring_type ls;
+        ls.push_back(point_type(segment.low().x(), segment.low().y()));
+        ls.push_back(point_type(segment.high().x(), segment.high().y()));
         segments_as_linestrings.push_back(ls);
     }
 
