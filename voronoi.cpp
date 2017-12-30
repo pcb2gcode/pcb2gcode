@@ -19,8 +19,6 @@
 
 #include "voronoi.hpp"
 #include "voronoi_visual_utils.hpp"
-#include <boost/variant.hpp>
-#include <boost/optional.hpp>
 #include <list>
 #include <map>
 #include <algorithm>
