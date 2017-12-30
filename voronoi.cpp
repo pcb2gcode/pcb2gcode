@@ -234,7 +234,7 @@ void Voronoi::clip_infinite_edge(
     }
     coordinate_type side = bounding_box.max_corner().x() - bounding_box.min_corner().x();
     coordinate_type koef =
-        side / (std::max)(fabs(direction.x()), fabs(direction.y()));
+        side / (std::max)(abs(direction.x()), abs(direction.y()));
     if (edge.vertex0() == NULL) {
         clipped_edge->push_back(point_type_fp_p(
                                     origin.x() - direction.x() * koef,
