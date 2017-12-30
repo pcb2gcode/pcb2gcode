@@ -32,8 +32,10 @@ void print_svg(const geo_t& geo, const string& filename) {
 
 BOOST_AUTO_TEST_CASE(empty) {
   multi_polygon_type mp;
-  const auto& result = Voronoi::build_voronoi(mp, 10, 10);
-  BOOST_CHECK(result->size() == 0);
+  box_type bounding_box;
+  bg::envelope(mp, bounding_box);
+  const auto& result = Voronoi::build_voronoi(mp, bounding_box, 10);
+  BOOST_CHECK(result.size() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(just_a_square) {
@@ -42,9 +44,11 @@ BOOST_AUTO_TEST_CASE(just_a_square) {
   bg::read_wkt("POLYGON((0 0, 0 100, 100 100, 100 0, 0 0))", new_poly);
   mp.push_back(new_poly);
   print_svg(mp, "just_a_square_input.svg");
-  const auto& result = Voronoi::build_voronoi(mp, 1000, 1000);
-  print_svg(*result, "just_a_square_output.svg");
-  BOOST_CHECK(result->size() == 1);
+  box_type bounding_box;
+  bg::envelope(mp, bounding_box);
+  const auto& result = Voronoi::build_voronoi(mp, bounding_box, 10);
+  print_svg(result, "just_a_square_output.svg");
+  BOOST_CHECK(result.size() == 1);
 }
 
 BOOST_AUTO_TEST_CASE(square_with_hole) {
@@ -56,11 +60,13 @@ BOOST_AUTO_TEST_CASE(square_with_hole) {
   bg::read_wkt("POLYGON((45 45, 45 55, 55 55, 55 45, 45 45))", new_poly);
   mp.push_back(new_poly);
   print_svg(mp, "square_with_hole_input.svg");
-  const auto& result = Voronoi::build_voronoi(mp, 100, 100);
-  print_svg(*result, "square_with_hole_output.svg");
-  BOOST_CHECK(result->size() == 2);
-  BOOST_CHECK((*result)[0].inners().size() == 1);
-  BOOST_CHECK((*result)[1].inners().size() == 0);
+  box_type bounding_box;
+  bg::envelope(mp, bounding_box);
+  const auto& result = Voronoi::build_voronoi(mp, bounding_box, 10);
+  print_svg(result, "square_with_hole_output.svg");
+  BOOST_CHECK(result.size() == 2);
+  BOOST_CHECK(result[0].inners().size() == 1);
+  BOOST_CHECK(result[1].inners().size() == 0);
 }
 
 BOOST_AUTO_TEST_CASE(almost_square_with_hole) {
@@ -72,11 +78,13 @@ BOOST_AUTO_TEST_CASE(almost_square_with_hole) {
   bg::read_wkt("POLYGON((45 45, 45 55, 55 55, 55 45, 45 45))", new_poly);
   mp.push_back(new_poly);
   print_svg(mp, "square_with_hole_input.svg");
-  const auto& result = Voronoi::build_voronoi(mp, 100, 100);
-  print_svg(*result, "square_with_hole_output.svg");
-  BOOST_CHECK(result->size() == 2);
-  BOOST_CHECK((*result)[0].inners().size() == 0);
-  BOOST_CHECK((*result)[1].inners().size() == 0);
+  box_type bounding_box;
+  bg::envelope(mp, bounding_box);
+  const auto& result = Voronoi::build_voronoi(mp, bounding_box, 10);
+  print_svg(result, "square_with_hole_output.svg");
+  BOOST_CHECK(result.size() == 2);
+  BOOST_CHECK(result[0].inners().size() == 1);
+  BOOST_CHECK(result[1].inners().size() == 0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

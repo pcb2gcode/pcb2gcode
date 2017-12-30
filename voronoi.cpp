@@ -19,163 +19,155 @@
 
 #include "voronoi.hpp"
 #include "voronoi_visual_utils.hpp"
-
+#include <boost/variant.hpp>
+#include <boost/optional.hpp>
 #include <list>
 #include <map>
 #include <algorithm>
 using std::list;
 using std::map;
 
-unique_ptr<multi_polygon_type> Voronoi::build_voronoi(const multi_polygon_type& input,
-                                coordinate_type bounding_box_offset, coordinate_type max_dist)
-{
-    unique_ptr<multi_polygon_type> output (new multi_polygon_type());
-    voronoi_diagram_type voronoi_diagram;
-    voronoi_builder_type voronoi_builder;
-    vector<segment_type_p> segments;
-    list<const cell_type *> visited_cells;
-    size_t segments_num = 0;
-    ring_type bounding_box_ring;
-
-    bg::assign(bounding_box_ring, bg::return_buffer<box_type>(
-                                bg::return_envelope<box_type>(input), bounding_box_offset));
-
-    for (const polygon_type& polygon : input)
-    {
-        segments_num += polygon.outer().size() - 1;
-        
-        for (const ring_type& ring : polygon.inners())
-        {
-            segments_num += ring.size() - 1;
-        }
+multi_polygon_type_fp Voronoi::build_voronoi(
+    const multi_polygon_type& input,
+    const box_type& mask_bounding_box, coordinate_type max_dist) {
+    if (input.empty()) {
+        return multi_polygon_type_fp();
     }
-    
-    segments_num += bounding_box_ring.size() - 1;
-    
-    segments.reserve(segments_num);
-    
-    for (const polygon_type& polygon : input)
-    {
+    // Bounding_box is a box that is big enough to hold all milling.
+    box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
+    // Expand that bounding box by the provided bounding_box.
+    bg::expand(bounding_box, mask_bounding_box);
+    // Make it large enough so that any voronoi edges between it and
+    // the input will surely line outside mask_bounding_box.
+    const auto bounding_box_width = bounding_box.max_corner().x() - bounding_box.min_corner().x();
+    const auto bounding_box_height = bounding_box.max_corner().y() - bounding_box.min_corner().y();
+    bounding_box.max_corner().x(bounding_box.max_corner().x() + 2*bounding_box_width);
+    bounding_box.min_corner().x(bounding_box.min_corner().x() - 2*bounding_box_width);
+    bounding_box.max_corner().y(bounding_box.max_corner().y() + 2*bounding_box_height);
+    bounding_box.min_corner().y(bounding_box.min_corner().y() - 2*bounding_box_height);
+    // Each line segment from all the inputs.
+    vector<segment_type_p> segments;
+    // From which polygon each segment is sourced.
+    std::vector<size_t> segments_to_poly;
+    for (const auto& polygon : input) {
         copy_ring(polygon.outer(), segments);
-
-        for (const ring_type& ring : polygon.inners())
-        {
+        for (const ring_type& ring : polygon.inners()) {
             copy_ring(ring, segments);
         }
+        segments_to_poly.push_back(segments.size());
     }
-    
+    // Add the bounding box but without putting it in segments_to_poly
+    // so that we won't put voronoi cells from it into the output.
+    ring_type bounding_box_ring;
+    bg::convert(bounding_box, bounding_box_ring);
     copy_ring(bounding_box_ring, segments);
 
-    output->resize(input.size());
-    for (size_t i = 0; i < input.size(); i++)
-        (*output)[i].inners().resize(input.at(i).inners().size());
-
+    voronoi_builder_type voronoi_builder;
     boost::polygon::insert(segments.begin(), segments.end(), &voronoi_builder);
+    voronoi_diagram_type voronoi_diagram;
     voronoi_builder.construct(&voronoi_diagram);
 
-    for (const cell_type& cell : voronoi_diagram.cells())
-    {
-        if (!cell.is_degenerate())
-        {
-            const edge_type *edge = cell.incident_edge();
-            const cell_type *last_cell = NULL;
-            const auto found_cell = std::find(visited_cells.begin(), visited_cells.end(), &cell);
+    // The output polygons which are voronoi shapes.  The outputs
+    // match the inputs in number and position but the number of inner
+    // rings for each output polygon might not match.
+    multi_polygon_type_fp output;
+    // Pre-allocate because we are going to add elements out of order.
+    output.resize(input.size());
 
-            bool backwards = false;
-
-            if (found_cell == visited_cells.end())
-            {
-                pair<const polygon_type *, ring_type *> related_geometries = find_ring(input, cell, *output);
-                
-                if (related_geometries.first && related_geometries.second)
-                {
-                    const polygon_type& polygon = *(related_geometries.first);
-                    ring_type& ring = *(related_geometries.second);
-
-                    do {
-                        if (edge->is_primary())
-                        {
-                            if (edge->is_finite())
-                            {
-                                const point_type startpoint (edge->vertex0()->x(), edge->vertex0()->y());
-                                const point_type endpoint (edge->vertex1()->x(), edge->vertex1()->y());
-                                auto append_remove_extra = [&] (const point_type& point)
-                                {
-                                    /* 
-                                     * This works, but it seems more a workaround than a proper solution.
-                                     * Why are these segments here in the first place? FIXME
-                                     */
-                                    if (ring.size() >= 2 && bg::equals(point, *(ring.end() - 2)))
-                                        ring.pop_back();
-                                    else 
-                                        ring.push_back(point);
-                                };
-
-                                if (bg::covered_by(startpoint, polygon) && bg::covered_by(endpoint, polygon))
-                                {
-                                    ring.clear();
-                                    break;
-                                }
-
-                                if (ring.empty() || startpoint.x() != ring.back().x() || startpoint.y() != ring.back().y())
-                                    append_remove_extra(startpoint);
-
-                                if (edge->is_linear())
-                                    append_remove_extra(endpoint);
-                                else
-                                {
-                                    vector<point_type_fp_p> sampled_edge;
-
-                                    sample_curved_edge(edge, segments, sampled_edge, max_dist);
-
-                                    for (auto iterator = sampled_edge.begin() + 1; iterator != sampled_edge.end(); iterator++)
-                                        append_remove_extra(point_type(iterator->x(), iterator->y()));
-                                }
-
-                            }
-                            else
-                            {
-                                ring.clear();
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            if (!backwards)
-                            {
-                                const cell_type *current_cell = edge->cell();
-                                const cell_type *next_cell = edge->twin()->cell();
-
-                                if (next_cell == last_cell)
-                                    backwards = true;
-                                else
-                                    if (current_cell != &cell)
-                                        visited_cells.push_front(current_cell);
-
-                                last_cell = current_cell;
-                            }
-                            
-                            edge = edge->twin();
-                        }
-
-                        edge = edge->next();
-                    } while (edge != cell.incident_edge());
-                }
-            }
-            else
-                visited_cells.erase(found_cell);
+    // To keep it simply, we first mark each edge as used if it won't
+    // be part of the output.
+    const int VISITED = 1;
+    for (const edge_type& edge : voronoi_diagram.edges()) {
+        if (!edge.is_primary() || // Not a real voronoi edge.
+            same_poly(edge, *edge.twin(), segments_to_poly) || // This edge doesn't divide different shapes.
+            // The edge belongs to the boundary.
+            std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()) == segments_to_poly.cend()) {
+            edge.color(edge.color() | VISITED);
         }
     }
-    
-    bg::correct(*output);
+    for (const edge_type& edge : voronoi_diagram.edges()) {
+        if ((edge.color() & VISITED) == VISITED) {
+            continue;  // Used already.
+        }
+        const edge_type* current_edge = &edge;
+        const edge_type* const start_edge = current_edge;
+        ring_type_fp ring;
+        do {
+            linestring_type_fp discrete_edge = edge_to_linestring(*current_edge, segments, bounding_box, max_dist);
+            // Don't push the last one because we'll put it at the end.
+            ring.insert(ring.end(), discrete_edge.cbegin(), discrete_edge.cend()-1);
+            current_edge->color(current_edge->color() | 1);  // Mark used
+            current_edge = current_edge->next();
+            // Check that we are still circling the same polygon for
+            // our ring, and that we are on edge that is between
+            // different traces, and that it's a primary edge.
+            while (current_edge != start_edge &&
+                   ((current_edge->color() & VISITED) == VISITED ||
+                    // Still circling the same twin.  We look at twin because we need clockwise outer loops.
+                    !same_poly(*current_edge->twin(), *start_edge->twin(), segments_to_poly))) {
+                current_edge = current_edge->rot_next();
+            }
+        } while (current_edge != start_edge);
+        ring.push_back(ring.front());  // Close the ring.
+        size_t poly_index = std::distance(segments_to_poly.cbegin(), std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()));
+        if (bg::area(ring) > 0) {
+            // This is the outer ring of the poly.
+            output[poly_index].outer().swap(ring);
+        } else {
+            // This has negative area, it must be a hole in the outer.
+            output[poly_index].inners().push_back(ring);
+        }
+    }
     return output;
 }
 
+bool Voronoi::same_poly(const edge_type& edge0, const edge_type& edge1, const std::vector<size_t>& segments_to_poly) {
+    return (std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge0.cell()->source_index()) ==
+            std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge1.cell()->source_index()));
+}
+
+linestring_type_fp Voronoi::edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist) {
+    linestring_type_fp new_voronoi_edge;
+    if (edge.is_finite()) {
+        if (edge.is_linear()) {
+            new_voronoi_edge.push_back(point_type_fp(edge.vertex0()->x(),
+                                                     edge.vertex0()->y()));
+            new_voronoi_edge.push_back(point_type_fp(edge.vertex1()->x(),
+                                                     edge.vertex1()->y()));
+        } else {
+            // It's a curve, it needs sampling.
+            vector<point_type_fp_p> sampled_edge;
+            sample_curved_edge(&edge, segments, sampled_edge, max_dist);
+            for (const auto& point : sampled_edge) {
+                new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+            }
+        }
+    } else {
+        // Infinite edge, only make it if it is inside the bounding_box.
+        if ((edge.vertex0() == NULL ||
+             bg::covered_by(point_type(edge.vertex0()->x(), edge.vertex0()->y()),
+                            bounding_box)) &&
+            (edge.vertex1() == NULL ||
+             bg::covered_by(point_type(edge.vertex1()->x(), edge.vertex1()->y()),
+                            bounding_box))) {
+            vector<point_type_fp_p> clipped_edge;
+            clip_infinite_edge(
+                edge, segments, &clipped_edge, bounding_box);
+            for (const auto& point : clipped_edge) {
+                new_voronoi_edge.push_back(point_type_fp(point.x(), point.y()));
+            }
+        }
+    }
+    return new_voronoi_edge;
+}
+
+// Make segments from the ring and put them in segments.
 void Voronoi::copy_ring(const ring_type& ring, vector<segment_type_p> &segments)
 {
-    for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++)
-        segments.push_back(segment_type_p(point_type_p(iter->x(), iter->y()),
-                                        point_type_p((iter + 1)->x(), (iter + 1)->y())));
+  for (auto iter = ring.begin(); iter + 1 != ring.end(); iter++) {
+    segments.push_back(segment_type_p(point_type_p(iter->x(), iter->y()),
+				      point_type_p((iter + 1)->x(), (iter + 1)->y())));
+  }
 }
 
 point_type_p Voronoi::retrieve_point(const cell_type& cell, const vector<segment_type_p> &segments) {
@@ -210,31 +202,53 @@ void Voronoi::sample_curved_edge(const edge_type *edge, const vector<segment_typ
     boost::polygon::voronoi_visual_utils<coordinate_type_fp>::discretize(point, segment, max_dist, &sampled_edge);
 }
 
-pair<const polygon_type *,ring_type *> Voronoi::find_ring (const multi_polygon_type& input, const cell_type& cell, multi_polygon_type& output)
-{
-    const source_index_type index = cell.source_index();
-    source_index_type cur_index = 0;
-
-    for (auto i_poly = input.cbegin(); i_poly != input.cend(); i_poly++)
-    {
-        if (cur_index + i_poly->outer().size() - 1 > index)
-        {
-            return make_pair(&(*i_poly),
-                &(output.at(i_poly - input.cbegin()).outer()));
-        }
-        
-        cur_index += i_poly->outer().size() - 1;
-        
-        for (auto i_inner = i_poly->inners().cbegin(); i_inner != i_poly->inners().cend(); i_inner++)
-        {
-            if (cur_index + i_inner->size() - 1 > index)            
-                return make_pair(&(*i_poly),
-                    &(output.at(i_poly - input.cbegin()).inners().at(i_inner - i_poly->inners().cbegin())));
-
-            cur_index += i_inner->size() - 1;
+void Voronoi::clip_infinite_edge(
+    const edge_type& edge, const vector<segment_type_p>& segments, std::vector<point_type_fp_p>* clipped_edge, const box_type_fp& bounding_box) {
+    const cell_type& cell1 = *edge.cell();
+    const cell_type& cell2 = *edge.twin()->cell();
+    point_type_p origin, direction;
+    // Infinite edges could not be created by two segment sites.
+    if (cell1.contains_point() && cell2.contains_point()) {
+        point_type_p p1 = retrieve_point(cell1, segments);
+        point_type_p p2 = retrieve_point(cell2, segments);
+        origin.x((p1.x() + p2.x()) * 0.5);
+        origin.y((p1.y() + p2.y()) * 0.5);
+        direction.x(p1.y() - p2.y());
+        direction.y(p2.x() - p1.x());
+    } else {
+        origin = cell1.contains_segment() ?
+            retrieve_point(cell2, segments) :
+            retrieve_point(cell1, segments);
+        segment_type_p segment = cell1.contains_segment() ?
+            retrieve_segment(cell1, segments) :
+            retrieve_segment(cell2, segments);
+        coordinate_type dx = high(segment).x() - low(segment).x();
+        coordinate_type dy = high(segment).y() - low(segment).y();
+        if ((low(segment) == origin) ^ cell1.contains_point()) {
+            direction.x(dy);
+            direction.y(-dx);
+        } else {
+            direction.x(-dy);
+            direction.y(dx);
         }
     }
-    
-    return make_pair((const polygon_type *) NULL, (ring_type *) NULL);
+    coordinate_type side = bounding_box.max_corner().x() - bounding_box.min_corner().x();
+    coordinate_type koef =
+        side / (std::max)(fabs(direction.x()), fabs(direction.y()));
+    if (edge.vertex0() == NULL) {
+        clipped_edge->push_back(point_type_fp_p(
+                                    origin.x() - direction.x() * koef,
+                                    origin.y() - direction.y() * koef));
+    } else {
+        clipped_edge->push_back(
+            point_type_fp_p(edge.vertex0()->x(), edge.vertex0()->y()));
+    }
+    if (edge.vertex1() == NULL) {
+        clipped_edge->push_back(point_type_fp_p(
+                                    origin.x() + direction.x() * koef,
+                                    origin.y() + direction.y() * koef));
+    } else {
+        clipped_edge->push_back(
+            point_type_fp_p(edge.vertex1()->x(), edge.vertex1()->y()));
+    }
 }
-
