@@ -21,6 +21,7 @@
 *.exe
 *.out
 *.app
+*_test
 
 #built or generated project files
 .deps/*
@@ -47,6 +48,7 @@ m4/missing
 m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
+m4/test-driver
 man/Makefile
 man/Makefile.in
 pcb2gcode
@@ -54,6 +56,12 @@ stamp-h1
 testing/gerbv_example/*/*.png
 testing/gerbv_example/*/*.ngc
 testing/gerbv_example/*/*.svg
+
+#make check output files
+*.log
+*.trs
+*_input.svg
+*_output.svg
 
 #editor or browser files
 .directory

@@ -49,3 +49,8 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 EXTRA_DIST = millproject
+
+check_PROGRAMS = voronoi_tests
+voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
+
+TESTS = voronoi_tests

@@ -73,9 +73,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 {
     vector<shared_ptr<icoords> > toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
-    shared_ptr<multi_polygon_type> voronoi;
-    coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
-                                            max(width_in, height_in) * scale * 10);
+    multi_polygon_type_fp voronoi;
     coordinate_type tolerance = mill->tolerance * scale;
     coordinate_type grow = mill->tool_diameter / 2 * scale;
 
@@ -86,7 +84,11 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
+    box_type voronoi_bounding_box;
+    bg::convert(bounding_box, voronoi_bounding_box);
+    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_bounding_box, tolerance);
+    multi_polygon_type integral_voronoi;
+    bg::convert(voronoi, integral_voronoi);
 
     box_type svg_bounding_box;
 
@@ -100,7 +102,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
-    debug_image.add(*voronoi, 0.3, false);
+    debug_image.add(integral_voronoi, 0.3, false);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
@@ -117,7 +119,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         unique_ptr<vector<polygon_type> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
+        polygons = offset_polygon(*vectorial_surface, integral_voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1, mirror, mirror_axis);
 
         debug_image.add(*polygons, 0.6, r, g, b);
