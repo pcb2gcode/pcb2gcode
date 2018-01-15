@@ -127,7 +127,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         unique_ptr<vector<polygon_type> > polygons;
     
         polygons = offset_polygon(*vectorial_surface, integral_voronoi, toolpath, contentions,
-                                    grow, i, extra_passes + 1, mirror, mirror_axis);
+                                    grow, i, extra_passes + 1);
 
         debug_image.add(*polygons, 0.6, r, g, b);
         traced_debug_image.add(*polygons, 1, r, g, b);
@@ -218,7 +218,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
 unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis)
+                            unsigned int steps)
 {
     if (offset < 0)
         steps = 1;
