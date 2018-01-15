@@ -207,7 +207,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
                                            point.y() / double(scale)));
             } else {
                 coords.push_back(make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
+                                           point.y() / double(scale)));
             }
         }
         result.push_back(make_shared<icoords>(coords));
