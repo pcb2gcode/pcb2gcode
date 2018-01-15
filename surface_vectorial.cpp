@@ -32,6 +32,8 @@ using Glib::build_filename;
 
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
+#include "eulerian_paths.hpp"
+#include "segmentize.hpp"
 
 using std::max;
 using std::max_element;
@@ -76,7 +78,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    vector<shared_ptr<icoords> > toolpath;
+    multi_linestring_type toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
     multi_polygon_type_fp voronoi;
     coordinate_type tolerance = mill->tolerance * scale;
@@ -142,11 +144,14 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
              << " possibly use a smaller milling width.\n";
     }
 
-    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 0.0001 );
-
+    if (mill->eulerian_paths) {
+        toolpath = eulerian_paths(toolpath);
+    }
+    tsp_solver::nearest_neighbour( toolpath, point_type(0, 0), 0.0001 );
+    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, mirror_axis);
     if (mill->optimise)
     {
-        for (const shared_ptr<icoords>& ring : toolpath)
+        for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
             bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
@@ -155,7 +160,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         return toolpath_optimised;
     }
     else
-        return toolpath;
+        return scaled_toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -191,8 +196,27 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
+vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
+    const multi_linestring_type& mls, bool mirror, ivalue_t mirror_axis) {
+    vector<shared_ptr<icoords>> result;
+    for (const auto& ls : mls) {
+        icoords coords;
+        for (const auto& point : ls) {
+            if (mirror) {
+                coords.push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                                           point.y() / double(scale)));
+            } else {
+                coords.push_back(make_pair(point.x() / double(scale),
+                                                    point.y() / double(scale)));
+            }
+        }
+        result.push_back(make_shared<icoords>(coords));
+    }
+    return result;
+}
+
 unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
+                            const multi_polygon_type& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps, bool mirror, ivalue_t mirror_axis)
 {
@@ -206,12 +230,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     auto push_point = [&](const point_type& point)
     {
-        if (mirror)
-            toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                                    point.y() / double(scale)));
-        else
-            toolpath.back()->push_back(make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
+        toolpath.back().push_back(point);
     };
 
     auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
@@ -257,7 +276,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         return index;
     };
 
-    toolpath.push_back(make_shared<icoords>());
+    toolpath.push_back(linestring_type());
 
     bool outer_collapsed = false;
 
@@ -325,7 +344,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         const ring_type *prev = biggest;
         auto ring_j = next(ring_i);
 
-        toolpath.push_back(make_shared<icoords>());
+        toolpath.push_back(linestring_type());
         copy_ring_to_toolpath(*biggest, 0);
 
         while (ring_j != rings.end())
@@ -373,6 +392,92 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     return polygons;
 }
+
+size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
+    struct PointLessThan {
+        bool operator()(const point_type& a, const point_type& b) const {
+            return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+        }
+    };
+
+    std::map<point_type, point_type, PointLessThan> points;
+    for (const auto& ls : mls) {
+        for (const auto& point : ls) {
+            points[point] = point;
+        }
+    }
+    // Merge points that are near one another.  This doesn't do a
+    // great job but it's fast enough.
+    size_t points_merged = 0;
+    for (auto i = points.begin(); i != points.end(); i++) {
+        for (auto j = i;
+             j != points.upper_bound(point_type(i->second.x()+10,
+                                                i->second.y()+10));
+             j++) {
+            if (!bg::equals(j->second, i->second) &&
+                bg::comparable_distance(i->second, j->second) <= 100) {
+                points_merged++;
+                j->second = i->second;
+            }
+        }
+    }
+    if (points_merged > 0) {
+        for (auto& ls : mls) {
+            for (auto& point : ls) {
+                point = points[point];
+            }
+        }
+    }
+    return points_merged;
+}
+
+multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
+    // Merge points that are very close to each other because it makes
+    // us more likely to find intersections that was can use.
+    multi_linestring_type merged_toolpaths(toolpaths);
+    printf("merging points\n");
+    printf("points merged: %ld\n", merge_near_points(merged_toolpaths));
+
+    // First we need to split all paths so that they don't cross.
+    vector<segment_type_p> all_segments;
+    for (const auto& toolpath : merged_toolpaths) {
+        for (size_t i = 1; i < toolpath.size(); i++) {
+            all_segments.push_back(
+                segment_type_p(
+                    point_type_p(toolpath[i-1].x(), toolpath[i-1].y()),
+                    point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
+        }
+    }
+    printf("converted to segments\n");
+    vector<segment_type_p> split_segments = segmentize(all_segments);
+    printf("segmented\n");
+
+    multi_linestring_type segments_as_linestrings;
+    for (const auto& segment : split_segments) {
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls;
+        ls.push_back(point_type(segment.low().x(), segment.low().y()));
+        ls.push_back(point_type(segment.high().x(), segment.high().y()));
+        segments_as_linestrings.push_back(ls);
+    }
+    printf("sback to linestrings\n");
+
+    // Make a minimal number of paths from those segments.
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+
+    return eulerian_paths::get_eulerian_paths<
+      point_type,
+      linestring_type,
+      multi_linestring_type,
+      PointLessThan>(segments_as_linestrings);
+    printf("done\n");
+}
+
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
