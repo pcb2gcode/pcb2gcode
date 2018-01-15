@@ -435,8 +435,7 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
     // Merge points that are very close to each other because it makes
     // us more likely to find intersections that was can use.
     multi_linestring_type merged_toolpaths(toolpaths);
-    printf("merging points\n");
-    printf("points merged: %ld\n", merge_near_points(merged_toolpaths));
+    merge_near_points(merged_toolpaths);
 
     // First we need to split all paths so that they don't cross.
     vector<segment_type_p> all_segments;
@@ -448,9 +447,7 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
                     point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
     }
-    printf("converted to segments\n");
     vector<segment_type_p> split_segments = segmentize(all_segments);
-    printf("segmented\n");
 
     multi_linestring_type segments_as_linestrings;
     for (const auto& segment : split_segments) {
@@ -461,7 +458,6 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
         ls.push_back(point_type(segment.high().x(), segment.high().y()));
         segments_as_linestrings.push_back(ls);
     }
-    printf("sback to linestrings\n");
 
     // Make a minimal number of paths from those segments.
     struct PointLessThan {
@@ -475,7 +471,6 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       linestring_type,
       multi_linestring_type,
       PointLessThan>(segments_as_linestrings);
-    printf("done\n");
 }
 
 
