@@ -144,8 +144,12 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
     vector<shared_ptr<icoords> > toolpath;
 
+    // outlines per component to be extended in each pass
+    std::map<coordpair,shared_ptr<icoords>> component_outlines;
+
     for (int pass = 0; pass <= extra_passes && added != 0; pass++)
     {
+        // grow by pixels multiple times until mill tool radius is reached
         for (int i = 0; i < grow && added != 0; i++)
         {
             added = 0;
@@ -163,8 +167,12 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
             calculate_outline(c.first, c.second, outside, inside);
             inside.clear();
 
-            shared_ptr<icoords> outline(new icoords());
-            shared_ptr<icoords> outline_optimised(new icoords());
+	    // create new coordinate lists only in the first pass, extend them later
+	    if( pass==0 )
+            {
+	        component_outlines[c]=shared_ptr<icoords>(new icoords());
+            }
+	    shared_ptr<icoords> outline = component_outlines[c];
 
             // i'm not sure wheter this is the right place to do this...
             // that "mirrored" flag probably is a bad idea.
@@ -180,16 +188,20 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
             }
 
             outside.clear();
-
-            if (mill->optimise)
-            {
-                //Use Boost's Douglas-Peucker simplification algorithm
-                boost::geometry::simplify( *outline, *outline_optimised, 1.0 / dpi );
-                toolpath.push_back(outline_optimised);
-            }
-            else
-                toolpath.push_back(outline);
         }
+    }
+    for ( coordpair c : components )
+    {
+        shared_ptr<icoords> outline = component_outlines[c];
+        if (mill->optimise)
+        {
+	    shared_ptr<icoords> outline_optimised(new icoords());
+	    //Use Boost's Douglas-Peucker simplification algorithm
+	    boost::geometry::simplify( *outline, *outline_optimised, 1.0 / dpi );
+	    toolpath.push_back(outline_optimised);
+        }
+        else
+            toolpath.push_back(outline);
     }
 
     if (contentions)
