@@ -5,17 +5,17 @@ bin_PROGRAMS = pcb2gcode
 pcb2gcode_SOURCES = \
     autoleveller.hpp \
     autoleveller.cpp \
-    svg_exporter.hpp \
-    svg_exporter.cpp \
     board.hpp \
     board.cpp \
     common.hpp \
     common.cpp \
-    coord.hpp \
+    core.hpp \
+    core.cpp \
     drill.hpp \
     drill.cpp \
     exporter.hpp \
     Fixed.hpp \
+    geometry.hpp \
     gerberimporter.hpp \
     gerberimporter.cpp \
     importer.hpp \
@@ -26,6 +26,8 @@ pcb2gcode_SOURCES = \
     ngc_exporter.cpp \
     surface.hpp \
     surface.cpp \
+    surface_vectorial.hpp \
+    surface_vectorial.cpp \
     tile.hpp \
     tile.cpp \
     tsp_solver.hpp \
@@ -34,6 +36,9 @@ pcb2gcode_SOURCES = \
     outline_bridges.hpp \
     outline_bridges.cpp \
     unique_codes.hpp \
+    voronoi.hpp \
+    voronoi.cpp \
+    voronoi_visual_utils.hpp \
     config.h \
     main.cpp
 
@@ -44,3 +49,8 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 EXTRA_DIST = millproject
+
+check_PROGRAMS = voronoi_tests
+voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
+
+TESTS = voronoi_tests

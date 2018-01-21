@@ -19,7 +19,6 @@
 
 #include "outline_bridges.hpp"
 
-#include <boost/bind.hpp>
 #include <boost/assign/list_of.hpp>
 #include <boost/geometry/algorithms/distance.hpp>
 #include <cmath>
@@ -36,15 +35,15 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
     vector< pair< unsigned int, double > >::iterator element;
     vector< pair< unsigned int, double > > distances;
     vector< pair< unsigned int, double > > output;
+    auto compare_2nd = [](pair<unsigned int, double> a, pair<unsigned int, double> b) { return a.second < b.second; };
 
     for( unsigned int i = 0; i < path->size() - 1; i++ )
         distances.push_back( std::make_pair( i, boost::geometry::distance( path->at(i), path->at(i+1) ) ) );
 
     for( unsigned int i = 0; i < number; i++ )
     {
-        element = std::max_element( distances.begin(), distances.end(), boost::bind(&std::pair<unsigned int, double>::second, _1) <
-                                    boost::bind(&std::pair<unsigned int, double>::second, _2) );  //Find the longest segment
-        if( element->second < length || element == distances.end() )      //If it isn't long enough, or if there aren't segments
+        element = std::max_element( distances.begin(), distances.end(), compare_2nd );  //Find the longest segment
+        if( element->second < length || element == distances.end() )  //If it isn't long enough, or if there aren't segments
         {
             if( output.empty() )
                 throw outline_bridges_exception();  //Throw an exception if no bridges can be created
@@ -66,26 +65,28 @@ vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, 
     icoords temp (2);
 
     path->reserve( path->size() + chosenSegments.size() * 2 );  //Just to avoid unnecessary reallocations
-    std::sort( chosenSegments.begin(), chosenSegments.end(), boost::bind(&pair<unsigned int, double>::first, _1) <
-               boost::bind(&pair<unsigned int, double>::first, _2) ); //Sort it (lower index -> higher index)
+    std::sort( chosenSegments.begin(), chosenSegments.end()); //Sort it (lower index -> higher index)
 
     for( unsigned int i = 0; i < chosenSegments.size(); i++ )
     {
-        chosenSegments[i].first += 2 * i;   //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
+        //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
+        chosenSegments[i].first += 2 * i;
         temp.at(0) = intermediatePoint( path->at( chosenSegments[i].first ),
                                         path->at( chosenSegments[i].first + 1 ),
                                         0.5 - ( length / chosenSegments[i].second ) / 2 );
         temp.at(1) = intermediatePoint( path->at( chosenSegments[i].first ),
                                         path->at( chosenSegments[i].first + 1 ),
                                         0.5 + ( length / chosenSegments[i].second ) / 2 );
-        path->insert( path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end() );  //Insert the bridges in the path
+        //Insert the bridges in the path
+        path->insert( path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end() );
         output.push_back( chosenSegments[i].first + 1 );    //Add the bridges indexes to output
     }
 
     return output;
 }
 
-//This function returns the intermediate point between p0 and p1. With position=0 it returns p0, with position=1 it returns p1,
+//This function returns the intermediate point between p0 and p1.
+//With position=0 it returns p0, with position=1 it returns p1,
 //with values between 0 and 1 it returns the relative position between p0 and p1
 icoordpair outline_bridges::intermediatePoint( icoordpair p0, icoordpair p1, double position )
 {

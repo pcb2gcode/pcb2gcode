@@ -21,14 +21,14 @@
  */
  
 #include <fstream>
+using std::ofstream;
+
 #include <cstring>
-#include <boost/scoped_array.hpp>
-#include <boost/next_prior.hpp>
-#include <boost/foreach.hpp>
 
 #include <iostream>
 using std::cout;
 using std::endl;
+using std::flush;
 
 #include <sstream>
 using std::stringstream;
@@ -39,6 +39,9 @@ using std::fixed;
 
 #include <boost/format.hpp>
 using boost::format;
+
+#include <glibmm/miscutils.h>
+using Glib::build_filename;
 
 #include "drill.hpp"
 #include "tsp_solver.hpp"
@@ -61,10 +64,9 @@ using std::left;
 ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map& options,
                                      const icoordpair min,
                                      const icoordpair max)
-    : board_width(max.first - min.first),
-      board_height(max.second - min.second),
-      board_center(min.first + board_width / 2),
-      board_minx(min.first),
+    : board_dimensions(point_type_fp(min.first, min.second),
+                        point_type_fp(max.first, max.second)),
+      board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
@@ -73,17 +75,17 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       ocodes(1),
       globalVars(100),
-      tileInfo( Tiling::generateTileInfo( options, ocodes, board_height, board_width ) )
+      tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
 {
 
-    bDoSVG = false;      //clear flag for SVG export
     project = gerbv_create_project();
 
     const char* cfilename = options["drill"].as<string>().c_str();
-    boost::scoped_array<char> filename(new char[strlen(cfilename) + 1]);
-    strcpy(filename.get(), cfilename);
+    char *filename = new char[strlen(cfilename) + 1];
+    strcpy(filename, cfilename);
 
-    gerbv_open_layer_from_filename(project, filename.get());
+    gerbv_open_layer_from_filename(project, filename);
+    delete[] filename;
 
     if (project->file[0] == NULL)
     {
@@ -104,6 +106,10 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
         preamble = string("G94       (Inches per minute feed rate.)\n")
                    + "G20       (Units == INCHES.)\n";
     }
+
+    if (!options["nog91-1"].as<bool>())
+        preamble += "G91.1     (Incremental arc distance mode.)\n";
+
     preamble += "G90       (Absolute coordinates.)\n";
 
     tiling = new Tiling( tileInfo, cfactor );
@@ -117,16 +123,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 ExcellonProcessor::~ExcellonProcessor()
 {
     gerbv_destroy_project(project);
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void ExcellonProcessor::set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo)
-{
-    this->svgexpo = svgexpo;
-    bDoSVG = true;
 }
 
 /******************************************************************************/
@@ -149,7 +145,6 @@ void ExcellonProcessor::add_header(string header)
 /******************************************************************************/
 double ExcellonProcessor::get_xvalue(double xvalue)
 {
-
     double retval;
 
     if (drillfront)        //drill from the front, no calculation needed
@@ -160,15 +155,66 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     {
         if (mirror_absolute)        //drill from back side, mirrored along y-axis
         {
-            retval = (2 * board_minx - xvalue);
+            retval = (2 * board_dimensions.min_corner().x() - xvalue);
         }
         else          //drill from back side, mirrored along board center
         {
-            retval = (2 * board_center - xvalue);
+            retval = (2 * board_center_x - xvalue);
         }
     }
 
     return retval;
+}
+
+unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
+{
+    auto start_x = get_xvalue(line.first.first);
+    auto start_y = line.first.second;
+    auto stop_x = get_xvalue(line.second.first);
+    auto stop_y = line.second.second;
+    auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
+                         (stop_y-start_y)*(stop_y-start_y));
+    // According to the spec for G85, holes should be drilled so that
+    // protrusions are no larger than 0.0005inches.  The formula below
+    // determines the maximum distance between drill centers.
+    const double max_protrusion = 0.0005;
+    double step_size = sqrt(4*max_protrusion*(drill_diameter-max_protrusion));
+    // The number of holes that need to be drilled. 0 is at start,
+    // drill_count-1 at the stop.  Evenly spaced.
+    const unsigned int drill_count = ((unsigned int) ceil(distance/step_size)) + 1;
+    // drills_to_do has pairs where is pair is the inclusive range of
+    // drill holes that still need to be made.  We try to drill in a
+    // way so that the pressure on the drill is balanced.
+    vector<pair<int, int>> drills_to_do;
+    // drill the start point
+    drills_to_do.push_back(std::make_pair(0, 0));
+    if (drill_count > 1) {
+        // drill the stop point
+        drills_to_do.push_back(std::make_pair(drill_count - 1, drill_count - 1));
+    }
+    // drill all the rest
+    drills_to_do.push_back(std::make_pair(1, drill_count-2));
+    unique_ptr<icoords> holes(new icoords());
+    for (unsigned int current_drill_index = 0;
+         current_drill_index < drills_to_do.size();
+         current_drill_index++) {
+        const auto& current_drill = drills_to_do[current_drill_index];
+        const int start_drill = current_drill.first;
+        const int end_drill = current_drill.second;
+        if (start_drill > end_drill) {
+            continue;
+        }
+        // find a point between start and end inclusive.
+        const int mid_drill = (start_drill+1)/2 + end_drill/2;
+        // drill the point that is the percentage between start and stop
+        double ratio = drill_count > 1 ? mid_drill / (drill_count-1.) : 0;
+        const auto x = start_x * (1 - ratio) + stop_x * ratio;
+        const auto y = start_y * (1 - ratio) + stop_y * ratio;
+        drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
+        drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
+        holes->push_back(icoordpair(x, y));
+    }
+    return holes;
 }
 
 /******************************************************************************/
@@ -182,32 +228,31 @@ double ExcellonProcessor::get_xvalue(double xvalue)
        2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> driller, bool onedrill, bool nog81)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
+                                    shared_ptr<Driller> driller, bool onedrill,
+                                    bool nog81, bool zchange_absolute)
 {
-    ivalue_t double_mirror_axis = mirror_absolute ? 0 : board_width;
     double xoffsetTot;
     double yoffsetTot;
     stringstream zchange;
 
-    //SVG EXPORTER
-    int rad = 1.;
-
     cout << "Exporting drill... ";
 
     zchange << setprecision(3) << fixed << driller->zchange * cfactor;
-    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n"
-                         + postamble_ext + "\nM5      (Spindle off.)\n"
-                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
+    tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
+                         " ( All done -- retract )\n" + postamble_ext +
+                         "\nM5      (Spindle off.)\nM9      (Coolant off.)\n"
+                         "M2      (Program end.)\n\n");
 
     //open output file
     std::ofstream of;
-    of.open(of_name.c_str());
+    of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
-    shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), onedrill );
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), onedrill );
 
     //write header to .ngc file
-    BOOST_FOREACH (string s, header)
+    for (string s : header)
     {
         of << "( " << s << " )" << "\n";
     }
@@ -249,23 +294,27 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
         }
         else
         {
+            if (zchange_absolute)
+                of << "G53 ";
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "(MSG, Change tool bit to drill size " << it->second.diameter
                << " " << it->second.unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
-               << "M3      (Spindle on clockwise.)\n" << "\n";
+               << "M3      (Spindle on clockwise.)\n"
+               << "G0 Z" << driller->zsafe * cfactor << "\n\n";
         }
         
         if( nog81 )
-            of << "F" << driller->feed * cfactor << endl;
+            of << "F" << driller->feed * cfactor << '\n';
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
                << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
         }
         
+        double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
         for( unsigned int i = 0; i < tileInfo.tileY; i++ )
         {
             yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -274,45 +323,34 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
             {
                 xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
 
-                const icoords drill_coords = holes->at(it->first);
-                icoords::const_iterator coord_iter = drill_coords.begin();
-                //coord_iter->first = x-coorinate (top view)
-                //coord_iter->second =y-coordinate (top view)
+                const ilinesegments drill_coords = holes->at(it->first);
+                ilinesegments::const_iterator line_iter = drill_coords.cbegin();
 
-                //SVG EXPORTER
-                if (bDoSVG)
+                while (line_iter != drill_coords.cend())
                 {
-                    svgexpo->set_rand_color();      //set a random color
-                    svgexpo->circle((double_mirror_axis - coord_iter->first),
-                                    coord_iter->second, rad);      //draw first circle
-                    svgexpo->stroke();
-                }
+                    unique_ptr<icoords> holes = line_to_holes(*line_iter, drill_diameter);
+                    for (auto& hole : *holes)
+                    {
+                        const auto x = hole.first;
+                        const auto y = hole.second;
 
-                while (coord_iter != drill_coords.end())
-                {
-                    if( nog81 )
-                    {
-                        of << "G0 X"
-                           << ( get_xvalue(coord_iter->first) - xoffsetTot ) * cfactor
-                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
-                        of << "G1 Z" << driller->zwork * cfactor << endl;
-                        of << "G1 Z" << driller->zsafe * cfactor << endl;
+                        if( nog81 )
+                        {
+                            of << "G0 X"
+                               << ( x - xoffsetTot ) * cfactor
+                               << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                            of << "G1 Z" << driller->zwork * cfactor << '\n';
+                                of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                        }
+                        else
+                        {
+                            of << "X"
+                               << ( x - xoffsetTot )
+                                * cfactor
+                                   << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                        }
                     }
-                    else
-                    {
-                        of << "X"
-                           << ( get_xvalue(coord_iter->first) - xoffsetTot )
-                           * cfactor
-                           << " Y" << ( ( coord_iter->second - yoffsetTot ) * cfactor) << "\n";
-                    }
-                    //SVG EXPORTER
-                    if (bDoSVG)
-                    {
-                        svgexpo->circle((double_mirror_axis - coord_iter->first),
-                                        coord_iter->second, rad);      //make a whole
-                        svgexpo->stroke();
-                    }
-                    ++coord_iter;
+                    ++line_iter;
                 }
             }
         }
@@ -323,6 +361,8 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
     of << tiling->getGCodeEnd();
     
     of.close();
+
+    save_svg(bits, holes, of_dir);
 }
 
 /******************************************************************************/
@@ -330,19 +370,26 @@ void ExcellonProcessor::export_ngc(const string of_name, shared_ptr<Driller> dri
  *  mill one circle, returns false if tool is bigger than the circle
  */
 /******************************************************************************/
-bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
+bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start_y,
+                                 double stop_x, double stop_y,
                                  shared_ptr<Cutter> cutter,
                                  double holediameter)
 {
 
     g_assert(cutter);
     double cutdiameter = cutter->tool_diameter;
+    bool slot = (start_x != stop_x ||
+                 start_y != stop_y);
 
     if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
     {
-        of << "G0 X" << x * cfactor << " Y" << y * cfactor << endl;
-        of << "G1 Z" << cutter->zwork * cfactor << endl;
-        of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
+        of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
+        of << "G1 Z" << cutter->zwork * cfactor << '\n';
+        if (slot)
+        {
+            of << "G0 X" << stop_x * cfactor << " Y" << stop_y * cfactor << '\n';
+        }
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return false;
     }
@@ -350,8 +397,38 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
     {
 
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
+        double mill_x;
+        double mill_y;
+        if (slot)
+        {
+            double delta_x = stop_x - start_x;
+            double delta_y = stop_y - start_y;
+            double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
+            mill_x = delta_x*millr/distance;
+            mill_y = delta_y*millr/distance;
+        } else {
+            // No distance so just use a start that is directly north
+            // of the start.
+            mill_x = 0;
+            mill_y = millr;
+        }
+        // We will draw a shape that looks like a rectangle with
+        // half circles attached on just two opposite sides.
 
-        of << "G0 X" << ( x + millr ) * cfactor << " Y" << y * cfactor << endl;
+        // add delta rotated 90 degrees clockwise then normalize to length millr
+        double start_targetx = start_x + mill_y;
+        double start_targety = start_y - mill_x;
+        // add delta rotated 90 degrees counterclockwise then normalize to length millr
+        double start2_targetx = start_x - mill_y;
+        double start2_targety = start_y + mill_x;
+        // add delta rotated 90 degrees counterclockwise then normalize to length millr
+        double stop_targetx = stop_x - mill_y;
+        double stop_targety = stop_y + mill_x;
+        // add delta rotated 90 degrees clockwise then normalize to length millr
+        double stop2_targetx = stop_x + mill_y;
+        double stop2_targety = stop_y - mill_x;
+
+        of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
         double z_step = cutter->stepsize;
         double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
@@ -366,13 +443,39 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
 
         while (z >= cutter->zwork)
         {
-            of << "G1 Z[" << cutter->zwork * cfactor << "+" << stepcount << "*" << cutter->stepsize * cfactor << "]" << endl;
-            of << "G2 I" << -millr * cfactor << " J0" << endl;
+            of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
+            if (!slot) {
+                // Just drill a full-circle.
+                of << "G2 "
+                   << " X" << start_targetx * cfactor
+                   << " Y" << start_targety * cfactor
+                   << " I" << (start_x-start_targetx) * cfactor
+                   << " J" << (start_y-start_targety) * cfactor << "\n";
+            }
+            else
+            {
+                // Draw the first half circle
+                of << "G2 X" << start2_targetx * cfactor
+                   << " Y" << start2_targety * cfactor
+                   << " I" << (start_x-start_targetx) * cfactor
+                   << " J" << (start_y-start_targety) * cfactor << "\n";
+                // Now across to the second half circle
+                of << "G1 X" << stop_targetx * cfactor
+                   << " Y" << stop_targety * cfactor << "\n";
+                // Draw the second half circle
+                of << "G2 X" << stop2_targetx * cfactor
+                   << " Y" << stop2_targety * cfactor
+                   << " I" << (stop_x-stop_targetx) * cfactor
+                   << " J" << (stop_y-stop_targety) * cfactor << "\n";
+                // Now back to the start of the first half circle
+                of << "G1 X" << start_targetx * cfactor
+                   << " Y" << start_targety << "\n";
+            }
             z -= z_step;
             stepcount--;
         }
 
-        of << "G0 Z" << cutter->zsafe * cfactor << endl << endl;
+        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return true;
     }
@@ -383,7 +486,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double x, double y,
  mill larger holes by using a smaller mill-head
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> target)
+void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
+                                    shared_ptr<Cutter> target, bool zchange_absolute)
 {
     unsigned int badHoles = 0;
     double xoffsetTot;
@@ -392,22 +496,23 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
 
     //g_assert(drillfront == true);       //WHY?
     //g_assert(mirror_absolute == false); //WHY?
-    cout << "Exporting drill... ";
+    cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
-    tiling->setGCodeEnd( "G00 Z" + zchange.str() + " ( All done -- retract )\n" +
-                         postamble_ext + "\nM5      (Spindle off.)\n"
-                         "M9      (Coolant off.)\nM2      (Program end.)\n\n");
+    tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
+                         " ( All done -- retract )\n" + postamble_ext +
+                         "\nM5      (Spindle off.)\nM9      (Coolant off.)\n"
+                         "M2      (Program end.)\n\n");
 
     // open output file
     std::ofstream of;
-    of.open(outputname.c_str());
+    of.open(build_filename(of_dir, of_name));
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
-    shared_ptr<const map<int, icoords> > holes = optimise_path( get_holes(), false );
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), false );
 
     // write header to .ngc file
-    BOOST_FOREACH (string s, header)
+    for (string s : header)
     {
         of << "( " << s << " )" << "\n";
     }
@@ -455,20 +560,24 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
                     it != bits->end(); it++)
             {
 
-                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.8 : it->second.diameter;
+                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
 
-                const icoords drill_coords = holes->at(it->first);
-                icoords::const_iterator coord_iter = drill_coords.begin();
+                const ilinesegments drill_coords = holes->at(it->first);
+                ilinesegments::const_iterator line_iter = drill_coords.begin();
 
                 do
                 {
-                    if( !millhole(of, get_xvalue(coord_iter->first) - xoffsetTot,
-                                  coord_iter->second - yoffsetTot, target, diameter) )
+                    if( !millhole(of,
+                                  get_xvalue(line_iter->first.first) - xoffsetTot,
+                                  line_iter->first.second - yoffsetTot,
+                                  get_xvalue(line_iter->second.first) - xoffsetTot,
+                                  line_iter->second.second - yoffsetTot,
+                                  target, diameter) )
                         ++badHoles;
 
-                    ++coord_iter;
+                    ++line_iter;
                 }
-                while (coord_iter != drill_coords.end());
+                while (line_iter != drill_coords.end());
             }
         }
     }
@@ -482,6 +591,43 @@ void ExcellonProcessor::export_ngc(const string outputname, shared_ptr<Cutter> t
         badHoles /= tileInfo.tileX * tileInfo.tileY;    //Don't count the same bad hole multiple times
         cerr << "Warning: " << badHoles << ( badHoles == 1 ? " hole was" : " holes were" )
              << " bigger than the milling tool." << endl;
+    }
+
+    save_svg(bits, holes, of_dir);
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir)
+{
+    const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
+    const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
+
+    //Some SVG readers does not behave well when viewBox is not specified
+    const string svg_dimensions =
+        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+
+    ofstream svg_out (build_filename(of_dir, "original_drill.svg"));
+    bg::svg_mapper<point_type_fp> mapper (svg_out, width, height, svg_dimensions);
+
+    mapper.add(board_dimensions);
+
+    for (const pair<int, drillbit>& bit : *bits)
+    {
+        const ilinesegments drill_lines = holes->at(bit.first);
+        const double radius = bit.second.unit == "mm" ?
+                              (bit.second.diameter / 25.4) / 2 : bit.second.diameter / 2;
+
+        for (const ilinesegment& line : drill_lines)
+        {
+            unique_ptr<icoords> holes = line_to_holes(line, radius*2);
+            for (auto& hole : *holes)
+            {
+                mapper.map(hole, "", radius * SVG_PIX_PER_IN);
+            }
+        }
     }
 }
 
@@ -514,14 +660,15 @@ void ExcellonProcessor::parse_holes()
     if (!bits)
         parse_bits();
 
-    holes = shared_ptr<map<int, icoords> >(new map<int, icoords>());
+    holes = shared_ptr<map<int, ilinesegments> >(new map<int, ilinesegments>());
 
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
     {
         if (currentNet->aperture != 0)
             (*holes)[currentNet->aperture].push_back(
-                icoordpair(currentNet->start_x, currentNet->start_y));
+                ilinesegment(icoordpair(currentNet->start_x, currentNet->start_y),
+                             icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
     for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
@@ -552,7 +699,7 @@ shared_ptr< map<int, drillbit> > ExcellonProcessor::get_bits()
 /*
  */
 /******************************************************************************/
-shared_ptr< map<int, icoords> > ExcellonProcessor::get_holes()
+shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes()
 {
     if (!holes)
         parse_holes();
@@ -565,10 +712,10 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::get_holes()
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill )
+shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill )
 {
     unsigned int size = 0;
-    map<int, icoords>::iterator i;
+    map<int, ilinesegments>::iterator i;
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
@@ -582,7 +729,7 @@ shared_ptr< map<int, icoords> > ExcellonProcessor::optimise_path( shared_ptr< ma
         original_path->begin()->second.reserve( size );
 
         //Then copy all the paths inside the first and delete the source vector
-        map<int, icoords>::iterator second_element;
+        map<int, ilinesegments>::iterator second_element;
         while( original_path->size() > 1 )
         {
             second_element = boost::next( original_path->begin() );

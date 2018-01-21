@@ -1,37 +1,64 @@
 language: cpp
 sudo: false
 
-compiler:
-  - gcc
-  - clang
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-4.8', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-4.8
 
-os: linux
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-5', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-5
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - boost-latest
-    packages:
-      - gcc-4.8
-      - g++-4.8
-      - libboost-program-options1.55-dev
-      - libgtkmm-2.4-dev
-      - gerbv
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+          packages: ['g++-6', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-6
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          sources: ['boost-latest']
+          packages: ['libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=clang++
+
+    - os: osx
+      compiler: gcc
+      env: COMPILER=g++
+
+    - os: osx
+      compiler: clang
+      env: COMPILER=clang++
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget https://sourceforge.net/projects/pcb2gcode/files/pcb2gcode/boost_1_56_0_amd64.tar.gz && tar -xf boost_1_56_0_amd64.tar.gz && export BOOST_DIR=$PWD/boost_1_56_0_amd64; fi
 
 install:
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+  - export CXX=$COMPILER
 
 script:
-  - "autoreconf -i"
-  - "./configure"
-  - "make"
+  - autoreconf -fvi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost=$BOOST_DIR --enable-static-boost; fi
+  - make
+  - make check
 
 after_script:
-  - "cd testing/gerbv_example/"
-  - "ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'"
-  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS; cd ..; done"
-  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Mach3 $ARGS; cd ..; done"
-  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Mach4 $ARGS; cd ..; done"
-  - "for dir in *; do cd $dir; ../../../pcb2gcode --software=Custom --al-probecode=G38.2 --al-probevar=5063 --al-setzzero='G10 L20 P0 Z0' $ARGS; cd ..; done"
-
+  - cd testing/gerbv_example/
+  - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
+  - for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS; cd ..; done
+  - for dir in *; do cd $dir; ../../../pcb2gcode --software=Custom --al-probecode=G38.2 --al-probevar=5063 --al-setzzero='G10 L20 P0 Z0' $ARGS; cd ..; done

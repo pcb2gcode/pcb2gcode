@@ -41,6 +41,10 @@ public:
     double zchange;
     double zsafe;
     double zwork;
+    double tolerance;
+    bool explicit_tolerance;
+    bool backside;
+    bool mirror_absolute;
 };
 
 /******************************************************************************/

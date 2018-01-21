@@ -24,13 +24,11 @@
 /*
  */
 /******************************************************************************/
-Layer::Layer(const string& name, shared_ptr<Surface> surface,
-             shared_ptr<RoutingMill> manufacturer, bool backside,
-             bool mirror_absolute)
+Layer::Layer(const string& name, shared_ptr<Core> surface,
+             shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;
     this->mirrored = backside;
-    this->mirror_absolute = mirror_absolute;
     this->surface = surface;
     this->manufacturer = manufacturer;
 }
@@ -43,7 +41,7 @@ Layer::Layer(const string& name, shared_ptr<Surface> surface,
 /******************************************************************************/
 vector<shared_ptr<icoords> > Layer::get_toolpaths()
 {
-    return surface->get_toolpath(manufacturer, mirrored, mirror_absolute);
+    return surface->get_toolpath(manufacturer, mirrored);
 }
 
 /******************************************************************************/
@@ -70,6 +68,6 @@ void Layer::add_mask(shared_ptr<Layer> mask)
 /******************************************************************************/
 vector<unsigned int> Layer::get_bridges( shared_ptr<icoords> toolpath )
 {
-    return surface->get_bridges( boost::dynamic_pointer_cast<Cutter>( manufacturer ), toolpath );
+    return surface->get_bridges(dynamic_pointer_cast<Cutter>( manufacturer ), toolpath);
 }
 

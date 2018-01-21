@@ -23,22 +23,24 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include <boost/noncopyable.hpp>
-#include <boost/array.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
 
 #include <vector>
 using std::vector;
+
+#include <boost/noncopyable.hpp>
 
 #include <glibmm/refptr.h>
 #include <gdkmm/pixbuf.h>
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 #include "gerberimporter.hpp"
+#include "core.hpp"
 
 struct surface_exception: virtual std::exception, virtual boost::exception
 {
@@ -48,21 +50,20 @@ struct surface_exception: virtual std::exception, virtual boost::exception
 /*
  */
 /******************************************************************************/
-class Surface: virtual public boost::noncopyable
+class Surface: public Core, virtual public boost::noncopyable
 {
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-            ivalue_t max_y, string outputdir);
-    void render(boost::shared_ptr<LayerImporter> importer)
+            ivalue_t max_y, string name, string outputdir);
+    void render(shared_ptr<RasterLayerImporter> importer)
     throw (import_exception);
 
-    boost::shared_ptr<Surface> deep_copy();
+    shared_ptr<Surface> deep_copy();
 
     void save_debug_image(string);
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror, bool mirror_absolute);
-    vector<unsigned int> get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath );
+            bool mirror);
     ivalue_t get_width_in()
     {
         return max_x - min_x;
@@ -74,8 +75,8 @@ public:
     }
     ;
 
-    void add_mask(shared_ptr<Surface>);
-    void fill_outline(double linewidth);
+    void add_mask(shared_ptr<Core>);
+    void enable_filling(double linewidth);
 
 protected:
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
@@ -86,9 +87,14 @@ protected:
     const ivalue_t dpi;
     const ivalue_t min_x, max_x, min_y, max_y;
     const int zero_x, zero_y;
+    const string name;
     const string outputdir;
 
+    bool fill;
+    double linewidth;
+
     void make_the_surface(unsigned int width, unsigned int height);
+    void fill_outline();
 
     // Image Processing Methods
 

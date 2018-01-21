@@ -24,10 +24,10 @@
 using std::vector;
 using std::pair;
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "mill.hpp"
 
 class outline_bridges_exception: virtual std::exception, virtual boost::exception

@@ -1,4 +1,4 @@
-.TH PCB2GCODE 1 "2015-02-17"
+.TH PCB2GCODE 1 "2016-06-5"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 pcb2gcode \- command-line tool for engraving PCBs using CNCs
@@ -46,7 +46,8 @@ Engrave the back side according to the given file.
 \fB\-\-outline\fP \fIfilename.gbr\fP
 Cut out the board to the shape exposed in the given file. Typically, there is
 only a polygon in this gerber file. Alternatively, this file can contain a
-closed line chain (see \fB\-\-fill-outline\fP).
+closed line chain (see \fB\-\-fill\-outline\fP).  This option is enabled by
+default, to disable it use \-\-fill\-outline=false
 .TP
 \fB\-\-drill\fP \fIfilename.cnc\fP
 Convert the given file (containing drill sizes and positions) to G-code.
@@ -63,8 +64,12 @@ gcode preamble file, inserted at the very beginning
 \fB\-\-postamble\fP \fIfilename.ngc\fP
 gcode postamble file, inserted before M9 and M2
 .TP
-\fB\-\-g64\fP \fIunit\fP
-maximum deviation from toolpath, overrides internal calculation
+\fB\-\-tolerance\fP \fIunit\fP
+maximum deviation from toolpath
+.TP
+\fB\-\-nog64\fP
+do not explicitly set G64 inside the output gcode. This option makes the gcode
+compatible with low-end cnc controllers (like grbl)
 
 .PP
 For every option \fB\-\-x\fP that takes a filename, there is an
@@ -96,17 +101,24 @@ spindle speed during engraving (rounds per minute)
 .TP
 \fB\-\-offset\fP \fIunit\fP
 distance by which the tool movement will be outset from the contours in the
-gerber file to be engraved
+gerber file to be engraved. If you want to obtain a PCB as similar as possible
+to the original file, you should set this value to half of the tool diameter.
 
 If this distance can't be satisfied because copper areas are too close, a
 warning will be printed and the line will be drawn between the areas. This
 behavior can be used to get voronoi-style (flood-filling) areas; simply set the
 offset to a large value (like 1 inch).
+When the vectorial mode is in use, \fB\-\-voronoi\fP is preferred.
+.TP
+\fB\-\-voronoi\fP
+enable the voronoi mode (requires  \fB\-\-vectorial\fP). This option is more
+efficient than a large \fB\-\-offset\fP value, and provides the same result.
 .TP
 \fB\-\-extra\-passes\fP \fInumber\fP
 number of additional isolation passes
 For each extra pass, engraving is repeated with the offset width increased by
 half its original value, creating wider isolation areas.
+This option is ignored when \fB\-\-voronoi\fP is in use.
 
 .PP
 The parameters that define drilling are:
@@ -116,6 +128,9 @@ Z value down to which will be drilled
 .TP
 \fB\-\-zchange\fP \fIunit\fP
 Z-coordinate for movements with the drill head
+.TP
+\fB\-\-zchange\-absolute\fP
+use zchange as a machine coordinates height (G53)
 .TP
 \fB\-\-drill\-feed\fP \fIunit/minute\fP
 feed rate for drilling (vertical speed)
@@ -130,8 +145,9 @@ regularly (possibly creating a bigger hole than intended), the other holes are
 created by moving the head in circles using the feed and infeed parameters used
 in cutting.
 .TP
-\fB\-\-drill\-front\fP
-[\fBDEPRECATED\fP, use \fB\-\-drill\-side\fP instead] drill from the front side.
+\fB\-\-milldrill-diameter\fP \fIunit\fP
+diameter of milling head which is used with \fB\-\-milldrill\fP;
+the default value is same as \fB\-\-cutter\-diameter\fP.
 .TP
 \fB\-\-drill\-side\fP \fIside\fP
 choose the drill side. Valid choices are front, back or auto (default). In auto
@@ -144,6 +160,12 @@ use only one drill bit size
 \fB\-\-nog81\fP
 replace G81 with G0+G1. This option makes the gcode compatible with low-end 
 cnc controllers (like grbl), but also makes it bigger and less clean
+.TP
+\fB\-\-nog91-1\fP
+do not explicitly set G91.1 (incremental arc mode distance) in drill headers.
+Some controllers (like Roland's) does not support G91.1 and they can wrongly
+interpret it as G91 (relative distance). Since the default mode is usually
+"incremental", you can safely remove G91.1 in most of the cases
 
 .PP
 Outline cutting takes another set of options:
@@ -175,10 +197,13 @@ contains not a polygon but a closed chain of lines. The board will be cut along
 the centres of these lines.
 .TP
 \fB\-\-outline\-width \fIunit\fP\fP
-thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is given)
-.TP
-\fB\-\-cut\-front\fP
-[\fBDEPRECATED\fP, use \fB\-\-cut\-side\fP instead] cut from the front side.
+thickness of the lines that form the outline (if \fB\-\-fill-outline\fP is
+given); the default value is 0.15 mm/0.059 in.
+With \fB\-\-vectorial=false\fP pcb2gcode takes the external contour of the
+outline as the board contour so a small correction (equal to half of the
+graphical width of the outline line) is needed.
+With \fB\-\-vectorial=true\fP pcb2gcode consider the center of the line as
+contour, so no correction is needed and \fB\-\-outline\-width\fP is ignored.
 .TP
 \fB\-\-cut\-side\fP \fIside\fP
 choose the cut side. Valid choices are front, back or auto (default). In auto mode
@@ -224,27 +249,16 @@ enable the autoleveller for the front side
 enable the autoleveller for the back side
 .TP
 \fB\-\-al-x\fP \fIunit\fP
-the width of the probing on the X axis. Higher values increase the levelling 
-precision but also increases the probing time (but not the milling time)
+the width of the probing on the X axis. Lower values increase the levelling
+precision but also increase the probing time (but not the milling time)
 .TP
 \fB\-\-al-y\fP \fIunit\fP
-the width of the probing on the Y axis. Higher values increase the levelling
-precision but also increases the probing time (but not the milling time)
+the width of the probing on the Y axis. Lower values increase the levelling
+precision but also increase the probing time (but not the milling time)
 .TP
 \fB\-\-al-probefeed\fP \fIunit/second\fP
 probe speed on the Z axis. Higher values decrease the probing time but also 
 increase the wear of the probing tool
-.TP
-\fB\-\-al-2ndprobefeed\fP \fIunit/second\fP
-if specified, use \fB\-\-al\-probefeed\fP as probing speed for the probing
-grid, then change tool and do a single probe at a speed of
-\fB\-\-al-2ndprobefeed\fP with the new tool. This option is useful if you want
-to reduce the wear of the tool during the probing without decreasing the probe
-speed; in this way you can use a "bad" bit for the probing, change bit and use
-the "real" bit just for one probe. Moreover, when \fB\-\-al-2ndprobefeed\fP is
-specified, you can set \fB\-\-al-probefeed\fP<=\fB0\fP in order to disable the
-probing grid. You can use this to start again a project without probing the
-whole grid again (don't close the control software).
 .TP
 \fB\-\-al-probe-on\fP \fIcommand(s)\fP
 insert these commands at the start of the probing sequence, replacing the 
@@ -264,8 +278,8 @@ and TurboCNC use \fBG31\fP. If unspecified, \fBG31\fP will be used. This
 option is relevant only when \fB\-\-software\fP=\fBcustom\fP
 .TP
 \fB\-\-al-probevar\fP \fInumber\fP
-custom Z probe result variable. For example, LinuxCNC uses \fB5063\fP while
-Mach3, Mach4 and TurboCNC use \fB2002\fP. If unspecified, \fB2002\fP will be
+custom Z probe result variable. For example, LinuxCNC and Mach4 use \fB5063\fP
+while Mach3 and TurboCNC use \fB2002\fP. If unspecified, \fB2002\fP will be
 used. This option is relevant only when \fB\-\-software\fP=\fBcustom\fP
 .TP
 \fB\-\-al-setzzero\fP \fIcode\fP
@@ -276,7 +290,7 @@ relevant only when \fB\-\-software\fP=\fBcustom\fP
 
 .PP
 \fBpcb2gcode\fP can repeat the PCB in a tile-x times tile-y grid of identical
-PCBs. This feature can be activated by specifing the number of columns and rows
+PCBs. This feature can be activated by specifying the number of columns and rows
 with \fB\-\-tile\-x\fP and \fB\-\-tile\-y\fP. If you don't specify a software,
 or if you use \fB\-\-software=Custom\fP, the resulting Gcode will be much bigger
 (about original_size * tile-x * tile-y).
@@ -290,28 +304,31 @@ number of tiling rows. Default value is 1.
 .PP
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
+\fB\-\-vectorial\fP
+enable the \fBEXPERIMENTAL\fP vectorial core. This new core offers much better
+performances, higher precision, smaller output files and support for internal
+cutoffs (like thermal pads). When \fB\-\-vectorial\fP is enabled, \fB\-\-dpi\fP
+and \fB\-\-outline\-width\P are ignored.
+.TP
 \fB\-\-software\fP \fIsoftware\fP
-specify the gcode interpreter software; currently supported softwares are
+specify the gcode interpreter software; currently supported programs are
 \fBLinuxCNC\fP, \fBMach3\fP, \fBMach4\fP and \fBcustom\fP. With custom you
 can specify \fBal-probecode\fP, \fBal-probevar\fP and \fBal-setzzero\fP, in
 order to generate gcode for an unsupported software.
 .TP
 \fB\-\-optimise\fP
-optimise the output gcode with a Douglas-Peucker algorithm, reducing its output
-size up to 95% (while accepting a very little loss of precision). This option is
-enable by default, to disable it use \-\-optimise=false
+optimise the output gcode with Douglas-Peucker, reducing its output size up to
+95% (while accepting a very little loss of precision). This option is enabled by
+default, to disable it use \fB\-\-optimise=false\fP
 .TP
 \fB\-\-dpi\fP \fIdpi\fP
 resolution used internally (defaults to 1000). If the software freezes during
 the layer exporting, try to increase the dpi value. Sane values for dpi are
-1000/2000 for through-hole PCBs and 2000/4000 dpi for SMD PCBs.
+1000/2000 for through-hole PCBs and 2000/4000 dpi for SMT PCBs.
 .TP
 \fB\-\-mirror\-absolute\fP
 mirror operations on the back side along the Y axis instead of the board
 center, which is the default
-.TP
-\fB\-\-svg\fP
-output SVG file (EXPERIMENTAL)
 .TP
 \fB\-\-metric\fP
 use metric units for parameters. Does not affect output code
@@ -322,6 +339,10 @@ use metric units for output code
 \fB\-\-zero-start\fP
 set the starting point of the project at (0,0). With this option, the projet
 will be between (0,0) and (max_x_value, max_y_value) (positive values)
+.TP
+\fB\-\-no-export\fP
+do not create the output gcode files. You can use this to quickly convert the
+input files to png/svg
 
 .PP
 The only options that can't be used in the \fImillproject\fP file are the
@@ -349,9 +370,9 @@ Show version of program.
 For further information about \fBpcb2gcode\fP, see the
 .URL "https://github.com/pcb2gcode/pcb2gcode/wiki" "project wiki" "."
 .SH AUTHOR
-pcb2gcode was written by Patrick Birnzain, loosely based on an earlier program
-of the same name by Jeff Prothero (Cynbe ru Taren), which in term was based
-even more loosely on Matthew Sager's gerber_to_gcode.
+pcb2gcode was written by Patrick Birnzain and Nicola Corna, loosely based on an
+earlier program of the same name by Jeff Prothero (Cynbe ru Taren), which in
+term was based even more loosely on Matthew Sager's gerber_to_gcode.
 .PP
 This manual page was written by chrysn <chrysn@fsfe.org> and Nicola Corna 
 <nicola@corna.info> for the Debian project

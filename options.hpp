@@ -23,8 +23,8 @@
 
 #include <stdexcept>
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -34,6 +34,7 @@ namespace po = boost::program_options;
 #include <istream>
 #include <string>
 using std::string;
+using std::to_string;
 
 enum ErrorCodes
 {
@@ -74,7 +75,6 @@ enum ErrorCodes
     ERR_NEGATIVEALX = 35,
     ERR_NEGATIVEALY = 36,
     ERR_NEGATIVEPROBEFEED = 37,
-    ERR_NEGATIVE2NDPROBEFEED = 38,
     ERR_NEGATIVECUTVERTFEED = 39,
     ERR_NEGATIVEMILLVERTFEED = 40,
     ERR_NEGATIVETILEX = 41,
@@ -83,6 +83,11 @@ enum ErrorCodes
     ERR_UNKNOWNDRILLSIDE = 44,
     ERR_BOTHCUTFRONTSIDE = 45,
     ERR_UNKNOWNCUTSIDE = 46,
+    ERR_VORONOINOVECTORIAL = 47,
+    ERR_VORONOINOOUTLINE = 48,
+    ERR_BOTHTOLERANCEG64 = 49,
+    ERR_NEGATIVETOLERANCE = 50,
+    ERR_NEGATIVEZWORK = 51,
     ERR_INVALIDPARAMETER = 100,
     ERR_UNKNOWNPARAMETER = 101
 };

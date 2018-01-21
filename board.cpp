@@ -26,12 +26,13 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir) :
+Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
     outline_width(outline_width),
-    outputdir(outputdir)
+    outputdir(outputdir),
+    vectorial(vectorial)
 {
 
 }
@@ -67,10 +68,10 @@ unsigned int Board::get_dpi()
 /*
  */
 /******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool mirror_absolute)
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     // see comment for prep_t in board.hpp
-    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside, mirror_absolute)));
+    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
 }
 
 /******************************************************************************/
@@ -94,7 +95,7 @@ void Board::createLayers()
     // calculate room needed by the PCB traces
     for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
-        shared_ptr<LayerImporter> importer = it->second.get<0>();
+        shared_ptr<LayerImporter> importer = get<0>(it->second);
         float t;
         t = importer->get_min_x();
         if(min_x > t) min_x = t;
@@ -109,7 +110,7 @@ void Board::createLayers()
     // if there's no pcb outline, add the specified margins
     try
     {
-        shared_ptr<RoutingMill> outline_mill = prepared_layers.at("outline").get<1>();
+        shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
         ivalue_t radius = outline_mill->tool_diameter / 2;
         min_x -= radius;
         max_x += radius;
@@ -120,7 +121,7 @@ void Board::createLayers()
     {
         try
         {
-            shared_ptr<Isolator> trace_mill = boost::static_pointer_cast<Isolator>(prepared_layers.at("front").get<1>());
+            shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at("front")));
             ivalue_t radius = trace_mill->tool_diameter / 2;
             int passes = trace_mill->extra_passes + 1;
             min_x -= radius * passes;
@@ -146,17 +147,56 @@ void Board::createLayers()
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
         // prepare the surface
-        shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y, outputdir));
-        shared_ptr<LayerImporter> importer = it->second.get<0>();
-        surface->render(importer);
+        shared_ptr<LayerImporter> importer = get<0>(it->second);
+        const bool fill = fill_outline && it->first == "outline";
 
-        shared_ptr<Layer> layer(new Layer(it->first, surface, it->second.get<1>(), it->second.get<2>(), it->second.get<3>())); // see comment for prep_t in board.hpp
+        if (vectorial)
+        {
+            if (dynamic_pointer_cast<VectorialLayerImporter>(importer))
+            {
+                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
+                                                                            max_y - min_y,
+                                                                            it->first, outputdir));
+                if (fill)
+                    surface->enable_filling();
 
-        layers.insert(std::make_pair(layer->get_name(), layer));
+                surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
+
+                shared_ptr<Layer> layer(new Layer(it->first,
+                                                    surface,
+                                                    get<1>(it->second),
+                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
+
+                layers.insert(std::make_pair(layer->get_name(), layer));
+            }
+            else
+                throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
+        }
+        else
+        {
+            if (dynamic_pointer_cast<RasterLayerImporter>(importer))
+            {
+                shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
+                                                        it->first, outputdir));
+                if (fill)
+                    surface->enable_filling(outline_width);
+
+                surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
+
+                shared_ptr<Layer> layer(new Layer(it->first,
+                                                    surface, 
+                                                    get<1>(it->second),
+                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
+                
+                layers.insert(std::make_pair(layer->get_name(), layer));
+            }
+            else
+                throw std::logic_error("Can't cast LayerImporter to RasterLayerImporter!");
+        }
     }
 
     // DEBUG output
-    BOOST_FOREACH( layer_t layer, layers )
+    for ( layer_t layer : layers )
     {
         layer.second->surface->save_debug_image(string("original_") + layer.second->get_name());
     }
@@ -166,17 +206,12 @@ void Board::createLayers()
     {
         shared_ptr<Layer> outline_layer = layers.at("outline");
 
-        if (fill_outline)
-        {
-            outline_layer->surface->fill_outline(outline_width);
-        }
-
         for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++)
         {
             if (it->second != outline_layer)
             {
                 it->second->add_mask(outline_layer);
-                it->second->surface->save_debug_image("masked");
+                it->second->surface->save_debug_image(string("masked_") + it->second->get_name());
             }
         }
     }
@@ -211,7 +246,7 @@ vector<string> Board::list_layers()
 {
     vector<string> layerlist;
 
-    BOOST_FOREACH( layer_t layer, layers )
+    for ( layer_t layer : layers )
     {
         layerlist.push_back(layer.first);
     }

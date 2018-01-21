@@ -28,7 +28,7 @@ using std::vector;
 
 #include <boost/noncopyable.hpp>
 
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "surface.hpp"
 #include "mill.hpp"
 
@@ -39,9 +39,8 @@ using std::vector;
 class Layer: boost::noncopyable
 {
 public:
-    Layer(const string& name, shared_ptr<Surface> surface,
-          shared_ptr<RoutingMill> manufacturer, bool backside,
-          bool mirror_absolute);
+    Layer(const string& name, shared_ptr<Core> surface,
+          shared_ptr<RoutingMill> manufacturer, bool backside);
 
     vector<shared_ptr<icoords> > get_toolpaths();
     shared_ptr<RoutingMill> get_manufacturer();
@@ -57,7 +56,7 @@ private:
     string name;
     bool mirrored;
     bool mirror_absolute;
-    shared_ptr<Surface> surface;
+    shared_ptr<Core> surface;
     shared_ptr<RoutingMill> manufacturer;
 
     friend class Board;

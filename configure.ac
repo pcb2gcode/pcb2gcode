@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([pcb2gcode], [1.2.2], [nicola@corna.info])
+AC_INIT([pcb2gcode], [1.3.2], [nicola@corna.info])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -10,7 +10,7 @@ AC_CONFIG_AUX_DIR([m4])
 
 AM_SILENT_RULES([yes])
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -25,15 +25,17 @@ AX_CXX_COMPILE_STDCXX_11
 AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
                       [CPPFLAGS="$CPPFLAGS -fext-numeric-literals"])
 
+# Enable warnings
+AX_CXXFLAGS_WARN_ALL
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
-BOOST_REQUIRE([1.47.0])
+BOOST_REQUIRE([1.56.0])
 BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
-BOOST_SMART_PTR
-BOOST_FOREACH
-BOOST_TUPLE
+BOOST_STRING_ALGO
+BOOST_FORMAT
 
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])

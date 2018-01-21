@@ -23,10 +23,6 @@
 #include "surface.hpp"
 using std::pair;
 
-#include <map>
-
-
-#include "outline_bridges.hpp"
 #include "tsp_solver.hpp"
 
 #include <glibmm/miscutils.h>
@@ -54,7 +50,6 @@ void Surface::make_the_surface(unsigned int width, unsigned int height)
                     Cairo::FORMAT_ARGB32, width, height, pixbuf->get_rowstride());
 }
 
-#include <boost/foreach.hpp>
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -66,10 +61,11 @@ using std::endl;
  */
 /******************************************************************************/
 Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-                 ivalue_t max_y, string outputdir) :
+                 ivalue_t max_y, string name, string outputdir) :
     dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
         -min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
-            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin), clr(32), outputdir(outputdir)
+            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin),
+                name(name), outputdir(outputdir), fill(false), clr(32)
 {
     guint8* pixels;
     int stride;
@@ -95,12 +91,15 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
 /*
  */
 /******************************************************************************/
-void Surface::render(boost::shared_ptr<LayerImporter> importer)
+void Surface::render(shared_ptr<RasterLayerImporter> importer)
 throw (import_exception)
 {
     importer->render(cairo_surface, dpi,
                      min_x - static_cast<ivalue_t>(procmargin) / dpi,
                      min_y - static_cast<ivalue_t>(procmargin) / dpi);
+
+    if (fill)
+        fill_outline();
 }
 
 #include <iostream>
@@ -131,7 +130,7 @@ double distancePointLine(const icoordpair &x, const icoordpair &la,
  */
 /******************************************************************************/
 vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirrored, bool mirror_absolute)
+        bool mirrored)
 {
     Isolator* iso = dynamic_cast<Isolator*>(mill.get());
     int extra_passes = iso ? iso->extra_passes : 0;
@@ -141,7 +140,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     int added = -1;
     int contentions = 0;
     int grow = mill->tool_diameter / 2 * dpi;
-    ivalue_t mirror_axis = mirror_absolute ? min_x : ((min_x + max_x) / 2);
+    ivalue_t mirror_axis = mill->mirror_absolute ? min_x : ((min_x + max_x) / 2);
 
     vector<shared_ptr<icoords> > toolpath;
 
@@ -155,7 +154,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
         {
             added = 0;
 
-            BOOST_FOREACH( coordpair c, components )
+            for ( coordpair c : components )
             {
                 added += grow_a_component(c.first, c.second, contentions);
             }
@@ -163,7 +162,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
         coords inside, outside;
 
-        BOOST_FOREACH( coordpair c, components )
+        for ( coordpair c : components )
         {
             calculate_outline(c.first, c.second, outside, inside);
             inside.clear();
@@ -177,7 +176,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
 
             // i'm not sure wheter this is the right place to do this...
             // that "mirrored" flag probably is a bad idea.
-            BOOST_FOREACH( coordpair c, outside )
+            for ( coordpair c : outside )
             {
                 outline->push_back(
                     icoordpair(
@@ -189,21 +188,20 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
             }
 
             outside.clear();
-
         }
     }
-    BOOST_FOREACH( coordpair c, components )
+    for ( coordpair c : components )
     {
-      shared_ptr<icoords> outline = component_outlines[c];
-      if (mill->optimise)
-	{
-	  shared_ptr<icoords> outline_optimised(new icoords());
-	  //Use Boost's Douglas-Peucker simplification algorithm
-	  boost::geometry::simplify( *outline, *outline_optimised, 1.0 / dpi );
-	  toolpath.push_back(outline_optimised);
-	}
-	else
-	  toolpath.push_back(outline);
+        shared_ptr<icoords> outline = component_outlines[c];
+        if (mill->optimise)
+        {
+	    shared_ptr<icoords> outline_optimised(new icoords());
+	    //Use Boost's Douglas-Peucker simplification algorithm
+	    boost::geometry::simplify( *outline, *outline_optimised, 1.0 / dpi );
+	    toolpath.push_back(outline_optimised);
+        }
+        else
+            toolpath.push_back(outline);
     }
 
     if (contentions)
@@ -215,8 +213,8 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    save_debug_image("traced_" + name);
 
-    save_debug_image("traced");
     return toolpath;
 }
 
@@ -232,7 +230,7 @@ guint32 Surface::get_an_unused_color()
         badcol = false;
         clr = rand();
 
-        for (int i = 0; i < usedcolors.size(); i++)
+        for (unsigned int i = 0; i < usedcolors.size(); i++)
         {
             if (usedcolors[i] == clr)
             {
@@ -639,35 +637,41 @@ guint Surface::grow_a_component(int x, int y, int& contentions)
 /*
  */
 /******************************************************************************/
-void Surface::add_mask(shared_ptr<Surface> mask_surface)
+void Surface::add_mask(shared_ptr<Core> mask_surface)
 {
-    Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface =
-        mask_surface->cairo_surface;
-
-    int max_x = cairo_surface->get_width();
-    int max_y = cairo_surface->get_height();
-    int stride = cairo_surface->get_stride();
-
-    if (max_x != mask_cairo_surface->get_width()
-            || max_y != mask_cairo_surface->get_height()
-            || stride != mask_cairo_surface->get_stride())
+    shared_ptr<Surface> mask = dynamic_pointer_cast<Surface>(mask_surface);
+    
+    if (mask)
     {
-        throw std::logic_error("Surface shapes don't match.");
-    }
+        Cairo::RefPtr<Cairo::ImageSurface> mask_cairo_surface = mask->cairo_surface;
 
-    guint8* pixels = cairo_surface->get_data();
-    guint8* mask_pixels = mask_cairo_surface->get_data();
+        int max_x = cairo_surface->get_width();
+        int max_y = cairo_surface->get_height();
+        int stride = cairo_surface->get_stride();
 
-    for (int y = 0; y < max_y; y++)
-    {
-        for (int x = 0; x < max_x; x++)
+        if (max_x != mask_cairo_surface->get_width()
+                || max_y != mask_cairo_surface->get_height()
+                || stride != mask_cairo_surface->get_stride())
         {
-            PRC(pixels + x*4 + y*stride) &=
-                PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
-            PRC(pixels + x*4 + y*stride) |=
-                (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
+            throw std::logic_error("Surface shapes don't match.");
+        }
+
+        guint8* pixels = cairo_surface->get_data();
+        guint8* mask_pixels = mask_cairo_surface->get_data();
+
+        for (int y = 0; y < max_y; y++)
+        {
+            for (int x = 0; x < max_x; x++)
+            {
+                PRC(pixels + x*4 + y*stride) &=
+                    PRC(mask_pixels + x*4 + y*stride); /* engrave only on the surface area */
+                PRC(pixels + x*4 + y*stride) |=
+                    (~PRC(mask_pixels + x*4 + y*stride) & (RED | BLUE)); /* tint the outiside in an own color to block extension */
+            }
         }
     }
+    else
+        throw std::logic_error("Can't cast Core to Surface");
 }
 
 #include <boost/format.hpp>
@@ -708,7 +712,17 @@ void Surface::opacify(Glib::RefPtr<Gdk::Pixbuf> pixbuf)
 /*
  */
 /******************************************************************************/
-void Surface::fill_outline(double linewidth)
+void Surface::enable_filling(double linewidth)
+{
+    fill = true;
+    this->linewidth = linewidth;
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
+void Surface::fill_outline()
 {
     /* paint everything white that can not be reached from outside the image */
 
@@ -792,36 +806,5 @@ void Surface::fill_outline(double linewidth)
                 PRC(pixels + x*4 + y*stride) = WHITE;
         }
     }
-
-    save_debug_image("outline_filled");
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<unsigned int> Surface::get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath )
-{
-    vector<unsigned int> bridges;
-
-    if( cutter != NULL )
-    {
-        try
-        {
-            bridges = outline_bridges::makeBridges( toolpath, cutter->bridges_num, cutter->bridges_width + cutter->tool_diameter );
-
-            if ( bridges.size() != cutter->bridges_num )
-                cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
-                     "only " << bridges.size() << " will be created." << endl;
-        }
-        catch ( outline_bridges_exception &exc )
-        {
-            cerr << "Can't fit any bridge in the specified outline. Are the bridges are too wide for this outline? "
-                 "Are you sure you've selected the correct outline file?" << endl;
-        }
-    }
-    else
-        cerr << "Can't create bridges on this layer: cutter object is not castable to shared_ptr<Cutter>" << endl;
-
-    return bridges;
-}

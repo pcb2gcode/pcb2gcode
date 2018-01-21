@@ -36,14 +36,19 @@ using std::map;
 using std::vector;
 using std::pair;
 
-#include <boost/foreach.hpp>
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-#include <boost/tuple/tuple.hpp>
-using boost::tuple;
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+using std::static_pointer_cast;
 
-#include "coord.hpp"
+#include <tuple>
+using std::tuple;
+using std::make_tuple;
+using std::get;
+
+#include "geometry.hpp"
 #include "surface.hpp"
+#include "surface_vectorial.hpp"
 #include "layer.hpp"
 
 #include "mill.hpp"
@@ -60,19 +65,18 @@ using boost::tuple;
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, string outputdir);
+    Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial);
 
     void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
-                      shared_ptr<RoutingMill> manufacturer, bool backside,
-                      bool mirror_absolute);
-    void set_margins(double margins) { margin = margins;	};
+                      shared_ptr<RoutingMill> manufacturer, bool backside);
+    void set_margins(double margins) { margin = margins;	}
     ivalue_t get_width();
     ivalue_t get_height();
-    ivalue_t get_min_x() {	return min_x; };
-    ivalue_t get_max_x() {	return max_x; };
-    ivalue_t get_min_y() {	return min_y; };
-    ivalue_t get_max_y() {	return max_y; };
-    double get_layersnum() {  return layers.size(); };
+    ivalue_t get_min_x() {	return min_x; }
+    ivalue_t get_max_x() {	return max_x; }
+    ivalue_t get_min_y() {	return min_y; }
+    ivalue_t get_max_y() {	return max_y; }
+    double get_layersnum() {  return layers.size(); }
 
     vector<string> list_layers();
     shared_ptr<Layer> get_layer(string layername);
@@ -87,6 +91,7 @@ private:
     const bool fill_outline;
     const double outline_width;
     const string outputdir;
+    const bool vectorial;
     ivalue_t min_x;
     ivalue_t max_x;
     ivalue_t min_y;
@@ -101,7 +106,7 @@ private:
      * prep_t tuples, whose signature must basically match the construction
      * signature of Layer.
      */
-    typedef tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool, bool> prep_t;
+    typedef tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
     map<string, prep_t> prepared_layers;
     map<string, shared_ptr<Layer> > layers;
 };

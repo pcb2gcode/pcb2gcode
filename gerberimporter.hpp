@@ -23,7 +23,16 @@
 #include <string>
 using std::string;
 
+#include <iostream>
+using std::cerr;
+using std::endl;
+
 #include "importer.hpp"
+
+using std::make_shared;
+using std::map;
+using std::pair;
+using std::vector;
 
 extern "C" {
 #include <gerbv.h>
@@ -41,7 +50,7 @@ struct gerber_exception: virtual import_exception
  different file formats and gerber dialects.
  */
 /******************************************************************************/
-class GerberImporter: virtual public LayerImporter
+class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
 {
 public:
     GerberImporter(const string path);
@@ -57,8 +66,87 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y) throw (import_exception);
 
+    virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30);
+    virtual inline unsigned int vectorial_scale()
+    {
+        return scale;
+    }
+
     virtual ~GerberImporter();
+
 protected:
+    enum Side { FRONT = 0, BACK = 1 } side;
+
+    struct gerberimporter_layer
+    {
+        map<coordinate_type, multi_linestring_type> paths;
+        unique_ptr<multi_polygon_type> draws;
+
+        gerberimporter_layer() : draws(new multi_polygon_type()) { }
+    };
+
+    struct connected_linestring
+    {
+        multi_linestring_type::reverse_iterator ls;
+        Side side;
+        bool approximated;
+    };
+
+    static const unsigned int scale;
+
+    static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                                        coordinate_type offset, bool clockwise, ring_type& ring);
+
+    static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                            coordinate_type offset, coordinate_type hole_diameter,
+                            unsigned int circle_points, polygon_type& polygon);
+    
+    static void draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
+                    coordinate_type hole_diameter, unsigned int circle_points, polygon_type& polygon);
+
+    static void draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon);
+    
+    static void draw_oval(point_type center, coordinate_type width, coordinate_type height, coordinate_type hole_diameter,
+                unsigned int circle_points, polygon_type& polygon);
+
+    static void draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
+                coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output);
+
+    static void draw_moire(const double * const parameters, unsigned int circle_points, coordinate_type cfactor,
+                polygon_type& output);
+
+    static void generate_apertures_map(const gerbv_aperture_t * const apertures[],
+                map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor);
+
+    static void linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
+                                coordinate_type height, ring_type& ring);
+
+    static void linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
+                                    coordinate_type radius, unsigned int circle_points, ring_type& ring);
+    
+    //Angles are in rad
+    static void circular_arc(point_type center, coordinate_type radius, double angle1,
+                                double angle2, unsigned int circle_points, linestring_type& linestring);
+    
+    static void merge_paths(multi_linestring_type& destination, const linestring_type& source, double tolerance);
+
+    static void simplify_paths(multi_linestring_type& paths);
+
+    static unique_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers, bool fill_rings,
+                                                            coordinate_type cfactor, unsigned int points_per_circle);
+
+    static void rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly);
+
+    static bool simplify_cutins(ring_type& ring, polygon_type& polygon);
+
+    inline static void unsupported_polarity_throw_exception()
+    {
+        cerr << "Non-positive image polarity is deprecated by the Gerber "
+                "standard and unsupported; re-run pcb2gcode without the "
+                "--vectorial flag" << endl;
+        throw gerber_exception();
+    }
+
 private:
 
     gerbv_project_t* project;

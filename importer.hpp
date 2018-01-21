@@ -20,6 +20,10 @@
 #ifndef IMPORTER_H
 #define IMPORTER_H
 
+#include <memory>
+using std::shared_ptr;
+using std::unique_ptr;
+
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
@@ -28,6 +32,10 @@ using Glib::ustring;
 #include <gdk/gdkcairo.h>
 
 #include <boost/exception/all.hpp>
+
+#include "geometry.hpp"
+#include "geometry.hpp"
+
 struct import_exception: virtual std::exception, virtual boost::exception
 {
 };
@@ -47,11 +55,22 @@ public:
     virtual gdouble get_max_x() = 0;
     virtual gdouble get_min_y() = 0;
     virtual gdouble get_max_y() = 0;
+};
 
+class RasterLayerImporter : virtual public LayerImporter
+{
+public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double xoff, const double yoff)
     throw (import_exception) = 0;
 
+};
+
+class VectorialLayerImporter : virtual public LayerImporter
+{
+public:
+    virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30) = 0;
+    virtual unsigned int vectorial_scale() = 0;
 };
 
 #endif // IMPORTER_H

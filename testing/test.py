@@ -1,12 +1,12 @@
 
+import os
 import sys
 import subprocess
 import threading
 
-testProjects = ['./gerbv_example/dan', \
-                    './gerbv_example/am-test', \
-                    './gerbv_example/eaglecad1', \
-                    './gerbv_example/jj']
+testProjectsDir = './gerbv_example'
+testProjects = [os.path.join(testProjectsDir, subdir)
+                for subdir in os.listdir(testProjectsDir)]
 
 class Builder(threading.Thread):
     def __init__(self, project_dir, output_dir_name ):

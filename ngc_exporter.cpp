@@ -21,12 +21,15 @@
  */
 
 #include "ngc_exporter.hpp"
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 using std::cerr;
+using std::flush;
 using std::ios_base;
 using std::left;
+
+#include <cmath>
+using std::ceil;
 
 #include <iomanip>
 
@@ -45,18 +48,8 @@ NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
       quantization_error( 2.0 / dpi ), ocodes(1), globalVars(100)
 {
     this->board = board;
-    bDoSVG = false;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void NGC_Exporter::set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo)
-{
-    this->svgexpo = svgexpo;
-    bDoSVG = true;
-}
 /******************************************************************************/
 /*
  */
@@ -75,6 +68,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
+    bZchangeG53 = options["zchange-absolute"].as<bool>();
     bFrontAutoleveller = options["al-front"].as<bool>();
     bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
@@ -95,11 +89,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
-    if( options.count("g64") )
-        g64 = options["g64"].as<double>();
-    else
-        g64 = quantization_error * cfactor;      // set maximum deviation to 2 pixels to ensure smooth movement
-
     if( bFrontAutoleveller || bBackAutoleveller )
         leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
                                       xoffset, yoffset, tileInfo );
@@ -109,20 +98,20 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     else
         bBridges = false;
 
-    BOOST_FOREACH( string layername, board->list_layers() )
+    for ( string layername : board->list_layers() )
     {
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
-        cerr << "Exporting " << layername << "... ";
+        cout << "Exporting " << layername << "... " << flush;
         export_layer(board->get_layer(layername), of_name);
-        cerr << "DONE." << " (Height: " << board->get_height() * cfactor
+        cout << "DONE." << " (Height: " << board->get_height() * cfactor
              << (bMetricoutput ? "mm" : "in") << " Width: "
              << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
              << ")";
         if (layername == "outline")
-            cerr << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
-        cerr << endl;
+            cout << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
+        cout << endl;
     }
 }
 
@@ -134,18 +123,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    bool bSvgOnce = TRUE;
     bool bAutolevelNow;
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
-    static const unsigned int repeatVar = ocodes.getUniqueCode();
 
     double xoffsetTot;
     double yoffsetTot;
     Tiling tiling( tileInfo, cfactor );
-    tiling.setGCodeEnd( "\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n"
-        "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
+    tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
+        + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
@@ -157,7 +144,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     of.open(of_name.c_str());
 
     // write header to .ngc file
-    BOOST_FOREACH( string s, header )
+    for ( string s : header )
     {
         of << "( " << s << " )\n";
     }
@@ -190,9 +177,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of << "G90 ( Absolute coordinates. )\n"
-       << "S" << left << mill->speed << " ( RPM spindle speed. )\n"
-       << "G64 P" << g64 << " ( set maximum deviation from commanded toolpath )\n"
-       << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
+       << "S" << left << mill->speed << " ( RPM spindle speed. )\n";
+
+    if (mill->explicit_tolerance)
+        of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
+
+    of << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if( bAutolevelNow )
     {
@@ -212,13 +202,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     
     tiling.header( of );
 
-    //SVG EXPORTER
-    if (bDoSVG)
-    {
-        //choose a color
-        svgexpo->set_rand_color();
-    }
-
     for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
     {
         yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -231,7 +214,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
-            BOOST_FOREACH( shared_ptr<icoords> path, toolpaths )
+            for ( shared_ptr<icoords> path : toolpaths )
             {
                 // retract, move to the starting point of the next contour
                 of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
@@ -239,17 +222,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
                    << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
-                //SVG EXPORTER
-                if (bDoSVG)
-                {
-                    svgexpo->move_to(path->begin()->first, path->begin()->second);
-                    bSvgOnce = TRUE;
-                }
-
                 /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
                  * i know this is partially repetitive, but this way it's easier to read
                  */
-                shared_ptr<Cutter> cutter = boost::dynamic_pointer_cast<Cutter>(mill);
+                shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
 
                 if (cutter && cutter->do_steps)
                 {
@@ -257,18 +233,20 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                     //--------------------------------------------------------------------
                     //cutting (outline)
 
-                    double z_step = cutter->stepsize;
-                    double z = mill->zwork + z_step * abs(int(mill->zwork / z_step));
+                    const unsigned int steps_num = ceil(-mill->zwork / cutter->stepsize);
 
                     if( bBridges )
                         if( i == 0 && j == 0 )  //Compute the bridges only the 1st time
                             bridges = layer->get_bridges( path );
 
-                    while (z >= mill->zwork)
+                    for (unsigned int i = 0; i < steps_num; i++)
                     {
+                        const double z = mill->zwork / steps_num * (i + 1);
+
                         of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
                         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                         of << "F" << mill->feed * cfactor << "\n";
+                        of << "G01 ";
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -287,46 +265,37 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                     || !aligned(last, iter, peek) )      //Not aligned
                             {
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
-                                if (bDoSVG)
-                                {
-                                    if (bSvgOnce)
-                                        svgexpo->line_to(iter->first, iter->second);
-                                }
+                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
 
-                                if( bBridges && currentBridge != bridges.end() )
+                                if (bBridges && currentBridge != bridges.end())
                                 {
-                                    double bridges_depth = cutter->bridges_height >= 0 ?
-                                        cutter->bridges_height : cutter->bridges_height * z / mill->zwork;
-
-                                    if( *currentBridge == iter - path->begin() )
-                                        of << "Z" << bridges_depth * cfactor << endl;
-                                    else if( *currentBridge == last - path->begin() )
+                                    if (z < cutter->bridges_height)
                                     {
-                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << endl;
-                                        of << "F" << cutter->feed * cfactor;
-                                        ++currentBridge;
+                                        if (*currentBridge == iter - path->begin())
+                                            of << "Z" << cutter->bridges_height * cfactor << '\n';
+                                        else if (*currentBridge == last - path->begin())
+                                        {
+                                            of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+                                            of << "F" << cutter->feed * cfactor << '\n';
+                                            of << "G01 ";
+                                        }
                                     }
+
+                                    if (*currentBridge == last - path->begin())
+                                        ++currentBridge;
                                 }
                             }
 
                             last = iter;
                             ++iter;
                         }
-                        //SVG EXPORTER
-                        if (bDoSVG)
-                        {
-                            svgexpo->close_path();
-                            bSvgOnce = FALSE;
-                        }
-                        z -= z_step;
                     }
                 }
                 else
                 {
                     //--------------------------------------------------------------------
                     // isolating (front/backside)
-                    of << "F" << mill->vertfeed * cfactor << endl;
+                    of << "F" << mill->vertfeed * cfactor << '\n';
 
                     if( bAutolevelNow )
                     {
@@ -339,7 +308,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 Z" << mill->zwork * cfactor << "\n";
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                    of << "F" << mill->feed * cfactor << endl;
+                    of << "F" << mill->feed * cfactor << '\n';
+
+                    if (!bAutolevelNow)
+                        of << "G01 ";
 
                     icoords::iterator iter = path->begin();
                     icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -360,21 +332,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                                                            ( iter->second - yoffsetTot ) * cfactor ) );
                             else
                                 of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << endl;
-                            //SVG EXPORTER
-                            if (bDoSVG)
-                                if (bSvgOnce)
-                                    svgexpo->line_to(iter->first, iter->second);
+                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
                         }
 
                         last = iter;
                         ++iter;
-                    }
-                    //SVG EXPORTER
-                    if (bDoSVG)
-                    {
-                        svgexpo->close_path();
-                        bSvgOnce = FALSE;
                     }
                 }
             }
@@ -389,12 +351,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of.close();
-
-    //SVG EXPORTER
-    if (bDoSVG)
-    {
-        svgexpo->stroke();
-    }
 }
 
 /******************************************************************************/

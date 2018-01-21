@@ -4,7 +4,7 @@
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
- * Copyright (C) 2014, 2015 Nicola Corna <nicola@corna.info>
+ * Copyright (C) 2014-2017 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
 
 #include <fstream>
 #include <list>
-#include <boost/foreach.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -102,6 +101,53 @@ void options::parse(int argc, char** argv)
         po::parse_command_line(5, (char**) fake_basename_command_line,
                                generic, style),
         instance().vm);
+
+    //Default value for outline-width
+    const char *fake_outline_width_command_line[] = { "",
+                                            instance().vm["metric"].as<bool>() ?
+                                            "--outline-width=0.15" :
+                                            "--outline-width=0.059" };
+
+    if (!instance().vm.count("outline-width"))
+        po::store(po::parse_command_line(2,
+                        (char**) fake_outline_width_command_line,
+                        generic, style), instance().vm);
+
+    if (instance().vm.count("tolerance"))
+    {
+        if (instance().vm.count("g64"))
+        {
+            cerr << "You can't specify both tolerance and g64!\n";
+            exit(ERR_BOTHTOLERANCEG64);
+        }
+    }
+    else
+    {
+        const double cfactor = instance().vm["metric"].as<bool>() ? 25.4 : 1;
+        double tolerance;
+
+        if (instance().vm.count("g64"))
+        {
+            tolerance = instance().vm["g64"].as<double>();
+        }
+        else
+        {
+            if (instance().vm["vectorial"].as<bool>())
+                tolerance = 0.0004 * cfactor;
+            else
+                tolerance = 2.0 / instance().vm["dpi"].as<int>() * cfactor;
+        }
+
+        string tolerance_str = "--tolerance=" + to_string(tolerance);
+
+        const char *fake_tolerance_command_line[] = { "",
+                                            tolerance_str.c_str() };
+
+        po::store(po::parse_command_line(2,
+                        (char**) fake_tolerance_command_line,
+                        generic, style), instance().vm);
+    }
+
     po::notify(instance().vm);
 }
 
@@ -170,19 +216,22 @@ options::options()
             "back", po::value<string>(), "back side RS274-X .gbr")(
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
-            "svg", po::value<string>(), "SVG output file. EXPERIMENTAL")(
+            "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
+            "milldrill-diameter", po::value<double>(), "diameter of the end mill used for drilling with --milldrill")(
             "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
+            "nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")(
             "extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")(
-            "fill-outline", po::value<bool>()->default_value(false)->implicit_value(true), "accept a contour instead of a polygon as outline (you likely want to enable this one)")(
-            "outline-width", po::value<double>(), "width of the outline")(
+            "fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")(
+            "outline-width", po::value<double>(), "width of the outline, used only when vectorial is disabled")(
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
             "zcut", po::value<double>(), "PCB cutting depth in inches")(
             "cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")(
@@ -193,6 +242,7 @@ options::options()
             "cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")(
             "zdrill", po::value<double>(), "drill depth")(
             "zchange", po::value<double>(), "tool changing height")(
+            "zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")(
             "drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")(
             "drill-speed", po::value<int>(), "spindle rpm when drilling")(
             "drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")(
@@ -200,7 +250,7 @@ options::options()
             "onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")(
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
-            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision.")(
+            "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
@@ -210,20 +260,22 @@ options::options()
             "enable the z autoleveller for the front layer")(
             "al-back", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the back layer")(
-            "software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported softwares are linuxcnc, mach3, mach4 and custom")(
+            "software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")(
             "al-x", po::value<double>(), "width of the x probes")(
             "al-y", po::value<double>(), "width of the y probes")(
             "al-probefeed", po::value<double>(), "speed during the probing")(
-            "al-2ndprobefeed", po::value<double>(), "speed during the probing of the 2nd tool")(
             "al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")(
             "al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")(
             "al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")(
             "al-probevar", po::value<unsigned int>()->default_value(2002), "number of the variable where the result of the probing is saved (default is 2002)")(
             "al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)")(
             "dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")(
+            "vectorial", po::value<bool>()->default_value(false)->implicit_value(true), "EXPERIMENTAL!! Enable the experimental vectorial core")(
             "zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")(
-            "g64", po::value<double>(), "maximum deviation from toolpath, overrides internal calculation")(
-            "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center\n")(
+            "g64", po::value<double>(), "[DEPRECATED, use tolerance instead] maximum deviation from toolpath, overrides internal calculation")(
+            "tolerance", po::value<double>(), "maximum toolpath tolerance")(
+            "nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")(
+            "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
@@ -232,7 +284,8 @@ options::options()
             "drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")(
             "preamble-text", po::value<string>(), "preamble text file, inserted at the very beginning as a comment.")(
             "preamble", po::value<string>(), "gcode preamble file, inserted at the very beginning.")(
-            "postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.");
+            "postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.")(
+            "no-export", po::value<bool>()->default_value(false)->implicit_value(true), "skip the exporting process");
 }
 
 /******************************************************************************/
@@ -258,26 +311,40 @@ static void check_generic_parameters(po::variables_map const& vm)
     //---------------------------------------------------------------------------
     //Check g64 parameter:
 
-    double g64th;      //Upper threshold value of g64 parameter for warning
-
-    if (vm.count("g64"))                    //g64 parameter is given
+    if (vm.count("g64"))
     {
-        if (vm["metric"].as<bool>())         //metric input
-        {
-            g64th = 0.1;                      //set threshold value
-        }
-        else                                 //imperial input
-        {
-            g64th = 0.003937008;              //set threshold value
-        }
+        cerr << "g64 is deprecated, use tolerance.\n";
+    }
 
-        if (vm["g64"].as<double>() > g64th)
-            cerr << "Warning: high G64 value (allowed deviation from toolpath) given.\n"
+    //---------------------------------------------------------------------------
+    //Check tolerance parameter:
+
+    //Upper threshold value of tolerance parameter for warning
+    double tolerance_th = vm["metric"].as<bool>() ? 0.2 : 0.008;
+
+    if (vm.count("tolerance"))              //tolerance parameter is given
+    {
+        if (vm["tolerance"].as<double>() > tolerance_th)
+            cerr << "Warning: high tolerance value (allowed deviation from toolpath) given.\n"
                  << endl;
 
-        if (vm["g64"].as<double>() == 0)
-            cerr << "Warning: Deviation from commanded toolpath set to 0 (g64=0). No smooth milling is most likely!\n"
+        else if (vm["tolerance"].as<double>() == 0)
+            cerr << "Warning: Deviation from commanded toolpath set to 0 (tolerance=0). No smooth milling is most likely!\n"
                  << endl;
+
+        else if (vm["tolerance"].as<double>() < 0)
+        {
+            cerr << "tolerance can't be negative!\n";
+            exit(ERR_NEGATIVETOLERANCE);
+        }
+    }
+    
+    //---------------------------------------------------------------------------
+    //Check svg parameter:
+
+    if (vm.count("svg"))
+    {
+        cerr << "--svg is deprecated and has no effect anymore, use --vectorial to generate SVGs.\n";
     }
 
     //---------------------------------------------------------------------------
@@ -366,16 +433,10 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "Error: autoleveller probe feed rate not specified.\n";
             exit(ERR_NOALPROBEFEED);
         }
-        else if ( !vm.count("al-2ndprobefeed") && vm["al-probefeed"].as<double>() <= 0)
+        else if (vm["al-probefeed"].as<double>() <= 0)
         {
             cerr << "Error: al-probefeed < 0!" << endl;
             exit(ERR_NEGATIVEPROBEFEED);
-        }
-
-        if (vm.count("al-2ndprobefeed") && vm["al-2ndprobefeed"].as<double>() <= 0)
-        {
-            cerr << "Error: al-2ndprobefeed < 0!" << endl;
-            exit(ERR_NEGATIVE2NDPROBEFEED);
         }
 
     }
@@ -401,15 +462,32 @@ static void check_milling_parameters(po::variables_map const& vm)
             cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
         }
 
-        if (!vm.count("offset"))
+        if (vm["voronoi"].as<bool>())
         {
-            cerr << "Error: Engraving --offset not specified.\n";
-            exit(ERR_NOOFFSET);
+            if (!vm["vectorial"].as<bool>())
+            {
+                cerr << "Error: --voronoi requires --vectorial.\n";
+                exit(ERR_VORONOINOVECTORIAL);
+            }
+
+            if (!vm.count("outline"))
+            {
+                cerr << "Error: --voronoi requires an outline.\n";
+                exit(ERR_VORONOINOOUTLINE);
+            }
+        }
+        else
+        {
+            if (!vm.count("offset"))
+            {
+                cerr << "Error: Engraving --offset not specified.\n";
+                exit(ERR_NOOFFSET);
+            }
         }
 
         if (!vm.count("mill-feed"))
         {
-            cerr << "Error: Milling feed [ipm] not specified.\n";
+            cerr << "Error: Milling feed [i/m or mm/m] not specified.\n";
             exit(ERR_NOMILLFEED);
         }
 
@@ -542,7 +620,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
     //only check the parameters if an outline file is given or milldrill is enabled
     if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
     {
-        if (vm["fill-outline"].as<bool>())
+        if (vm["fill-outline"].as<bool>() && !vm["vectorial"].as<bool>())
         {
             if (!vm.count("outline-width"))
             {
@@ -581,6 +659,11 @@ static void check_cutting_parameters(po::variables_map const& vm)
         {
             cerr << "Error: Board cutting depth (--zcut) not specified.\n";
             exit(ERR_NOZCUT);
+        }
+        else if (vm["zcut"].as<double>() > 0)
+        {
+            cerr << "Error: Cutting depth (--zcut) is greater than zero!\n";
+            exit(ERR_NEGATIVEZWORK);
         }
 
         if (!vm.count("cutter-diameter"))
@@ -644,9 +727,10 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEBRIDGE);
         }
 
-        if (vm["bridges"].as<double>() > 0 && !vm["optimise"].as<bool>() )
+        if (vm["bridges"].as<double>() > 0 && !vm["optimise"].as<bool>() &&
+                !vm["vectorial"].as<bool>() )
         {
-            cerr << "Error: \"bridges\" requires \"optimise\".\n";
+            cerr << "Error: \"bridges\" requires either \"optimise\" or \"vectorial\".\n";
             exit(ERR_BRIDGENOOPTIMISE);
         }
 

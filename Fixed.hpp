@@ -23,7 +23,6 @@
 #include <exception>
 #include <cstddef>				// for std::size_t
 #include <climits>				// for CHAR_BIT
-#include <boost/static_assert.hpp>
 #include <boost/operators.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -110,8 +109,7 @@ void divide(const Fixed<I, F> &numerator, const Fixed<I, F> &denominator,
                 0)
 {
 
-    BOOST_STATIC_ASSERT(
-        detail::type_from_size<I + F>::next_size::is_specialized);
+    static_assert(detail::type_from_size<I + F>::next_size::is_specialized, "");
 
     typedef typename Fixed<I, F>::next_type next_type;
     typedef typename Fixed<I, F>::base_type base_type;
@@ -205,8 +203,7 @@ void multiply(const Fixed<I, F> &lhs, const Fixed<I, F> &rhs,
                   0)
 {
 
-    BOOST_STATIC_ASSERT(
-        detail::type_from_size<I + F>::next_size::is_specialized);
+    static_assert(detail::type_from_size<I + F>::next_size::is_specialized, "");
 
     typedef typename Fixed<I, F>::next_type next_type;
     typedef typename Fixed<I, F>::base_type base_type;
@@ -270,7 +267,7 @@ struct fixed_from_type
 template<std::size_t I, std::size_t F>
 class Fixed: boost::operators<Fixed<I, F> >, boost::shiftable<Fixed<I, F> >
 {
-    BOOST_STATIC_ASSERT(detail::type_from_size<I + F>::is_specialized);
+    static_assert(detail::type_from_size<I + F>::is_specialized, "");
 
 public:
     static const std::size_t fractional_bits = F;

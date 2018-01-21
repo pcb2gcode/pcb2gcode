@@ -21,13 +21,14 @@
 #define AUTOLEVELLER_H
 
 //Fixed probe fail depth (in inches, string)
-#define FIXED_FAIL_DEPTH_IN "-0.2"
+#define FIXED_FAIL_DEPTH_IN "-0.1"
 
 //Fixed probe fail depth (in mm, string)
-#define FIXED_FAIL_DEPTH_MM "-5"
+#define FIXED_FAIL_DEPTH_MM "-3"
 
 #include <string>
 using std::string;
+using std::to_string;
 
 #include <fstream>
 using std::endl;
@@ -35,12 +36,12 @@ using std::endl;
 #include <vector>
 using std::vector;
 
+#include <memory>
+using std::shared_ptr;
+
 #include <boost/program_options.hpp>
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
-
-#include "coord.hpp"
+#include "geometry.hpp"
 #include "unique_codes.hpp"
 #include "common.hpp"
 #include "tile.hpp"
@@ -117,7 +118,6 @@ public:
     const string zsafe;
     const string zfail;
     const string feedrate;
-    const string feedrate2nd;
     const string probeOn;
     const string probeOff;
     const Software software;
@@ -165,7 +165,7 @@ protected:
     icoordpair lastPoint;
 
     //computeWorkarea computes the occupied rectangule of toolpaths
-    std::pair<icoordpair, icoordpair> computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    box_type_fp computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
 
     // footerNoIf prints the footer, regardless of the software
     void footerNoIf( std::ofstream &of );

@@ -31,19 +31,22 @@ using std::string;
 
 #include <list>
 using std::list;
+
 #include <vector>
 using std::vector;
+
 #include <map>
 using std::map;
 
-#include <boost/shared_ptr.hpp>
-using boost::shared_ptr;
+#include <memory>
+using std::shared_ptr;
+using std::unique_ptr;
 
 extern "C" {
 #include <gerbv.h>
 }
 
-#include "coord.hpp"
+#include "geometry.hpp"
 
 #include <boost/exception/all.hpp>
 class drill_exception: virtual std::exception, virtual boost::exception
@@ -51,7 +54,6 @@ class drill_exception: virtual std::exception, virtual boost::exception
 };
 
 #include "mill.hpp"
-#include "svg_exporter.hpp"
 #include "tile.hpp"
 #include "unique_codes.hpp"
 
@@ -87,31 +89,39 @@ public:
     void add_header(string);
     void set_preamble(string);
     void set_postamble(string);
-    void export_ngc(const string of_name, shared_ptr<Driller> target, bool onedrill, bool nog81);
-    void export_ngc(const string of_name, shared_ptr<Cutter> target);
-    void set_svg_exporter(shared_ptr<SVG_Exporter> svgexpo);
+    unique_ptr<icoords> line_to_holes(const ilinesegment& line, double drill_diameter);
+    void export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> target,
+                    bool onedrill, bool nog81, bool zchange_absolute);
+    void export_ngc(const string of_dir, const string of_name,shared_ptr<Cutter> target,
+                    bool zchange_absolute);
+    
+    inline void export_svg(const string of_dir)
+    {
+        save_svg(get_bits(), get_holes(), of_dir);
+    }
 
     shared_ptr< map<int, drillbit> > get_bits();
-    shared_ptr< map<int, icoords> > get_holes();
+    shared_ptr< map<int, ilinesegments> > get_holes();
 
 private:
     void parse_holes();
     void parse_bits();
-    bool millhole(std::ofstream &of, double x, double y,
+    bool millhole(std::ofstream &of,
+                  double start_x, double start_y,
+                  double stop_x, double stop_y,
                   shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
 
-    shared_ptr< map<int, icoords> > optimise_path( shared_ptr< map<int, icoords> > original_path, bool onedrill );
+    shared_ptr< map<int, ilinesegments> > optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
 
-    const ivalue_t board_width;
-    const ivalue_t board_height;
-    const ivalue_t board_center;
-    const ivalue_t board_minx;
-    bool bDoSVG;            //Flag to indicate SVG output
-    shared_ptr<SVG_Exporter> svgexpo;
+    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir);
+
+    const box_type_fp board_dimensions;
+    const ivalue_t board_center_x;
+
     shared_ptr<map<int, drillbit> > bits;
-    shared_ptr<map<int, icoords> > holes;
+    shared_ptr<map<int, ilinesegments> > holes;
     gerbv_project_t* project;
     vector<string> header;
     string preamble;        //Preamble for output file

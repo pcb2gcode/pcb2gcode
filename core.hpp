@@ -1,7 +1,7 @@
 /*
  * This file is part of pcb2gcode.
  * 
- * Copyright (C) 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
+ * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,39 +17,37 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EXPORTER_H
-#define EXPORTER_H
+#ifndef CORE_H
+#define CORE_H
+
+#include <memory>
+using std::shared_ptr;
 
 #include <vector>
 using std::vector;
 
 #include <string>
 using std::string;
-using std::pair;
-
-#include <memory>
-using std::shared_ptr;
-
-#include <boost/noncopyable.hpp>
-
-#include <boost/program_options.hpp>
 
 #include "geometry.hpp"
-#include "board.hpp"
+#include "mill.hpp"
 
 /******************************************************************************/
 /*
+ Pure virtual base class for cores.
  */
 /******************************************************************************/
-class Exporter: public boost::noncopyable
+class Core
 {
 public:
-    Exporter(shared_ptr<Board> board)
-    {
-    }
-    ;
-
-    virtual void export_all(boost::program_options::variables_map&) = 0;
+    virtual vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
+            bool mirror) = 0;
+    virtual void save_debug_image(string message) = 0;
+    virtual ivalue_t get_width_in() = 0;
+    virtual ivalue_t get_height_in() = 0;
+    virtual void add_mask(shared_ptr<Core>) = 0;
+    
+    virtual vector<unsigned int> get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath);
 };
 
-#endif // EXPORTER_H
+#endif // IMPORTER_H
