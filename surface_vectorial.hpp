@@ -92,10 +92,19 @@ protected:
     
     shared_ptr<Surface_vectorial> mask;
 
+    // Points that are very close to each other, probably because of a
+    // rounding error, are merged together to a single location.
+    static size_t merge_near_points(multi_linestring_type& mls);
+    // Returns a minimal number of toolpaths that include all the
+    // milling in the oroginal toolpaths.  Each path is traversed
+    // once.
+    multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
+    vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
+        const multi_linestring_type& mls, bool mirror, ivalue_t mirror_axis);
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
+                            const multi_polygon_type& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis);
+                            unsigned int steps);
 };
 
 class svg_writer
