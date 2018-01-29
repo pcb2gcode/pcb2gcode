@@ -111,16 +111,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     srand(1);
     debug_image.add(integral_voronoi, 0.3, false);
 
-    coordinate_type mirror_axis = 0;
-    if (mill->mirror_absolute && mill->zero_start) {
-        mirror_axis = bounding_box.min_corner().x();
-    }
-    if (mill->mirror_absolute && !mill->zero_start) {
-        mirror_axis = (coordinate_type)0;
-    }
-    if (!mill->mirror_absolute) {
-        mirror_axis = ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
-    }
+    const coordinate_type mirror_axis = 
+        (mill->mirror_absolute && mill->zero_start) ?  bounding_box.min_corner().x() :
+        (!mill->mirror_absolute)                    ? ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2) :
+        0;
 
     bool contentions = false;
 
