@@ -294,16 +294,24 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                 continue; // Don't need it.
             }
         }
+        polygon_type masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
+        multi_polygon_type masked_milling_polys;
+        if (mask) {
+            bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
+        } else {
+            bg::convert(masked_milling_poly, masked_milling_polys);
+        }
         if (expand_by == 0)
         {
-            (*polygons)[i] = input[index];
+            (*polygons)[i] = masked_milling_polys[0];
         }
         else
         {
             auto mpoly = make_shared<multi_polygon_type>();
             multi_polygon_type mpoly_temp;
 
-            bg::buffer(input[index], mpoly_temp,
+            bg::buffer(masked_milling_polys,
+                       mpoly_temp,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
