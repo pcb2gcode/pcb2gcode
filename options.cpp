@@ -220,7 +220,7 @@ options::options()
             "zwork", po::value<double>(),
             "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<double>()->default_value(0), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
@@ -469,12 +469,6 @@ static void check_milling_parameters(po::variables_map const& vm)
             {
                 cerr << "Error: --voronoi requires --vectorial.\n";
                 exit(ERR_VORONOINOVECTORIAL);
-            }
-
-            if (!vm.count("outline"))
-            {
-                cerr << "Error: --voronoi requires an outline.\n";
-                exit(ERR_VORONOINOOUTLINE);
             }
         }
         else

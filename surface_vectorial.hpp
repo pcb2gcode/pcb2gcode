@@ -104,7 +104,7 @@ protected:
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps);
+                            unsigned int steps, bool do_voronoi);
 };
 
 class svg_writer
