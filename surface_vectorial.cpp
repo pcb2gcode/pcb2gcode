@@ -320,7 +320,11 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
+            if (!do_voronoi) {
+                bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
+            } else {
+                bg::convert(mpoly_temp[0], *mpoly);
+            }
 
             (*polygons)[i] = (*mpoly)[0];
 
