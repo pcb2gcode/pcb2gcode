@@ -250,40 +250,32 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-                        icoords::iterator peek;
 
                         if (bBridges)
                             currentBridge = bridges.begin();
 
                         while (iter != path->end())
                         {
-                            peek = iter + 1;
 
-                            if (mill->optimise //Already optimised (also includes the bridge case)
-                                    || last == path->end()  //First
-                                    || peek == path->end()   //Last
-                                    || !aligned(last, iter, peek) )      //Not aligned
+                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
+
+                            if (bBridges && currentBridge != bridges.end())
                             {
-                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
-
-                                if (bBridges && currentBridge != bridges.end())
+                                if (z < cutter->bridges_height)
                                 {
-                                    if (z < cutter->bridges_height)
+                                    if (*currentBridge == iter - path->begin())
+                                        of << "Z" << cutter->bridges_height * cfactor << '\n';
+                                    else if (*currentBridge == last - path->begin())
                                     {
-                                        if (*currentBridge == iter - path->begin())
-                                            of << "Z" << cutter->bridges_height * cfactor << '\n';
-                                        else if (*currentBridge == last - path->begin())
-                                        {
-                                            of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                            of << "F" << cutter->feed * cfactor << '\n';
-                                            of << "G01 ";
-                                        }
+                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+                                        of << "F" << cutter->feed * cfactor << '\n';
+                                        of << "G01 ";
                                     }
-
-                                    if (*currentBridge == last - path->begin())
-                                        ++currentBridge;
                                 }
+
+                                if (*currentBridge == last - path->begin())
+                                    ++currentBridge;
                             }
 
                             last = iter;
@@ -314,28 +306,15 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 ";
 
                     icoords::iterator iter = path->begin();
-                    icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-                    icoords::iterator peek;
 
                     while (iter != path->end())
                     {
-                        peek = iter + 1;
-                        if (mill->optimise //When simplifypath is performed, no further optimisation is required
-                                || last == path->end()  //First
-                                || peek == path->end()   //Last
-                                || !aligned(last, iter, peek) )      //Not aligned
-                        {
-                            /* no need to check for "they are on one axis but iter is outside of last and peek"
-                             because that's impossible from how they are generated */
-                            if( bAutolevelNow )
-                                of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
+                        if( bAutolevelNow )
+                            of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
                                                                            ( iter->second - yoffsetTot ) * cfactor ) );
-                            else
-                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
-                        }
-
-                        last = iter;
+                        else
+                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
                         ++iter;
                     }
                 }
