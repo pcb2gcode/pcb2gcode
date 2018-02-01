@@ -289,10 +289,11 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         } else {
             // Voronoi lines are on the boundary and shared between
             // multi_polygons so we only need half as many of them.
-            expand_by = offset * ((1-double(steps))/2 + i);
-            if (expand_by > 0) {
+            double factor = ((1-double(steps))/2 + i);
+            if (factor > 0) {
                 continue; // Don't need it.
             }
+            expand_by = offset * factor;
         }
         polygon_type masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
         multi_polygon_type masked_milling_polys;
