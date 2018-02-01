@@ -171,7 +171,7 @@ You can build the latest pcb2gcode version with [Homebrew](http://brew.sh). If H
 
      $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
      
-You might need some build tools that typically is not present:
+You might need some build tools that typically are not present:
 
      $ brew install autoconf automake libtool
 
