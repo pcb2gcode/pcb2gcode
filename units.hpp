@@ -112,7 +112,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
         s == "cycles") {
       return 1.0*boost::units::si::si_dimensionless;
     }
-    std::cerr << "Didn't recognize units of time: " << s << std::endl;
+    std::cerr << "Didn't recognize dimensionless units: " << s << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
