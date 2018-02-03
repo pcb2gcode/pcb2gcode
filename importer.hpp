@@ -61,8 +61,7 @@ class RasterLayerImporter : virtual public LayerImporter
 {
 public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-                        const guint dpi, const double xoff, const double yoff)
-    throw (import_exception) = 0;
+                        const guint dpi, const double xoff, const double yoff) = 0;
 
 };
 

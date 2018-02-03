@@ -141,7 +141,7 @@ gdouble GerberImporter::get_max_y()
 /*
  */
 /******************************************************************************/
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) throw (import_exception)
+void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y)
 {
     gerbv_render_info_t render_info;
 

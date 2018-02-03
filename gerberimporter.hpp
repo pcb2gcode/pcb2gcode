@@ -64,7 +64,7 @@ public:
 
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double min_x,
-                        const double min_y) throw (import_exception);
+                        const double min_y);
 
     virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30);
     virtual inline unsigned int vectorial_scale()
