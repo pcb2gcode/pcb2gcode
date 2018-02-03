@@ -48,11 +48,6 @@ struct voronoi_ctype_traits<int64_t> {
 
 } } }
 
-typedef boost::polygon::point_data<coordinate_type> point_type_p;
-typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
-typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
-typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
-
 typedef boost::polygon::voronoi_builder<coordinate_type> voronoi_builder_type;
 typedef boost::polygon::voronoi_diagram<coordinate_type_fp> voronoi_diagram_type;
 
