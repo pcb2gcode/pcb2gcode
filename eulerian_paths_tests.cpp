@@ -15,8 +15,15 @@ struct PointLessThan {
 };
 
 BOOST_AUTO_TEST_CASE(do_nothing_points) {
-  BOOST_CHECK(0==0);
-  get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>({{{1,1},{2,2},{3,3}}});
+  linestring_type ls;
+  ls.push_back(point_type(1,1));
+  ls.push_back(point_type(2,2));
+  ls.push_back(point_type(3,4));
+  multi_linestring_type mls;
+  mls.push_back(ls);
+  multi_linestring_type result =
+      get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(mls);
+  BOOST_CHECK_EQUAL(result.size(), 1);
 }
 
 // 3x3 grid connected like a window pane:
@@ -26,7 +33,6 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
 // |   |   |
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane) {
-  BOOST_CHECK(0==0);
   vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {1,2},
       {2,3},
@@ -49,8 +55,8 @@ BOOST_AUTO_TEST_CASE(window_pane) {
     }
     printf("\n");
   }
-  BOOST_CHECK(edges_visited == 12);
-  BOOST_CHECK(euler_paths.size() == 2);
+  BOOST_CHECK_EQUAL(edges_visited, 12);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 2);
 }
 
 // 3x3 grid connected like a window pane, but corners are longer paths:
@@ -60,7 +66,6 @@ BOOST_AUTO_TEST_CASE(window_pane) {
 // |   |   |
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
-  BOOST_CHECK(0==0);
   vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {4,5},
       {5,6},
@@ -79,8 +84,8 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
     }
     printf("\n");
   }
-  BOOST_CHECK(edges_visited == 12);
-  BOOST_CHECK(euler_paths.size() == 2);
+  BOOST_CHECK_EQUAL(edges_visited, 12);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 2);
 }
 
 // Bridge
@@ -88,7 +93,6 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
 // |   |   |   |
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(bridge) {
-  BOOST_CHECK(0==0);
   vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {5,2},
       {2,1},
@@ -108,8 +112,8 @@ BOOST_AUTO_TEST_CASE(bridge) {
     }
     printf("\n");
   }
-  BOOST_CHECK(edges_visited == 9);
-  BOOST_CHECK(euler_paths.size() == 1);
+  BOOST_CHECK_EQUAL(edges_visited, 9);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 1);
 }
 
 // Disjoint Loops
@@ -117,7 +121,6 @@ BOOST_AUTO_TEST_CASE(bridge) {
 // |   |   |   |
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(disjoint_loops) {
-  BOOST_CHECK(0==0);
   vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
       {5,2},
       {1,6},
@@ -137,8 +140,8 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
     }
     printf("\n");
   }
-  BOOST_CHECK(edges_visited == 9);
-  BOOST_CHECK(euler_paths.size() == 3);
+  BOOST_CHECK_EQUAL(edges_visited, 9);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
