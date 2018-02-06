@@ -286,12 +286,12 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         }
         else if (offset > 0)
         {
-            auto mpoly = make_shared<multi_polygon_type_fp>();
-            multi_polygon_type_fp mpoly_temp;
+            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            multi_polygon_type_fp mpoly_temp_fp;
             polygon_type_fp input_fp;
             bg::convert(input[index], input_fp);
 
-            bg::buffer(input_fp, mpoly_temp,
+            bg::buffer(input_fp, mpoly_temp_fp,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
@@ -299,21 +299,21 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
-            bg::convert((*mpoly)[0], (*polygons)[i]);
+            bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
+            bg::convert((*mpoly_fp)[0], (*polygons)[i]);
 
-            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
+            if (!bg::equals((*mpoly_fp)[i], mpoly_temp_fp[0]))
                 contentions = true;
         }
         else
         {
             if (mask)
             {
-                multi_polygon_type_fp mpoly_temp;
+                multi_polygon_type_fp mpoly_temp_fp;
                 multi_polygon_type_fp mask_fp;
                 bg::convert(*(mask->vectorial_surface), mask_fp);
-                bg::intersection(voronoi[index], mask_fp, mpoly_temp);
-                bg::convert(mpoly_temp[0], (*polygons)[i]);
+                bg::intersection(voronoi[index], mask_fp, mpoly_temp_fp);
+                bg::convert(mpoly_temp_fp[0], (*polygons)[i]);
             }
             else
                 bg::convert(voronoi[index], (*polygons)[i]);
