@@ -323,7 +323,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
             if (!do_voronoi) {
                 bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
             } else {
-                bg::convert(mpoly_temp[0], *mpoly);
+                bg::union_(mpoly_temp[0], masked_milling_polys, *mpoly);
             }
 
             (*polygons)[i] = (*mpoly)[0];
