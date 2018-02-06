@@ -302,7 +302,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
             bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
             bg::convert((*mpoly_fp)[0], (*polygons)[i]);
 
-            if (!bg::equals((*mpoly_fp)[i], mpoly_temp_fp[0]))
+            if (!bg::equals((*mpoly_fp)[0], mpoly_temp_fp[0]))
                 contentions = true;
         }
         else
