@@ -223,6 +223,8 @@ options::options()
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
+            "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
+            "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<Frequency>(), "spindle rpm when milling")(
@@ -308,6 +310,21 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: very high DPI value, processing may take extremely long"
              << endl;
+    }
+
+    //---------------------------------------------------------------------------
+    //Check spinup(down)-time parameters:
+
+    if (vm["spinup-time"].as<double>() < 0)
+    {
+        cerr << "spinup-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINUP);
+    }
+
+    if (vm.count("spindown-time") && vm["spindown-time"].as<double>() < 0)
+    {
+        cerr << "spindown-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINDOWN);
     }
 
     //---------------------------------------------------------------------------
