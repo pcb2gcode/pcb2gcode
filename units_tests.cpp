@@ -20,9 +20,17 @@ dimension_t parse_unit(const std::string& s) {
   return vm["test_option"].as<dimension_t>();
 }
 
-BOOST_AUTO_TEST_CASE(parse_length_success) {
+BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>("4").asInch(2), 8);
-  BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(2), 1);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(1), 1);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(2), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("4inches").asInch(2), 4);
+
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8mm/s").asInch(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8seconds").asInch(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8s").asInch(2), po::validation_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
