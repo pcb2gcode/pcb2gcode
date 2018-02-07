@@ -94,8 +94,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     box_type voronoi_bounding_box;
     bg::convert(bounding_box, voronoi_bounding_box);
     voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_bounding_box, tolerance);
-    multi_polygon_type integral_voronoi;
-    bg::convert(voronoi, integral_voronoi);
 
     box_type svg_bounding_box;
 
@@ -109,7 +107,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
-    debug_image.add(integral_voronoi, 0.3, false);
+    debug_image.add(voronoi, 0.3, false);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
@@ -126,7 +124,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         unique_ptr<vector<polygon_type> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, integral_voronoi, toolpath, contentions,
+        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
                                     grow, i, extra_passes + 1);
 
         debug_image.add(*polygons, 0.6, r, g, b);
@@ -216,7 +214,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
 }
 
 unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, multi_linestring_type& toolpath,
+                            const multi_polygon_type_fp& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
                             unsigned int steps)
 {
@@ -288,10 +286,12 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         }
         else if (offset > 0)
         {
-            auto mpoly = make_shared<multi_polygon_type>();
-            multi_polygon_type mpoly_temp;
+            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            multi_polygon_type_fp mpoly_temp_fp;
+            polygon_type_fp input_fp;
+            bg::convert(input[index], input_fp);
 
-            bg::buffer(input[index], mpoly_temp,
+            bg::buffer(input_fp, mpoly_temp_fp,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
@@ -299,24 +299,24 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
+            bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
+            bg::convert((*mpoly_fp)[0], (*polygons)[i]);
 
-            (*polygons)[i] = (*mpoly)[0];
-
-            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
+            if (!bg::equals((*mpoly_fp)[0], mpoly_temp_fp[0]))
                 contentions = true;
         }
         else
         {
             if (mask)
             {
-                multi_polygon_type mpoly_temp;
-
-                bg::intersection(voronoi[index], *(mask->vectorial_surface), mpoly_temp);
-                (*polygons)[i] = mpoly_temp[0];
+                multi_polygon_type_fp mpoly_temp_fp;
+                multi_polygon_type_fp mask_fp;
+                bg::convert(*(mask->vectorial_surface), mask_fp);
+                bg::intersection(voronoi[index], mask_fp, mpoly_temp_fp);
+                bg::convert(mpoly_temp_fp[0], (*polygons)[i]);
             }
             else
-                (*polygons)[i] = voronoi[index];
+                bg::convert(voronoi[index], (*polygons)[i]);
         }
 
         if (i == 0)
@@ -492,18 +492,21 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
     mapper->add(bounding_box);
 }
 
-void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
+template <typename multi_polygon_type_t>
+void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool stroke)
 {
     string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
-    for (const polygon_type& poly : geometry)
+    for (const auto& poly : geometry)
     {
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        multi_polygon_type mpoly;
+        multi_polygon_type_t mpoly;
 
-        bg::intersection(poly, bounding_box, mpoly);
+        multi_polygon_type_t new_bounding_box;
+        bg::convert(bounding_box, new_bounding_box);
+        bg::intersection(poly, new_bounding_box, mpoly);
 
         mapper->map(mpoly,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
