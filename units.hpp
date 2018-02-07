@@ -14,6 +14,64 @@
 
 namespace {
 
+// String parsers: Each on uses characters from the front of the
+// string and leaves the unused characters in place.
+struct parse_exception : public std::invalid_argument {
+  parse_exception(const std::string& what) : std::invalid_argument(what) {}
+};
+
+// Remove all characters that return true for std::isspace
+void remove_spaces(std::string& input) {
+  auto dest = input.begin();
+  for (auto iter = input.cbegin(); iter != input.cend(); iter++) {
+    if (!std::isspace(*iter)) {
+      *(dest++) = *iter;
+    }
+  }
+  input.erase(dest, input.end());
+}
+
+// Gets the double from the start of the string which must have no
+// leading spaces.  Throws an exception if it fails.
+double get_double(std::string& input) {
+  double result;
+  std::stringstream stream(input);
+  if (stream >> result) {
+    return result;
+  } else {
+    throw parse_exception("Can't get double in: " + input);
+  }
+}
+
+// Get the word from the start of the string which must have no
+// spaces.  All characters up to the first that is not std::isalnum
+// are returned.  They are removed from the input.  The result might
+// have length 0.
+std::string get_word(std::string& input) {
+  auto end = input.begin();
+  while (!std::isalnum(*end++))
+    ; // continue
+  std::string result(input.begin(), end);
+  input.erase(input.begin(), end);
+  return result;
+}
+
+// Get division indicator from the start of the string, either a slash
+// or "per", which must have no spaces.  The division character is
+// removed from the input.  Throws if it can't find the division
+// character.
+void get_division(std::string& input) {
+  if (input.compare(0, 1, "/") == 0) {
+    input.erase(0, 1);
+    return;
+  }
+  if (boost::iequals(input.substr(0, 3), "per")) {
+    input.erase(0, 3);
+    return;
+  }
+  throw parse_exception("Can't get division character in: " + input);
+}
+
 template <typename dimension_t>
 class UnitBase {
  public:
