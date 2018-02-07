@@ -12,6 +12,8 @@
 #include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 
+namespace {
+
 template <typename dimension_t>
 class UnitBase {
  public:
@@ -190,5 +192,7 @@ void validate(boost::any& v,
     }
     v = boost::any(Unit<dimension_t>(value, one));
 }
+
+} // namespace
 
 #endif // UNITS_HPP
