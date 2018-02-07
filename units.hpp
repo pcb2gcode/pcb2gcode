@@ -102,7 +102,8 @@ template<>
 class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
  public:
   Unit(double value, boost::optional<boost::units::quantity<boost::units::si::dimensionless>> one) : UnitBase(value, one) {}
-  double asSecond(double factor) const {
+  using UnitBase::as;
+  double as(double factor) const {
     return as(factor, 1.0*boost::units::si::si_dimensionless);
   }
   static boost::units::quantity<boost::units::si::dimensionless> get_unit(const std::string& s) {
