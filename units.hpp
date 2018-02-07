@@ -20,12 +20,21 @@ struct parse_exception : public std::invalid_argument {
   parse_exception(const std::string& what) : std::invalid_argument(what) {}
 };
 
-// Gets the double from the start of the string which must have no
-// leading spaces.  Throws an exception if it fails.
+void get_whitespace(std::string& input) {
+  std::istringstream stream(input);
+  stream >> std::ws;
+  std::string new_input;
+  getline(stream, new_input);
+  input = new_input;
+}
+
+// Gets the double from the start of the string which may start with
+// whitespace.  Throws an exception if it fails.
 double get_double(std::string& input) {
+  get_whitespace(input);
   double result;
   std::istringstream stream(input);
-  if (stream >> std::ws >> result) {
+  if (stream >> result) {
     std::string new_input;
     getline(stream, new_input);
     input = new_input;
@@ -35,18 +44,16 @@ double get_double(std::string& input) {
   }
 }
 
-// Get the word from the start of the string which must have no
-// spaces.  All characters up to the first that is not std::isalnum
-// are returned.  They are removed from the input.  The result might
-// have length 0.
+// Get the word from the start of the string which may have spaces.
+// All characters up to the first that is not std::isalnum are
+// returned.  They are removed from the input.  The result might have
+// length 0.
 std::string get_word(std::string& input) {
-  auto start = input.begin();
-  while (std::isspace(*start++))
-    ; // continue
-  auto end = start;
-  while (!std::isalnum(*end++))
-    ; // continue
-  std::string result(start, end);
+  get_whitespace(input);
+  auto end = input.begin();
+  while (end != input.end() && std::isalnum(*end))
+    end++;
+  std::string result(input.begin(), end);
   input.erase(input.begin(), end);
   return result;
 }
@@ -56,6 +63,7 @@ std::string get_word(std::string& input) {
 // removed from the input.  Throws if it can't find the division
 // character.
 void get_division(std::string& input) {
+  get_whitespace(input);
   if (input.compare(0, 1, "/") == 0) {
     input.erase(0, 1);
     return;
@@ -112,17 +120,19 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
     return as(factor, inch);
   }
   static boost::units::quantity<boost::units::si::length> get_unit(const std::string& s) {
-    if (s == "mm" ||
-        s == "millimeter" ||
-        s == "millimeters") {
+    std::string argument(s);
+    std::string unit = get_word(argument);
+    if (unit == "mm" ||
+        unit == "millimeter" ||
+        unit == "millimeters") {
       return boost::units::si::meter/1000.0;
     }
-    if (s == "in" ||
-        s == "inch" ||
-        s == "inches") {
+    if (unit == "in" ||
+        unit == "inch" ||
+        unit == "inches") {
       return inch;
     }
-    std::cerr << "Didn't recognize units of length: " << s << std::endl;
+    std::cerr << "Didn't recognize units of length: " << unit << std::endl;
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value);
   }
@@ -183,13 +193,20 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
   }
   static boost::units::quantity<boost::units::si::velocity> get_unit(const std::string& s) {
     // It's either "length/time" or "length per time".
-    boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*(\\S*)\\s*(?:/|\\s[pP][eE][rR]\\s)\\s*(\\S*)\\s*"))) {
-      boost::program_options::validation_error(
-          boost::program_options::validation_error::invalid_option_value);
+    std::string argument(s);
+    std::string numerator;
+    std::string denominator;
+    try {
+      numerator = get_word(argument);
+      get_division(argument);
+      denominator = get_word(argument);
+    } catch (parse_exception e) {
+      printf("throwing an error\n");
+      std::cout << e.what() << std::endl;
+      throw boost::program_options::validation_error(
+          boost::program_options::validation_error::invalid_option_value,
+          argument);
     }
-    const std::string numerator(m[1].first, m[1].second);
-    const std::string denominator(m[2].first, m[2].second);
     return Length::get_unit(numerator)/Time::get_unit(denominator);
   }
 };
@@ -239,6 +256,13 @@ void validate(boost::any& v,
   } catch (parse_exception e) {
     printf("throwing an error\n");
     std::cout << e.what() << std::endl;
+    throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value,
+        argument);
+  }
+  get_whitespace(argument);
+  if (argument.size() > 0) {
+    printf("leftover in argument is: %s\n", argument.c_str());
     throw boost::program_options::validation_error(
         boost::program_options::validation_error::invalid_option_value,
         argument);
