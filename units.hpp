@@ -20,23 +20,15 @@ struct parse_exception : public std::invalid_argument {
   parse_exception(const std::string& what) : std::invalid_argument(what) {}
 };
 
-// Remove all characters that return true for std::isspace
-void remove_spaces(std::string& input) {
-  auto dest = input.begin();
-  for (auto iter = input.cbegin(); iter != input.cend(); iter++) {
-    if (!std::isspace(*iter)) {
-      *(dest++) = *iter;
-    }
-  }
-  input.erase(dest, input.end());
-}
-
 // Gets the double from the start of the string which must have no
 // leading spaces.  Throws an exception if it fails.
 double get_double(std::string& input) {
   double result;
-  std::stringstream stream(input);
-  if (stream >> result) {
+  std::istringstream stream(input);
+  if (stream >> std::ws >> result) {
+    std::string new_input;
+    getline(stream, new_input);
+    input = new_input;
     return result;
   } else {
     throw parse_exception("Can't get double in: " + input);
@@ -48,10 +40,13 @@ double get_double(std::string& input) {
 // are returned.  They are removed from the input.  The result might
 // have length 0.
 std::string get_word(std::string& input) {
-  auto end = input.begin();
+  auto start = input.begin();
+  while (std::isspace(*start++))
+    ; // continue
+  auto end = start;
   while (!std::isalnum(*end++))
     ; // continue
-  std::string result(input.begin(), end);
+  std::string result(start, end);
   input.erase(input.begin(), end);
   return result;
 }
@@ -65,7 +60,7 @@ void get_division(std::string& input) {
     input.erase(0, 1);
     return;
   }
-  if (boost::iequals(input.substr(0, 3), "per")) {
+  if (input.substr(0, 3) == "per") {
     input.erase(0, 3);
     return;
   }
@@ -222,33 +217,33 @@ class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::freq
 template<typename dimension_t>
 void validate(boost::any& v,
               const std::vector<std::string>& values,
-              Unit<dimension_t>*, int)
-{
-    // Make sure no previous assignment was made.
-    boost::program_options::validators::check_first_occurrence(v);
-    // Extract the first string from 'values'. If there is more than
-    // one string, it's an error, and exception will be thrown.
-    const std::string& s = boost::program_options::validators::get_single_string(values);
+              Unit<dimension_t>*, int) {
+  // Make sure no previous assignment was made.
+  boost::program_options::validators::check_first_occurrence(v);
+  // Extract the first string from 'values'. If there is more than
+  // one string, it's an error, and exception will be thrown.
+  const std::string& s = boost::program_options::validators::get_single_string(values);
 
-    // Figure out what unit it is.
-    boost::match_results<const char*> m;
-    if (!regex_match(s.c_str(), m, boost::regex("\\s*([-0-9.]+)\\s*(.*?)\\s*"))) {
-      boost::program_options::validation_error(
-          boost::program_options::validation_error::invalid_option_value);
+  // Figure out what unit it is.
+  std::string argument(s); // Make a copy.
+  double value;
+  boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
+  printf("trying to parse %s\n", argument.c_str());
+  try {
+    value = get_double(argument);
+    printf("got value %f\n", value);
+    printf("argument is now %s\n", argument.c_str());
+    if (argument.size() > 0) {
+      one = Unit<dimension_t>::get_unit(argument);
     }
-    std::string value_string(m[1].first, m[1].second);
-    double value;
-    try {
-      value = boost::lexical_cast<double>(value_string);
-    } catch (std::exception& e) {
-      std::cerr << "Error parsing as number: " << value_string << std::endl;
-      throw;
-    }
-    boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
-    if (m[2].length() > 0) {
-      one = Unit<dimension_t>::get_unit(std::string(m[2].first, m[2].second).c_str());
-    }
-    v = boost::any(Unit<dimension_t>(value, one));
+  } catch (parse_exception e) {
+    printf("throwing an error\n");
+    std::cout << e.what() << std::endl;
+    throw boost::program_options::validation_error(
+        boost::program_options::validation_error::invalid_option_value,
+        argument);
+  }
+  v = boost::any(Unit<dimension_t>(value, one));
 }
 
 } // namespace

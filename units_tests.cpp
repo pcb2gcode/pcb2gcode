@@ -22,8 +22,10 @@ dimension_t parse_unit(const std::string& s) {
 
 BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>("4").asInch(2), 8);
-  BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(1), 1);
-  BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(2), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(200), 1);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm ").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("4inches").asInch(2), 4);
