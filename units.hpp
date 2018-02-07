@@ -175,7 +175,7 @@ void validate(boost::any& v,
       boost::program_options::validation_error(
           boost::program_options::validation_error::invalid_option_value);
     }
-    string value_string(m[1].first, m[1].second);
+    std::string value_string(m[1].first, m[1].second);
     double value;
     try {
       value = boost::lexical_cast<double>(value_string);
