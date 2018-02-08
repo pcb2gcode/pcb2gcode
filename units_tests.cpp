@@ -28,6 +28,7 @@ BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm    ").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("10000thou").asInch(0), 10);
 
   BOOST_CHECK_THROW(parse_unit<Length>("50.8mm/s").asInch(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Length>("50.8seconds").asInch(2), po::validation_error);
@@ -37,7 +38,7 @@ BOOST_AUTO_TEST_CASE(parse_length) {
 BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4").asSecond(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Time>("4s").asSecond(1), 4);
-  BOOST_CHECK_EQUAL(parse_unit<Time>("10minutes").asSecond(2), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
 
   BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s").asSecond(2), po::validation_error);

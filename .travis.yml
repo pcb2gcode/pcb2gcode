@@ -68,7 +68,6 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost; fi
   - make
   - make check
-  - ./units_tests
 
 after_script:
   - cd testing/gerbv_example/

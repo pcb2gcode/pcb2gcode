@@ -10,6 +10,7 @@
 #include <boost/units/systems/si.hpp>
 #include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
+#include <boost/units/base_units/imperial/thou.hpp>
 
 namespace {
 
@@ -110,10 +111,9 @@ template<typename dimension_t>
 class Unit : public UnitBase<dimension_t> {};
 
 // Any non-SI base units that you want to use go here.
-const boost::units::quantity<boost::units::si::length> inch = (boost::units::conversion_factor(boost::units::imperial::inch_base_unit::unit_type(),
-                                                                                               boost::units::si::meter) * boost::units::si::meter);
-const boost::units::quantity<boost::units::si::time> minute = (boost::units::conversion_factor(boost::units::metric::minute_base_unit::unit_type(),
-                                                                                               boost::units::si::second) * boost::units::si::second);
+const boost::units::quantity<boost::units::si::length> inch(1*boost::units::imperial::inch_base_unit::unit_type());
+const boost::units::quantity<boost::units::si::length> thou(1*boost::units::imperial::thou_base_unit::unit_type());
+const boost::units::quantity<boost::units::si::time> minute(1*boost::units::metric::minute_base_unit::unit_type());
 
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
@@ -140,6 +140,10 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "inch" ||
         unit == "inches") {
       return inch;
+    }
+    if (unit == "thou" ||
+        unit == "thous") {
+      return thou;
     }
     throw parse_exception("length", unit);
   }
