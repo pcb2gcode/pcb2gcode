@@ -46,9 +46,10 @@ pcb2gcode_SOURCES = \
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS)
+AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS) $(CODE_COVERAGE_CPPFLAGS)
+AM_CXXFLAGS = $(CODE_COVERAGE_CXXFLAGS)
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
-LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS)
 
 EXTRA_DIST = millproject
 
@@ -58,3 +59,5 @@ eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
 
 TESTS = $(check_PROGRAMS)
+
+@CODE_COVERAGE_RULES@
