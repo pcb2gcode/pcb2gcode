@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(parse_dimensionless) {
 BOOST_AUTO_TEST_CASE(parse_frequency) {
   BOOST_CHECK_EQUAL(parse_unit<Frequency>("4").asPerMinute(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Frequency>("4").asPerMinute(1), 4);
-  BOOST_CHECK_EQUAL(parse_unit<Frequency>("600cycles/minute").asPerMinute(100), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Frequency>("600   cycles\t/\tminute\t\t").asPerMinute(100), 600);
   BOOST_CHECK_EQUAL(parse_unit<Frequency>("2rotations/s").asPerMinute(100), 120);
 
   BOOST_CHECK_THROW(parse_unit<Frequency>("50.8mm/s").asPerMinute(2), po::validation_error);

@@ -16,10 +16,8 @@ namespace {
 // String parsers: Each on uses characters from the front of the
 // string and leaves the unused characters in place.
 struct parse_exception : public std::exception {
-  parse_exception(const std::string& get_what, const std::istringstream& from_what) {
-    std::ostringstream what_stream;
-    what_stream << "Can't get " << get_what << " from: " << from_what.rdbuf();
-    what_string = what_stream.str();
+  parse_exception(const std::string& get_what, const std::string& from_what) {
+    what_string = "Can't get " + get_what + " from: " + from_what;
   }
 
   virtual const char* what() const throw()
@@ -30,55 +28,61 @@ struct parse_exception : public std::exception {
   std::string what_string;
 };
 
-void get_whitespace(std::istringstream& input) {
-  input >> std::ws;
-}
-
-// Gets the double from the start of the string which may start with
-// whitespace.  Throws an exception if it fails.
-double get_double(std::istringstream& input) {
-  get_whitespace(input);
-  std::streampos pos = input.tellg();
-  double result;
-  if (input >> result) {
-    return result;
-  } else {
-    input.seekg(pos, input.beg);
-    throw parse_exception("double", input);
+// Given a string, provide methods to extract successive numbers,
+// words, etc from it.
+class Lexer {
+ public:
+  Lexer(const std::string& s) : input(s), pos(0) {}
+  std::string get_whitespace() {
+    return get_string<int>(std::isspace);
   }
-}
-
-// Get the word from the start of the string which may have spaces.
-// All characters up to the first that is not std::isalnum are
-// returned.  They are removed from the input.  The result might have
-// length 0.
-std::string get_word(std::istringstream& input) {
-  get_whitespace(input);
-  std::string result;
-  while (std::isalnum(input.peek())) {
-    result += input.get();
+  std::string get_word() {
+    get_whitespace();
+    return get_string<int>(std::isalpha);
   }
-  return result;
-}
-
-// Get division indicator from the start of the string, either a slash
-// or "per", which must have no spaces.  The division character is
-// removed from the input.  Throws if it can't find the division
-// character.
-void get_division(std::istringstream& input) {
-  get_whitespace(input);
-  std::streampos pos = input.tellg();
-  switch (input.get()) {
-    case '/':
-      return;
-    case 'p':
-      if (input.get() == 'e' && input.get() == 'r') {
-        return;
-      }
+  double get_double() {
+    get_whitespace();
+    std::string text = get_string<bool>([](int c) {
+        return std::isdigit(c) || c == '-' || c == '.';
+      });
+    try {
+      return boost::lexical_cast<double>(text);
+    } catch (boost::bad_lexical_cast e) {
+      throw parse_exception("double", text);
+    }
   }
-  input.seekg(pos, input.beg);
-  throw parse_exception("division symbol", input);
-}
+  void get_division() {
+    get_whitespace();
+    if (!get_exact("/") && !get_exact("per")) {
+      throw parse_exception("double", input.substr(pos));
+    }
+  }
+  bool at_end() {
+    return pos == input.size();
+  }
+ private:
+  // Gets all characters from current position until the first that
+  // doesn't pass test_fn or end of input.
+  template <typename test_return_type>
+  std::string get_string(test_return_type (*test_fn)(int)) {
+    size_t start = pos;
+    while (pos < input.size() && test_fn(input[pos])) {
+      pos++;
+    }
+    return input.substr(start, pos-start);
+  }
+  // Returns number of characters advanced if string is found at
+  // current position.  If not found, returns 0.
+  int get_exact(const std::string& s) {
+    if (input.compare(pos, s.size(), s) == 0) {
+      pos += s.size();
+      return s.size();
+    }
+    return 0;
+  }
+  std::string input;
+  size_t pos;
+};
 
 template <typename dimension_t>
 class UnitBase {
@@ -125,9 +129,8 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
   double asInch(double factor) const {
     return as(factor, inch);
   }
-  static quantity get_unit(std::istringstream& stream) {
-    std::streampos pos = stream.tellg();
-    std::string unit = get_word(stream);
+  static quantity get_unit(Lexer& lex) {
+    std::string unit = lex.get_word();
     if (unit == "mm" ||
         unit == "millimeter" ||
         unit == "millimeters") {
@@ -138,8 +141,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "inches") {
       return inch;
     }
-    stream.seekg(pos, stream.beg);
-    throw parse_exception("length", stream);
+    throw parse_exception("length", unit);
   }
 };
 
@@ -150,9 +152,8 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
   double asSecond(double factor) const {
     return as(factor, 1.0*boost::units::si::second);
   }
-  static quantity get_unit(std::istringstream& stream) {
-    std::streampos pos = stream.tellg();
-    std::string unit = get_word(stream);
+  static quantity get_unit(Lexer& lex) {
+    std::string unit = lex.get_word();
     if (unit == "s" ||
         unit == "second" ||
         unit == "seconds") {
@@ -164,8 +165,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
         unit == "minutes") {
       return minute;
     }
-    stream.seekg(pos, stream.beg);
-    throw parse_exception("time", stream);
+    throw parse_exception("time", unit);
   }
 };
 
@@ -177,17 +177,15 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
   double as(double factor) const {
     return as(factor, 1.0*boost::units::si::si_dimensionless);
   }
-  static quantity get_unit(std::istringstream& stream) {
-    std::streampos pos = stream.tellg();
-    std::string unit = get_word(stream);
+  static quantity get_unit(Lexer& lex) {
+    std::string unit = lex.get_word();
     if (unit == "rotation" ||
         unit == "rotations" ||
         unit == "cycle" ||
         unit == "cycles") {
       return 1.0*boost::units::si::si_dimensionless;
     }
-    stream.seekg(pos, stream.beg);
-    throw parse_exception("dimensionless", stream);
+    throw parse_exception("dimensionless", unit);
   }
 };
 
@@ -198,13 +196,13 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
   double asInchPerMinute(double factor) const {
     return as(factor, inch/minute);
   }
-  static quantity get_unit(std::istringstream& stream) {
+  static quantity get_unit(Lexer& lex) {
     // It's either "length/time" or "length per time".
     Length::quantity numerator;
     Time::quantity denominator;
-    numerator = Length::get_unit(stream);
-    get_division(stream);
-    denominator = Time::get_unit(stream);
+    numerator = Length::get_unit(lex);
+    lex.get_division();
+    denominator = Time::get_unit(lex);
     return numerator/denominator;
   }
 };
@@ -216,13 +214,13 @@ class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::freq
   double asPerMinute(double factor) const {
     return as(factor, 1.0/minute);
   }
-  static quantity get_unit(std::istringstream& stream) {
+  static quantity get_unit(Lexer& lex) {
     // It's either "dimensionless/time" or "dimensionless per time".
     Dimensionless::quantity numerator;
     Time::quantity denominator;
-    numerator = Dimensionless::get_unit(stream);
-    get_division(stream);
-    denominator = Time::get_unit(stream);
+    numerator = Dimensionless::get_unit(lex);
+    lex.get_division();
+    denominator = Time::get_unit(lex);
     return numerator/denominator;
   }
 };
@@ -238,22 +236,23 @@ void validate(boost::any& v,
   const std::string& s = boost::program_options::validators::get_single_string(values);
 
   // Figure out what unit it is.
-  std::istringstream stream(s); // Make a copy.
+  Lexer lex(s);
   double value;
   boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
   try {
-    value = get_double(stream);
-    get_whitespace(stream);
-    if (!stream.eof()) {
-      one = Unit<dimension_t>::get_unit(stream);
+    value = lex.get_double();
+    lex.get_whitespace();
+    if (!lex.at_end()) {
+      one = Unit<dimension_t>::get_unit(lex);
     }
   } catch (parse_exception& e) {
     std::cerr << e.what() << std::endl;
-    throw boost::program_options::invalid_option_value(stream.str());
+    throw boost::program_options::invalid_option_value(s);
   }
-  get_whitespace(stream);
-  if (!stream.eof()) {
-    throw boost::program_options::invalid_option_value(stream.str());
+  lex.get_whitespace();
+  if (!lex.at_end()) {
+    std::cerr << "Extra characters at end of option" << std::endl;
+    throw boost::program_options::invalid_option_value(s);
   }
   v = boost::any(Unit<dimension_t>(value, one));
 }
