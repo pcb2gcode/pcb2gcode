@@ -51,12 +51,26 @@ BOOST_AUTO_TEST_CASE(parse_time) {
 BOOST_AUTO_TEST_CASE(parse_dimensionless) {
   BOOST_CHECK_EQUAL(parse_unit<Dimensionless>("4").as(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Dimensionless>("4").as(1), 4);
+  BOOST_CHECK_EQUAL(parse_unit<Dimensionless>("4cycles").as(100), 4);
 
   BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8mm/s").as(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8inches").as(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8millimeters").as(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Dimensionless>("blahblah").as(2), exception);
   BOOST_CHECK_THROW(parse_unit<Dimensionless>("").as(2), exception);
+}
+
+BOOST_AUTO_TEST_CASE(parse_frequency) {
+  BOOST_CHECK_EQUAL(parse_unit<Frequency>("4").asPerMinute(2), 8);
+  BOOST_CHECK_EQUAL(parse_unit<Frequency>("4").asPerMinute(1), 4);
+  BOOST_CHECK_EQUAL(parse_unit<Frequency>("600cycles/minute").asPerMinute(100), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Frequency>("2rotations/s").asPerMinute(100), 120);
+
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8mm/s").asPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8inches").asPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8millimeters").asPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("blahblah").asPerMinute(2), exception);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("").asPerMinute(2), exception);
 }
 
 BOOST_AUTO_TEST_CASE(parse_velocity) {
