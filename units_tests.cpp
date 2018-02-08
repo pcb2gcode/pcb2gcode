@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(200), 1);
   BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm").asInch(200), 2);
-  BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm ").asInch(200), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm    ").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("4inches").asInch(2), 4);
@@ -68,6 +68,7 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_EQUAL(parse_unit<Velocity>("  \t50.8\tmm\t/minutes").asInchPerMinute(2), 2);
 
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8mm").asInchPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8 mm ").asInchPerMinute(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8seconds").asInchPerMinute(2), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s").asInchPerMinute(2), po::validation_error);
 }
