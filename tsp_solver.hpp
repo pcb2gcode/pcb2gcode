@@ -76,7 +76,7 @@ private:
     static inline coordinate_type distance(point_type p0, point_type p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
-                        std::abs(p0.y() - p1.x()));
+                        std::abs(p0.y() - p1.y()));
     }
 public:
     // This function computes the optimised path of a
