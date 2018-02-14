@@ -39,17 +39,17 @@ class tsp_solver
 private:
     // You can extend this class adding new overloads of get with this prototype:
     //  icoordpair get(T _name_) { ... }
-    static inline icoordpair get(icoordpair point)
+    static inline icoordpair get(const icoordpair& point)
     {
         return point;
     }
 
-    static inline icoordpair get(shared_ptr<icoords> path)
+    static inline icoordpair get(const shared_ptr<icoords>& path)
     {
         return path->front();
     }
 
-    static inline icoordpair get(ilinesegment line)
+    static inline icoordpair get(const ilinesegment& line)
     {
         // For finding the nearest neighbor, assume that the drilling
         // will begin and end at the start point.
