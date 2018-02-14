@@ -70,4 +70,26 @@ typedef boost::geometry::model::multi_polygon<polygon_type_fp> multi_polygon_typ
 
 namespace bg = boost::geometry;
 
+// See https://github.com/boostorg/polygon/commit/0ac7230dd1f8f34cb12b86c8bb121ae86d3d9b97
+#if BOOST_VERSION < 106000
+namespace boost { namespace polygon {
+
+    template <>
+    struct coordinate_traits<int64_t> {
+        typedef int64_t coordinate_type;
+        typedef long double area_type;
+        typedef int64_t manhattan_area_type;
+        typedef int64_t unsigned_area_type;
+        typedef int64_t coordinate_difference;
+        typedef long double coordinate_distance;
+    };
+
+} }
+#endif
+
+typedef boost::polygon::point_data<coordinate_type> point_type_p;
+typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
+typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
+typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
+
 #endif

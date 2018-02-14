@@ -92,7 +92,6 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
  */
 /******************************************************************************/
 void Surface::render(shared_ptr<RasterLayerImporter> importer)
-throw (import_exception)
 {
     importer->render(cairo_surface, dpi,
                      min_x - static_cast<ivalue_t>(procmargin) / dpi,
@@ -201,9 +200,9 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0) );
+        tsp_solver::tsp_2opt( toolpath, icoordpair(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0) );
+      tsp_solver::nearest_neighbour( toolpath, icoordpair(0, 0) );
     }
     save_debug_image("traced_" + name);
 

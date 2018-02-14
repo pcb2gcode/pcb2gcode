@@ -221,6 +221,8 @@ options::options()
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
+            "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
+            "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
@@ -250,6 +252,7 @@ options::options()
             "metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")(
             "metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")(
             "optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")(
+            "eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")(
             "bridges", po::value<double>()->default_value(0), "add bridges with the given width to the outline cut")(
             "bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")(
             "zbridges", po::value<double>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")(
@@ -306,6 +309,21 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: very high DPI value, processing may take extremely long"
              << endl;
+    }
+
+    //---------------------------------------------------------------------------
+    //Check spinup(down)-time parameters:
+
+    if (vm["spinup-time"].as<double>() < 0)
+    {
+        cerr << "spinup-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINUP);
+    }
+
+    if (vm.count("spindown-time") && vm["spindown-time"].as<double>() < 0)
+    {
+        cerr << "spindown-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINDOWN);
     }
 
     //---------------------------------------------------------------------------

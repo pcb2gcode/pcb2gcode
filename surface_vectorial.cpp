@@ -32,6 +32,8 @@ using Glib::build_filename;
 
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
+#include "eulerian_paths.hpp"
+#include "segmentize.hpp"
 
 using std::max;
 using std::max_element;
@@ -61,7 +63,12 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
     if (bg::intersects(*vectorial_surface_not_simplified))
-        throw std::logic_error("Input geometry is self-intersecting");
+    {
+        cerr << "\nWarning: Geometry of layer '" << name << "' is"
+             << " self-intersecting. This can cause pcb2gcode to produce"
+             << " wildly incorrect toolpaths. You may want to check the"
+             << " g-code output and/or fix your gerber files!\n";
+    }
 
     scale = importer->vectorial_scale();
 
@@ -73,11 +80,9 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    vector<shared_ptr<icoords> > toolpath;
+    multi_linestring_type toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
-    shared_ptr<multi_polygon_type> voronoi;
-    coordinate_type voronoi_offset = max(mill->tool_diameter * scale * 5,
-                                            max(width_in, height_in) * scale * 10);
+    multi_polygon_type_fp voronoi;
     coordinate_type tolerance = mill->tolerance * scale;
     coordinate_type grow = mill->tool_diameter / 2 * scale;
 
@@ -88,7 +93,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     bg::unique(*vectorial_surface);
-    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_offset, tolerance);
+    box_type voronoi_bounding_box;
+    bg::convert(bounding_box, voronoi_bounding_box);
+    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_bounding_box, tolerance);
 
     box_type svg_bounding_box;
 
@@ -102,7 +109,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
 
     srand(1);
-    debug_image.add(*voronoi, 0.3, false);
+    debug_image.add(voronoi, 0.3, false);
 
     const coordinate_type mirror_axis = mill->mirror_absolute ?
         bounding_box.min_corner().x() :
@@ -119,8 +126,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         unique_ptr<vector<polygon_type> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, *voronoi, toolpath, contentions,
-                                    grow, i, extra_passes + 1, mirror, mirror_axis);
+        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
+                                    grow, i, extra_passes + 1);
 
         debug_image.add(*polygons, 0.6, r, g, b);
         traced_debug_image.add(*polygons, 1, r, g, b);
@@ -137,15 +144,18 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
              << " possibly use a smaller milling width.\n";
     }
 
-    if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, std::make_pair(0, 0) );
-    } else {
-        tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0) );
+    if (mill->eulerian_paths) {
+        toolpath = eulerian_paths(toolpath);
     }
-
+    if (tsp_2opt) {
+        tsp_solver::tsp_2opt( toolpath, point_type(0, 0) );
+    } else {
+        tsp_solver::nearest_neighbour( toolpath, point_type(0, 0) );
+    }
+    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, mirror_axis);
     if (mill->optimise)
     {
-        for (const shared_ptr<icoords>& ring : toolpath)
+        for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
             bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
@@ -154,7 +164,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         return toolpath_optimised;
     }
     else
-        return toolpath;
+        return scaled_toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -190,10 +200,29 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
+vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
+    const multi_linestring_type& mls, bool mirror, ivalue_t mirror_axis) {
+    vector<shared_ptr<icoords>> result;
+    for (const auto& ls : mls) {
+        icoords coords;
+        for (const auto& point : ls) {
+            if (mirror) {
+                coords.push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                                           point.y() / double(scale)));
+            } else {
+                coords.push_back(make_pair(point.x() / double(scale),
+                                           point.y() / double(scale)));
+            }
+        }
+        result.push_back(make_shared<icoords>(coords));
+    }
+    return result;
+}
+
 unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type& voronoi, vector< shared_ptr<icoords> >& toolpath,
+                            const multi_polygon_type_fp& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps, bool mirror, ivalue_t mirror_axis)
+                            unsigned int steps)
 {
     if (offset < 0)
         steps = 1;
@@ -205,12 +234,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     auto push_point = [&](const point_type& point)
     {
-        if (mirror)
-            toolpath.back()->push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
-                                                    point.y() / double(scale)));
-        else
-            toolpath.back()->push_back(make_pair(point.x() / double(scale),
-                                                    point.y() / double(scale)));
+        toolpath.back().push_back(point);
     };
 
     auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
@@ -256,7 +280,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         return index;
     };
 
-    toolpath.push_back(make_shared<icoords>());
+    toolpath.push_back(linestring_type());
 
     bool outer_collapsed = false;
 
@@ -268,10 +292,12 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         }
         else if (offset > 0)
         {
-            auto mpoly = make_shared<multi_polygon_type>();
-            multi_polygon_type mpoly_temp;
+            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            multi_polygon_type_fp mpoly_temp_fp;
+            polygon_type_fp input_fp;
+            bg::convert(input[index], input_fp);
 
-            bg::buffer(input[index], mpoly_temp,
+            bg::buffer(input_fp, mpoly_temp_fp,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
@@ -279,24 +305,24 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp[0], voronoi[index], *mpoly);
+            bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
+            bg::convert((*mpoly_fp)[0], (*polygons)[i]);
 
-            (*polygons)[i] = (*mpoly)[0];
-
-            if (!bg::equals((*polygons)[i], mpoly_temp[0]))
+            if (!bg::equals((*mpoly_fp)[0], mpoly_temp_fp[0]))
                 contentions = true;
         }
         else
         {
             if (mask)
             {
-                multi_polygon_type mpoly_temp;
-
-                bg::intersection(voronoi[index], *(mask->vectorial_surface), mpoly_temp);
-                (*polygons)[i] = mpoly_temp[0];
+                multi_polygon_type_fp mpoly_temp_fp;
+                multi_polygon_type_fp mask_fp;
+                bg::convert(*(mask->vectorial_surface), mask_fp);
+                bg::intersection(voronoi[index], mask_fp, mpoly_temp_fp);
+                bg::convert(mpoly_temp_fp[0], (*polygons)[i]);
             }
             else
-                (*polygons)[i] = voronoi[index];
+                bg::convert(voronoi[index], (*polygons)[i]);
         }
 
         if (i == 0)
@@ -324,7 +350,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         const ring_type *prev = biggest;
         auto ring_j = next(ring_i);
 
-        toolpath.push_back(make_shared<icoords>());
+        toolpath.push_back(linestring_type());
         copy_ring_to_toolpath(*biggest, 0);
 
         while (ring_j != rings.end())
@@ -373,6 +399,87 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     return polygons;
 }
 
+size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
+    struct PointLessThan {
+        bool operator()(const point_type& a, const point_type& b) const {
+            return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+        }
+    };
+
+    std::map<point_type, point_type, PointLessThan> points;
+    for (const auto& ls : mls) {
+        for (const auto& point : ls) {
+            points[point] = point;
+        }
+    }
+    // Merge points that are near one another.  This doesn't do a
+    // great job but it's fast enough.
+    size_t points_merged = 0;
+    for (auto i = points.begin(); i != points.end(); i++) {
+        for (auto j = i;
+             j != points.upper_bound(point_type(i->second.x()+10,
+                                                i->second.y()+10));
+             j++) {
+            if (!bg::equals(j->second, i->second) &&
+                bg::comparable_distance(i->second, j->second) <= 100) {
+                points_merged++;
+                j->second = i->second;
+            }
+        }
+    }
+    if (points_merged > 0) {
+        for (auto& ls : mls) {
+            for (auto& point : ls) {
+                point = points[point];
+            }
+        }
+    }
+    return points_merged;
+}
+
+multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
+    // Merge points that are very close to each other because it makes
+    // us more likely to find intersections that was can use.
+    multi_linestring_type merged_toolpaths(toolpaths);
+    merge_near_points(merged_toolpaths);
+
+    // First we need to split all paths so that they don't cross.
+    vector<segment_type_p> all_segments;
+    for (const auto& toolpath : merged_toolpaths) {
+        for (size_t i = 1; i < toolpath.size(); i++) {
+            all_segments.push_back(
+                segment_type_p(
+                    point_type_p(toolpath[i-1].x(), toolpath[i-1].y()),
+                    point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
+        }
+    }
+    vector<segment_type_p> split_segments = segmentize(all_segments);
+
+    multi_linestring_type segments_as_linestrings;
+    for (const auto& segment : split_segments) {
+        // Make a little 1-edge linestrings, filter out those that
+        // aren't in the mask.
+        linestring_type ls;
+        ls.push_back(point_type(segment.low().x(), segment.low().y()));
+        ls.push_back(point_type(segment.high().x(), segment.high().y()));
+        segments_as_linestrings.push_back(ls);
+    }
+
+    // Make a minimal number of paths from those segments.
+    struct PointLessThan {
+      bool operator()(const point_type& a, const point_type& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+
+    return eulerian_paths::get_eulerian_paths<
+      point_type,
+      linestring_type,
+      multi_linestring_type,
+      PointLessThan>(segments_as_linestrings);
+}
+
+
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
     bounding_box(bounding_box)
@@ -391,18 +498,21 @@ svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_ty
     mapper->add(bounding_box);
 }
 
-void svg_writer::add(const multi_polygon_type& geometry, double opacity, bool stroke)
+template <typename multi_polygon_type_t>
+void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool stroke)
 {
     string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
-    for (const polygon_type& poly : geometry)
+    for (const auto& poly : geometry)
     {
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        multi_polygon_type mpoly;
+        multi_polygon_type_t mpoly;
 
-        bg::intersection(poly, bounding_box, mpoly);
+        multi_polygon_type_t new_bounding_box;
+        bg::convert(bounding_box, new_bounding_box);
+        bg::intersection(poly, new_bounding_box, mpoly);
 
         mapper->map(mpoly,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %

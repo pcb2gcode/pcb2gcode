@@ -27,6 +27,7 @@ using std::cerr;
 using std::flush;
 using std::ios_base;
 using std::left;
+using std::to_string;
 
 #include <cmath>
 using std::ceil;
@@ -133,7 +134,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     Tiling tiling( tileInfo, cfactor );
     tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
-        " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nM9 ( Coolant off. )\n"
+        " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
+        to_string(mill->spindown_time) +
+        "M9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
     tiling.initialXOffsetVar = globalVars.getUniqueCode();
@@ -198,7 +201,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
-       << "M3 ( Spindle on clockwise. )\n";
+       << "M3 ( Spindle on clockwise. )\n"
+       << "G04 P" << mill->spinup_time << "\n";
     
     tiling.header( of );
 
@@ -250,40 +254,32 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-                        icoords::iterator peek;
 
                         if (bBridges)
                             currentBridge = bridges.begin();
 
                         while (iter != path->end())
                         {
-                            peek = iter + 1;
 
-                            if (mill->optimise //Already optimised (also includes the bridge case)
-                                    || last == path->end()  //First
-                                    || peek == path->end()   //Last
-                                    || !aligned(last, iter, peek) )      //Not aligned
+                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
+
+                            if (bBridges && currentBridge != bridges.end())
                             {
-                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
-
-                                if (bBridges && currentBridge != bridges.end())
+                                if (z < cutter->bridges_height)
                                 {
-                                    if (z < cutter->bridges_height)
+                                    if (*currentBridge == iter - path->begin())
+                                        of << "Z" << cutter->bridges_height * cfactor << '\n';
+                                    else if (*currentBridge == last - path->begin())
                                     {
-                                        if (*currentBridge == iter - path->begin())
-                                            of << "Z" << cutter->bridges_height * cfactor << '\n';
-                                        else if (*currentBridge == last - path->begin())
-                                        {
-                                            of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                            of << "F" << cutter->feed * cfactor << '\n';
-                                            of << "G01 ";
-                                        }
+                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+                                        of << "F" << cutter->feed * cfactor << '\n';
+                                        of << "G01 ";
                                     }
-
-                                    if (*currentBridge == last - path->begin())
-                                        ++currentBridge;
                                 }
+
+                                if (*currentBridge == last - path->begin())
+                                    ++currentBridge;
                             }
 
                             last = iter;
@@ -314,28 +310,15 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << "G01 ";
 
                     icoords::iterator iter = path->begin();
-                    icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-                    icoords::iterator peek;
 
                     while (iter != path->end())
                     {
-                        peek = iter + 1;
-                        if (mill->optimise //When simplifypath is performed, no further optimisation is required
-                                || last == path->end()  //First
-                                || peek == path->end()   //Last
-                                || !aligned(last, iter, peek) )      //Not aligned
-                        {
-                            /* no need to check for "they are on one axis but iter is outside of last and peek"
-                             because that's impossible from how they are generated */
-                            if( bAutolevelNow )
-                                of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
+                        if( bAutolevelNow )
+                            of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
                                                                            ( iter->second - yoffsetTot ) * cfactor ) );
-                            else
-                                of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                                   << ( iter->second - yoffsetTot ) * cfactor << '\n';
-                        }
-
-                        last = iter;
+                        else
+                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
                         ++iter;
                     }
                 }
