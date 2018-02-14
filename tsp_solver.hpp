@@ -166,7 +166,7 @@ public:
                         distance(get(*a, Side::BACK), get(*c, Side::BACK)) +
                         distance(get(*b, Side::FRONT), get(*d, Side::FRONT))) {
                         // Do the 2opt swap.
-                        for (auto& to_reverse = b; b < d; d++) {
+                        for (auto& to_reverse = b; b != d; d++) {
                             reverse(*to_reverse);
                         }
                         std::reverse(b,d);
