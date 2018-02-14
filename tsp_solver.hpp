@@ -65,15 +65,17 @@ private:
 
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
-    static inline double distance(icoordpair p0, icoordpair p1)
+    static inline double distance(const coordpair& p0, const coordpair& p1)
     {
         return std::max(std::abs(p0.first - p1.first),
                         std::abs(p0.second - p1.second));
     }
-
-    // Return the Chebyshev distance, which is a good approximation
-    // for the time it takes to do a rapid move on a CNC router.
-    static inline coordinate_type distance(point_type p0, point_type p1)
+    static inline double distance(const icoordpair& p0, const icoordpair& p1)
+    {
+        return std::max(std::abs(p0.first - p1.first),
+                        std::abs(p0.second - p1.second));
+    }
+    static inline coordinate_type distance(const point_type& p0, const point_type& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
                         std::abs(p0.y() - p1.y()));
@@ -87,7 +89,7 @@ public:
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
     template <typename T, typename point_t>
-    static void nearest_neighbour(vector<T> &path, point_t startingPoint, double quantization_error)
+    static void nearest_neighbour(vector<T> &path, const point_t& startingPoint, double quantization_error)
     {
         if (path.size() > 0)
         {
@@ -163,8 +165,8 @@ public:
     }
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
-    template <typename T>
-    static void tsp_2opt(vector<T> &path, icoordpair startingPoint, double quantization_error) {
+    template <typename T, typename point_t>
+    static void tsp_2opt(vector<T> &path, const point_t& startingPoint, double quantization_error) {
         // Perform greedy on path if it improves.
         nearest_neighbour(path, startingPoint, quantization_error);
         bool found_one = true;
