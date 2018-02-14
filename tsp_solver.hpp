@@ -156,22 +156,13 @@ public:
             found_one = false;
             for (unsigned int i = 0; i < path.size(); i++) {
                 for (unsigned int j = i; j < path.size(); j++) {
-                    double old_gap = 0;
-                    double new_gap = 0;
-                    if (i==0) {
-                        old_gap += distance(startingPoint, get(path[i], Side::FRONT));
-                        new_gap += distance(startingPoint, get(path[j], Side::BACK));
-                    } else {
-                        old_gap = distance(get(path[i-1], Side::BACK), get(path[i], Side::FRONT));
-                        new_gap = distance(get(path[i-1], Side::BACK), get(path[j], Side::BACK));
-                    }
-                    if (j==path.size()-1) {
-                        old_gap += 0;
-                        new_gap += 0;
-                    } else {
-                        new_gap += distance(get(path[i], Side::FRONT), get(path[j+1], Side::FRONT));
-                        old_gap += distance(get(path[j], Side::BACK), get(path[j+1], Side::FRONT));
-                    }
+                    // Potentially reverse path elements i through j inclusive.
+                    auto a = i == 0 ? startingPoint : get(path[i-1], Side::BACK);
+                    auto b = get(path[i], Side::FRONT);
+                    auto c = get(path[j], Side::BACK);
+                    auto d = j + 1 == path.size() ? c : get(path[j+1], Side::FRONT);
+                    double old_gap = distance(a, b) + distance(c, d);
+                    double new_gap = distance(a, c) + distance(b, d);
                     // Should we make this 2opt swap?
                     if (new_gap < old_gap) {
                         // Do the 2opt swap.
