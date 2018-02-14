@@ -154,12 +154,10 @@ public:
         bool found_one = true;
         while (found_one) {
             found_one = false;
-            for (unsigned int i = 0; i < path.size(); i++) {
-                auto a = path.begin() + i;
-                auto b = a+1;
-                for (unsigned int j = i+1; j < path.size(); j++) {
-                    auto c = path.begin() + j;
-                    auto d = c+1;
+            for (auto a = path.begin(); a != path.end(); a++) {
+                auto b = a + 1;
+                for (auto c = a + 1; c != path.end(); c++) {
+                    auto d = c + 1;
                     // Should we make this 2opt swap?
                     if (distance(get(*a, Side::BACK), get(*b, Side::FRONT)) +
                         distance(get(*c, Side::BACK), get(*d, Side::FRONT)) >
@@ -169,7 +167,7 @@ public:
                         for (auto& to_reverse = b; b != d; d++) {
                             reverse(*to_reverse);
                         }
-                        std::reverse(b,d);
+                        std::reverse(b, d);
                         found_one = true;
                     }
                 }
