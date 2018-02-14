@@ -67,11 +67,6 @@ public:
 
 protected:
     void export_layer(shared_ptr<Layer> layer, string of_name);
-    inline bool aligned(icoords::const_iterator p0, icoords::const_iterator p1, icoords::const_iterator p2)
-    {
-        return ( (p0->first == p1->first) && (p1->first == p2->first) ) ||      //x-aligned
-               ( (p0->second == p1->second) && (p1->second == p2->second) );    //y-aligned
-    }
 
     shared_ptr<Board> board;
     vector<string> header;

@@ -55,8 +55,7 @@ class Surface: public Core, virtual public boost::noncopyable
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
             ivalue_t max_y, string name, string outputdir, bool tsp_2opt);
-    void render(shared_ptr<RasterLayerImporter> importer)
-    throw (import_exception);
+    void render(shared_ptr<RasterLayerImporter> importer);
 
     shared_ptr<Surface> deep_copy();
 

@@ -13,6 +13,7 @@ pcb2gcode_SOURCES = \
     core.cpp \
     drill.hpp \
     drill.cpp \
+    eulerian_paths.hpp \
     exporter.hpp \
     Fixed.hpp \
     geometry.hpp \
@@ -24,6 +25,7 @@ pcb2gcode_SOURCES = \
     mill.hpp \
     ngc_exporter.hpp \
     ngc_exporter.cpp \
+    segmentize.hpp \
     surface.hpp \
     surface.cpp \
     surface_vectorial.hpp \
@@ -49,3 +51,10 @@ AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
 
 EXTRA_DIST = millproject
+
+check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests
+voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
+eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
+segmentize_tests_SOURCES = segmentize_tests.cpp
+
+TESTS = $(check_PROGRAMS)

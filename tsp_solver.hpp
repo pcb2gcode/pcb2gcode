@@ -56,12 +56,27 @@ private:
         return get(line.first);
     }
 
+    static inline point_type get(const linestring_type& path)
+    {
+        // For finding the nearest neighbor, assume that the drilling
+        // will begin and end at the start point.
+        return path.front();
+    }
+
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
     static inline double distance(icoordpair p0, icoordpair p1)
     {
         return std::max(std::abs(p0.first - p1.first),
                         std::abs(p0.second - p1.second));
+    }
+
+    // Return the Chebyshev distance, which is a good approximation
+    // for the time it takes to do a rapid move on a CNC router.
+    static inline coordinate_type distance(point_type p0, point_type p1)
+    {
+        return std::max(std::abs(p0.x() - p1.x()),
+                        std::abs(p0.y() - p1.y()));
     }
 public:
     // This function computes the optimised path of a
@@ -71,8 +86,8 @@ public:
     // In the case of shared_ptr<icoords> it interprets the vector<icoordpair> as closed paths, and it computes
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
-    template <typename T>
-    static void nearest_neighbour(vector<T> &path, icoordpair startingPoint, double quantization_error)
+    template <typename T, typename point_t>
+    static void nearest_neighbour(vector<T> &path, point_t startingPoint, double quantization_error)
     {
         if (path.size() > 0)
         {
@@ -96,7 +111,7 @@ public:
             for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
                 original_length += distance(get(*point), get(*next(point)));
 
-            icoordpair currentPoint = startingPoint;
+            point_t currentPoint = startingPoint;
             while (temp_path.size() > 1)
             {
 

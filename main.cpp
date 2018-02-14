@@ -91,6 +91,8 @@ int main(int argc, char* argv[])
     const double tolerance = vm["tolerance"].as<double>() * unit;
     const bool explicit_tolerance = !vm["nog64"].as<bool>();
     const string outputdir = vm["output-dir"].as<string>();
+    const double spindown_time = vm.count("spindown-time") ?
+        vm["spindown-time"].as<double>() : vm["spinup-time"].as<double>();
     shared_ptr<Isolator> isolator;
 
     if (vm.count("front") || vm.count("back"))
@@ -111,9 +113,12 @@ int main(int argc, char* argv[])
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
+        isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
         isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
+        isolator->spinup_time = vm["spinup-time"].as<double>();
+        isolator->spindown_time = spindown_time;
     }
 
     shared_ptr<Cutter> cutter;
@@ -134,9 +139,12 @@ int main(int argc, char* argv[])
         cutter->do_steps = true;
         cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
         cutter->optimise = vm["optimise"].as<bool>();
+        cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
         cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();
+        cutter->spinup_time = vm["spinup-time"].as<double>();
+        cutter->spindown_time = spindown_time;
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
         cutter->bridges_width = vm["bridges"].as<double>() * unit;
         if (vm.count("zbridges"))
@@ -157,6 +165,8 @@ int main(int argc, char* argv[])
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
         driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
+        driller->spinup_time = vm["spinup-time"].as<double>();
+        driller->spindown_time = spindown_time;
         driller->zchange = vm["zchange"].as<double>() * unit;
     }
 

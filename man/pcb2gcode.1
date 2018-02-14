@@ -343,6 +343,13 @@ will be between (0,0) and (max_x_value, max_y_value) (positive values)
 \fB\-\-no-export\fP
 do not create the output gcode files. You can use this to quickly convert the
 input files to png/svg
+.TP
+\fB\-\-spinup\-time\fP \fIs\fP
+set the time required to the spindle to reach the target speed (defaults to 1 s)
+.TP
+\fB\-\-spindown\-time\fP \fIs\fP
+set the time required to the spindle to reach 0 rpm from the target speed
+(defaults to \fB\-\-spinup\-time\fP)
 
 .PP
 The only options that can't be used in the \fImillproject\fP file are the

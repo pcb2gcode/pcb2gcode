@@ -92,7 +92,6 @@ Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
  */
 /******************************************************************************/
 void Surface::render(shared_ptr<RasterLayerImporter> importer)
-throw (import_exception)
 {
     importer->render(cairo_surface, dpi,
                      min_x - static_cast<ivalue_t>(procmargin) / dpi,
