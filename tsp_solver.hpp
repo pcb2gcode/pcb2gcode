@@ -132,7 +132,7 @@ public:
                     }
                 }
 
-                new_length += distance(currentPoint, get(*(nearestPoint), side)); //Update the new path total length
+                new_length += minDistance; //Update the new path total length
                 if (side == Side::BACK) {
                     reverse(*nearestPoint);
                 }
