@@ -1,7 +1,7 @@
 # Some really large gerbers based on this project:
 # https://github.com/OLIMEX/OLINUXINO/tree/master/HARDWARE/A64-OLinuXino/A64-OLinuXino_Rev_D
 
-back=A64-OlinuXino_Rev_D-B.Cu.gbr
+front=A64-OlinuXino_Rev_D-B.Cu.gbr
 back=A64-OlinuXino_Rev_D-F.Cu.gbr
 outline=A64-OlinuXino_Rev_D-Edge.Cuts.gbr
 
