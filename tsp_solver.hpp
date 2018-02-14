@@ -148,22 +148,27 @@ public:
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
     template <typename T>
-    static void tsp_2opt(vector<T> &path, icoordpair startingPoint, double quantization_error) {
+    static void tsp_2opt(vector<T> &path, icoordpair startingPoint) {
         // Perform greedy on path if it improves.
-        nearest_neighbour(path, startingPoint, quantization_error);
+        nearest_neighbour(path, startingPoint);
         bool found_one = true;
         while (found_one) {
             found_one = false;
-            for (auto a = path.begin(); a < path.end(); a++) {
+            for (unsigned int i = 0; i < path.size(); i++) {
+                auto a = path.begin() + i;
                 auto b = a+1;
-                for (auto c = b+1; c+1 < path.end(); c++) {
+                for (unsigned int j = i+1; j < path.size(); j++) {
+                    auto c = path.begin() + j;
                     auto d = c+1;
                     // Should we make this 2opt swap?
-                    if (boost::geometry::distance(get(*a), get(*b)) +
-                        boost::geometry::distance(get(*c), get(*d)) >
-                        boost::geometry::distance(get(*a), get(*c)) +
-                        boost::geometry::distance(get(*b), get(*d))) {
+                    if (distance(get(*a, Side::BACK), get(*b, Side::FRONT)) +
+                        distance(get(*c, Side::BACK), get(*d, Side::FRONT)) >
+                        distance(get(*a, Side::BACK), get(*c, Side::BACK)) +
+                        distance(get(*b, Side::FRONT), get(*d, Side::FRONT))) {
                         // Do the 2opt swap.
+                        for (auto& to_reverse = b; b < d; d++) {
+                            reverse(*to_reverse);
+                        }
                         std::reverse(b,d);
                         found_one = true;
                     }
