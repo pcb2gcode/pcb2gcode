@@ -32,6 +32,8 @@ using std::shared_ptr;
 #include "geometry.hpp"
 using std::pair;
 
+#include <boost/optional.hpp>
+
 using std::next;
 
 class tsp_solver
@@ -172,17 +174,19 @@ public:
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
     template <typename T, typename point_t>
-    static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
+    static void tsp_2opt(vector<T> &path, const boost::optional<point_t>& startingPoint) {
         // Perform greedy on path if it improves.
-        nearest_neighbour(path, startingPoint);
+        nearest_neighbour(path, startingPoint ? *startingPoint : get(path.front(), Side::FRONT));
         bool found_one = true;
         while (found_one) {
             found_one = false;
             for (unsigned int i = 0; i < path.size(); i++) {
                 for (unsigned int j = i; j < path.size(); j++) {
                     // Potentially reverse path elements i through j inclusive.
-                    auto a = i == 0 ? startingPoint : get(path[i-1], Side::BACK);
                     auto b = get(path[i], Side::FRONT);
+                    auto a = (i == 0 && startingPoint ? *startingPoint :
+                              i == 0 && !startingPoint ? b :
+                              get(path[i-1], Side::BACK));
                     auto c = get(path[j], Side::BACK);
                     auto d = j + 1 == path.size() ? c : get(path[j+1], Side::FRONT);
                     double old_gap = distance(a, b) + distance(c, d);
@@ -201,6 +205,16 @@ public:
                 }
             }
         }
+    }
+
+    template <typename T, typename point_t>
+    static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
+        tsp_2opt(path, boost::optional<point_t>(startingPoint));
+    }
+
+    template <typename T, typename point_t>
+    static void tsp_2opt(vector<T> &path) {
+        tsp_2opt(path, boost::none);
     }
 };
 
