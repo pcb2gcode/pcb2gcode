@@ -173,7 +173,7 @@ public:
     }
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
-    template <typename T, typename point_t>
+    template <typename point_t, typename T>
     static void tsp_2opt(vector<T> &path, const boost::optional<point_t>& startingPoint) {
         // Perform greedy on path if it improves.
         nearest_neighbour(path, startingPoint ? *startingPoint : get(path.front(), Side::FRONT));
@@ -207,14 +207,14 @@ public:
         }
     }
 
-    template <typename T, typename point_t>
+    template <typename point_t, typename T>
     static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
         tsp_2opt(path, boost::optional<point_t>(startingPoint));
     }
 
-    template <typename T, typename point_t>
+    template <typename point_t, typename T>
     static void tsp_2opt(vector<T> &path) {
-        tsp_2opt(path, boost::none);
+        tsp_2opt(path, boost::optional<point_t>());
     }
 };
 
