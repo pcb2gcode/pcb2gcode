@@ -61,4 +61,3 @@ eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
 
 TESTS = $(check_PROGRAMS)
-
