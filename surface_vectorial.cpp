@@ -300,7 +300,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
                        //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                       bg::strategy::buffer::end_flat(),
+                       bg::strategy::buffer::end_round(),
                        bg::strategy::buffer::point_circle(30));
 
             bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
@@ -496,7 +496,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
                            bg::strategy::buffer::distance_symmetric<coordinate_type>(-tolerance),
                            bg::strategy::buffer::side_straight(),
                            bg::strategy::buffer::join_round(points_per_circle),
-                           bg::strategy::buffer::end_flat(),
+                           bg::strategy::buffer::end_round(),
                            bg::strategy::buffer::point_circle(30));
                 image.add(shrunk_thermal_hole_fp, 1, true);
                 for (const auto& p : shrunk_thermal_hole_fp) {
