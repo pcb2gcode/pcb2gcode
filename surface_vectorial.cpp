@@ -485,19 +485,20 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
             bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-            bg::de9im::mask strictly_within("F********");
-            bool check = bg::relate(thermal_hole, milling_surface, strictly_within);
-            if (check) {
+            polygon_type_fp thermal_hole_fp;
+            bg::convert(thermal_hole, thermal_hole_fp);
+            multi_polygon_type_fp shrunk_thermal_hole_fp;
+            bg::buffer(thermal_hole_fp, shrunk_thermal_hole_fp,
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(-tolerance),
+                       bg::strategy::buffer::side_straight(),
+                       bg::strategy::buffer::join_round(points_per_circle),
+                       bg::strategy::buffer::end_round(),
+                       bg::strategy::buffer::point_circle(30));
+            multi_polygon_type shrunk_thermal_hole;
+            bg::convert(shrunk_thermal_hole_fp, shrunk_thermal_hole);
+            bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
+            if (empty_hole) {
                 thermal_reliefs_found++;
-                polygon_type_fp thermal_hole_fp;
-                bg::convert(thermal_hole, thermal_hole_fp);
-                multi_polygon_type_fp shrunk_thermal_hole_fp;
-                bg::buffer(thermal_hole_fp, shrunk_thermal_hole_fp,
-                           bg::strategy::buffer::distance_symmetric<coordinate_type>(-tolerance),
-                           bg::strategy::buffer::side_straight(),
-                           bg::strategy::buffer::join_round(points_per_circle),
-                           bg::strategy::buffer::end_round(),
-                           bg::strategy::buffer::point_circle(30));
                 image.add(shrunk_thermal_hole_fp, 1, true);
                 for (const auto& p : shrunk_thermal_hole_fp) {
                     polygon_type integral_p;
