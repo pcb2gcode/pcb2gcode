@@ -90,6 +90,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
+    if (isolator && isolator->preserve_thermal_reliefs) {
+        preserve_thermal_reliefs(*vectorial_surface, tolerance);
+    }
+
     bg::unique(*vectorial_surface);
     box_type voronoi_bounding_box;
     bg::convert(bounding_box, voronoi_bounding_box);
@@ -473,6 +477,38 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       PointLessThan>(segments_as_linestrings);
 }
 
+size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& tolerance) {
+    // For each shape, see if it has any holes that are empty.
+    size_t thermal_reliefs_found = 0;
+    svg_writer image(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+    for (auto& p : milling_surface) {
+        for (auto& inner : p.inners()) {
+            auto thermal_hole = inner;
+            bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
+            bg::de9im::mask strictly_within("F********");
+            bool check = bg::relate(thermal_hole, milling_surface, strictly_within);
+            if (check) {
+                thermal_reliefs_found++;
+                polygon_type_fp thermal_hole_fp;
+                bg::convert(thermal_hole, thermal_hole_fp);
+                multi_polygon_type_fp shrunk_thermal_hole_fp;
+                bg::buffer(thermal_hole_fp, shrunk_thermal_hole_fp,
+                           bg::strategy::buffer::distance_symmetric<coordinate_type>(-tolerance),
+                           bg::strategy::buffer::side_straight(),
+                           bg::strategy::buffer::join_round(points_per_circle),
+                           bg::strategy::buffer::end_flat(),
+                           bg::strategy::buffer::point_circle(30));
+                image.add(shrunk_thermal_hole_fp, 1, true);
+                for (const auto& p : shrunk_thermal_hole_fp) {
+                    polygon_type integral_p;
+                    bg::convert(p, integral_p);
+                    milling_surface.push_back(integral_p);
+                }
+            }
+        }
+    }
+    return thermal_reliefs_found;
+}
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),

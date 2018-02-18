@@ -222,6 +222,7 @@ options::options()
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
+            "preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs (requires --vectorial)")(
             "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
             "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
