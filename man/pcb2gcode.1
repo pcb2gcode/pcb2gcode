@@ -305,10 +305,12 @@ number of tiling rows. Default value is 1.
 These options govern the general behavior of \fBpcb2gcode\fP:
 .TP
 \fB\-\-vectorial\fP
-enable the \fBEXPERIMENTAL\fP vectorial core. This new core offers much better
-performances, higher precision, smaller output files and support for internal
-cutoffs (like thermal pads). When \fB\-\-vectorial\fP is enabled, \fB\-\-dpi\fP
-and \fB\-\-outline\-width\P are ignored.
+enable or disable the vectorial core (enabled by default). This new engine
+offers much better performances, higher precision, smaller output files and
+support for internal cutoffs (like thermal pads). When \fB\-\-vectorial\fP is
+enabled, \fB\-\-dpi\fP and \fB\-\-outline\-width\fP are ignored. The old raster
+core (\fB\-\-vectorial=false\fP) is deprecated and will be removed in future
+releases.
 .TP
 \fB\-\-software\fP \fIsoftware\fP
 specify the gcode interpreter software; currently supported programs are
