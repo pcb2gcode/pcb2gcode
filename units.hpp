@@ -142,7 +142,9 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
       return inch;
     }
     if (unit == "thou" ||
-        unit == "thous") {
+        unit == "thous" ||
+        unit == "mil" ||
+        unit == "mils") {
       return thou;
     }
     throw parse_exception("length", unit);
