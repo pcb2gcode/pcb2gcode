@@ -156,7 +156,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     {
         if (mirror_absolute)        //drill from back side, mirrored along y-axis
         {
-          retval = -xvalue;//(2 * board_dimensions.min_corner().x() - xvalue);
+          retval = (2 * board_dimensions.min_corner().x() - xvalue);
         }
         else          //drill from back side, mirrored along board center
         {
