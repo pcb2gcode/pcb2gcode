@@ -45,7 +45,6 @@ public:
     bool explicit_tolerance;
     bool backside;
     bool mirror_absolute;
-    bool zero_start;
     double spinup_time;
     double spindown_time;
 };
