@@ -152,7 +152,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        retval = -xvalue + xoffset*2;
+        retval = (2 * board_dimensions.min_corner().x() - xvalue);
     }
 
     return retval;

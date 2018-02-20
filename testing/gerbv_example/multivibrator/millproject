@@ -1,12 +1,12 @@
-#back=multivibrator-B.Cu.gbr
+back=multivibrator-B.Cu.gbr
 drill=multivibrator.drl
-front=multivibrator-B.Cu.gbr
+#front=multivibrator-B.Cu.gbr
 outline=multivibrator-Edge.Cuts.gbr
 
 tile-x=3
 tile-y=3
 cut-side=front
-drill-side=front
+drill-side=back
 offset=0
 vectorial=true
 mill-feed=360
