@@ -110,7 +110,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     debug_image.add(voronoi, 0.3, false);
 
     const coordinate_type mirror_axis = 
-        (mill->mirror_absolute && mill->zero_start) ?  bounding_box.min_corner().x() :
+        (mill->mirror_absolute && mill->zero_start) ?  0 :
         (!mill->mirror_absolute)                    ? ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2) :
         0;
 
