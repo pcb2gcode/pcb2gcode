@@ -65,5 +65,11 @@ testing/gerbv_example/*/*.svg
 *_input.svg
 *_output.svg
 
+#make check-with-coverage files
+*.gcno
+*.gcda
+/pcb2gcode-*-coverage.info
+/pcb2gcode-*-coverage
+
 #editor or browser files
 .directory

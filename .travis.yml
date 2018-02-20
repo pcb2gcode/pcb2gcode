@@ -7,33 +7,45 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-4.8', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
-      env: COMPILER=g++-4.8
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-4.8 BOOST=1_56_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-5', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
-      env: COMPILER=g++-5
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-6', 'libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
-      env: COMPILER=g++-6
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-7 BOOST=1_56_0
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=g++-7 BOOST=1_66_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          sources: ['boost-latest']
-          packages: ['libboost-program-options1.55-dev', 'libgtkmm-2.4-dev', 'gerbv']
-      env: COMPILER=clang++
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=clang++ BOOST=1_56_0
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
+      env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
       compiler: gcc
@@ -45,7 +57,7 @@ matrix:
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_1_65_1_amd64.tar.gz && tar -xf boost_1_65_1_amd64.tar.gz && export BOOST_DIR=$PWD/boost_1_65_1_amd64; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://sourceforge.net/projects/pcb2gcode/files/pcb2gcode/boost/boost_${BOOST}_amd64.tar.xz/download" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
 
 install:
   - export CXX=$COMPILER
@@ -53,7 +65,7 @@ install:
 script:
   - autoreconf -fvi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost=$BOOST_DIR --enable-static-boost; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost; fi
   - make
   - make check
 
@@ -61,4 +73,3 @@ after_script:
   - cd testing/gerbv_example/
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
   - for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS; cd ..; done
-  - for dir in *; do cd $dir; ../../../pcb2gcode --software=Custom --al-probecode=G38.2 --al-probevar=5063 --al-setzzero='G10 L20 P0 Z0' $ARGS; cd ..; done

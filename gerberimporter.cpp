@@ -141,7 +141,7 @@ gdouble GerberImporter::get_max_y()
 /*
  */
 /******************************************************************************/
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) throw (import_exception)
+void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y)
 {
     gerbv_render_info_t render_info;
 
@@ -735,9 +735,9 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
         if (layer != layers.begin())
         {
             if (polarity == GERBV_POLARITY_DARK)
-                bg::union_(*draws, *output, *temp_mpoly);
+                bg::union_(*output, *draws, *temp_mpoly);
             else if (polarity == GERBV_POLARITY_CLEAR)
-                bg::difference(*draws, *output, *temp_mpoly);
+                bg::difference(*output, *draws, *temp_mpoly);
             else
                 unsupported_polarity_throw_exception();
 

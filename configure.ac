@@ -28,6 +28,9 @@ AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
 # Enable warnings
 AX_CXXFLAGS_WARN_ALL
 
+# Useful for measuring the coverage of the unit tests
+AX_CODE_COVERAGE
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.

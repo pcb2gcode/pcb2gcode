@@ -9,11 +9,6 @@
 #include <boost/polygon/segment_concept.hpp>
 #include <boost/polygon/segment_utils.hpp>
 
-typedef boost::polygon::point_data<coordinate_type> point_type_p;
-typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
-typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
-typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
-
 /* Given a multi_linestring, return a new multiline_string where there
  * are no segments that cross any other segments.  Nor are there any T
  * shapes where the end of a linestring butts up against the center of
