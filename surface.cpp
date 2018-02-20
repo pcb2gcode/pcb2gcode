@@ -139,7 +139,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     int added = -1;
     int contentions = 0;
     int grow = mill->tool_diameter / 2 * dpi;
-    ivalue_t mirror_axis = mill->mirror_absolute ? min_x : ((min_x + max_x) / 2);
+    ivalue_t mirror_axis = min_x;
 
     vector<shared_ptr<icoords> > toolpath;
 

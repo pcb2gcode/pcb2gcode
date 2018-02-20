@@ -102,7 +102,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     for ( string layername : board->list_layers() )
     {
       if( options["zero-start"].as<bool>() ) {
-        if (layername == "back" || layername == "outline" && !workSide(options, "cut")) {
+        if (layername == "back" ||
+            (layername == "outline" && !workSide(options, "cut"))) {
           xoffset = -board->get_min_x();
           yoffset = board->get_min_y();
         } else {

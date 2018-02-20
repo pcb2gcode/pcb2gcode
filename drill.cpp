@@ -69,7 +69,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
-      mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
       quantization_error(2.0 / options["dpi"].as<int>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
@@ -137,9 +136,8 @@ void ExcellonProcessor::add_header(string header)
 
 /******************************************************************************/
 /*
- Recalculates the x-coordinate based on drillfront and mirror_absolute
+ Recalculates the x-coordinate based on drillfront
  drillfront: drill from front side
- mirror_absolute: mirror back side on y-axis
  xvalue: x-coordinate
  returns the recalulated x-coordinate
  */
@@ -154,14 +152,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        if (mirror_absolute)        //drill from back side, mirrored along y-axis
-        {
-          retval = (2 * board_dimensions.min_corner().x() - xvalue);
-        }
-        else          //drill from back side, mirrored along board center
-        {
-            retval = (2 * board_center_x - xvalue);
-        }
+        retval = (2 * board_dimensions.min_corner().x() - xvalue);
     }
 
     return retval;
@@ -500,8 +491,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     double yoffsetTot;
     stringstream zchange;
 
-    //g_assert(drillfront == true);       //WHY?
-    //g_assert(mirror_absolute == false); //WHY?
     cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;

@@ -116,7 +116,6 @@ int main(int argc, char* argv[])
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
-        isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
         isolator->zero_start = vm["zero-start"].as<bool>();
         isolator->spinup_time = vm["spinup-time"].as<double>();
         isolator->spindown_time = spindown_time;
@@ -143,7 +142,6 @@ int main(int argc, char* argv[])
         cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
-        cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();
         cutter->zero_start = vm["zero-start"].as<bool>();
         cutter->spinup_time = vm["spinup-time"].as<double>();
         cutter->spindown_time = spindown_time;
@@ -166,7 +164,6 @@ int main(int argc, char* argv[])
         driller->speed = vm["drill-speed"].as<int>();
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
-        driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
         driller->zero_start = vm["zero-start"].as<bool>();
         driller->spinup_time = vm["spinup-time"].as<double>();
         driller->spindown_time = spindown_time;

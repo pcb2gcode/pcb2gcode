@@ -131,7 +131,6 @@ private:
     double cfactor;         //imperial/metric conversion factor for output file
     string zchange;
     const bool drillfront;
-    const bool mirror_absolute;
     const bool bMetricOutput;   //Flag to indicate metric output
     const double quantization_error;
     const double xoffset;
