@@ -431,6 +431,7 @@ int main(int argc, char* argv[])
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
                 }
+                cutter->zwork = vm["zdrill"].as<double>() * unit;
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
                                 vm["zchange-absolute"].as<bool>());
             }

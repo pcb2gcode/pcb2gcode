@@ -63,6 +63,8 @@ You can [download](http://www.boost.org/users/download/) a working version of Bo
 
 Then add `--with-boost=<boost install directory> --enable-static-boost` to the `./configure` command.
 
+To build with coverage outputs, add `--enable-code-coverage` to `./configure` and then later run `make check-code-coverage` to run unit tests to collect coverage.  The last line of the output will include a URL to view the coverage.
+
 Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
 
     $ sudo apt-get update
