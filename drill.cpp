@@ -436,20 +436,18 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        double z_step = cutter->stepsize;
-        double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
-
-        if (!cutter->do_steps)
-        {
-            z = cutter->zwork;
-            z_step = 1;      //dummy to exit the loop
+        // Find the largest z_step that divides 0 through z_work into
+        // evenly sized passes such that each pass is at most
+        // cutter->stepsize in depth.
+        unsigned int stepcount = 1;
+        if (cutter->do_steps) {
+            stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
         }
 
-        int stepcount = abs(int(cutter->zwork / z_step));
-
-        while (z >= cutter->zwork)
+        for (unsigned int current_step = 0; current_step < stepcount; current_step++)
         {
-            of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
+            double z = double(current_step+1)/(stepcount) * cutter->zwork;
+            of << "G1 Z" << z * cfactor << '\n';
             if (!slot) {
                 // Just drill a full-circle.
                 of << "G2 "
@@ -477,8 +475,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                 of << "G1 X" << start_targetx * cfactor
                    << " Y" << start_targety << "\n";
             }
-            z -= z_step;
-            stepcount--;
         }
 
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
