@@ -26,6 +26,14 @@ double get_path_length(const vector<T>& path, T start) {
 }
 
 template <typename T>
+double get_path_length(const vector<T>& path) {
+  if (path.size() == 0) {
+    return 0;
+  }
+  return get_path_length(path, path[0]);
+}
+
+template <typename T>
 void print_path(const vector<T>& path) {
   for (size_t i = 0; i < path.size(); i++) {
     cout << path[i] << "," << endl;
@@ -64,6 +72,21 @@ BOOST_AUTO_TEST_CASE(grid_10_by_10) {
   tsp_solver::tsp_2opt(path, start);
   double tsp_2opt = get_path_length(path, start);
   BOOST_CHECK_LT(tsp_2opt, nn);
+}
+
+BOOST_AUTO_TEST_CASE(grid_10_by_10_no_start) {
+  vector<icoordpair> path;
+  for (auto i = 0; i < 10; i++) {
+    for (auto j = 0; j < 10; j++) {
+      path.push_back(icoordpair(i, j));
+    }
+  }
+  icoordpair start(-1,-1);
+  tsp_solver::tsp_2opt(path, start);
+  double tsp_2opt_with_start = get_path_length(path, start);
+  tsp_solver::tsp_2opt<icoordpair>(path);
+  double tsp_2opt_without_start = get_path_length(path);
+  BOOST_CHECK_LT(tsp_2opt_without_start, tsp_2opt_with_start);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
