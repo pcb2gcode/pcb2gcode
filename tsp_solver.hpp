@@ -67,6 +67,7 @@ private:
     // for the time it takes to do a rapid move on a CNC router.
     static inline double distance(icoordpair p0, icoordpair p1)
     {
+        printf("distance between %f, %f, %f, %f\n", p0.first, p0.second, p1.first, p1.second);
         return std::max(std::abs(p0.first - p1.first),
                         std::abs(p0.second - p1.second));
     }
