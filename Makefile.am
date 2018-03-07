@@ -55,10 +55,9 @@ LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) 
 
 EXTRA_DIST = millproject
 
-check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests
+check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
-tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 
 TESTS = $(check_PROGRAMS)

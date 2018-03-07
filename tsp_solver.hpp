@@ -39,17 +39,17 @@ class tsp_solver
 private:
     // You can extend this class adding new overloads of get with this prototype:
     //  icoordpair get(T _name_) { ... }
-    static inline icoordpair get(icoordpair point)
+    static inline icoordpair get(const icoordpair& point)
     {
         return point;
     }
 
-    static inline icoordpair get(shared_ptr<icoords> path)
+    static inline icoordpair get(const shared_ptr<icoords>& path)
     {
         return path->front();
     }
 
-    static inline icoordpair get(ilinesegment line)
+    static inline icoordpair get(const ilinesegment& line)
     {
         // For finding the nearest neighbor, assume that the drilling
         // will begin and end at the start point.
@@ -65,7 +65,9 @@ private:
 
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
-    static inline double distance(icoordpair p0, icoordpair p1)
+    template <typename value_t>
+    static inline double distance(const std::pair<value_t, value_t>& p0,
+                                  const std::pair<value_t, value_t>& p1)
     {
         printf("distance between %f, %f, %f, %f\n", p0.first, p0.second, p1.first, p1.second);
         return std::max(std::abs(p0.first - p1.first),
@@ -74,7 +76,7 @@ private:
 
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
-    static inline coordinate_type distance(point_type p0, point_type p1)
+    static inline coordinate_type distance(const point_type& p0, const point_type& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
                         std::abs(p0.y() - p1.y()));
@@ -88,7 +90,7 @@ public:
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
     template <typename T, typename point_t>
-    static void nearest_neighbour(vector<T> &path, point_t startingPoint, double quantization_error)
+    static void nearest_neighbour(vector<T> &path, const point_t& startingPoint, double quantization_error)
     {
         if (path.size() > 0)
         {
