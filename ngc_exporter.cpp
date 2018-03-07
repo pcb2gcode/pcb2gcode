@@ -136,7 +136,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
         to_string(mill->spindown_time) +
-        "M9 ( Coolant off. )\n"
+        "\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
     tiling.initialXOffsetVar = globalVars.getUniqueCode();

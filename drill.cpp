@@ -303,7 +303,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "G04 P" << driller->spindown_time
-               << "(MSG, Change tool bit to drill size " << it->second.diameter
+               << "\n(MSG, Change tool bit to drill size " << it->second.diameter
                << " " << it->second.unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
