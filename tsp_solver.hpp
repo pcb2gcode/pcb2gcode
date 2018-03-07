@@ -73,6 +73,8 @@ private:
                         std::abs(p0.second - p1.second));
     }
 
+    // Return the Chebyshev distance, which is a good approximation
+    // for the time it takes to do a rapid move on a CNC router.
     static inline coordinate_type distance(const point_type& p0, const point_type& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
