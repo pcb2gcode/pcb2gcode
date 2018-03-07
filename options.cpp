@@ -278,7 +278,7 @@ options::options()
             "tolerance", po::value<double>(), "maximum toolpath tolerance")(
             "nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")(
             "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center")(
-            "tsp-2opt", po::value<bool>()->default_value(false)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")(
+            "tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
