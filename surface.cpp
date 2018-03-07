@@ -200,7 +200,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
 
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt<icoordpair>( toolpath );
+        tsp_solver::tsp_2opt<icoordpair>( toolpath, icoordpair(0, 0) );
     } else {
         tsp_solver::nearest_neighbour( toolpath, icoordpair(0, 0) );
     }
