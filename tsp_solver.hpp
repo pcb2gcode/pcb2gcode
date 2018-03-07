@@ -93,16 +93,16 @@ private:
 
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
-    static inline double distance(const coordpair& p0, const coordpair& p1)
+    template <typename value_t>
+    static inline double distance(const std::pair<value_t, value_t>& p0,
+                                  const std::pair<value_t, value_t>& p1)
     {
         return std::max(std::abs(p0.first - p1.first),
                         std::abs(p0.second - p1.second));
     }
-    static inline double distance(const icoordpair& p0, const icoordpair& p1)
-    {
-        return std::max(std::abs(p0.first - p1.first),
-                        std::abs(p0.second - p1.second));
-    }
+
+    // Return the Chebyshev distance, which is a good approximation
+    // for the time it takes to do a rapid move on a CNC router.
     static inline coordinate_type distance(const point_type& p0, const point_type& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
