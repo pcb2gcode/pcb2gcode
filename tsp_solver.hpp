@@ -69,7 +69,6 @@ private:
     static inline double distance(const std::pair<value_t, value_t>& p0,
                                   const std::pair<value_t, value_t>& p1)
     {
-        printf("distance between %f, %f, %f, %f\n", p0.first, p0.second, p1.first, p1.second);
         return std::max(std::abs(p0.first - p1.first),
                         std::abs(p0.second - p1.second));
     }
