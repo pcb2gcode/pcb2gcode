@@ -43,10 +43,10 @@ void print_path(const vector<icoordpair>& path) {
 BOOST_AUTO_TEST_CASE(empty) {
   vector<icoordpair> path;
   icoordpair start(0,0);
-  tsp_solver::nearest_neighbour(path, start, 0.0);
+  tsp_solver::nearest_neighbour(path, start);
   double nn = get_path_length(path, start);
   BOOST_CHECK_EQUAL(nn, 0);
-  tsp_solver::tsp_2opt(path, start, 0.0);
+  tsp_solver::tsp_2opt(path, start);
   double tsp_2opt = get_path_length(path, start);
   BOOST_CHECK_EQUAL(tsp_2opt, 0);
 }
@@ -59,9 +59,9 @@ BOOST_AUTO_TEST_CASE(grid_10_by_10) {
     }
   }
   icoordpair start(0,0);
-  tsp_solver::nearest_neighbour(path, start, 0.0);
+  tsp_solver::nearest_neighbour(path, start);
   double nn = get_path_length(path, start);
-  tsp_solver::tsp_2opt(path, start, 0.0);
+  tsp_solver::tsp_2opt(path, start);
   double tsp_2opt = get_path_length(path, start);
   BOOST_CHECK_LT(tsp_2opt, nn);
 }
