@@ -140,7 +140,7 @@ public:
             point_t currentPoint = startingPoint;
             while (temp_path.size() > 0)
             {
-                auto minDistance = distance(currentPoint, get(*(temp_path.begin()), Side::FRONT));
+                auto minDistance = distance(currentPoint, get(temp_path.front(), Side::FRONT));
                 auto nearestPoint = temp_path.begin();
                 Side side = Side::FRONT;
 
@@ -162,7 +162,7 @@ public:
                 new_length += minDistance; //Update the new path total length
                 newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
                 currentPoint = get(*(nearestPoint), Side::BACK); //Set the next currentPoint to the chosen point
-                temp_path.erase(nearestPoint);           //Remove the chosen point from the path list
+                temp_path.erase(nearestPoint); //Remove the chosen point from the path list
             }
 
             if (new_length < original_length)  //If the new path is better than the previous one
@@ -194,7 +194,7 @@ public:
                         // Do the 2opt swap.
                         const auto reverse_start = path.begin() + i;
                         const auto reverse_end = path.begin() + j + 1;
-                        for (auto to_reverse = reverse_start;  to_reverse < reverse_end; to_reverse++) {
+                        for (auto to_reverse = reverse_start; to_reverse < reverse_end; to_reverse++) {
                             reverse(*to_reverse);
                         }
                         std::reverse(reverse_start, reverse_end);

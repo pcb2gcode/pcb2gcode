@@ -134,7 +134,6 @@ private:
     const bool mirror_absolute;
     const bool bMetricOutput;   //Flag to indicate metric output
     const bool tsp_2opt;        // Perform TSP 2opt optimization on drill path.
-    const double quantization_error;
     const double xoffset;
     const double yoffset;
     uniqueCodes ocodes;
