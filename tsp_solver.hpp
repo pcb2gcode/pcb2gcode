@@ -114,7 +114,7 @@ public:
             {
                 auto minDistance = distance(currentPoint, get(temp_path.front()));
                 auto nearestPoint = temp_path.begin();
-                
+
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
                     auto newDistance = distance(currentPoint, get(*i));
