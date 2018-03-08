@@ -143,6 +143,7 @@ public:
                 auto minDistance = distance(currentPoint, get(*(temp_path.begin()), Side::FRONT));
                 auto nearestPoint = temp_path.begin();
                 Side side = Side::FRONT;
+
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
                     for (auto newSide : {Side::FRONT, Side::BACK}) {
@@ -155,10 +156,10 @@ public:
                     }
                 }
 
-                new_length += minDistance; //Update the new path total length
                 if (side == Side::BACK) {
                     reverse(*nearestPoint);
                 }
+                new_length += minDistance; //Update the new path total length
                 newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
                 currentPoint = get(*(nearestPoint), Side::BACK); //Set the next currentPoint to the chosen point
                 temp_path.erase(nearestPoint);           //Remove the chosen point from the path list
