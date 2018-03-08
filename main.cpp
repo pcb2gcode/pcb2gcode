@@ -258,7 +258,8 @@ int main(int argc, char* argv[])
                 vm["outline-width"].as<double>() * unit :
                 INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>()));
+            vm["vectorial"].as<bool>(),
+            vm["tsp-2opt"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))

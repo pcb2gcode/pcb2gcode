@@ -163,6 +163,32 @@ public:
                 path = newpath;
         }
     }
+
+    // Same as nearest_neighbor but afterwards does 2opt optimizations.
+    template <typename T, typename point_t>
+    static void tsp_2opt(vector<T> &path, const point_t& startingPoint, double quantization_error) {
+        // Perform greedy on path if it improves.
+        nearest_neighbour(path, startingPoint, quantization_error);
+        bool found_one = true;
+        while (found_one) {
+            found_one = false;
+            for (auto a = path.begin(); a < path.end(); a++) {
+                auto b = a+1;
+                for (auto c = b+1; c+1 < path.end(); c++) {
+                    auto d = c+1;
+                    // Should we make this 2opt swap?
+                    if (boost::geometry::distance(get(*a), get(*b)) +
+                        boost::geometry::distance(get(*c), get(*d)) >
+                        boost::geometry::distance(get(*a), get(*c)) +
+                        boost::geometry::distance(get(*b), get(*d))) {
+                        // Do the 2opt swap.
+                        std::reverse(b,d);
+                        found_one = true;
+                    }
+                }
+            }
+        }
+    }
 };
 
 #endif

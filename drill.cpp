@@ -71,6 +71,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
+      tsp_2opt(options["tsp-2opt"].as<bool>()),
       quantization_error(2.0 / options["dpi"].as<int>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
@@ -747,7 +748,11 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
-        tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        if (tsp_2opt) {
+            tsp_solver::tsp_2opt( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        } else {
+            tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        }
     }
 
     return original_path;
