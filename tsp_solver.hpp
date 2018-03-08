@@ -125,7 +125,6 @@ public:
             vector<T> newpath;
             double original_length;
             double new_length;
-            double minDistance;
             unsigned int size = path.size();
 
             //Reserve memory
@@ -141,20 +140,18 @@ public:
             point_t currentPoint = startingPoint;
             while (temp_path.size() > 0)
             {
-                minDistance = distance(currentPoint, get(*(temp_path.begin()), Side::FRONT));
+                auto minDistance = distance(currentPoint, get(*(temp_path.begin()), Side::FRONT));
                 auto nearestPoint = temp_path.begin();
                 Side side = Side::FRONT;
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
-                    if (distance(currentPoint, get(*i, Side::FRONT)) < minDistance) {
-                        minDistance = distance(currentPoint, get(*i, Side::FRONT));
-                        nearestPoint = i;
-                        side = Side::FRONT;
-                    }
-                    if (distance(currentPoint, get(*i, Side::BACK)) < minDistance) {
-                        minDistance = distance(currentPoint, get(*i, Side::BACK));
-                        nearestPoint = i;
-                        side = Side::BACK;
+                    for (auto newSide : {Side::FRONT, Side::BACK}) {
+                        auto newDistance = distance(currentPoint, get(*i, newSide));
+                        if (newDistance < minDistance) {
+                            minDistance = distance(currentPoint, get(*i, newSide));
+                            nearestPoint = i;
+                            side = newSide;
+                        }
                     }
                 }
 
