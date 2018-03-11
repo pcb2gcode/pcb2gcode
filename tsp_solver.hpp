@@ -194,7 +194,7 @@ public:
                         // Do the 2opt swap.
                         const auto reverse_start = path.begin() + i;
                         const auto reverse_end = path.begin() + j + 1;
-                        for (auto to_reverse = reverse_start; to_reverse < reverse_end; to_reverse++) {
+                        for (auto to_reverse = reverse_start; to_reverse != reverse_end; to_reverse++) {
                             reverse(*to_reverse);
                         }
                         std::reverse(reverse_start, reverse_end);
