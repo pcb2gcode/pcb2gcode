@@ -132,7 +132,7 @@ private:
     string zchange;
     const bool drillfront;
     const bool bMetricOutput;   //Flag to indicate metric output
-    const double quantization_error;
+    const bool tsp_2opt;        // Perform TSP 2opt optimization on drill path.
     const double xoffset;
     const double yoffset;
     uniqueCodes ocodes;

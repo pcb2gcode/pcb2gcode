@@ -57,7 +57,7 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable
 {
 public:
     Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
-                        string name, string outputdir);
+                      string name, string outputdir, bool tsp_2opt);
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror);
@@ -82,6 +82,7 @@ protected:
     const ivalue_t height_in;
     const string name;
     const string outputdir;
+    const bool tsp_2opt;
     static unsigned int debug_image_index;
 
     bool fill;

@@ -217,8 +217,7 @@ options::options()
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
-            "zwork", po::value<double>(),
-            "milling depth in inches (Z-coordinate while engraving)")(
+            "zwork", po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
@@ -279,6 +278,7 @@ options::options()
             "tolerance", po::value<double>(), "maximum toolpath tolerance")(
             "nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")(
             "mirror-absolute", po::value<bool>()->default_value(true)->implicit_value(true), "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")(
+            "tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(

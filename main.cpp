@@ -255,7 +255,8 @@ int main(int argc, char* argv[])
                 vm["outline-width"].as<double>() * unit :
                 INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>()));
+            vm["vectorial"].as<bool>(),
+            vm["tsp-2opt"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -427,6 +428,7 @@ int main(int argc, char* argv[])
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
                 }
+                cutter->zwork = vm["zdrill"].as<double>() * unit;
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
                                 vm["zchange-absolute"].as<bool>());
             }
