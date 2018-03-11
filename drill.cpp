@@ -71,7 +71,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       drillfront(workSide(options, "drill")),
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
-      quantization_error(2.0 / options["dpi"].as<int>()),
+      tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       ocodes(1),
@@ -303,7 +303,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "G04 P" << driller->spindown_time
-               << "(MSG, Change tool bit to drill size " << it->second.diameter
+               << "\n(MSG, Change tool bit to drill size " << it->second.diameter
                << " " << it->second.unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
@@ -436,20 +436,18 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        double z_step = cutter->stepsize;
-        double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
-
-        if (!cutter->do_steps)
-        {
-            z = cutter->zwork;
-            z_step = 1;      //dummy to exit the loop
+        // Find the largest z_step that divides 0 through z_work into
+        // evenly sized passes such that each pass is at most
+        // cutter->stepsize in depth.
+        unsigned int stepcount = 1;
+        if (cutter->do_steps) {
+            stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
         }
 
-        int stepcount = abs(int(cutter->zwork / z_step));
-
-        while (z >= cutter->zwork)
+        for (unsigned int current_step = 0; current_step < stepcount; current_step++)
         {
-            of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
+            double z = double(current_step+1)/(stepcount) * cutter->zwork;
+            of << "G1 Z" << z * cfactor << '\n';
             if (!slot) {
                 // Just drill a full-circle.
                 of << "G2 "
@@ -477,8 +475,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                 of << "G1 X" << start_targetx * cfactor
                    << " Y" << start_targety << "\n";
             }
-            z -= z_step;
-            stepcount--;
         }
 
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
@@ -751,7 +747,11 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
-        tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        if (tsp_2opt) {
+            tsp_solver::tsp_2opt( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
+        } else {
+            tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
+        }
     }
 
     return original_path;
