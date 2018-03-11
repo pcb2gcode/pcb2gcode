@@ -89,75 +89,46 @@ public:
     // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
     // subpath is closed and we want to find the best subpath order
     template <typename T, typename point_t>
-    static void nearest_neighbour(vector<T> &path, const point_t& startingPoint, double quantization_error)
+    static void nearest_neighbour(vector<T> &path, const point_t& startingPoint)
     {
         if (path.size() > 0)
         {
             list<T> temp_path (path.begin(), path.end());
             vector<T> newpath;
-            vector<double> distances;
-            list<pair<vector<double>::iterator, typename list<T>::iterator> > nearestPoints;
             double original_length;
             double new_length;
-            double minDistance;
             unsigned int size = path.size();
 
             //Reserve memory
-            distances.reserve(size);
             newpath.reserve(size);
 
             new_length = 0;
 
             //Find the original path length
             original_length = distance(startingPoint, get(temp_path.front()));
-            for (auto point = temp_path.begin(); next(point) != temp_path.end(); point++)
+            for (auto point = temp_path.cbegin(); next(point) != temp_path.cend(); point++)
                 original_length += distance(get(*point), get(*next(point)));
 
             point_t currentPoint = startingPoint;
-            while (temp_path.size() > 1)
+            while (temp_path.size() > 0)
             {
+                auto minDistance = distance(currentPoint, get(temp_path.front()));
+                auto nearestPoint = temp_path.begin();
 
                 //Compute all the distances
-                for (auto i = temp_path.begin(); i != temp_path.end(); i++)
-                    distances.push_back(distance(currentPoint, get(*i)));
-
-                //Find the minimum distance
-                minDistance = *min_element(distances.begin(), distances.end());
-
-                //Find all the minimum distance points and copy their iterators in nearestPoints
-                auto point = temp_path.begin();
-                for (auto dist = distances.begin(); dist != distances.end(); dist++)
-                {
-                    if (*dist - minDistance <= 2 * quantization_error)
-                    {
-                        nearestPoints.push_front(make_pair(dist, point));
+                for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
+                    auto newDistance = distance(currentPoint, get(*i));
+                    if (newDistance < minDistance) {
+                        minDistance = newDistance;
+                        nearestPoint = i;
                     }
-                    ++point;
                 }
 
-                typename list<pair<vector<double>::iterator, typename list<T>::iterator> >::iterator chosenPoint;
-                if (nearestPoints.size() == 1)
-                {
-                    //Simplest case: the minimum distance point is unique; just copy it into newpath
-                    chosenPoint = nearestPoints.begin();
-                }
-                else
-                {
-                    //More complex case: we have multiple minimum distance points (like in a grid); we have
-                    //to choose one of them
-                    chosenPoint = nearestPoints.begin(); //TODO choose it in a smarter way
-                }
-
-                new_length += distance(currentPoint, get(*(chosenPoint->second))); //Update the new path total length
-                newpath.push_back(*(chosenPoint->second)); //Copy the chosen point into newpath
-                currentPoint = get(*(chosenPoint->second));        //Set the next currentPoint to the chosen point
-                temp_path.erase(chosenPoint->second);           //Remove the chosen point from the path list
-                distances.clear();                          //Clear the distances vector
-                nearestPoints.clear();                      //Clear the nearestPoints vector
+                new_length += minDistance; //Update the new path total length
+                newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
+                currentPoint = get(*(nearestPoint)); //Set the next currentPoint to the chosen point
+                temp_path.erase(nearestPoint); //Remove the chosen point from the path list
             }
-
-            newpath.push_back(temp_path.front());    //Copy the last point into newpath
-            new_length += distance(currentPoint, get(temp_path.front())); //Compute the distance and add it to new_length
 
             if (new_length < original_length)  //If the new path is better than the previous one
                 path = newpath;
@@ -166,9 +137,9 @@ public:
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
     template <typename T, typename point_t>
-    static void tsp_2opt(vector<T> &path, const point_t& startingPoint, double quantization_error) {
+    static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
         // Perform greedy on path if it improves.
-        nearest_neighbour(path, startingPoint, quantization_error);
+        nearest_neighbour(path, startingPoint);
         bool found_one = true;
         while (found_one) {
             found_one = false;

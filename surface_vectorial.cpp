@@ -148,9 +148,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         toolpath = eulerian_paths(toolpath);
     }
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, point_type(0, 0), 0.0001 );
+        tsp_solver::tsp_2opt( toolpath, point_type(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, point_type(0, 0), 0.0001 );
+        tsp_solver::nearest_neighbour( toolpath, point_type(0, 0) );
     }
     auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, mirror_axis);
     if (mill->optimise)

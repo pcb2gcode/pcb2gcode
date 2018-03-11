@@ -72,7 +72,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
-      quantization_error(2.0 / options["dpi"].as<int>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       ocodes(1),
@@ -749,9 +748,9 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
         if (tsp_2opt) {
-            tsp_solver::tsp_2opt( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+            tsp_solver::tsp_2opt( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
         } else {
-            tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+            tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
         }
     }
 
