@@ -314,11 +314,11 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         }
         else
         {
-            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
             multi_polygon_type_fp mpoly_temp_fp;
             polygon_type_fp input_fp;
             bg::convert(masked_milling_polys[0], input_fp);
 
+            // Buffer should be done on floating point polygons.
             bg::buffer(input_fp, mpoly_temp_fp,
                        bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
                        bg::strategy::buffer::side_straight(),
@@ -327,6 +327,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
+            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
             if (!do_voronoi) {
                 bg::intersection(mpoly_temp_fp[0], voronoi_polygons[index], *mpoly_fp);
             } else {
