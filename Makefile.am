@@ -46,15 +46,19 @@ pcb2gcode_SOURCES = \
 
 ACLOCAL_AMFLAGS = -I m4
 
-AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS)
+@CODE_COVERAGE_RULES@
+
+AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS) $(CODE_COVERAGE_CPPFLAGS)
+AM_CXXFLAGS = $(CODE_COVERAGE_CXXFLAGS)
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
-LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS)
 
 EXTRA_DIST = millproject
 
-check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests
+check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
+tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 
 TESTS = $(check_PROGRAMS)

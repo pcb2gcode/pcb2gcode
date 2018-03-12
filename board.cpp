@@ -26,13 +26,14 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial) :
+Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
     outline_width(outline_width),
     outputdir(outputdir),
-    vectorial(vectorial)
+    vectorial(vectorial),
+    tsp_2opt(tsp_2opt)
 {
 
 }
@@ -156,7 +157,7 @@ void Board::createLayers()
             {
                 shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
                                                                             max_y - min_y,
-                                                                            it->first, outputdir));
+                                                                            it->first, outputdir, tsp_2opt));
                 if (fill)
                     surface->enable_filling();
 
@@ -177,7 +178,7 @@ void Board::createLayers()
             if (dynamic_pointer_cast<RasterLayerImporter>(importer))
             {
                 shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
-                                                        it->first, outputdir));
+                                                        it->first, outputdir, tsp_2opt));
                 if (fill)
                     surface->enable_filling(outline_width);
 

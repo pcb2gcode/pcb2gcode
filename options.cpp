@@ -217,11 +217,12 @@ options::options()
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
-            "zwork", po::value<double>(),
-            "milling depth in inches (Z-coordinate while engraving)")(
+            "zwork", po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<double>()->default_value(0), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
+            "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
+            "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<int>(), "spindle rpm when milling")(
@@ -277,6 +278,7 @@ options::options()
             "tolerance", po::value<double>(), "maximum toolpath tolerance")(
             "nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")(
             "mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center")(
+            "tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")(
             "output-dir", po::value<string>()->default_value(""), "output directory")(
             "basename", po::value<string>(), "prefix for default output file names")(
             "front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")(
@@ -307,6 +309,21 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: very high DPI value, processing may take extremely long"
              << endl;
+    }
+
+    //---------------------------------------------------------------------------
+    //Check spinup(down)-time parameters:
+
+    if (vm["spinup-time"].as<double>() < 0)
+    {
+        cerr << "spinup-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINUP);
+    }
+
+    if (vm.count("spindown-time") && vm["spindown-time"].as<double>() < 0)
+    {
+        cerr << "spindown-time can't be negative!\n";
+        exit(ERR_NEGATIVESPINDOWN);
     }
 
     //---------------------------------------------------------------------------
