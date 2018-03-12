@@ -299,7 +299,9 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
             }
             expand_by = offset * factor;
         }
-        polygon_type masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
+        multi_polygon_type integral_voronoi_polygons;
+        bg::convert(voronoi_polygons, integral_voronoi_polygons);
+        polygon_type masked_milling_poly = do_voronoi ? integral_voronoi_polygons[index] : input[index];
         multi_polygon_type masked_milling_polys;
         if (mask) {
             bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
