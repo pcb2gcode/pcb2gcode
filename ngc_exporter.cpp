@@ -110,10 +110,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
                 xoffset = board->get_min_x();
                 yoffset = board->get_min_y();
             }
-      } else {
-        xoffset = 0;
-        yoffset = 0;
-      }
+        } else {
+            xoffset = 0;
+            yoffset = 0;
+        }
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
