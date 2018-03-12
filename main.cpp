@@ -47,7 +47,8 @@ using Glib::build_filename;
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
-
+#include "units.hpp"
+ 
 #include <boost/algorithm/string.hpp>
 
 /******************************************************************************/
@@ -101,15 +102,15 @@ int main(int argc, char* argv[])
         if (vm["voronoi"].as<bool>())
             isolator->tool_diameter = -1;
         else
-            isolator->tool_diameter = vm["offset"].as<double>() * 2 * unit;
-        isolator->zwork = vm["zwork"].as<double>() * unit;
+            isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<double>() * unit;
-        isolator->feed = vm["mill-feed"].as<double>() * unit;
+        isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-vertfeed"))
             isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
         else
             isolator->vertfeed = isolator->feed / 2;
-        isolator->speed = vm["mill-speed"].as<int>();
+        isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
         isolator->zchange = vm["zchange"].as<double>() * unit;
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
