@@ -12,6 +12,8 @@
 #include <boost/units/base_units/imperial/inch.hpp>
 #include <boost/units/base_units/imperial/thou.hpp>
 
+namespace Units {
+
 // String parsers: Each on uses characters from the front of the
 // string and leaves the unused characters in place.
 struct parse_exception : public std::exception {
@@ -260,5 +262,7 @@ void validate(boost::any& v,
   }
   v = boost::any(Unit<dimension_t>(value, one));
 }
+
+} // namespace Units
 
 #endif // UNITS_HPP

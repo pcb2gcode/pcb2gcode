@@ -51,6 +51,8 @@ using Glib::build_filename;
  
 #include <boost/algorithm/string.hpp>
 
+using namespace Units;
+
 /******************************************************************************/
 /*
  */
