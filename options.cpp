@@ -221,7 +221,7 @@ options::options()
             "zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
-            "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
+            "spinup-time", po::value<Time>()->default_value(parse_unit<Time>(" 1 ms")), "time required to the spindle to reach the correct speed")(
             "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
@@ -234,14 +234,14 @@ options::options()
             "fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")(
             "outline-width", po::value<double>(), "width of the outline, used only when vectorial is disabled")(
             "cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")(
-            "zcut", po::value<double>(), "PCB cutting depth in inches")(
+            "zcut", po::value<Length>(), "PCB cutting depth in inches")(
             "cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")(
             "cut-vertfeed", po::value<double>(), "PCB vertical cutting feed in [i/m] or [mm/m]")(
             "cut-speed", po::value<int>(), "spindle rpm when cutting")(
             "cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")(
             "cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")(
             "cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")(
-            "zdrill", po::value<double>(), "drill depth")(
+            "zdrill", po::value<Length>(), "drill depth")(
             "zchange", po::value<double>(), "tool changing height")(
             "zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")(
             "drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")(
@@ -314,7 +314,7 @@ static void check_generic_parameters(po::variables_map const& vm)
     //---------------------------------------------------------------------------
     //Check spinup(down)-time parameters:
 
-    if (vm["spinup-time"].as<double>() < 0)
+    if (vm["spinup-time"].as<Time>().asMillisecond(1) < 0)
     {
         cerr << "spinup-time can't be negative!\n";
         exit(ERR_NEGATIVESPINUP);
@@ -574,7 +574,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             cerr << "Error: Drill bit changing height (--zchange) not specified.\n";
             exit(ERR_NOZCHANGE);
         }
-        else if (vm["zchange"].as<double>() <= vm["zdrill"].as<double>())
+        else if (vm["zchange"].as<double>() <= vm["zdrill"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the tool "
                  << "change height --zchange!\n";
@@ -684,7 +684,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             cerr << "Error: Board cutting depth (--zcut) not specified.\n";
             exit(ERR_NOZCUT);
         }
-        else if (vm["zcut"].as<double>() > 0)
+        else if (vm["zcut"].as<Length>().asInch(unit) > 0)
         {
             cerr << "Error: Cutting depth (--zcut) is greater than zero!\n";
             exit(ERR_NEGATIVEZWORK);

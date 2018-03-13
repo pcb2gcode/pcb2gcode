@@ -88,15 +88,9 @@ template <typename dimension_t>
 class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
+  typedef dimension_t dimension;
   UnitBase(double value) : value(value), one(boost::none) {}
   UnitBase(double value, boost::optional<quantity> one) : value(value), one(one) {}
-  double as(double factor, quantity wanted_unit) const {
-    if (!one) {
-      // We don't know the units so just use whatever factor was supplied.
-      return value*factor;
-    }
-    return value*(*one)/wanted_unit;
-  }
 
   double asDouble() const {
     return value;
@@ -111,6 +105,13 @@ class UnitBase {
   }
 
  protected:
+  double as(double factor, quantity wanted_unit) const {
+    if (!one) {
+      // We don't know the units so just use whatever factor was supplied.
+      return value*factor;
+    }
+    return value*(*one)/wanted_unit;
+  }
   double value;
   boost::optional<quantity> one;
 };
@@ -169,12 +170,21 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
   double asSecond(double factor) const {
     return as(factor, 1.0*boost::units::si::second);
   }
+  double asMillisecond(double factor) const {
+    return as(factor, boost::units::si::second/1000);
+  }
   static quantity get_unit(Lexer& lex) {
     std::string unit = lex.get_word();
     if (unit == "s" ||
         unit == "second" ||
         unit == "seconds") {
       return 1.0*boost::units::si::second;
+    }
+    if (unit == "ms" ||
+        unit == "millisecond" ||
+        unit == "milliseconds" ||
+        unit == "millis") {
+      return boost::units::si::second/1000.0;
     }
     if (unit == "min" ||
         unit == "mins" ||
@@ -245,25 +255,16 @@ class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::freq
   }
 };
 
-template<typename dimension_t>
-void validate(boost::any& v,
-              const std::vector<std::string>& values,
-              Unit<dimension_t>*, int) {
-  // Make sure no previous assignment was made.
-  boost::program_options::validators::check_first_occurrence(v);
-  // Extract the first string from 'values'. If there is more than
-  // one string, it's an error, and exception will be thrown.
-  const std::string& s = boost::program_options::validators::get_single_string(values);
-
-  // Figure out what unit it is.
+template <typename unit_t>
+unit_t parse_unit(const std::string& s) {
   Lexer lex(s);
   double value;
-  boost::optional<boost::units::quantity<dimension_t>> one = boost::none;
+  boost::optional<boost::units::quantity<typename unit_t::dimension>> one = boost::none;
   try {
     value = lex.get_double();
     lex.get_whitespace();
     if (!lex.at_end()) {
-      one = Unit<dimension_t>::get_unit(lex);
+      one = unit_t::get_unit(lex);
     }
   } catch (parse_exception& e) {
     std::cerr << e.what() << std::endl;
@@ -274,7 +275,21 @@ void validate(boost::any& v,
     std::cerr << "Extra characters at end of option" << std::endl;
     throw boost::program_options::invalid_option_value(s);
   }
-  v = boost::any(Unit<dimension_t>(value, one));
+  return unit_t(value, one);
+}
+
+template <typename dimension_t>
+void validate(boost::any& v,
+              const std::vector<std::string>& values,
+              Unit<dimension_t>*, int) {
+  // Make sure no previous assignment was made.
+  boost::program_options::validators::check_first_occurrence(v);
+  // Extract the first string from 'values'. If there is more than
+  // one string, it's an error, and exception will be thrown.
+  const std::string& s = boost::program_options::validators::get_single_string(values);
+
+  // Figure out what unit it is.
+  v = boost::any(parse_unit<Unit<dimension_t>>(s));
 }
 
 #endif // UNITS_HPP

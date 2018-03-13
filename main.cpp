@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     const bool explicit_tolerance = !vm["nog64"].as<bool>();
     const string outputdir = vm["output-dir"].as<string>();
     const double spindown_time = vm.count("spindown-time") ?
-        vm["spindown-time"].as<double>() : vm["spinup-time"].as<double>();
+        vm["spindown-time"].as<double>() : vm["spinup-time"].as<Time>().asMillisecond(1);
     shared_ptr<Isolator> isolator;
 
     if (vm.count("front") || vm.count("back"))
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
         isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        isolator->spinup_time = vm["spinup-time"].as<double>();
+        isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
     }
 
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     {
         cutter = shared_ptr<Cutter>(new Cutter());
         cutter->tool_diameter = vm["cutter-diameter"].as<double>() * unit;
-        cutter->zwork = vm["zcut"].as<double>() * unit;
+        cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
         cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         cutter->feed = vm["cut-feed"].as<double>() * unit;
         if (vm.count("cut-vertfeed"))
@@ -142,7 +142,7 @@ int main(int argc, char* argv[])
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
         cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        cutter->spinup_time = vm["spinup-time"].as<double>();
+        cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         cutter->spindown_time = spindown_time;
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
         cutter->bridges_width = vm["bridges"].as<double>() * unit;
@@ -157,14 +157,14 @@ int main(int argc, char* argv[])
     if (vm.count("drill"))
     {
         driller = shared_ptr<Driller>(new Driller());
-        driller->zwork = vm["zdrill"].as<double>() * unit;
+        driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         driller->feed = vm["drill-feed"].as<double>() * unit;
         driller->speed = vm["drill-speed"].as<int>();
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
         driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        driller->spinup_time = vm["spinup-time"].as<double>();
+        driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         driller->spindown_time = spindown_time;
         driller->zchange = vm["zchange"].as<double>() * unit;
     }
