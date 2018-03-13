@@ -211,7 +211,6 @@ options::options()
             "noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")(
             "help,?", "produce help message")(
             "version", "show the current software version");
-            
    cfg_options.add_options()(
             "front", po::value<string>(),"front side RS274-X .gbr")(
             "back", po::value<string>(), "back side RS274-X .gbr")(
@@ -220,7 +219,7 @@ options::options()
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
             "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
@@ -491,12 +490,6 @@ static void check_milling_parameters(po::variables_map const& vm)
             {
                 cerr << "Error: --voronoi requires --vectorial.\n";
                 exit(ERR_VORONOINOVECTORIAL);
-            }
-
-            if (!vm.count("outline"))
-            {
-                cerr << "Error: --voronoi requires an outline.\n";
-                exit(ERR_VORONOINOOUTLINE);
             }
         }
         else
