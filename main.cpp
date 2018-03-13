@@ -99,10 +99,8 @@ int main(int argc, char* argv[])
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        if (vm["voronoi"].as<bool>())
-            isolator->tool_diameter = -1;
-        else
-            isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<double>() * unit;
         isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);

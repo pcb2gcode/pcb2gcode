@@ -11,6 +11,7 @@
 #include <boost/units/base_units/metric/minute.hpp>
 #include <boost/units/base_units/imperial/inch.hpp>
 #include <boost/units/base_units/imperial/thou.hpp>
+#include <boost/units/io.hpp>
 
 // String parsers: Each on uses characters from the front of the
 // string and leaves the unused characters in place.
@@ -87,6 +88,7 @@ template <typename dimension_t>
 class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
+  UnitBase(double value) : value(value), one(boost::none) {}
   UnitBase(double value, boost::optional<quantity> one) : value(value), one(one) {}
   double as(double factor, quantity wanted_unit) const {
     if (!one) {
@@ -99,6 +101,15 @@ class UnitBase {
   double asDouble() const {
     return value;
   }
+  friend std::ostream& operator<< (std::ostream& s, const UnitBase<dimension_t>& length) {
+    if (length.one) {
+      s << length.value * *length.one;
+    } else {
+      s << length.value;
+    }
+    return s;
+  }
+
  protected:
   double value;
   boost::optional<quantity> one;
@@ -123,6 +134,7 @@ typedef Unit<boost::units::si::frequency> Frequency;
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
  public:
+  Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asInch(double factor) const {
     return as(factor, inch);
@@ -152,6 +164,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
 template<>
 class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
+  Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asSecond(double factor) const {
     return as(factor, 1.0*boost::units::si::second);
@@ -176,6 +189,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
 template<>
 class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
  public:
+  Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   using UnitBase::as;
   double as(double factor) const {
@@ -196,6 +210,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
 template<>
 class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
+  Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asInchPerMinute(double factor) const {
     return as(factor, inch/minute);
@@ -214,6 +229,7 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
 template<>
 class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
  public:
+  Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asPerMinute(double factor) const {
     return as(factor, 1.0/minute);
