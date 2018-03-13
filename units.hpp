@@ -102,6 +102,15 @@ class UnitBase {
   double asDouble() const {
     return value;
   }
+  friend std::ostream& operator<< (std::ostream& s, const UnitBase<dimension_t>& length) {
+    if (length.one) {
+      s << length.value * *length.one;
+    } else {
+      s << length.value;
+    }
+    return s;
+  }
+
  protected:
   double value;
   boost::optional<quantity> one;
@@ -150,14 +159,6 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
       return thou;
     }
     throw parse_exception("length", unit);
-  }
-  friend std::ostream& operator<< (std::ostream& s, const Length& length) {
-    if (length.one) {
-      s << length.value * *length.one;
-    } else {
-      s << length.value;
-    }
-    return s;
   }
 };
 
