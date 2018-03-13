@@ -12,7 +12,6 @@
 #include <boost/units/base_units/imperial/inch.hpp>
 #include <boost/units/base_units/imperial/thou.hpp>
 #include <boost/units/io.hpp>
-#include <boost/optional/optional_io.hpp>
 
 // String parsers: Each on uses characters from the front of the
 // string and leaves the unused characters in place.
