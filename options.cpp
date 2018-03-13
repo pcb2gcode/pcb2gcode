@@ -222,7 +222,7 @@ options::options()
             "offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "spinup-time", po::value<Time>()->default_value(parse_unit<Time>(" 1 ms")), "time required to the spindle to reach the correct speed")(
-            "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
+            "spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")(
             "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
             "mill-speed", po::value<Frequency>(), "spindle rpm when milling")(
@@ -320,7 +320,7 @@ static void check_generic_parameters(po::variables_map const& vm)
         exit(ERR_NEGATIVESPINUP);
     }
 
-    if (vm.count("spindown-time") && vm["spindown-time"].as<double>() < 0)
+    if (vm.count("spindown-time") && vm["spindown-time"].as<Time>().asMillisecond(1) < 0)
     {
         cerr << "spindown-time can't be negative!\n";
         exit(ERR_NEGATIVESPINDOWN);

@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     const bool explicit_tolerance = !vm["nog64"].as<bool>();
     const string outputdir = vm["output-dir"].as<string>();
     const double spindown_time = vm.count("spindown-time") ?
-        vm["spindown-time"].as<double>() : vm["spinup-time"].as<Time>().asMillisecond(1);
+        vm["spindown-time"].as<Time>().asMillisecond(1) : vm["spinup-time"].as<Time>().asMillisecond(1);
     shared_ptr<Isolator> isolator;
 
     if (vm.count("front") || vm.count("back"))
