@@ -27,6 +27,7 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include "units.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -217,15 +218,15 @@ options::options()
             "outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")(
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
-            "zwork", po::value<double>(), "milling depth in inches (Z-coordinate while engraving)")(
+            "zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")(
             "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
-            "offset", po::value<double>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
+            "offset", po::value<Length>(), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
             "spindown-time", po::value<double>(), "time required to the spindle to return to 0 rpm")(
-            "mill-feed", po::value<double>(), "feed while isolating in [i/m] or [mm/m]")(
+            "mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")(
             "mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")(
-            "mill-speed", po::value<int>(), "spindle rpm when milling")(
+            "mill-speed", po::value<Frequency>(), "spindle rpm when milling")(
             "milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")(
             "milldrill-diameter", po::value<double>(), "diameter of the end mill used for drilling with --milldrill")(
             "nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")(
@@ -476,6 +477,10 @@ static void check_generic_parameters(po::variables_map const& vm)
 static void check_milling_parameters(po::variables_map const& vm)
 {
 
+    double unit;      //factor for imperial/metric conversion
+
+    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
+
     if (vm.count("front") || vm.count("back"))
     {
 
@@ -484,7 +489,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             cerr << "Error: --zwork not specified.\n";
             exit(ERR_NOZWORK);
         }
-        else if (vm["zwork"].as<double>() > 0)
+        else if (vm["zwork"].as<Length>().asDouble() > 0)
         {
             cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
         }
@@ -525,14 +530,14 @@ static void check_milling_parameters(po::variables_map const& vm)
         }
 
         // required parameters present. check for validity.
-        if (vm["zsafe"].as<double>() <= vm["zwork"].as<double>())
+        if (vm["zsafe"].as<double>() <= vm["zwork"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the milling "
                  << "height --zwork. Are you sure this is correct?\n";
             exit(ERR_ZSAFELOWERZWORK);
         }
 
-        if (vm["mill-feed"].as<double>() <= 0)
+        if (vm["mill-feed"].as<Velocity>().asDouble() <= 0)
         {
             cerr << "Error: Negative or equal to 0 milling feed (--mill-feed).\n";
             exit(ERR_NEGATIVEMILLFEED);
@@ -544,7 +549,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEMILLVERTFEED);
         }
 
-        if (vm["mill-speed"].as<int>() < 0)
+        if (vm["mill-speed"].as<Frequency>().asDouble() < 0)
         {
             cerr << "Error: --mill-speed < 0.\n";
             exit(ERR_NEGATIVEMILLSPEED);

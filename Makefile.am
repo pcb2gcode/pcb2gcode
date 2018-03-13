@@ -37,6 +37,7 @@ pcb2gcode_SOURCES = \
     options.cpp \
     outline_bridges.hpp \
     outline_bridges.cpp \
+    units.hpp \
     unique_codes.hpp \
     voronoi.hpp \
     voronoi.cpp \
@@ -55,10 +56,11 @@ LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) 
 
 EXTRA_DIST = millproject
 
-check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests
+check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
+units_tests_SOURCES = units_tests.cpp units.hpp
 
 TESTS = $(check_PROGRAMS)

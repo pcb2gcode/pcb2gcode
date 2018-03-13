@@ -28,6 +28,8 @@
 #include <boost/format.hpp>
 using boost::format;
 
+#include "units.hpp"
+
 const string autoleveller::callSubRepeat[] = {
  "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",
  "M98 P%1% L%2%\n",
@@ -56,7 +58,7 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     setZZeroCustom( options["al-setzzero"].as<string>() ),
     XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
     YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
-    zwork( str( format("%.5f") % ( options["zwork"].as<double>() * unitconv ) ) ),
+    zwork( str( format("%.5f") % ( options["zwork"].as<Length>().asInch(unitconv) ) ) ),
     zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
