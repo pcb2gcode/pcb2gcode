@@ -218,7 +218,7 @@ options::options()
             "drill", po::value<string>(), "Excellon drill file")(
             "svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")(
             "zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")(
-            "zsafe", po::value<double>(), "safety height (Z-coordinate during rapid moves)")(
+            "zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")(
             "offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")(
             "voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")(
             "spinup-time", po::value<double>()->default_value(1), "time required to the spindle to reach the correct speed")(
@@ -514,7 +514,7 @@ static void check_milling_parameters(po::variables_map const& vm)
         }
 
         // required parameters present. check for validity.
-        if (vm["zsafe"].as<double>() <= vm["zwork"].as<Length>().asInch(unit))
+        if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zwork"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the milling "
                  << "height --zwork. Are you sure this is correct?\n";
@@ -548,6 +548,10 @@ static void check_milling_parameters(po::variables_map const& vm)
 static void check_drilling_parameters(po::variables_map const& vm)
 {
 
+    double unit;      //factor for imperial/metric conversion
+
+    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
+
     //only check the parameters if a drill file is given
     if (vm.count("drill"))
     {
@@ -558,7 +562,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             exit(ERR_NOZDRILL);
         }
 
-        if (vm["zsafe"].as<double>() <= vm["zdrill"].as<double>())
+        if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the drilling "
                  << "height --zdrill!\n";
@@ -633,6 +637,10 @@ static void check_drilling_parameters(po::variables_map const& vm)
 static void check_cutting_parameters(po::variables_map const& vm)
 {
 
+    double unit;      //factor for imperial/metric conversion
+
+    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
+
     //only check the parameters if an outline file is given or milldrill is enabled
     if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
     {
@@ -706,7 +714,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NOCUTINFEED);
         }
 
-        if (vm["zsafe"].as<double>() <= vm["zcut"].as<double>())
+        if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zcut"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the cutting "
                  << "height --zcut!\n";

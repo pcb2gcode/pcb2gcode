@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
         isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
-        isolator->zsafe = vm["zsafe"].as<double>() * unit;
+        isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-vertfeed"))
             isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
         cutter = shared_ptr<Cutter>(new Cutter());
         cutter->tool_diameter = vm["cutter-diameter"].as<double>() * unit;
         cutter->zwork = vm["zcut"].as<double>() * unit;
-        cutter->zsafe = vm["zsafe"].as<double>() * unit;
+        cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         cutter->feed = vm["cut-feed"].as<double>() * unit;
         if (vm.count("cut-vertfeed"))
             cutter->vertfeed = vm["cut-vertfeed"].as<double>() * unit;
@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
     {
         driller = shared_ptr<Driller>(new Driller());
         driller->zwork = vm["zdrill"].as<double>() * unit;
-        driller->zsafe = vm["zsafe"].as<double>() * unit;
+        driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         driller->feed = vm["drill-feed"].as<double>() * unit;
         driller->speed = vm["drill-speed"].as<int>();
         driller->tolerance = tolerance;
