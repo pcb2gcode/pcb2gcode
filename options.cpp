@@ -228,7 +228,7 @@ options::options()
        ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
        ("cut-vertfeed", po::value<Velocity>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
        ("cut-speed", po::value<Frequency>(), "spindle rpm when cutting")
-       ("cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")
+       ("cut-infeed", po::value<Length>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
        ("cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")
        ("zdrill", po::value<Length>(), "drill depth")
@@ -723,7 +723,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVESPINDLESPEED);
         }
 
-        if (vm["cut-infeed"].as<double>() < 0.001)
+        if (vm["cut-infeed"].as<Length>().asInch(unit) < 0.001)
         {
             cerr << "Error: The cutting infeed --cut-infeed. seems too low.\n";
             exit(ERR_LOWCUTINFEED);

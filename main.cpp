@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
         cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
         cutter->zchange = vm["zchange"].as<double>() * unit;
         cutter->do_steps = true;
-        cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
+        cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
         cutter->optimise = vm["optimise"].as<bool>();
         cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
         cutter->tolerance = tolerance;
