@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
             cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             cutter->vertfeed = cutter->feed / 2;
-        cutter->speed = vm["cut-speed"].as<int>();
+        cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
         cutter->zchange = vm["zchange"].as<double>() * unit;
         cutter->do_steps = true;
         cutter->stepsize = vm["cut-infeed"].as<double>() * unit;

@@ -227,7 +227,7 @@ options::options()
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
        ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
        ("cut-vertfeed", po::value<Velocity>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
-       ("cut-speed", po::value<int>(), "spindle rpm when cutting")
+       ("cut-speed", po::value<Frequency>(), "spindle rpm when cutting")
        ("cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
        ("cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")
@@ -717,7 +717,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVECUTVERTFEED);
         }
 
-        if (vm["cut-speed"].as<int>() < 0)        //no need to support both directions?
+        if (vm["cut-speed"].as<Frequency>().asPerMinute(1) < 0)        //no need to support both directions?
         {
             cerr << "Error: The cutting spindle speed --cut-speed is lower than 0.\n";
             exit(ERR_NEGATIVESPINDLESPEED);
