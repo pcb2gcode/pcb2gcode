@@ -291,5 +291,43 @@ void validate(boost::any& v,
   // Figure out what unit it is.
   v = boost::any(parse_unit<Unit<dimension_t>>(s));
 }
+namespace BoardSide {
+enum BoardSide {
+  AUTO,
+  FRONT,
+  BACK
+};
 
+inline std::istream& operator>>(std::istream& in, BoardSide& cutside)
+{
+  std::string token;
+  in >> token;
+  if (boost::iequals(token, "auto")) {
+    cutside = BoardSide::AUTO;
+  } else if (boost::iequals(token, "front")) {
+    cutside = BoardSide::FRONT;
+  } else if (boost::iequals(token, "back")) {
+    cutside = BoardSide::BACK;
+  } else {
+      throw parse_exception("BoardSide", token);
+  }
+  return in;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const BoardSide& cutside)
+{
+  switch (cutside) {
+    case BoardSide::AUTO:
+      out << "auto";
+      break;
+    case BoardSide::FRONT:
+      out << "front";
+      break;
+    case BoardSide::BACK:
+      out << "back";
+      break;
+  }
+  return out;
+}
+}; // namespace BoardSide
 #endif // UNITS_HPP

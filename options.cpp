@@ -230,14 +230,14 @@ options::options()
        ("cut-speed", po::value<Frequency>(), "spindle rpm when cutting")
        ("cut-infeed", po::value<Length>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
-       ("cut-side", po::value<string>()->default_value("auto"), "cut side; valid choices are front, back or auto (default)")
+       ("cut-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "cut side; valid choices are front, back or auto (default)")
        ("zdrill", po::value<Length>(), "drill depth")
        ("zchange", po::value<double>(), "tool changing height")
        ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
        ("drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")
        ("drill-speed", po::value<int>(), "spindle rpm when drilling")
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
-       ("drill-side", po::value<string>()->default_value("auto"), "drill side; valid choices are front, back or auto (default)")
+       ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
        ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
        ("metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")
@@ -602,19 +602,6 @@ static void check_drilling_parameters(po::variables_map const& vm)
                 exit(ERR_BOTHDRILLFRONTSIDE);
             }
         }
-
-        if (!vm["drill-side"].defaulted())
-        {
-            const string drillside = vm["drill-side"].as<string>();
-
-            if( !boost::iequals( drillside, "auto" ) &&
-                !boost::iequals( drillside, "front" ) &&
-                !boost::iequals( drillside, "back" ) )
-            {
-                cerr << "drill-side can only be auto, front or back";
-                exit(ERR_UNKNOWNDRILLSIDE);
-            }
-        }
     }
 
 }
@@ -750,19 +737,6 @@ static void check_cutting_parameters(po::variables_map const& vm)
             {
                 cerr << "You can't specify both cut-front and cut-side!\n";
                 exit(ERR_BOTHCUTFRONTSIDE);
-            }
-        }
-
-        if (!vm["cut-side"].defaulted())
-        {
-            const string cutside = vm["cut-side"].as<string>();
-
-            if( !boost::iequals( cutside, "auto" ) &&
-                !boost::iequals( cutside, "front" ) &&
-                !boost::iequals( cutside, "back" ) )
-            {
-                cerr << "cut-side can only be auto, front or back";
-                exit(ERR_UNKNOWNCUTSIDE);
             }
         }
     }

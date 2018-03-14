@@ -30,6 +30,7 @@ using std::shared_ptr;
 namespace po = boost::program_options;
 
 #include <boost/noncopyable.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <istream>
 #include <string>
