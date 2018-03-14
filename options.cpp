@@ -232,10 +232,10 @@ options::options()
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
        ("cut-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "cut side; valid choices are front, back or auto (default)")
        ("zdrill", po::value<Length>(), "drill depth")
-       ("zchange", po::value<double>(), "tool changing height")
+       ("zchange", po::value<Length>(), "tool changing height")
        ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
-       ("drill-feed", po::value<double>(), "drill feed in [i/m] or [mm/m]")
-       ("drill-speed", po::value<int>(), "spindle rpm when drilling")
+       ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
+       ("drill-speed", po::value<Frequency>(), "spindle rpm when drilling")
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
@@ -560,7 +560,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             cerr << "Error: Drill bit changing height (--zchange) not specified.\n";
             exit(ERR_NOZCHANGE);
         }
-        else if (vm["zchange"].as<double>() <= vm["zdrill"].as<Length>().asInch(unit))
+        else if (vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit))
         {
             cerr << "Error: The safety height --zsafe is lower than the tool "
                  << "change height --zchange!\n";
@@ -572,7 +572,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             cerr << "Error:: Drilling feed (--drill-feed) not specified.\n";
             exit(ERR_NODRILLFEED);
         }
-        else if (vm["drill-feed"].as<double>() <= 0)
+        else if (vm["drill-feed"].as<Velocity>().asInchPerMinute(unit) <= 0)
         {
             cerr << "Error: The drilling feed --drill-feed is <= 0.\n";
             exit(ERR_NEGATIVEDRILLFEED);
@@ -583,7 +583,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
             exit(ERR_NODRILLSPEED);
         }
-        else if (vm["drill-speed"].as<int>() < 0)         //no need to support both directions?
+        else if (vm["drill-speed"].as<Frequency>().asPerMinute(1) < 0)         //no need to support both directions?
         {
             cerr << "Error: --drill-speed < 0.\n";
             exit(ERR_NEGATIVEDRILLSPEED);

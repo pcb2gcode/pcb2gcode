@@ -159,8 +159,8 @@ int main(int argc, char* argv[])
         driller = shared_ptr<Driller>(new Driller());
         driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-        driller->feed = vm["drill-feed"].as<double>() * unit;
-        driller->speed = vm["drill-speed"].as<int>();
+        driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
+        driller->speed = vm["drill-speed"].as<Frequency>().asPerMinute(1);
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
         driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
