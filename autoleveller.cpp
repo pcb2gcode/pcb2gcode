@@ -64,9 +64,7 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     feedrate( std::to_string( options["al-probefeed"].as<Velocity>().asInchPerMinute(input_unitconv) * output_unitconv ) ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
-    software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? Software::LINUXCNC :
-              boost::iequals( options["software"].as<string>(), "mach3" ) ? Software::MACH3 :
-              boost::iequals( options["software"].as<string>(), "mach4" ) ? Software::MACH4 : Software::CUSTOM ),
+    software( options["software"].as<Software::Software>() ),
     quantization_error( quantization_error * cfactor ),
     xoffset( xoffset ),
     yoffset( yoffset ),

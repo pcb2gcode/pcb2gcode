@@ -24,6 +24,8 @@
 #include <boost/format.hpp>
 using boost::format;
 
+#include "units.hpp"
+
 Tiling::Tiling( TileInfo tileInfo, double cfactor ) :
     tileInfo( tileInfo ), cfactor( cfactor ),
     initialXOffsetVar(0), initialYOffsetVar(0)
@@ -116,19 +118,10 @@ Tiling::TileInfo Tiling::generateTileInfo( const boost::program_options::variabl
     tileInfo.boardWidth = boardWidth;
     tileInfo.tileVar = ocodes.getUniqueCode();
 
-    if( !options.count("software") ||
-        boost::iequals( options["software"].as<string>(), "custom" ) )
+    if( !options.count("software") ) {
         tileInfo.software = Software::CUSTOM;
-    else if( boost::iequals( options["software"].as<string>(), "linuxcnc" ) )
-        tileInfo.software = Software::LINUXCNC;
-    else if ( boost::iequals( options["software"].as<string>(), "mach3" ) )
-        tileInfo.software = Software::MACH3;
-    else if ( boost::iequals( options["software"].as<string>(), "mach4" ) )
-        tileInfo.software = Software::MACH4;
-    else
-    {
-        tileInfo.software = Software::CUSTOM;
-        std::cerr << "Tiling: unknown software!\n";
+    } else {
+        tileInfo.software = options["software"].as<Software::Software>();
     }
 
     if( tileInfo.software == Software::CUSTOM )
