@@ -106,7 +106,8 @@ public:
     // Some parameters are just placed as string in the output, saving them as strings saves a lot of
     // string to double conversion. These parameters are probably not useful for the user, but we can
     // safely define them as public as they are const
-    const double unitconv;
+    const double input_unitconv;
+    const double output_unitconv;
     const double cfactor;
     const string probeCodeCustom;
     const string zProbeResultVarCustom;

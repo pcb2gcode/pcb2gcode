@@ -252,9 +252,9 @@ options::options()
        ("al-back", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the back layer")
        ("software", po::value<Software::Software>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")
-       ("al-x", po::value<double>(), "width of the x probes")
-       ("al-y", po::value<double>(), "width of the y probes")
-       ("al-probefeed", po::value<double>(), "speed during the probing")
+       ("al-x", po::value<Length>(), "width of the x probes")
+       ("al-y", po::value<Length>(), "width of the y probes")
+       ("al-probefeed", po::value<Velocity>(), "speed during the probing")
        ("al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")
        ("al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")
        ("al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")
@@ -286,6 +286,9 @@ options::options()
 /******************************************************************************/
 static void check_generic_parameters(po::variables_map const& vm)
 {
+    double unit;      //factor for imperial/metric conversion
+
+    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
 
     //---------------------------------------------------------------------------
     //Check dpi parameter:
@@ -412,7 +415,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "Error: autoleveller probe width x not specified.\n";
             exit(ERR_NOALX);
         }
-        else if (vm["al-x"].as<double>() <= 0)
+        else if (vm["al-x"].as<Length>().asInch(unit) <= 0)
         {
             cerr << "Error: al-x < 0!" << endl;
             exit(ERR_NEGATIVEALX);
@@ -423,7 +426,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "Error: autoleveller probe width y not specified.\n";
             exit(ERR_NOALY);
         }
-        else if (vm["al-y"].as<double>() <= 0)
+        else if (vm["al-y"].as<Length>().asInch(unit) <= 0)
         {
             cerr << "Error: al-y < 0!" << endl;
             exit(ERR_NEGATIVEALY);
@@ -434,7 +437,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             cerr << "Error: autoleveller probe feed rate not specified.\n";
             exit(ERR_NOALPROBEFEED);
         }
-        else if (vm["al-probefeed"].as<double>() <= 0)
+        else if (vm["al-probefeed"].as<Velocity>().asInchPerMinute(unit) <= 0)
         {
             cerr << "Error: al-probefeed < 0!" << endl;
             exit(ERR_NEGATIVEPROBEFEED);

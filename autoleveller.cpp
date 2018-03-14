@@ -49,20 +49,19 @@ boost::format silent_format(const string &f_string)
 autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
                             uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
                             const struct Tiling::TileInfo tileInfo ) :
-    unitconv( options["metric"].as<bool>() ?
-              ( options["metricoutput"].as<bool>() ? 1 : 1/25.4 ) :
-              ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
+    input_unitconv( options["metric"].as<bool>() ? 1.0/25.4 : 1),
+    output_unitconv( options["metricoutput"].as<bool>() ? 25.4 : 1),
     cfactor( options["metricoutput"].as<bool>() ? 25.4 : 1 ),
     probeCodeCustom( options["al-probecode"].as<string>() ),
     zProbeResultVarCustom( "#" + to_string(options["al-probevar"].as<unsigned int>()) ),
     setZZeroCustom( options["al-setzzero"].as<string>() ),
-    XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
-    YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
-    zwork( str( format("%.5f") % ( options["zwork"].as<Length>().asInch(unitconv) ) ) ),
-    zprobe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(unitconv) ) ) ),
-    zsafe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(unitconv) ) ) ),
+    XProbeDistRequired( options["al-x"].as<Length>().asInch(input_unitconv) * output_unitconv ),
+    YProbeDistRequired( options["al-y"].as<Length>().asInch(input_unitconv) * output_unitconv ),
+    zwork( str( format("%.5f") % ( options["zwork"].as<Length>().asInch(input_unitconv) * output_unitconv ) ) ),
+    zprobe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(input_unitconv) * output_unitconv ) ) ),
+    zsafe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(input_unitconv) * output_unitconv) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
-    feedrate( std::to_string( options["al-probefeed"].as<double>() * unitconv ) ),
+    feedrate( std::to_string( options["al-probefeed"].as<Velocity>().asInchPerMinute(input_unitconv) * output_unitconv ) ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? Software::LINUXCNC :
