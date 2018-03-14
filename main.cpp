@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
         cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
         if (vm.count("zbridges"))
-            cutter->bridges_height = vm["zbridges"].as<double>() * unit;
+            cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
         else
             cutter->bridges_height = cutter->zsafe;
     }
