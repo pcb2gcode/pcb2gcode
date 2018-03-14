@@ -428,7 +428,7 @@ int main(int argc, char* argv[])
             if (vm["milldrill"].as<bool>())
             {
                 if (vm.count("milldrill-diameter")) {
-                    cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
+                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
                 }
                 cutter->zwork = vm["zdrill"].as<double>() * unit;
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
