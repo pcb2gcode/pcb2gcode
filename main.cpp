@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
         cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         cutter->spindown_time = spindown_time;
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
-        cutter->bridges_width = vm["bridges"].as<double>() * unit;
+        cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
         if (vm.count("zbridges"))
             cutter->bridges_height = vm["zbridges"].as<double>() * unit;
         else
