@@ -103,16 +103,6 @@ void options::parse(int argc, char** argv)
                                generic, style),
         instance().vm);
 
-    //Default value for outline-width
-    const char *fake_outline_width_command_line[] = { "",
-                                            instance().vm["metric"].as<bool>() ?
-                                            "--outline-width=0.15" :
-                                            "--outline-width=0.059" };
-
-    if (!instance().vm.count("outline-width"))
-        po::store(po::parse_command_line(2,
-                        (char**) fake_outline_width_command_line,
-                        generic, style), instance().vm);
 
     if (instance().vm.count("tolerance"))
     {
@@ -232,7 +222,7 @@ options::options()
        ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
        ("extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")
        ("fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")
-       ("outline-width", po::value<double>(), "width of the outline, used only when vectorial is disabled")
+       ("outline-width", po::value<Length>()->default_value(parse_unit<Length>("1.5mm")), "width of the outline, used only when vectorial is disabled")
        ("cutter-diameter", po::value<double>(), "diameter of the end mill used for cutting out the PCB")
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
        ("cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")
@@ -652,7 +642,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             }
             else
             {
-                double outline_width = vm["outline-width"].as<double>();
+                double outline_width = vm["outline-width"].as<Length>().asInch(unit);
                 if (outline_width < 0)
                 {
                     cerr << "Error: Specified outline width is less than zero!\n";
@@ -665,14 +655,9 @@ static void check_cutting_parameters(po::variables_map const& vm)
                 }
                 else
                 {
-                    std::stringstream width_sb;
-                    if ((vm["metric"].as<bool>() && outline_width >= 10)
-                            || (!vm["metric"].as<bool>() && outline_width >= 0.4))
-                    {
-                        width_sb << outline_width
-                                 << (vm["metric"].as<bool>() ? " mm" : " inch");
+                    if (outline_width >= 0.4) {
                         cerr << "Warning: You specified an outline-width of "
-                             << width_sb.str() << "!\n";
+                             << vm["outline-width"].as<Length>() << "!\n";
                     }
                 }
             }

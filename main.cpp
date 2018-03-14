@@ -254,7 +254,7 @@ int main(int argc, char* argv[])
             vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
             vm["fill-outline"].as<bool>() ?
-                vm["outline-width"].as<double>() * unit :
+                vm["outline-width"].as<Length>().asInch(unit) :
                 INFINITY,
             outputdir,
             vm["vectorial"].as<bool>(),
