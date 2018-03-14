@@ -251,7 +251,7 @@ options::options()
        ("al-front", po::value<bool>()->default_value(false)->implicit_value(true), "enable the z autoleveller for the front layer")
        ("al-back", po::value<bool>()->default_value(false)->implicit_value(true),
             "enable the z autoleveller for the back layer")
-       ("software", po::value<string>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")
+       ("software", po::value<Software::Software>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")
        ("al-x", po::value<double>(), "width of the x probes")
        ("al-y", po::value<double>(), "width of the y probes")
        ("al-probefeed", po::value<double>(), "speed during the probing")
@@ -401,13 +401,7 @@ static void check_generic_parameters(po::variables_map const& vm)
 
     if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>())
     {
-        const string software = vm.count("software") ? vm["software"].as<string>() : "";
-
-        if (!vm.count("software") ||
-                ( !boost::iequals( software, "linuxcnc" ) &&	//boost::iequals is case insensitive
-                  !boost::iequals( software, "mach3" ) &&
-                  !boost::iequals( software, "mach4" ) &&
-                  !boost::iequals( software, "custom" ) ) )
+        if (!vm.count("software"))
         {
             cerr << "Error: unspecified or unsupported software, please specify a supported software (linuxcnc, mach3, mach4 or custom).\n";
             exit(ERR_NOSOFTWARE);

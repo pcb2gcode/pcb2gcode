@@ -27,14 +27,14 @@ using boost::format;
 
 #include "units.hpp"
 
-string getSoftwareString( Software software )
+string getSoftwareString( Software::Software software )
 {
     switch( software )
     {
-        case LINUXCNC:  return "LinuxCNC";
-        case MACH4:     return "Mach4";
-        case MACH3:     return "Mach3";
-        case CUSTOM:    return "custom software";
+        case Software::LINUXCNC:  return "LinuxCNC";
+        case Software::MACH4:     return "Mach4";
+        case Software::MACH3:     return "Mach3";
+        case Software::CUSTOM:    return "custom software";
         default:        return "unknown software";
     }
 }

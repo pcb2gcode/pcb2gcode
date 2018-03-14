@@ -13,6 +13,8 @@
 #include <boost/units/base_units/imperial/thou.hpp>
 #include <boost/units/io.hpp>
 
+#include "common.hpp"
+
 // String parsers: Each on uses characters from the front of the
 // string and leaves the unused characters in place.
 struct parse_exception : public std::exception {
@@ -291,6 +293,7 @@ void validate(boost::any& v,
   // Figure out what unit it is.
   v = boost::any(parse_unit<Unit<dimension_t>>(s));
 }
+
 namespace BoardSide {
 enum BoardSide {
   AUTO,
@@ -298,25 +301,25 @@ enum BoardSide {
   BACK
 };
 
-inline std::istream& operator>>(std::istream& in, BoardSide& cutside)
+inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
 {
   std::string token;
   in >> token;
   if (boost::iequals(token, "auto")) {
-    cutside = BoardSide::AUTO;
+    boardside = BoardSide::AUTO;
   } else if (boost::iequals(token, "front")) {
-    cutside = BoardSide::FRONT;
+    boardside = BoardSide::FRONT;
   } else if (boost::iequals(token, "back")) {
-    cutside = BoardSide::BACK;
+    boardside = BoardSide::BACK;
   } else {
       throw parse_exception("BoardSide", token);
   }
   return in;
 }
 
-inline std::ostream& operator<<(std::ostream& out, const BoardSide& cutside)
+inline std::ostream& operator<<(std::ostream& out, const BoardSide& boardside)
 {
-  switch (cutside) {
+  switch (boardside) {
     case BoardSide::AUTO:
       out << "auto";
       break;
@@ -330,4 +333,45 @@ inline std::ostream& operator<<(std::ostream& out, const BoardSide& cutside)
   return out;
 }
 }; // namespace BoardSide
+
+namespace Software {
+
+inline std::istream& operator>>(std::istream& in, Software& software)
+{
+  std::string token;
+  in >> token;
+  if (boost::iequals(token, "custom")) {
+    software = CUSTOM;
+  } else if (boost::iequals(token, "linuxcnc")) {
+    software = LINUXCNC;
+  } else if (boost::iequals(token, "mach4")) {
+    software = MACH4;
+  } else if (boost::iequals(token, "mach3")) {
+    software = MACH3;
+  } else {
+      throw parse_exception("Software", token);
+  }
+  return in;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const Software& software)
+{
+  switch (software) {
+    case CUSTOM:
+      out << "custom";
+      break;
+    case LINUXCNC:
+      out << "linuxcnc";
+      break;
+    case MACH4:
+      out << "mach4";
+      break;
+    case MACH3:
+      out << "mach3";
+      break;
+  }
+  return out;
+}
+}; // namespace Software
+
 #endif // UNITS_HPP

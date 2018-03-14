@@ -86,7 +86,7 @@ public:
     // This function returns the maximum number of probe points
     inline unsigned int maxProbePoints()
     {
-        return software == LINUXCNC ? 4501 : 500;
+        return software == Software::LINUXCNC ? 4501 : 500;
     }
 
     // This function returns the required number of probe points
@@ -99,7 +99,7 @@ public:
     // if software != LinuxCNC
     inline void footer( std::ofstream &of )
     {
-        if( software != LINUXCNC )
+        if( software != Software::LINUXCNC )
             footerNoIf( of );
     }
 
@@ -120,7 +120,7 @@ public:
     const string feedrate;
     const string probeOn;
     const string probeOff;
-    const Software software;
+    const Software::Software software;
     const double quantization_error;
     const double xoffset;
     const double yoffset;
