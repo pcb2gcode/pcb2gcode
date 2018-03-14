@@ -161,7 +161,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         bAutolevelNow = false;
 
     if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 

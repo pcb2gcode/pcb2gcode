@@ -31,7 +31,6 @@ namespace Software {
 enum Software { CUSTOM = -1, LINUXCNC = 0, MACH4 = 1, MACH3 = 2 };
 };
 
-string getSoftwareString( Software::Software software );
 bool workSide( const boost::program_options::variables_map &options, string type );
 
 #endif // COMMON_H

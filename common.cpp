@@ -27,18 +27,6 @@ using boost::format;
 
 #include "units.hpp"
 
-string getSoftwareString( Software::Software software )
-{
-    switch( software )
-    {
-        case Software::LINUXCNC:  return "LinuxCNC";
-        case Software::MACH4:     return "Mach4";
-        case Software::MACH3:     return "Mach3";
-        case Software::CUSTOM:    return "custom software";
-        default:        return "unknown software";
-    }
-}
-
 bool workSide( const boost::program_options::variables_map &options, string type )
 {
     const string side = type + "-side";

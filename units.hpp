@@ -340,13 +340,13 @@ inline std::istream& operator>>(std::istream& in, Software& software)
 {
   std::string token;
   in >> token;
-  if (boost::iequals(token, "custom")) {
+  if (boost::iequals(token, "Custom")) {
     software = CUSTOM;
-  } else if (boost::iequals(token, "linuxcnc")) {
+  } else if (boost::iequals(token, "LinuxCNC")) {
     software = LINUXCNC;
-  } else if (boost::iequals(token, "mach4")) {
+  } else if (boost::iequals(token, "Mach4")) {
     software = MACH4;
-  } else if (boost::iequals(token, "mach3")) {
+  } else if (boost::iequals(token, "Mach3")) {
     software = MACH3;
   } else {
       throw parse_exception("Software", token);

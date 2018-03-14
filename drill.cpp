@@ -522,7 +522,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     }
 
     if( tileInfo.enabled && tileInfo.software != Software::CUSTOM )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 
