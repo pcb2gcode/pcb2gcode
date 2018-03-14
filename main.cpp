@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-vertfeed"))
-            isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
+            isolator->vertfeed = vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             isolator->vertfeed = isolator->feed / 2;
         isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);

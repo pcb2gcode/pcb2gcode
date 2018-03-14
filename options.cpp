@@ -224,7 +224,7 @@ options::options()
        ("spinup-time", po::value<Time>()->default_value(parse_unit<Time>(" 1 ms")), "time required to the spindle to reach the correct speed")
        ("spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")
        ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
-       ("mill-vertfeed", po::value<double>(), "vertical feed while isolating in [i/m] or [mm/m]")
+       ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
        ("mill-speed", po::value<Frequency>(), "spindle rpm when milling")
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")
        ("milldrill-diameter", po::value<double>(), "diameter of the end mill used for drilling with --milldrill")
@@ -526,7 +526,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVEMILLFEED);
         }
 
-        if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<double>() <= 0)
+        if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0)
         {
             cerr << "Error: Negative or equal to 0 vertical milling feed (--mill-vertfeed).\n";
             exit(ERR_NEGATIVEMILLVERTFEED);
