@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
         cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
         cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
         cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-        cutter->feed = vm["cut-feed"].as<double>() * unit;
+        cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("cut-vertfeed"))
             cutter->vertfeed = vm["cut-vertfeed"].as<double>() * unit;
         else

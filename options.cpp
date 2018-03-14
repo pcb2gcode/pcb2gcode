@@ -225,7 +225,7 @@ options::options()
        ("outline-width", po::value<Length>()->default_value(parse_unit<Length>("1.5mm")), "width of the outline, used only when vectorial is disabled")
        ("cutter-diameter", po::value<Length>(), "diameter of the end mill used for cutting out the PCB")
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
-       ("cut-feed", po::value<double>(), "PCB cutting feed in [i/m] or [mm/m]")
+       ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
        ("cut-vertfeed", po::value<double>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
        ("cut-speed", po::value<int>(), "spindle rpm when cutting")
        ("cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")
@@ -705,7 +705,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_ZSAFELOWERZCUT);
         }
 
-        if (vm["cut-feed"].as<double>() <= 0)
+        if (vm["cut-feed"].as<Velocity>().asInchPerMinute(unit) <= 0)
         {
             cerr << "Error: The cutting feed --cut-feed is <= 0.\n";
             exit(ERR_NEGATIVECUTFEED);
@@ -713,7 +713,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
 
         if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<double>() <= 0)
         {
-            cerr << "Error: The cutting vertical feed --cut-feed is <= 0.\n";
+            cerr << "Error: The cutting vertical feed --cut-vertfeed is <= 0.\n";
             exit(ERR_NEGATIVECUTVERTFEED);
         }
 
