@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
         else
             isolator->vertfeed = isolator->feed / 2;
         isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
-        isolator->zchange = vm["zchange"].as<double>() * unit;
+        isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
         else
             cutter->vertfeed = cutter->feed / 2;
         cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
-        cutter->zchange = vm["zchange"].as<double>() * unit;
+        cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
         cutter->do_steps = true;
         cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
         cutter->optimise = vm["optimise"].as<bool>();
@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
         driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
         driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         driller->spindown_time = spindown_time;
-        driller->zchange = vm["zchange"].as<double>() * unit;
+        driller->zchange = vm["zchange"].as<Length>().asInch(unit);
     }
 
     //---------------------------------------------------------------------------
