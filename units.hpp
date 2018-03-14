@@ -12,6 +12,7 @@
 #include <boost/units/base_units/imperial/inch.hpp>
 #include <boost/units/base_units/imperial/thou.hpp>
 #include <boost/units/io.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "common.hpp"
 
