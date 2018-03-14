@@ -226,7 +226,7 @@ options::options()
        ("cutter-diameter", po::value<Length>(), "diameter of the end mill used for cutting out the PCB")
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
        ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
-       ("cut-vertfeed", po::value<double>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
+       ("cut-vertfeed", po::value<Velocity>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
        ("cut-speed", po::value<int>(), "spindle rpm when cutting")
        ("cut-infeed", po::value<double>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
@@ -711,7 +711,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVECUTFEED);
         }
 
-        if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<double>() <= 0)
+        if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0)
         {
             cerr << "Error: The cutting vertical feed --cut-vertfeed is <= 0.\n";
             exit(ERR_NEGATIVECUTVERTFEED);

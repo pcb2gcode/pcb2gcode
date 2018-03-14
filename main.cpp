@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
         cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("cut-vertfeed"))
-            cutter->vertfeed = vm["cut-vertfeed"].as<double>() * unit;
+            cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             cutter->vertfeed = cutter->feed / 2;
         cutter->speed = vm["cut-speed"].as<int>();
