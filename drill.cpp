@@ -47,6 +47,8 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "common.hpp"
 
+#include <boost/algorithm/string.hpp>
+
 using std::pair;
 using std::make_pair;
 using std::max;
@@ -114,6 +116,49 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     preamble += "G90       (Absolute coordinates.)\n";
 
     tiling = new Tiling( tileInfo, cfactor );
+
+    double drills_tol = options["drills-tolerance"].as<double>();      // default acceptable tolerance from drill(s)
+
+    // get drill sizes..
+    if(options.count("drills-available")) {
+        std::vector<std::string> dstrs;
+        boost::split(dstrs, options["drills-available"].as<string>(), [](char c){return c == ',';});
+        for(std::vector<string>::iterator it = dstrs.begin(); it != dstrs.end(); ++it) {
+            std::vector<std::string> dparts;
+            boost::split(dparts, *it, [](char c){return c == ':';});
+            available_drillbit adb;
+            stringstream convert(dparts[0]);
+            if( !(convert >> adb.diameter)) {
+                throw std::logic_error("Invalid format in " + *it + " in --drills-available" );
+            }
+            adb.neg_tol = drills_tol;
+            if(dparts.size() > 1) {
+                stringstream convert(dparts[1]);
+                if( !(convert >> adb.neg_tol)) {
+                    throw std::logic_error("Invalid format in " + *it + " in --drills-available" );
+                }
+            }
+            if(dparts.size() > 2) {
+                stringstream convert(dparts[2]);
+                if( !(convert >> adb.pos_tol)) {
+                    throw std::logic_error("Invalid format in " + *it + " in --drills-available" );
+                }
+            } else {
+                adb.pos_tol = adb.neg_tol;
+            }
+            if(adb.diameter <= 0) {
+                throw std::logic_error("Zero or negative diameter not allowed in --drills-available" );
+            }
+            if(adb.neg_tol < 0) {
+                throw std::logic_error("Negative ''negative tolerance'' not allowed in --drills-available" );
+            }
+            if(adb.pos_tol < 0) {
+                throw std::logic_error("Negative ''positive tolerance'' not allowed in --drills-available" );
+            }
+            available_drills.push_back(adb);
+        }
+    }
+
 }
 
 /******************************************************************************/
@@ -651,6 +696,23 @@ void ExcellonProcessor::parse_bits()
         curBit.diameter = currentDrill->drill_size;
         curBit.unit = string(currentDrill->drill_unit);
         curBit.drill_count = currentDrill->drill_count;
+        curBit.same_as = 0;
+
+        for(std::vector<available_drillbit>::iterator it = available_drills.begin(); it != available_drills.end(); it++) {
+            // it is bigger but not bigger then drill toleranse
+            if(it->diameter+it->pos_tol < curBit.diameter &&
+               it->diameter-it->neg_tol > curBit.diameter) {
+                curBit.diameter = it->diameter;
+                break;
+            }
+        }
+        // Check if there is an other hole with the same diameter.
+        for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); it++) {
+            if(it->second.diameter == curBit.diameter) {
+                curBit.same_as = it->first;
+                break;
+            }
+        }
 
         bits->insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
     }
@@ -670,18 +732,24 @@ void ExcellonProcessor::parse_holes()
     for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
             currentNet = currentNet->next)
     {
-        if (currentNet->aperture != 0)
-            (*holes)[currentNet->aperture].push_back(
+        if (currentNet->aperture != 0) {
+            int bit = currentNet->aperture;
+            if(bits->count(bit) && (*bits)[bit].same_as != 0) {
+                bit = (*bits)[bit].same_as;
+            }
+            (*holes)[bit].push_back(
                 ilinesegment(icoordpair(currentNet->start_x, currentNet->start_y),
                              icoordpair(currentNet->stop_x, currentNet->stop_y)));
+        }
     }
 
     for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
         if (holes->count(it->first) == 0)   //If a bit has no associated holes
         {
-			cerr << "Warning: bit " << it->first << " (" << it->second.diameter
-				 << ' ' << it->second.unit << ") has no associated holes; "
-				 "removing it." << std::endl;
+            if(it->second.same_as == 0)
+			    cerr << "Warning: bit " << it->first << " (" << it->second.diameter
+				     << ' ' << it->second.unit << ") has no associated holes; "
+				    "removing it." << std::endl;
             bits->erase(it++);  //remove it
         }
         else

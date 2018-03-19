@@ -68,6 +68,15 @@ public:
     double diameter;
     string unit;
     int drill_count;
+    int same_as;
+};
+
+class available_drillbit
+{
+public:
+    double diameter;
+    double neg_tol;
+    double pos_tol;
 };
 
 /******************************************************************************/
@@ -140,6 +149,7 @@ private:
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
     Tiling *tiling;
+    std::vector<available_drillbit> available_drills; // list of available drills
 };
 
 #endif // DRILL_H
