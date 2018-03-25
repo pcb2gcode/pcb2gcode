@@ -174,7 +174,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
     return as(factor, 1.0*boost::units::si::second);
   }
   double asMillisecond(double factor) const {
-    return as(factor, boost::units::si::second/1000);
+    return as(factor, boost::units::si::second/1000.0);
   }
   static quantity get_unit(Lexer& lex) {
     std::string unit = lex.get_word();
