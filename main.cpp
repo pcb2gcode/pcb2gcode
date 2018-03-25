@@ -430,7 +430,7 @@ int main(int argc, char* argv[])
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
                 }
-                cutter->zwork = vm["zdrill"].as<double>() * unit;
+                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
                                 vm["zchange-absolute"].as<bool>());
             }
@@ -445,15 +445,15 @@ int main(int argc, char* argv[])
         }
 
     }
-    catch (drill_exception& e)
+    catch (const drill_exception& e)
     {
-        cout << "ERROR.\n";
+        cout << "ERROR: drill_exception.\n";
     }
-    catch (import_exception& i)
+    catch (const import_exception& i)
     {
-        cout << "ERROR.\n";
+        cout << "ERROR: " << i.what() << "\n";
     }
-    catch (boost::exception& e)
+    catch (const boost::exception& e)
     {
         cout << "not specified.\n";
     }
