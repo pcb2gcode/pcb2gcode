@@ -152,7 +152,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        retval = (2 * board_dimensions.min_corner().x() - xvalue) - (tileInfo.tileX-1) * tileInfo.boardWidth;
+        retval = 2 * xoffset - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
     }
 
     return retval;
