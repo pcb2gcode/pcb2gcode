@@ -40,6 +40,8 @@ using Glib::build_filename;
 #include <boost/format.hpp>
 using boost::format;
 
+#include "units.hpp"
+
 /******************************************************************************/
 /*
  */
@@ -94,7 +96,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
                                       xoffset, yoffset, tileInfo );
 
-    if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() > 0)
+    if (options["bridges"].as<Length>().asInch(1) > 0 && options["bridgesnum"].as<unsigned int>() > 0)
         bBridges = true;
     else
         bBridges = false;
@@ -158,8 +160,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     else
         bAutolevelNow = false;
 
-    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != CUSTOM ) )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 
@@ -214,7 +216,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         {
             xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+            if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
