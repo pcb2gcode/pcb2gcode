@@ -49,25 +49,22 @@ boost::format silent_format(const string &f_string)
 autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
                             uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
                             const struct Tiling::TileInfo tileInfo ) :
-    unitconv( options["metric"].as<bool>() ?
-              ( options["metricoutput"].as<bool>() ? 1 : 1/25.4 ) :
-              ( options["metricoutput"].as<bool>() ? 25.4 : 1 ) ),
+    input_unitconv( options["metric"].as<bool>() ? 1.0/25.4 : 1),
+    output_unitconv( options["metricoutput"].as<bool>() ? 25.4 : 1),
     cfactor( options["metricoutput"].as<bool>() ? 25.4 : 1 ),
     probeCodeCustom( options["al-probecode"].as<string>() ),
     zProbeResultVarCustom( "#" + to_string(options["al-probevar"].as<unsigned int>()) ),
     setZZeroCustom( options["al-setzzero"].as<string>() ),
-    XProbeDistRequired( options["al-x"].as<double>() * unitconv ),
-    YProbeDistRequired( options["al-y"].as<double>() * unitconv ),
-    zwork( str( format("%.5f") % ( options["zwork"].as<Length>().asInch(unitconv) ) ) ),
-    zprobe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
-    zsafe( str( format("%.3f") % ( options["zsafe"].as<double>() * unitconv ) ) ),
+    XProbeDistRequired( options["al-x"].as<Length>().asInch(input_unitconv) * output_unitconv ),
+    YProbeDistRequired( options["al-y"].as<Length>().asInch(input_unitconv) * output_unitconv ),
+    zwork( str( format("%.5f") % ( options["zwork"].as<Length>().asInch(input_unitconv) * output_unitconv ) ) ),
+    zprobe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(input_unitconv) * output_unitconv ) ) ),
+    zsafe( str( format("%.3f") % ( options["zsafe"].as<Length>().asInch(input_unitconv) * output_unitconv) ) ),
     zfail( str( format("%.3f") % ( options["metricoutput"].as<bool>() ? FIXED_FAIL_DEPTH_MM : FIXED_FAIL_DEPTH_IN ) ) ),
-    feedrate( std::to_string( options["al-probefeed"].as<double>() * unitconv ) ),
+    feedrate( std::to_string( options["al-probefeed"].as<Velocity>().asInchPerMinute(input_unitconv) * output_unitconv ) ),
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
-    software( boost::iequals( options["software"].as<string>(), "linuxcnc" ) ? LINUXCNC :
-              boost::iequals( options["software"].as<string>(), "mach3" ) ? MACH3 :
-              boost::iequals( options["software"].as<string>(), "mach4" ) ? MACH4 : CUSTOM ),
+    software( options["software"].as<Software::Software>() ),
     quantization_error( quantization_error * cfactor ),
     xoffset( xoffset ),
     yoffset( yoffset ),
@@ -86,9 +83,9 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     initialYOffsetVar( globalVars->getUniqueCode() ),
     ocodes( ocodes )
 {
-    callSub2[LINUXCNC] = "o%1$s call [%2$s] [%3$s]\n";
-    callSub2[MACH4] = "G65 P%1$s A%2$s B%3$s\n";
-    callSub2[MACH3] = "#" + globalVar0 + "=%2$s\n%4$s#" + globalVar1 + "=%3$s\n%4$sM98 P%1$s\n";
+    callSub2[Software::LINUXCNC] = "o%1$s call [%2$s] [%3$s]\n";
+    callSub2[Software::MACH4] = "G65 P%1$s A%2$s B%3$s\n";
+    callSub2[Software::MACH3] = "#" + globalVar0 + "=%2$s\n%4$s#" + globalVar1 + "=%3$s\n%4$sM98 P%1$s\n";
 }
 
 string autoleveller::getVarName( int i, int j )
@@ -128,8 +125,8 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
     YProbeDist = workareaLenY / ( numYPoints - 1 );
     averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
 
-    if( ( software == LINUXCNC && numXPoints * numYPoints > 4501 ) ||
-            ( software != LINUXCNC && numXPoints * numYPoints > 500 ) )
+    if( ( software == Software::LINUXCNC && numXPoints * numYPoints > 4501 ) ||
+            ( software != Software::LINUXCNC && numXPoints * numYPoints > 500 ) )
         return false;
     else
         return true;
@@ -163,7 +160,7 @@ void autoleveller::header( std::ofstream &of )
     const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41" };
     int incr_decr = 1;
 
-    if( software == LINUXCNC )
+    if( software == Software::LINUXCNC )
         footerNoIf( of );
 
     if( tileInfo.enabled )
@@ -180,22 +177,22 @@ void autoleveller::header( std::ofstream &of )
     of << "G0 Z" << zsafe << " ( Move Z to safe height )\n";
     of << "G0 X" << startPointX << " Y" << startPointY << " ( Move XY to start point )\n";
     of << "G0 Z" << zprobe << " ( Move Z to probe height )\n";
-    if( software != CUSTOM )
+    if( software != Software::CUSTOM )
         of << logFileOpenAndComment[software] << '\n';
-    of << ( software == CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z" << zfail 
+    of << ( software == Software::CUSTOM ? probeCodeCustom : probeCode[software] ) << " Z" << zfail 
        << " F" << feedrate << " ( Z-probe )\n";
     of << "#500 = 0 ( Probe point [0, 0] is our reference )\n";
-    of << ( software == CUSTOM ? setZZeroCustom : setZZero[software] )
+    of << ( software == Software::CUSTOM ? setZZeroCustom : setZZero[software] )
        << " ( Set the current Z as zero-value )\n";
     of << '\n';
     of << "( We now start the real probing: move the Z axis to the probing height, move to )\n";
     of << "( the probing XY position, probe it and save the result, parameter "
-       << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] ) << ", )\n";
+       << ( software == Software::CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] ) << ", )\n";
     of << "( in a numbered parameter; we will make " << numXPoints << " probes on the X-axis and )\n";
     of << "( " << numYPoints << " probes on the Y-axis, for a grand total of " << numXPoints * numYPoints << " probes )\n";
     of << '\n';
 
-    if( software != CUSTOM )
+    if( software != Software::CUSTOM )
     {
         of << "#" << globalVar0 << " = 0 ( X iterator )\n";
         of << "#" << globalVar1 << " = 1 ( Y iterator )\n";
@@ -224,11 +221,11 @@ void autoleveller::header( std::ofstream &of )
 
     of << '\n';
     of << "G0 Z" << zsafe << " ( Move Z to safe height )\n";
-    if( software != CUSTOM )
+    if( software != Software::CUSTOM )
        of << logFileClose[software] << " ( Close the probe log file )\n";
     of << "( Probing has ended, each Z-coordinate will be corrected with a bilinear interpolation )\n";
     of << probeOff << '\n';
-    if( software == CUSTOM )
+    if( software == Software::CUSTOM )
         of << "\n#4 = " << zwork << '\n';
     of << '\n';
 }
@@ -240,7 +237,7 @@ void autoleveller::footerNoIf( std::ofstream &of )
     const char *var1[] = { "1", "1", globalVar0.c_str() };
     const char *var2[] = { "2", "2", globalVar1.c_str() };
 
-    if( software != CUSTOM )
+    if( software != Software::CUSTOM )
     {
         of << format(startSub[software]) % g01InterpolatedNum << " ( G01 with Z-correction subroutine )\n";
         if( tileInfo.enabled )
@@ -275,7 +272,7 @@ void autoleveller::footerNoIf( std::ofstream &of )
            << " * " << YProbeDist << " + " << startPointY << "] ( Move to the current probe point )\n";
         of << "    " << probeCode[software] << " Z" << zfail << " F" << feedrate << " ( Probe it )\n";
         of << "    #[#" << globalVar0 << " * " << numYPoints << " + #" << globalVar1 << " + 500] = "
-           << ( software == CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] )
+           << ( software == Software::CUSTOM ? zProbeResultVarCustom : zProbeResultVar[software] )
            << " ( Save the probe in the correct parameter )\n";
         of << "    #" << globalVar1 << " = [#" << globalVar1 << " + #" << globalVar2 << "] ( Increment/decrement by 1 the Y counter )\n";
         of << silent_format( endSub[software] ) % yProbeNum << endl;
@@ -319,7 +316,7 @@ string autoleveller::addChainPoint ( icoordpair point )
 
     subsegments = splitSegment( point, numOfSubsegments( point ) );
 
-    if( software == LINUXCNC || software == MACH4 || software == MACH3 )
+    if( software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3 )
         for( i = subsegments.begin(); i != subsegments.end(); i++ )
             outputStr += str( silent_format( callSub2[software] ) % g01InterpolatedNum % i->first % i->second );
     else
@@ -335,7 +332,7 @@ string autoleveller::addChainPoint ( icoordpair point )
 
 string autoleveller::g01Corrected ( icoordpair point )
 {
-    if( software == LINUXCNC || software == MACH4 || software == MACH3 )
+    if( software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3 )
         return str( silent_format( callSub2[software] ) % g01InterpolatedNum % point.first % point.second );
     else
         return interpolatePoint( point ) + "G01 Z[" + zwork + "+#" + returnVar + "]\n";

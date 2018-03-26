@@ -61,13 +61,13 @@ before_install:
 
 install:
   - export CXX=$COMPILER
-
-script:
   - autoreconf -fvi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost; fi
   - make
   - make check
+
+script:
   - cd testing/gerbv_example/
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
   - (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done)

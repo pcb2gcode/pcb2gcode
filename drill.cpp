@@ -521,8 +521,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         of << "( " << s << " )" << "\n";
     }
 
-    if( tileInfo.enabled && tileInfo.software != CUSTOM )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    if( tileInfo.enabled && tileInfo.software != Software::CUSTOM )
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 
@@ -558,7 +558,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         {
             xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+            if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             for (map<int, drillbit>::const_iterator it = bits->begin();
