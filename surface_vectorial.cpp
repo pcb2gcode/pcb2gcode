@@ -84,10 +84,13 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     vector<shared_ptr<icoords> > toolpath_optimised;
     multi_polygon_type_fp voronoi;
     coordinate_type tolerance = mill->tolerance * scale;
+    // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type grow = mill->tool_diameter / 2 * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    // Extra passes are done on each trace if requested, each offset by half the tool diameter.
     const int extra_passes = isolator ? isolator->extra_passes : 0;
+    const bool do_voronoi = isolator ? isolator->voronoi : false;
 
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
@@ -127,7 +130,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         unique_ptr<vector<polygon_type> > polygons;
     
         polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
-                                    grow, i, extra_passes + 1);
+                                  grow, i, extra_passes + 1, do_voronoi);
 
         debug_image.add(*polygons, 0.6, r, g, b);
         traced_debug_image.add(*polygons, 1, r, g, b);
@@ -220,13 +223,10 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
 }
 
 unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type_fp& voronoi, multi_linestring_type& toolpath,
+                            const multi_polygon_type_fp& voronoi_polygons, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps)
+                            unsigned int steps, bool do_voronoi)
 {
-    if (offset < 0)
-        steps = 1;
-
     unique_ptr<vector<polygon_type> > polygons (new vector<polygon_type>(steps));
     list<list<const ring_type *> > rings (steps);
     auto ring_i = rings.begin();
@@ -286,43 +286,59 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     for (unsigned int i = 0; i < steps; i++)
     {
-        if (offset == 0)
-        {
-            (*polygons)[i] = input[index];
+        coordinate_type expand_by;
+        if (!do_voronoi) {
+            // Number of rings is the same as the number of steps.
+            expand_by = offset * (i+1);
+        } else {
+            // Voronoi lines are on the boundary and shared between
+            // multi_polygons so we only need half as many of them.
+            double factor = ((1-double(steps))/2 + i);
+            if (factor > 0) {
+                continue; // Don't need it.
+            }
+            expand_by = offset * factor;
         }
-        else if (offset > 0)
+        multi_polygon_type integral_voronoi_polygons;
+        bg::convert(voronoi_polygons, integral_voronoi_polygons);
+        polygon_type masked_milling_poly = do_voronoi ? integral_voronoi_polygons[index] : input[index];
+        multi_polygon_type masked_milling_polys;
+        if (mask) {
+            bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
+        } else {
+            bg::convert(masked_milling_poly, masked_milling_polys);
+        }
+        if (expand_by == 0)
         {
-            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            (*polygons)[i] = masked_milling_polys[0];
+        }
+        else
+        {
             multi_polygon_type_fp mpoly_temp_fp;
             polygon_type_fp input_fp;
-            bg::convert(input[index], input_fp);
+            bg::convert(masked_milling_polys[0], input_fp);
 
+            // Buffer should be done on floating point polygons.
             bg::buffer(input_fp, mpoly_temp_fp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(offset * (i + 1)),
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
                        //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
                        bg::strategy::buffer::end_flat(),
                        bg::strategy::buffer::point_circle(30));
 
-            bg::intersection(mpoly_temp_fp[0], voronoi[index], *mpoly_fp);
+            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            if (!do_voronoi) {
+                bg::intersection(mpoly_temp_fp[0], voronoi_polygons[index], *mpoly_fp);
+            } else {
+                polygon_type_fp min_shape;
+                bg::convert(input[index], min_shape);
+                bg::union_(mpoly_temp_fp[0], min_shape, *mpoly_fp);
+            }
             bg::convert((*mpoly_fp)[0], (*polygons)[i]);
 
             if (!bg::equals((*mpoly_fp)[0], mpoly_temp_fp[0]))
                 contentions = true;
-        }
-        else
-        {
-            if (mask)
-            {
-                multi_polygon_type_fp mpoly_temp_fp;
-                multi_polygon_type_fp mask_fp;
-                bg::convert(*(mask->vectorial_surface), mask_fp);
-                bg::intersection(voronoi[index], mask_fp, mpoly_temp_fp);
-                bg::convert(mpoly_temp_fp[0], (*polygons)[i]);
-            }
-            else
-                bg::convert(voronoi[index], (*polygons)[i]);
         }
 
         if (i == 0)
