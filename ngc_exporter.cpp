@@ -113,7 +113,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         if (layername == "back" ||
             (layername == "outline" && !workSide(options, "cut"))) {
             xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.forXNum-1);
-            xoffset += 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+            xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         }
         std::stringstream option_name;
         option_name << layername << "-output";
