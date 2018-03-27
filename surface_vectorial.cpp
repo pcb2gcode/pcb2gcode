@@ -114,9 +114,6 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     srand(1);
     debug_image.add(voronoi, 0.3, false);
 
-    const coordinate_type mirror_axis = mill->mirror_absolute ?
-        bounding_box.min_corner().x() :
-        ((bounding_box.min_corner().x() + bounding_box.max_corner().x()) / 2);
     bool contentions = false;
 
     srand(1);
@@ -155,7 +152,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     } else {
         tsp_solver::nearest_neighbour( toolpath, point_type(0, 0) );
     }
-    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, mirror_axis);
+    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
     if (mill->optimise)
     {
         for (const shared_ptr<icoords>& ring : scaled_toolpath)
@@ -204,13 +201,13 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
-    const multi_linestring_type& mls, bool mirror, ivalue_t mirror_axis) {
+    const multi_linestring_type& mls, bool mirror) {
     vector<shared_ptr<icoords>> result;
     for (const auto& ls : mls) {
         icoords coords;
         for (const auto& point : ls) {
             if (mirror) {
-                coords.push_back(make_pair((2 * mirror_axis - point.x()) / double(scale),
+                coords.push_back(make_pair((-point.x()) / double(scale),
                                            point.y() / double(scale)));
             } else {
                 coords.push_back(make_pair(point.x() / double(scale),

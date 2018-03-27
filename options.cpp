@@ -266,7 +266,7 @@ options::options()
        ("g64", po::value<double>(), "[DEPRECATED, use tolerance instead] maximum deviation from toolpath, overrides internal calculation")
        ("tolerance", po::value<double>(), "maximum toolpath tolerance")
        ("nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")
-       ("mirror-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "mirror back side along absolute zero instead of board center")
+       ("mirror-absolute", po::value<bool>()->default_value(true)->implicit_value(true), "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
        ("output-dir", po::value<string>()->default_value(""), "output directory")
        ("basename", po::value<string>(), "prefix for default output file names")
@@ -324,6 +324,15 @@ static void check_generic_parameters(po::variables_map const& vm)
     if (vm.count("g64"))
     {
         cerr << "g64 is deprecated, use tolerance.\n";
+    }
+
+    //---------------------------------------------------------------------------
+    //Check mirror-absolute parameter:
+
+    if (!vm["mirror-absolute"].as<bool>())
+    {
+        cerr << "mirror-absolute is deprecated, it must be true.\n";
+        exit(ERR_FALSEMIRRORABSOLUTE);
     }
 
     //---------------------------------------------------------------------------

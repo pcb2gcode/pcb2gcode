@@ -55,7 +55,6 @@ public:
 private:
     string name;
     bool mirrored;
-    bool mirror_absolute;
     shared_ptr<Core> surface;
     shared_ptr<RoutingMill> manufacturer;
 

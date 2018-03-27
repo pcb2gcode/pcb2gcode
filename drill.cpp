@@ -69,7 +69,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
-      mirror_absolute(options["mirror-absolute"].as<bool>()),
       bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
@@ -137,9 +136,8 @@ void ExcellonProcessor::add_header(string header)
 
 /******************************************************************************/
 /*
- Recalculates the x-coordinate based on drillfront and mirror_absolute
+ Recalculates the x-coordinate based on drillfront
  drillfront: drill from front side
- mirror_absolute: mirror back side on y-axis
  xvalue: x-coordinate
  returns the recalulated x-coordinate
  */
@@ -154,14 +152,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        if (mirror_absolute)        //drill from back side, mirrored along y-axis
-        {
-            retval = (2 * board_dimensions.min_corner().x() - xvalue);
-        }
-        else          //drill from back side, mirrored along board center
-        {
-            retval = (2 * board_center_x - xvalue);
-        }
+        retval = 2 * xoffset - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
     }
 
     return retval;
@@ -169,9 +160,9 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 
 unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
-    auto start_x = get_xvalue(line.first.first);
+    auto start_x = line.first.first;
     auto start_y = line.first.second;
-    auto stop_x = get_xvalue(line.second.first);
+    auto stop_x = line.second.first;
     auto stop_y = line.second.second;
     auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
                          (stop_y-start_y)*(stop_y-start_y));
@@ -343,7 +334,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         if( nog81 )
                         {
                             of << "G0 X"
-                               << ( x - xoffsetTot ) * cfactor
+                               << ( get_xvalue(x) - xoffsetTot ) * cfactor
                                << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                             of << "G1 Z" << driller->zwork * cfactor << '\n';
                                 of << "G1 Z" << driller->zsafe * cfactor << '\n';
@@ -351,7 +342,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         else
                         {
                             of << "X"
-                               << ( x - xoffsetTot )
+                               << ( get_xvalue(x) - xoffsetTot )
                                 * cfactor
                                    << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                         }
@@ -496,8 +487,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     double yoffsetTot;
     stringstream zchange;
 
-    //g_assert(drillfront == true);       //WHY?
-    //g_assert(mirror_absolute == false); //WHY?
     cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
