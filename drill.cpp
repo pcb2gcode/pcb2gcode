@@ -160,9 +160,9 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 
 unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
-    auto start_x = get_xvalue(line.first.first);
+    auto start_x = line.first.first;
     auto start_y = line.first.second;
-    auto stop_x = get_xvalue(line.second.first);
+    auto stop_x = line.second.first;
     auto stop_y = line.second.second;
     auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
                          (stop_y-start_y)*(stop_y-start_y));
@@ -334,7 +334,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         if( nog81 )
                         {
                             of << "G0 X"
-                               << ( x - xoffsetTot ) * cfactor
+                               << ( get_xvalue(x) - xoffsetTot ) * cfactor
                                << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                             of << "G1 Z" << driller->zwork * cfactor << '\n';
                                 of << "G1 Z" << driller->zsafe * cfactor << '\n';
@@ -342,7 +342,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         else
                         {
                             of << "X"
-                               << ( x - xoffsetTot )
+                               << ( get_xvalue(x) - xoffsetTot )
                                 * cfactor
                                    << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                         }
