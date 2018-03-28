@@ -79,7 +79,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricoutput ? 25.4 : 1;
     
-    if ( options["zero-start"].as<bool>() )
+    if( options["zero-start"].as<bool>() )
     {
         xoffset = board->get_min_x();
         yoffset = board->get_min_y();
@@ -89,7 +89,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         xoffset = 0;
         yoffset = 0;
     }
-
+    
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
     if( bFrontAutoleveller || bBackAutoleveller )
