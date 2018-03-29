@@ -56,6 +56,7 @@ class drill_exception: virtual std::exception, virtual boost::exception
 #include "mill.hpp"
 #include "tile.hpp"
 #include "unique_codes.hpp"
+#include "units.hpp"
 
 /******************************************************************************/
 /*
@@ -131,10 +132,12 @@ private:
     double cfactor;         //imperial/metric conversion factor for output file
     string zchange;
     const bool drillfront;
+    const double inputFactor;   //Multiply unitless inputs by this value.
     const bool bMetricOutput;   //Flag to indicate metric output
     const bool tsp_2opt;        // Perform TSP 2opt optimization on drill path.
     const double xoffset;
     const double yoffset;
+    const Length mirror_axis;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;

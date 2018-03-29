@@ -46,6 +46,7 @@ using Glib::build_filename;
 #include "drill.hpp"
 #include "tsp_solver.hpp"
 #include "common.hpp"
+#include "units.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -69,10 +70,12 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
+      inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
       bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
+      mirror_axis(options["mirror-axis"].as<Length>()),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
@@ -152,7 +155,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        retval = 2 * xoffset - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
+        retval = 2 * (xoffset + mirror_axis.asInch(inputFactor)) - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
     }
 
     return retval;
