@@ -278,7 +278,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     of << preamble_ext;        //insert external preamble file
     of << preamble;            //insert internal preamble
-    of << "S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
+    of << "G01 S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
 
     //tiling->header( of );     // See TODO #2
 
@@ -535,7 +535,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     //preamble
     of << preamble_ext << preamble << "S" << left << target->speed
-       << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor
+       << "    (RPM spindle speed.)\n" << "G01 F" << target->feed * cfactor
        << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
        << "G04 P" << target->spinup_time
        << "\nG00 Z" << target->zsafe * cfactor << "\n\n";
