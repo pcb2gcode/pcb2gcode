@@ -115,6 +115,10 @@ int main(int argc, char* argv[])
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
+        isolator->pre_milling_gcode = boost::algorithm::join(
+            vm["pre-milling-gcode"].as<vector<string>>(), "\n");
+        isolator->post_milling_gcode = boost::algorithm::join(
+            vm["post-milling-gcode"].as<vector<string>>(), "\n");
         isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
     }
