@@ -24,3 +24,6 @@ zcut=-0.13
 fill-outline=true
 zsafe=0.08
 zchange=1.0
+pre-milling-gcode=G12345
+pre-milling-gcode=G12345
+post-milling-gcode=G54321\n\n

@@ -61,11 +61,11 @@ using std::endl;
  */
 /******************************************************************************/
 Surface::Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-                 ivalue_t max_y, string name, string outputdir) :
-    dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y), zero_x(
-        -min_x * (ivalue_t) dpi + (ivalue_t) procmargin), zero_y(
-            -min_y * (ivalue_t) dpi + (ivalue_t) procmargin),
-                name(name), outputdir(outputdir), fill(false), clr(32)
+                 ivalue_t max_y, string name, string outputdir, bool tsp_2opt) :
+    dpi(dpi), min_x(min_x), max_x(max_x), min_y(min_y), max_y(max_y),
+    zero_x(-min_x * (ivalue_t) dpi + (ivalue_t) procmargin),
+    zero_y(-min_y * (ivalue_t) dpi + (ivalue_t) procmargin),
+    name(name), outputdir(outputdir), tsp_2opt(tsp_2opt), fill(false), clr(32)
 {
     guint8* pixels;
     int stride;
@@ -139,7 +139,6 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     int added = -1;
     int contentions = 0;
     int grow = mill->tool_diameter / 2 * dpi;
-    ivalue_t mirror_axis = mill->mirror_absolute ? min_x : ((min_x + max_x) / 2);
 
     vector<shared_ptr<icoords> > toolpath;
 
@@ -173,7 +172,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
                     icoordpair(
                         // tricky calculations
                         mirrored ?
-                        (2 * mirror_axis - xpt2i(c.first)) :
+                        -xpt2i(c.first) :
                         xpt2i(c.first),
                         min_y + max_y - ypt2i(c.second)));
             }
@@ -199,7 +198,11 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
              << " possibly use a smaller milling width.\n";
     }
 
-    tsp_solver::nearest_neighbour( toolpath, std::make_pair(0, 0), 1.0 / dpi );
+    if (tsp_2opt) {
+        tsp_solver::tsp_2opt( toolpath, icoordpair(0, 0) );
+    } else {
+        tsp_solver::nearest_neighbour( toolpath, icoordpair(0, 0) );
+    }
     save_debug_image("traced_" + name);
 
     return toolpath;

@@ -24,6 +24,8 @@
 #include <boost/format.hpp>
 using boost::format;
 
+#include "units.hpp"
+
 Tiling::Tiling( TileInfo tileInfo, double cfactor ) :
     tileInfo( tileInfo ), cfactor( cfactor ),
     initialXOffsetVar(0), initialYOffsetVar(0)
@@ -37,17 +39,17 @@ void Tiling::header( std::ofstream &of )
     {
         switch( tileInfo.software )
         {
-            case LINUXCNC:
+            case Software::LINUXCNC:
                 of << "\no" << tileInfo.tileVar << " sub ( Main subroutine )\n\n";
                 break;
             
-            case MACH3:
-            case MACH4:
+            case Software::MACH3:
+            case Software::MACH4:
                 tileSequence( of );
                 of << gCodeEnd << "\nO" << tileInfo.tileVar << " ( Main subroutine )\n\n";
                 break;
             
-            case CUSTOM:
+            case Software::CUSTOM:
                 break;
         
         }
@@ -60,23 +62,23 @@ void Tiling::footer( std::ofstream &of )
     {
         switch( tileInfo.software )
         {
-            case LINUXCNC:
+            case Software::LINUXCNC:
                 of << "\no" << tileInfo.tileVar << " endsub\n\n";
                 tileSequence( of );
                 of << gCodeEnd;
                 break;
             
-            case MACH3:
-            case MACH4:
+            case Software::MACH3:
+            case Software::MACH4:
                 of << "\nM99\n\n";
                 break;
             
-            case CUSTOM:
+            case Software::CUSTOM:
                 break;
         }
     }
     
-    if( !tileInfo.enabled || tileInfo.software == CUSTOM )
+    if( !tileInfo.enabled || tileInfo.software == Software::CUSTOM )
         of << gCodeEnd;
 }
 
@@ -116,22 +118,13 @@ Tiling::TileInfo Tiling::generateTileInfo( const boost::program_options::variabl
     tileInfo.boardWidth = boardWidth;
     tileInfo.tileVar = ocodes.getUniqueCode();
 
-    if( !options.count("software") ||
-        boost::iequals( options["software"].as<string>(), "custom" ) )
-        tileInfo.software = CUSTOM;
-    else if( boost::iequals( options["software"].as<string>(), "linuxcnc" ) )
-        tileInfo.software = LINUXCNC;
-    else if ( boost::iequals( options["software"].as<string>(), "mach3" ) )
-        tileInfo.software = MACH3;
-    else if ( boost::iequals( options["software"].as<string>(), "mach4" ) )
-        tileInfo.software = MACH4;
-    else
-    {
-        tileInfo.software = CUSTOM;
-        std::cerr << "Tiling: unknown software!\n";
+    if( !options.count("software") ) {
+        tileInfo.software = Software::CUSTOM;
+    } else {
+        tileInfo.software = options["software"].as<Software::Software>();
     }
 
-    if( tileInfo.software == CUSTOM )
+    if( tileInfo.software == Software::CUSTOM )
     {
         tileInfo.forXNum = tileInfo.tileX;
         tileInfo.forYNum = tileInfo.tileY;

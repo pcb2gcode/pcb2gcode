@@ -22,6 +22,7 @@
 #define MILL_H
 
 #include <stdint.h>
+#include <string.h>
 
 /******************************************************************************/
 /*
@@ -44,9 +45,10 @@ public:
     double tolerance;
     bool explicit_tolerance;
     bool backside;
-    bool mirror_absolute;
     double spinup_time;
     double spindown_time;
+    std::string pre_milling_gcode;
+    std::string post_milling_gcode;
 };
 
 /******************************************************************************/
@@ -69,6 +71,7 @@ class Isolator: public RoutingMill
 {
 public:
     int extra_passes;
+    bool voronoi;
     bool preserve_thermal_reliefs;
 };
 
