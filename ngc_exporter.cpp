@@ -312,8 +312,14 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
                                                       ( path->begin()->second - yoffsetTot ) * cfactor ) );
                     }
-                    else
+                    else {
+                        if (!mill->pre_milling_gcode.empty()) {
+                            of << "( begin pre-milling-gcode )\n";
+                            of << mill->pre_milling_gcode << "\n";
+                            of << "( end pre-milling-gcode )\n";
+                        }
                         of << "G01 Z" << mill->zwork * cfactor << "\n";
+                    }
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                     of << "G01 F" << mill->feed * cfactor << '\n';
@@ -329,6 +335,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                             of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                << ( iter->second - yoffsetTot ) * cfactor << '\n';
                         ++iter;
+                    }
+                    if (!mill->post_milling_gcode.empty()) {
+                        of << "( begin post-milling-gcode )\n";
+                        of << mill->post_milling_gcode << "\n";
+                        of << "( end post-milling-gcode )\n";
                     }
                 }
             }
