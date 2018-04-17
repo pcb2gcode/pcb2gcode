@@ -500,6 +500,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
     // For each shape, see if it has any holes that are empty.
     size_t thermal_reliefs_found = 0;
     svg_writer image(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+    multi_polygon_type holes;
     for (auto& p : milling_surface) {
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
@@ -522,11 +523,12 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
                 for (const auto& p : shrunk_thermal_hole_fp) {
                     polygon_type integral_p;
                     bg::convert(p, integral_p);
-                    milling_surface.push_back(integral_p);
+                    holes.push_back(integral_p);
                 }
             }
         }
     }
+    milling_surface.insert(milling_surface.end(), holes.begin(), holes.end());
     return thermal_reliefs_found;
 }
 
