@@ -278,7 +278,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     of << preamble_ext;        //insert external preamble file
     of << preamble;            //insert internal preamble
-    of << "G01 S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
+    of << "G00 S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
 
     //tiling->header( of );     // See TODO #2
 
