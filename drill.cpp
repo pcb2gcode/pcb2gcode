@@ -46,6 +46,7 @@ using Glib::build_filename;
 #include "drill.hpp"
 #include "tsp_solver.hpp"
 #include "common.hpp"
+#include "units.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -69,11 +70,12 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       drillfront(workSide(options, "drill")),
-      mirror_absolute(options["mirror-absolute"].as<bool>()),
+      inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
       bMetricOutput(options["metricoutput"].as<bool>()),
-      quantization_error(2.0 / options["dpi"].as<int>()),
+      tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
+      mirror_axis(options["mirror-axis"].as<Length>()),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
@@ -137,9 +139,8 @@ void ExcellonProcessor::add_header(string header)
 
 /******************************************************************************/
 /*
- Recalculates the x-coordinate based on drillfront and mirror_absolute
+ Recalculates the x-coordinate based on drillfront
  drillfront: drill from front side
- mirror_absolute: mirror back side on y-axis
  xvalue: x-coordinate
  returns the recalulated x-coordinate
  */
@@ -154,14 +155,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     }
     else
     {
-        if (mirror_absolute)        //drill from back side, mirrored along y-axis
-        {
-            retval = (2 * board_dimensions.min_corner().x() - xvalue);
-        }
-        else          //drill from back side, mirrored along board center
-        {
-            retval = (2 * board_center_x - xvalue);
-        }
+        retval = 2 * (xoffset + mirror_axis.asInch(inputFactor)) - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
     }
 
     return retval;
@@ -169,9 +163,9 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 
 unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
-    auto start_x = get_xvalue(line.first.first);
+    auto start_x = line.first.first;
     auto start_y = line.first.second;
-    auto stop_x = get_xvalue(line.second.first);
+    auto stop_x = line.second.first;
     auto stop_y = line.second.second;
     auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
                          (stop_y-start_y)*(stop_y-start_y));
@@ -284,7 +278,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     of << preamble_ext;        //insert external preamble file
     of << preamble;            //insert internal preamble
-    of << "S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
+    of << "G00 S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
 
     //tiling->header( of );     // See TODO #2
 
@@ -303,7 +297,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "G04 P" << driller->spindown_time
-               << "(MSG, Change tool bit to drill size " << it->second.diameter
+               << "\n(MSG, Change tool bit to drill size " << it->second.diameter
                << " " << it->second.unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
@@ -343,7 +337,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         if( nog81 )
                         {
                             of << "G0 X"
-                               << ( x - xoffsetTot ) * cfactor
+                               << ( get_xvalue(x) - xoffsetTot ) * cfactor
                                << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                             of << "G1 Z" << driller->zwork * cfactor << '\n';
                                 of << "G1 Z" << driller->zsafe * cfactor << '\n';
@@ -351,7 +345,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                         else
                         {
                             of << "X"
-                               << ( x - xoffsetTot )
+                               << ( get_xvalue(x) - xoffsetTot )
                                 * cfactor
                                    << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                         }
@@ -436,20 +430,18 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        double z_step = cutter->stepsize;
-        double z = cutter->zwork + z_step * abs(int(cutter->zwork / z_step));
-
-        if (!cutter->do_steps)
-        {
-            z = cutter->zwork;
-            z_step = 1;      //dummy to exit the loop
+        // Find the largest z_step that divides 0 through z_work into
+        // evenly sized passes such that each pass is at most
+        // cutter->stepsize in depth.
+        unsigned int stepcount = 1;
+        if (cutter->do_steps) {
+            stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
         }
 
-        int stepcount = abs(int(cutter->zwork / z_step));
-
-        while (z >= cutter->zwork)
+        for (unsigned int current_step = 0; current_step < stepcount; current_step++)
         {
-            of << "G1 Z" << cutter->zwork * cfactor + stepcount * cutter->stepsize * cfactor << '\n';
+            double z = double(current_step+1)/(stepcount) * cutter->zwork;
+            of << "G1 Z" << z * cfactor << '\n';
             if (!slot) {
                 // Just drill a full-circle.
                 of << "G2 "
@@ -477,8 +469,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                 of << "G1 X" << start_targetx * cfactor
                    << " Y" << start_targety << "\n";
             }
-            z -= z_step;
-            stepcount--;
         }
 
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
@@ -500,8 +490,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     double yoffsetTot;
     stringstream zchange;
 
-    //g_assert(drillfront == true);       //WHY?
-    //g_assert(mirror_absolute == false); //WHY?
     cout << "Exporting drill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
@@ -525,8 +513,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         of << "( " << s << " )" << "\n";
     }
 
-    if( tileInfo.enabled && tileInfo.software != CUSTOM )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    if( tileInfo.enabled && tileInfo.software != Software::CUSTOM )
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 
@@ -547,7 +535,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     //preamble
     of << preamble_ext << preamble << "S" << left << target->speed
-       << "    (RPM spindle speed.)\n" << "F" << target->feed * cfactor
+       << "    (RPM spindle speed.)\n" << "G01 F" << target->feed * cfactor
        << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
        << "G04 P" << target->spinup_time
        << "\nG00 Z" << target->zsafe * cfactor << "\n\n";
@@ -562,7 +550,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         {
             xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+            if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             for (map<int, drillbit>::const_iterator it = bits->begin();
@@ -751,7 +739,11 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
     {
-        tsp_solver::nearest_neighbour( i->second, std::make_pair(get_xvalue(0) + xoffset, yoffset), quantization_error );
+        if (tsp_2opt) {
+            tsp_solver::tsp_2opt( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
+        } else {
+            tsp_solver::nearest_neighbour( i->second, icoordpair(get_xvalue(0) + xoffset, yoffset) );
+        }
     }
 
     return original_path;

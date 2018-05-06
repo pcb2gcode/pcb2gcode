@@ -40,6 +40,8 @@ using Glib::build_filename;
 #include <boost/format.hpp>
 using boost::format;
 
+#include "units.hpp"
+
 /******************************************************************************/
 /*
  */
@@ -94,13 +96,25 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
                                       xoffset, yoffset, tileInfo );
 
-    if (options["bridges"].as<double>() > 0 && options["bridgesnum"].as<unsigned int>() > 0)
+    if (options["bridges"].as<Length>().asInch(1) > 0 && options["bridgesnum"].as<unsigned int>() > 0)
         bBridges = true;
     else
         bBridges = false;
 
     for ( string layername : board->list_layers() )
     {
+        if (options["zero-start"].as<bool>()) {
+            xoffset = board->get_min_x();
+            yoffset = board->get_min_y();
+        } else {
+            xoffset = 0;
+            yoffset = 0;
+        }
+        if (layername == "back" ||
+            (layername == "outline" && !workSide(options, "cut"))) {
+            xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.forXNum-1);
+            xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+        }
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
@@ -136,7 +150,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
         to_string(mill->spindown_time) +
-        "M9 ( Coolant off. )\n"
+        "\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
     tiling.initialXOffsetVar = globalVars.getUniqueCode();
@@ -158,8 +172,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     else
         bAutolevelNow = false;
 
-    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != CUSTOM ) )
-        of << "( Gcode for " << getSoftwareString(tileInfo.software) << " )\n";
+    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
+        of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
 
@@ -180,12 +194,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of << "G90 ( Absolute coordinates. )\n"
-       << "S" << left << mill->speed << " ( RPM spindle speed. )\n";
+       << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
 
     if (mill->explicit_tolerance)
         of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
 
-    of << "F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
+    of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if( bAutolevelNow )
     {
@@ -200,7 +214,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         leveller->header( of );
     }
 
-    of << "F" << mill->feed * cfactor << " ( Feedrate. )\n"
+    of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n"
        << "M3 ( Spindle on clockwise. )\n"
        << "G04 P" << mill->spinup_time << "\n";
     
@@ -214,7 +228,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         {
             xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            if( tileInfo.enabled && tileInfo.software == CUSTOM )
+            if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
@@ -249,8 +263,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                         of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
                         of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                        of << "F" << mill->feed * cfactor << "\n";
-                        of << "G01 ";
+                        of << "G01 F" << mill->feed * cfactor << "\n";
 
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
@@ -261,7 +274,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         while (iter != path->end())
                         {
 
-                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                            of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                << ( iter->second - yoffsetTot ) * cfactor << '\n';
 
                             if (bBridges && currentBridge != bridges.end())
@@ -269,12 +282,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                                 if (z < cutter->bridges_height)
                                 {
                                     if (*currentBridge == iter - path->begin())
-                                        of << "Z" << cutter->bridges_height * cfactor << '\n';
+                                        of << "G01 Z" << cutter->bridges_height * cfactor << '\n';
                                     else if (*currentBridge == last - path->begin())
                                     {
-                                        of << "Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                        of << "F" << cutter->feed * cfactor << '\n';
-                                        of << "G01 ";
+                                        of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+                                        of << "G01 F" << cutter->feed * cfactor << '\n';
                                     }
                                 }
 
@@ -291,7 +303,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                 {
                     //--------------------------------------------------------------------
                     // isolating (front/backside)
-                    of << "F" << mill->vertfeed * cfactor << '\n';
+                    of << "G01 F" << mill->vertfeed * cfactor << '\n';
 
                     if( bAutolevelNow )
                     {
@@ -300,14 +312,17 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                         of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
                                                       ( path->begin()->second - yoffsetTot ) * cfactor ) );
                     }
-                    else
+                    else {
+                        if (!mill->pre_milling_gcode.empty()) {
+                            of << "( begin pre-milling-gcode )\n";
+                            of << mill->pre_milling_gcode << "\n";
+                            of << "( end pre-milling-gcode )\n";
+                        }
                         of << "G01 Z" << mill->zwork * cfactor << "\n";
+                    }
 
                     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                    of << "F" << mill->feed * cfactor << '\n';
-
-                    if (!bAutolevelNow)
-                        of << "G01 ";
+                    of << "G01 F" << mill->feed * cfactor << '\n';
 
                     icoords::iterator iter = path->begin();
 
@@ -317,9 +332,14 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                             of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
                                                                            ( iter->second - yoffsetTot ) * cfactor ) );
                         else
-                            of << "X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+                            of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                << ( iter->second - yoffsetTot ) * cfactor << '\n';
                         ++iter;
+                    }
+                    if (!mill->post_milling_gcode.empty()) {
+                        of << "( begin post-milling-gcode )\n";
+                        of << mill->post_milling_gcode << "\n";
+                        of << "( end post-milling-gcode )\n";
                     }
                 }
             }

@@ -28,6 +28,9 @@ AX_CHECK_COMPILE_FLAG([-fext-numeric-literals],
 # Enable warnings
 AX_CXXFLAGS_WARN_ALL
 
+# Useful for measuring the coverage of the unit tests
+AX_CODE_COVERAGE
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
@@ -36,6 +39,7 @@ BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
 BOOST_STRING_ALGO
 BOOST_FORMAT
+BOOST_OPTIONAL
 
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])

@@ -47,7 +47,8 @@ using Glib::build_filename;
 #include "board.hpp"
 #include "drill.hpp"
 #include "options.hpp"
-
+#include "units.hpp"
+ 
 #include <boost/algorithm/string.hpp>
 
 /******************************************************************************/
@@ -92,32 +93,33 @@ int main(int argc, char* argv[])
     const bool explicit_tolerance = !vm["nog64"].as<bool>();
     const string outputdir = vm["output-dir"].as<string>();
     const double spindown_time = vm.count("spindown-time") ?
-        vm["spindown-time"].as<double>() : vm["spinup-time"].as<double>();
+        vm["spindown-time"].as<Time>().asMillisecond(1) : vm["spinup-time"].as<Time>().asMillisecond(1);
     shared_ptr<Isolator> isolator;
 
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        if (vm["voronoi"].as<bool>())
-            isolator->tool_diameter = -1;
-        else
-            isolator->tool_diameter = vm["offset"].as<double>() * 2 * unit;
-        isolator->zwork = vm["zwork"].as<double>() * unit;
-        isolator->zsafe = vm["zsafe"].as<double>() * unit;
-        isolator->feed = vm["mill-feed"].as<double>() * unit;
+        isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        isolator->voronoi = vm["voronoi"].as<bool>();
+        isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
+        isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        isolator->feed = vm["mill-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-vertfeed"))
-            isolator->vertfeed = vm["mill-vertfeed"].as<double>() * unit;
+            isolator->vertfeed = vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             isolator->vertfeed = isolator->feed / 2;
-        isolator->speed = vm["mill-speed"].as<int>();
-        isolator->zchange = vm["zchange"].as<double>() * unit;
+        isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
+        isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;
-        isolator->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        isolator->spinup_time = vm["spinup-time"].as<double>();
+        isolator->pre_milling_gcode = boost::algorithm::join(
+            vm["pre-milling-gcode"].as<vector<string>>(), "\n");
+        isolator->post_milling_gcode = boost::algorithm::join(
+            vm["post-milling-gcode"].as<vector<string>>(), "\n");
+        isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
     }
 
@@ -126,29 +128,28 @@ int main(int argc, char* argv[])
     if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
     {
         cutter = shared_ptr<Cutter>(new Cutter());
-        cutter->tool_diameter = vm["cutter-diameter"].as<double>() * unit;
-        cutter->zwork = vm["zcut"].as<double>() * unit;
-        cutter->zsafe = vm["zsafe"].as<double>() * unit;
-        cutter->feed = vm["cut-feed"].as<double>() * unit;
+        cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+        cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
+        cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("cut-vertfeed"))
-            cutter->vertfeed = vm["cut-vertfeed"].as<double>() * unit;
+            cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             cutter->vertfeed = cutter->feed / 2;
-        cutter->speed = vm["cut-speed"].as<int>();
-        cutter->zchange = vm["zchange"].as<double>() * unit;
+        cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
+        cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
         cutter->do_steps = true;
-        cutter->stepsize = vm["cut-infeed"].as<double>() * unit;
+        cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
         cutter->optimise = vm["optimise"].as<bool>();
         cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
         cutter->tolerance = tolerance;
         cutter->explicit_tolerance = explicit_tolerance;
-        cutter->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        cutter->spinup_time = vm["spinup-time"].as<double>();
+        cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         cutter->spindown_time = spindown_time;
         cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
-        cutter->bridges_width = vm["bridges"].as<double>() * unit;
+        cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
         if (vm.count("zbridges"))
-            cutter->bridges_height = vm["zbridges"].as<double>() * unit;
+            cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
         else
             cutter->bridges_height = cutter->zsafe;
     }
@@ -158,16 +159,15 @@ int main(int argc, char* argv[])
     if (vm.count("drill"))
     {
         driller = shared_ptr<Driller>(new Driller());
-        driller->zwork = vm["zdrill"].as<double>() * unit;
-        driller->zsafe = vm["zsafe"].as<double>() * unit;
-        driller->feed = vm["drill-feed"].as<double>() * unit;
-        driller->speed = vm["drill-speed"].as<int>();
+        driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
+        driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
+        driller->speed = vm["drill-speed"].as<Frequency>().asPerMinute(1);
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
-        driller->mirror_absolute = vm["mirror-absolute"].as<bool>();
-        driller->spinup_time = vm["spinup-time"].as<double>();
+        driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         driller->spindown_time = spindown_time;
-        driller->zchange = vm["zchange"].as<double>() * unit;
+        driller->zchange = vm["zchange"].as<Length>().asInch(unit);
     }
 
     //---------------------------------------------------------------------------
@@ -255,10 +255,11 @@ int main(int argc, char* argv[])
             vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
             vm["fill-outline"].as<bool>() ?
-                vm["outline-width"].as<double>() * unit :
+                vm["outline-width"].as<Length>().asInch(unit) :
                 INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>()));
+            vm["vectorial"].as<bool>(),
+            vm["tsp-2opt"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -428,8 +429,9 @@ int main(int argc, char* argv[])
             if (vm["milldrill"].as<bool>())
             {
                 if (vm.count("milldrill-diameter")) {
-                    cutter->tool_diameter = vm["milldrill-diameter"].as<double>() * unit;
+                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
                 }
+                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
                 ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
                                 vm["zchange-absolute"].as<bool>());
             }
@@ -444,15 +446,15 @@ int main(int argc, char* argv[])
         }
 
     }
-    catch (drill_exception& e)
+    catch (const drill_exception& e)
     {
-        cout << "ERROR.\n";
+        cout << "ERROR: drill_exception.\n";
     }
-    catch (import_exception& i)
+    catch (const import_exception& i)
     {
-        cout << "ERROR.\n";
+        cout << "ERROR: " << i.what() << "\n";
     }
-    catch (boost::exception& e)
+    catch (const boost::exception& e)
     {
         cout << "not specified.\n";
     }

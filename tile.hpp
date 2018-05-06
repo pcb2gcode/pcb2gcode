@@ -32,7 +32,7 @@ class Tiling
 public:
     struct TileInfo
     {
-        Software software;
+        Software::Software software;
         bool enabled;
         unsigned int tileX;
         unsigned int tileY;

@@ -57,7 +57,7 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable
 {
 public:
     Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
-                        string name, string outputdir);
+                      string name, string outputdir, bool tsp_2opt);
 
     vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
             bool mirror);
@@ -82,6 +82,7 @@ protected:
     const ivalue_t height_in;
     const string name;
     const string outputdir;
+    const bool tsp_2opt;
     static unsigned int debug_image_index;
 
     bool fill;
@@ -100,11 +101,11 @@ protected:
     // once.
     multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
     vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
-        const multi_linestring_type& mls, bool mirror, ivalue_t mirror_axis);
+        const multi_linestring_type& mls, bool mirror);
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
                             const multi_polygon_type_fp& voronoi, multi_linestring_type& toolpath,
                             bool& contentions, coordinate_type offset, size_t index,
-                            unsigned int steps);
+                            unsigned int steps, bool do_voronoi);
 };
 
 class svg_writer

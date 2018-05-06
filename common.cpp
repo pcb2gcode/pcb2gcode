@@ -25,17 +25,7 @@
 #include <boost/format.hpp>
 using boost::format;
 
-string getSoftwareString( Software software )
-{
-    switch( software )
-    {
-        case LINUXCNC:  return "LinuxCNC";
-        case MACH4:     return "Mach4";
-        case MACH3:     return "Mach3";
-        case CUSTOM:    return "custom software";
-        default:        return "unknown software";
-    }
-}
+#include "units.hpp"
 
 bool workSide( const boost::program_options::variables_map &options, string type )
 {
@@ -46,16 +36,17 @@ bool workSide( const boost::program_options::variables_map &options, string type
         return options[front].as<bool>();
     else
     {
-        if( boost::iequals( options[side].as<string>(), "front" ) )
-            return true;
-        else if ( boost::iequals( options[side].as<string>(), "back" ) )
-            return false;
-        else
-        {
-            if( options.count("front") || !options.count("back") )
-                return true;    // back+front, front only, <nothing>
-            else
-                return false;   // back only
+        switch (options[side].as<BoardSide::BoardSide>()) {
+            case BoardSide::FRONT:
+                return true;
+            case BoardSide::BACK:
+                return false;
+            case BoardSide::AUTO:
+            default:
+                if( options.count("front") || !options.count("back") )
+                    return true;    // back+front, front only, <nothing>
+                else
+                    return false;   // back only
         }
     }
 }
