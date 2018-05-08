@@ -194,7 +194,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     }
 
     of << "G90 ( Absolute coordinates. )\n"
-       << "G01 S" << left << mill->speed << " ( RPM spindle speed. )\n";
+       << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
 
     if (mill->explicit_tolerance)
         of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
