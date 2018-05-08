@@ -645,15 +645,17 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
 
             if (i->second.size() != 0)
             {
-                multi_polygon_type buffered_mls;
-
-                bg::buffer(i->second, buffered_mls,
+                multi_linestring_type_fp mls_fp;
+                bg::convert(i->second, mls_fp);
+                multi_polygon_type_fp buffered_mls_fp;
+                bg::buffer(mls_fp, buffered_mls_fp,
                            bg::strategy::buffer::distance_symmetric<coordinate_type>(i->first),
                            bg::strategy::buffer::side_straight(),
                            bg::strategy::buffer::join_round(points_per_circle),
                            bg::strategy::buffer::end_round(points_per_circle),
                            bg::strategy::buffer::point_circle(points_per_circle));
-
+                multi_polygon_type buffered_mls;
+                bg::convert(buffered_mls_fp, buffered_mls);
                 bg::union_(buffered_mls, *draws, *temp_mpoly);
                 temp_mpoly.swap(draws);
                 temp_mpoly->clear();
