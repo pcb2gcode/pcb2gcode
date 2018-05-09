@@ -645,6 +645,8 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
 
             if (i->second.size() != 0)
             {
+                // Always convert to floating point before calling
+                // bg::buffer because it is buggy with fixed point.
                 multi_linestring_type_fp mls_fp;
                 bg::convert(i->second, mls_fp);
                 multi_polygon_type_fp buffered_mls_fp;
