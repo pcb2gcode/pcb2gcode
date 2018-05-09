@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=g++-4.8 BOOST=1_56_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -22,7 +22,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=g++-7 BOOST=1_56_0
 
     - os: linux
@@ -30,21 +30,21 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=g++-7 BOOST=1_66_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=clang++ BOOST=1_56_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -56,18 +56,34 @@ matrix:
       env: COMPILER=clang++
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then pip install --user cpp-coveralls; fi
+  - >
+      if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+        brew update;
+        brew install pyenv;
+        eval "$(pyenv init -)";
+        pyenv install 2.7.6;
+        pyenv global 2.7.6;
+        pyenv rehash;
+        pip install cpp-coveralls;
+        pyenv rehash;
+      fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv lcov; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
 
 install:
   - export CXX=$COMPILER
   - autoreconf -fvi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost --enable-code-coverage; fi
   - make
   - make check
 
 script:
-  - cd testing/gerbv_example/
+  - pushd testing/gerbv_example/
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
   - (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done)
+  - popd
+
+after_success:
+  - coveralls --gcov-options '\-lpr'
