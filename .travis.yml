@@ -55,12 +55,12 @@ matrix:
       compiler: clang
       env: COMPILER=clang++
 
-before_install:
+install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then pip install --user cpp-coveralls; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
 
-install:
+script:
   - export CXX=$COMPILER
   - autoreconf -fvi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
@@ -68,7 +68,5 @@ install:
   - make
   - make check
 
-script:
-  - true
 after_success:
   - coveralls --verbose --gcov-options '\-lpr'
