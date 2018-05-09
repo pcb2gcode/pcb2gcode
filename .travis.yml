@@ -75,4 +75,4 @@ script:
   - make check
 
 after_success:
-  - if [ "${ENABLE_CODE_COVERAGE" ]; then coveralls --verbose --gcov-options '\-lpr' -E "^${PWD}/boost/.*"; fi
+  - if [ "${ENABLE_CODE_COVERAGE}" ]; then coveralls --verbose --gcov-options '\-lpr' -E "^${PWD}/boost/.*"; fi
