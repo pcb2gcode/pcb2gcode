@@ -23,7 +23,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
-      env: COMPILER=g++-7 BOOST=1_56_0
+      env: COMPILER=g++-7 BOOST=1_56_0 ENABLE_COVERAGE="--enable-code-coverage"
 
     - os: linux
       compiler: gcc
@@ -31,7 +31,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
-      env: COMPILER=g++-7 BOOST=1_66_0
+      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_COVERAGE="--enable-code-coverage"
 
     - os: linux
       compiler: clang
@@ -63,8 +63,8 @@ install:
 
 script:
   - autoreconf -fvi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost --enable-code-coverage; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules "${ENABLE_CODE_COVERAGE}"; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}"; fi
   - make
   - make check
 
