@@ -74,7 +74,7 @@ before_install:
 install:
   - export CXX=$COMPILER
   - autoreconf -fvi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --enable-code-coverage; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost --enable-code-coverage; fi
   - make
   - make check
