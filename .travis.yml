@@ -56,14 +56,26 @@ matrix:
       env: COMPILER=clang++
 
 before_install:
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then pip install --user cpp-coveralls; fi
+  - >
+      if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+        brew update;
+        brew install pyenv;
+        eval "$(pyenv init -)";
+        pyenv install 2.7.6;
+        pyenv global 2.7.6;
+        pyenv rehash;
+        pip install cpp-coveralls;
+        pyenv rehash;
+      fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
 
 install:
   - export CXX=$COMPILER
   - autoreconf -fvi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules; --enable-code-coverage fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost --enable-code-coverage; fi
   - make
   - make check
 
@@ -71,3 +83,6 @@ script:
   - cd testing/gerbv_example/
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
   - (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done)
+
+after_success:
+  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
