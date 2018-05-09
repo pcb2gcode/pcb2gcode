@@ -86,4 +86,4 @@ script:
   - popd
 
 after_success:
-  - coveralls --gcov-options '\-lpr'
+  - coveralls --gcov-options '\-lpr' --verbose
