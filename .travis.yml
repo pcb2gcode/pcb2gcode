@@ -68,5 +68,7 @@ install:
   - make
   - make check
 
+script:
+  - true
 after_success:
   - coveralls --verbose --gcov-options '\-lpr'
