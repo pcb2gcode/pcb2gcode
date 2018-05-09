@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import unittest
 from subprocess import call
 import os

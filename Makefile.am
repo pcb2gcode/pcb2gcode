@@ -63,4 +63,4 @@ segmentize_tests_SOURCES = segmentize_tests.cpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 
-TESTS = $(check_PROGRAMS)
+TESTS = $(check_PROGRAMS) integration_tests.py
