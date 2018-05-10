@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=g++-4.8 BOOST=1_56_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -37,14 +37,14 @@ matrix:
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=clang++ BOOST=1_56_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov']
+          packages: ['libgtkmm-2.4-dev', 'gerbv']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
