@@ -73,7 +73,7 @@ script:
   - lcov --directory . -z || true #Ignore errors
   - rm -rf pcb2gcode-1.3.2-coverage.info pcb2gcode-1.3.2-coverage.info.tmp pcb2gcode-1.3.2-coverage || true #Ignore errors
   - find . \( -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" \) -delete || true #Ignore errors
-  - make check || travis_terminate 1
+  - VERBOSE=1 make check || travis_terminate 1
 
 after_success:
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then coveralls --verbose --gcov-options '\-lpr' -E "^${PWD}/boost/.*"; fi
