@@ -56,24 +56,24 @@ matrix:
       env: COMPILER=clang++
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then pip install --user cpp-coveralls; fi
+  - if [ "${ENABLE_CODE_COVERAGE}" ]; then pip install --user cpp-coveralls; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
   - export CXX=$COMPILER
 
-script:
-  - autoreconf -fvi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules "${ENABLE_CODE_COVERAGE}"; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}"; fi
-  - make
-  - pushd testing/gerbv_example/
-  - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2'
-  - (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done)
-  - popd
-  - lcov --directory . -z
-  - rm -rf pcb2gcode-1.3.2-coverage.info pcb2gcode-1.3.2-coverage.info.tmp pcb2gcode-1.3.2-coverage
-  - find . \( -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" \) -delete
-  - make check
+script: 
+  - autoreconf -fvi || travis_terminate 1
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
+  - make || travis_terminate 1
+  - pushd testing/gerbv_example/ || travis_terminate 1
+  - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
+  - (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done) || travis_terminate 1
+  - popd || travis_terminate 1
+  - lcov --directory . -z || true #Ignore errors
+  - rm -rf pcb2gcode-1.3.2-coverage.info pcb2gcode-1.3.2-coverage.info.tmp pcb2gcode-1.3.2-coverage || true #Ignore errors
+  - find . \( -name "*.gcda" -o -name "*.gcno" -o -name "*.gcov" \) -delete || true #Ignore errors
+  - make check || travis_terminate 1
 
 after_success:
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then coveralls --verbose --gcov-options '\-lpr' -E "^${PWD}/boost/.*"; fi
