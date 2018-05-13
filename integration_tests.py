@@ -65,8 +65,8 @@ class IntegrationTests(unittest.TestCase):
   def run_one_directory(self, input_path, expected_output_path, test_prefix):
     actual_output_path = self.pcb2gcode_one_directory(input_path)
     diff_text = self.compare_directories(expected_output_path, actual_output_path,
-                                         os.path.join(test_prefix, "expected"),
-                                         os.path.join(test_prefix, "actual"))
+                                         os.path.join("expected", test_prefix),
+                                         os.path.join("actual", test_prefix))
     shutil.rmtree(actual_output_path)
     self.assertFalse(diff_text,
                      'Files don\'t match\n' + diff_text)
