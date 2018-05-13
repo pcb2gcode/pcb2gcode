@@ -87,4 +87,4 @@ script:
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
 
 after_success:
-  - if [ "${ENABLE_CODE_COVERAGE}" ]; then coveralls --verbose --gcov-options '\-lpr' -E "^${PWD}/(boost|gerbv|.local)/.*"; fi
+  - if [ "${ENABLE_CODE_COVERAGE}" ]; then coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E "^${PWD}/(boost|gerbv|.local)/.*"; fi
