@@ -61,7 +61,10 @@ install:
       pip install --user cpp-coveralls &&
       git clone git://git.geda-project.org/gerbv.git &&
       pushd gerbv &&
-      sh autogen.sh && ./configure && make && sudo make install &&
+      sh autogen.sh &&
+      ./configure --disable-update-desktop-database &&
+      make &&
+      sudo make install &&
       popd;
     fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv; fi
