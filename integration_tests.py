@@ -78,7 +78,7 @@ class IntegrationTests(unittest.TestCase):
     for test_case in test_cases:
       test_prefix = os.path.join(examples_path, test_case, "expected")
       input_path = os.path.join(cwd, examples_path, test_case)
-      expected_output_path = os.path.join(cwd, exmaples_path, test_case, "expected")
+      expected_output_path = os.path.join(cwd, examples_path, test_case, "expected")
       self.run_one_directory(input_path, expected_output_path, test_prefix)
 
 if __name__ == '__main__':
