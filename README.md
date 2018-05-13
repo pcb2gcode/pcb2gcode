@@ -1,4 +1,4 @@
-# pcb2gcode [![Build Status](https://travis-ci.org/pcb2gcode/pcb2gcode.svg?branch=master)](https://travis-ci.org/pcb2gcode/pcb2gcode) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=KDT9RVZ9Y2NA4)
+# pcb2gcode [![Build Status](https://travis-ci.org/pcb2gcode/pcb2gcode.svg?branch=master)](https://travis-ci.org/pcb2gcode/pcb2gcode) [![Coverage Status](https://coveralls.io/repos/github/pcb2gcode/pcb2gcode/badge.svg?branch=master)](https://coveralls.io/github/pcb2gcode/pcb2gcode?branch=master) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=KDT9RVZ9Y2NA4)
 
 pcb2gcode is a command-line software for the isolation, routing and drilling of PCBs.
 It takes Gerber files as input and it outputs gcode files, suitable for the milling of PCBs.
