@@ -30,7 +30,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'lcov', 'ggcov', 'autopoint', 'automake']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake']
       env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - os: linux

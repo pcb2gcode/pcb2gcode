@@ -76,9 +76,9 @@ class IntegrationTests(unittest.TestCase):
     examples_path = "testing/gerbv_example"
     test_cases = ["multivibrator"]
     for test_case in test_cases:
-      test_prefix = os.path.join(examples_path, test_case)
-      input_path = os.path.join(cwd, test_prefix)
-      expected_output_path = os.path.join(input_path, "expected")
+      test_prefix = os.path.join(examples_path, test_case, "expected")
+      input_path = os.path.join(cwd, examples_path, test_case)
+      expected_output_path = os.path.join(cwd, exmaples_path, test_case, "expected")
       self.run_one_directory(input_path, expected_output_path, test_prefix)
 
 if __name__ == '__main__':
