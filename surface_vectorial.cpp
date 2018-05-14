@@ -98,7 +98,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         tolerance = 0.0001 * scale;
 
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-        preserve_thermal_reliefs(*vectorial_surface, grow);
+        preserve_thermal_reliefs(*vectorial_surface, std::max(grow, tolerance));
     }
 
     bg::unique(*vectorial_surface);
@@ -498,28 +498,17 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
             bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-            polygon_type_fp thermal_hole_fp;
-            bg::convert(thermal_hole, thermal_hole_fp);
-            multi_polygon_type_fp shrunk_thermal_hole_fp;
-            bg::buffer(thermal_hole_fp, shrunk_thermal_hole_fp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(-grow),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       bg::strategy::buffer::end_round(),
-                       bg::strategy::buffer::point_circle(30));
             multi_polygon_type shrunk_thermal_hole;
-            bg::convert(shrunk_thermal_hole_fp, shrunk_thermal_hole);
+            bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
             bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
             if (empty_hole) {
                 thermal_reliefs_found++;
                 if (!image) {
                     image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
                 }
-                image->add(shrunk_thermal_hole_fp, 1, true);
-                for (const auto& p : shrunk_thermal_hole_fp) {
-                    polygon_type integral_p;
-                    bg::convert(p, integral_p);
-                    holes.push_back(integral_p);
+                image->add(shrunk_thermal_hole, 1, true);
+                for (const auto& p : shrunk_thermal_hole) {
+                    holes.push_back(p);
                 }
             }
         }

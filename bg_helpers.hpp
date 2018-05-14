@@ -48,7 +48,23 @@ void buffer(multi_linestring_type const & geometry_in, multi_polygon_type & geom
   bg::convert(geometry_out_fp, geometry_out);
 }
 
-
+template<typename CoordinateType>
+void buffer(ring_type const & geometry_in, multi_polygon_type & geometry_out, CoordinateType expand_by) {
+  if (expand_by == 0) {
+    bg::convert(geometry_in, geometry_out);
+  } else {
+    polygon_type_fp geometry_in_fp;
+    bg::convert(geometry_in, geometry_in_fp);
+    multi_polygon_type_fp geometry_out_fp;
+    bg::buffer(geometry_in_fp, geometry_out_fp,
+               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(),
+               bg::strategy::buffer::end_round(),
+               bg::strategy::buffer::point_circle());
+    bg::convert(geometry_out_fp, geometry_out);
+  }
+}
 
 } // namespace bg_helpers
 
