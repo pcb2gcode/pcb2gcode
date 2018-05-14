@@ -521,7 +521,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
             if (empty_hole) {
                 thermal_reliefs_found++;
                 if (!image) {
-                  *image = svg_writer(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
                 }
                 image->add(shrunk_thermal_hole_fp, 1, true);
                 for (const auto& p : shrunk_thermal_hole_fp) {
