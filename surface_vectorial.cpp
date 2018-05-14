@@ -26,6 +26,7 @@ using std::cerr;
 using std::endl;
 
 #include <boost/format.hpp>
+#include <boost/optional.hpp>
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -499,7 +500,7 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
 size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& tolerance) {
     // For each shape, see if it has any holes that are empty.
     size_t thermal_reliefs_found = 0;
-    svg_writer image(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+    boost::optional<svg_writer> image;
     multi_polygon_type holes;
     for (auto& p : milling_surface) {
         for (auto& inner : p.inners()) {
@@ -519,7 +520,10 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
             bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
             if (empty_hole) {
                 thermal_reliefs_found++;
-                image.add(shrunk_thermal_hole_fp, 1, true);
+                if (!image) {
+                  *image = svg_writer(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+                }
+                image->add(shrunk_thermal_hole_fp, 1, true);
                 for (const auto& p : shrunk_thermal_hole_fp) {
                     polygon_type integral_p;
                     bg::convert(p, integral_p);
