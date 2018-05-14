@@ -35,6 +35,7 @@ using Glib::build_filename;
 #include "surface_vectorial.hpp"
 #include "eulerian_paths.hpp"
 #include "segmentize.hpp"
+#include "bg_helpers.hpp"
 
 using std::max;
 using std::max_element;
@@ -317,17 +318,8 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         else
         {
             multi_polygon_type_fp mpoly_temp_fp;
-            polygon_type_fp input_fp;
-            bg::convert(masked_milling_polys[0], input_fp);
-
             // Buffer should be done on floating point polygons.
-            bg::buffer(input_fp, mpoly_temp_fp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
-                       bg::strategy::buffer::side_straight(),
-                       bg::strategy::buffer::join_round(points_per_circle),
-                       //bg::strategy::buffer::join_miter(numeric_limits<coordinate_type>::max()),
-                       bg::strategy::buffer::end_round(),
-                       bg::strategy::buffer::point_circle(30));
+            bg_helpers::buffer(masked_milling_polys[0], mpoly_temp_fp, expand_by);
 
             auto mpoly_fp = make_shared<multi_polygon_type_fp>();
             if (!do_voronoi) {
