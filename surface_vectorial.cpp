@@ -96,8 +96,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
 
-    if (isolator && isolator->preserve_thermal_reliefs) {
-        preserve_thermal_reliefs(*vectorial_surface, tolerance);
+    if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
+        preserve_thermal_reliefs(*vectorial_surface, grow);
     }
 
     bg::unique(*vectorial_surface);
@@ -497,7 +497,7 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       PointLessThan>(segments_as_linestrings);
 }
 
-size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& tolerance) {
+size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& grow) {
     // For each shape, see if it has any holes that are empty.
     size_t thermal_reliefs_found = 0;
     boost::optional<svg_writer> image;
@@ -510,7 +510,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
             bg::convert(thermal_hole, thermal_hole_fp);
             multi_polygon_type_fp shrunk_thermal_hole_fp;
             bg::buffer(thermal_hole_fp, shrunk_thermal_hole_fp,
-                       bg::strategy::buffer::distance_symmetric<coordinate_type>(-tolerance),
+                       bg::strategy::buffer::distance_symmetric<coordinate_type>(-grow),
                        bg::strategy::buffer::side_straight(),
                        bg::strategy::buffer::join_round(points_per_circle),
                        bg::strategy::buffer::end_round(),
