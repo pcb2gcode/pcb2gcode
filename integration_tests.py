@@ -1,13 +1,15 @@
 #!/usr/bin/python
 
 import unittest
-from subprocess import call
+import subprocess
 import os
 import tempfile
 import shutil
 import difflib
 import filecmp
 import sys
+import argparse
+import re
 
 class IntegrationTests(unittest.TestCase):
 
@@ -23,7 +25,7 @@ class IntegrationTests(unittest.TestCase):
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
     os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
-    call([pcb2gcode, "--output-dir", actual_output_path])
+    subprocess.call([pcb2gcode, "--output-dir", actual_output_path])
     os.chdir(cwd)
     return actual_output_path
 
@@ -38,6 +40,30 @@ class IntegrationTests(unittest.TestCase):
     left_prefix: String to prepend to all left-side files
     right_prefix: String to prepend to all right-side files
     """
+
+    # Right side might not exist.
+    if not os.path.exists(right):
+      all_diffs = []
+      for f in os.listdir(left):
+        all_diffs += "Found %s but not %s.\n" % (os.path.join(left_prefix, f), os.path.join(right_prefix, f))
+        left_file = os.path.join(left, f)
+        with open(left_file, 'r') as myfile:
+          data=myfile.readlines()
+          all_diffs += difflib.unified_diff(data, [], os.path.join(left_prefix, f), "/dev/null")
+      return ''.join(all_diffs)
+
+    # Left side might not exist.
+    if not os.path.exists(left):
+      all_diffs = []
+      for f in os.listdir(right):
+        all_diffs += "Found %s but not %s.\n" % (os.path.join(right_prefix, f), os.path.join(left_prefix, f))
+        right_file = os.path.join(right, f)
+        with open(right_file, 'r') as myfile:
+          data=myfile.readlines()
+          all_diffs += difflib.unified_diff([], data, "/dev/null", os.path.join(right_prefix, f))
+      return ''.join(all_diffs)
+
+
     diff = filecmp.dircmp(left, right)
     # Now compare all the differing files.
     all_diffs = []
@@ -69,12 +95,16 @@ class IntegrationTests(unittest.TestCase):
                                          os.path.join("actual", test_prefix))
     shutil.rmtree(actual_output_path)
     self.assertFalse(diff_text,
-                     'Files don\'t match\n' + diff_text)
+                     'Files don\'t match\n' + diff_text +
+                     '\n***\nRun one of these:\n' +
+                     './integration_tests.py --fix\n' +
+                     './integration_tests.py --fix --add\n' +
+                     '***\n')
 
   def test_all(self):
     cwd = os.getcwd()
     examples_path = "testing/gerbv_example"
-    test_cases = ["multivibrator"]
+    test_cases = ["multivibrator", "am-test-voronoi"]
     for test_case in test_cases:
       test_prefix = os.path.join(examples_path, test_case, "expected")
       input_path = os.path.join(cwd, examples_path, test_case)
@@ -82,5 +112,34 @@ class IntegrationTests(unittest.TestCase):
       self.run_one_directory(input_path, expected_output_path, test_prefix)
 
 if __name__ == '__main__':
-  call(["make"])
-  unittest.main()
+  parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
+  parser.add_argument('--fix', action='store_true', default=False,
+                      help='Generate expected outputs automatically')
+  parser.add_argument('--add', action='store_true', default=False,
+                      help='git add new expected outputs automatically')
+  args = parser.parse_args()
+  if args.fix:
+    print("Generating expected outputs...")
+    output = None
+    try:
+      subprocess.check_output([sys.argv[0]], stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError, e:
+      output = str(e.output)
+    if not output:
+      print("No diffs, nothing to do.")
+      exit(0)
+    p = subprocess.Popen(["patch", "-p1"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    result = p.communicate(input=output)
+    files_patched = []
+    for l in result[0].split('\n'):
+      if l.startswith("patching file "):
+        files_patched.append(l[len("patching file "):])
+    if args.add:
+      subprocess.check_output(["git", "add"] + files_patched)
+      print("Done.\nAdded to git:\n" +
+            '\n'.join(files_patched))
+    else:
+      print("Done.\nYou now need to run:\n" +
+            '\n'.join('git add ' + x for x in files_patched))
+  else:
+    unittest.main()
