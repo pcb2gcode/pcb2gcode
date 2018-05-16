@@ -77,11 +77,17 @@ install:
 script: 
   - autoreconf -fvi || travis_terminate 1
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
+  - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
+    fi || travis_terminate 1
   - make || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
-  - if [ "${BOOST}" != "1_56_0" ]; then (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done); fi || travis_terminate 1
+  - >
+    if [ "${BOOST}" != "1_56_0" ]; then
+      (for dir in *; do cd $dir; ../../../pcb2gcode --software=LinuxCNC $ARGS || exit ; cd ..; done);
+    fi || travis_terminate 1 # Boost 1.56 fails on some inputs.
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
   - VERBOSE=1 make check || travis_terminate 1
