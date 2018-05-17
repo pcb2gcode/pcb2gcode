@@ -65,7 +65,6 @@ void buffer(ring_type const & geometry_in, multi_polygon_type & geometry_out, Co
     bg::convert(geometry_out_fp, geometry_out);
   }
 }
-
 } // namespace bg_helpers
 
 #endif //BG_HELPERS_H
