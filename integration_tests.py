@@ -11,6 +11,10 @@ import sys
 import argparse
 import re
 
+EXAMPLES_PATH = "testing/gerbv_example"
+TEST_CASES = [os.path.join(EXAMPLES_PATH, x)
+              for x in ("multivibrator", "am-test-voronoi")]
+
 class IntegrationTests(unittest.TestCase):
 
   def pcb2gcode_one_directory(self, input_path):
@@ -103,12 +107,11 @@ class IntegrationTests(unittest.TestCase):
 
   def test_all(self):
     cwd = os.getcwd()
-    examples_path = "testing/gerbv_example"
-    test_cases = ["multivibrator", "am-test-voronoi"]
+    test_cases = TEST_CASES
     for test_case in test_cases:
-      test_prefix = os.path.join(examples_path, test_case, "expected")
-      input_path = os.path.join(cwd, examples_path, test_case)
-      expected_output_path = os.path.join(cwd, examples_path, test_case, "expected")
+      test_prefix = os.path.join(test_case, "expected")
+      input_path = os.path.join(cwd, test_case)
+      expected_output_path = os.path.join(cwd, test_case, "expected")
       self.run_one_directory(input_path, expected_output_path, test_prefix)
 
 if __name__ == '__main__':
