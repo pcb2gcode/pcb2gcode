@@ -13,7 +13,9 @@ import re
 
 EXAMPLES_PATH = "testing/gerbv_example"
 TEST_CASES = [os.path.join(EXAMPLES_PATH, x)
-              for x in ("multivibrator", "am-test-voronoi")]
+              for x in ("multivibrator",
+                        "am-test-voronoi",
+                        "slots-milldrill")]
 
 class IntegrationTests(unittest.TestCase):
 
@@ -93,26 +95,36 @@ class IntegrationTests(unittest.TestCase):
     return ''.join(all_diffs)
 
   def run_one_directory(self, input_path, expected_output_path, test_prefix):
+    """Run pcb2gcode on a directory and assertFalse if there is an error.
+
+    Returns an empty string if there is no mismatch.
+    Returns a diff if there is a mismatch.
+    input_path: Path to inputs
+    expected_output_path: Path to expected outputs
+    test_prefix: Strin to prepend to all filenamess
+    """
     actual_output_path = self.pcb2gcode_one_directory(input_path)
     diff_text = self.compare_directories(expected_output_path, actual_output_path,
                                          os.path.join("expected", test_prefix),
                                          os.path.join("actual", test_prefix))
     shutil.rmtree(actual_output_path)
-    self.assertFalse(diff_text,
-                     'Files don\'t match\n' + diff_text +
-                     '\n***\nRun one of these:\n' +
-                     './integration_tests.py --fix\n' +
-                     './integration_tests.py --fix --add\n' +
-                     '***\n')
+    return diff_text
 
   def test_all(self):
     cwd = os.getcwd()
     test_cases = TEST_CASES
+    diff_texts = []
     for test_case in test_cases:
       test_prefix = os.path.join(test_case, "expected")
       input_path = os.path.join(cwd, test_case)
       expected_output_path = os.path.join(cwd, test_case, "expected")
-      self.run_one_directory(input_path, expected_output_path, test_prefix)
+      diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix))
+    self.assertFalse(any(diff_texts),
+                     'Files don\'t match\n' + '\n'.join(diff_texts) +
+                     '\n***\nRun one of these:\n' +
+                     './integration_tests.py --fix\n' +
+                     './integration_tests.py --fix --add\n' +
+                     '***\n')
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
