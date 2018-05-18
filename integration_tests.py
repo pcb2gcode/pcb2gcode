@@ -95,10 +95,10 @@ class IntegrationTests(unittest.TestCase):
     return ''.join(all_diffs)
 
   def run_one_directory(self, input_path, expected_output_path, test_prefix):
-    """Run pcb2gcode on a directory and assertFalse if there is an error.
+    """Run pcb2gcode on a directory and return the diff as a string.
 
     Returns an empty string if there is no mismatch.
-    Returns a diff if there is a mismatch.
+    Returns the diff if there is a mismatch.
     input_path: Path to inputs
     expected_output_path: Path to expected outputs
     test_prefix: Strin to prepend to all filenamess
