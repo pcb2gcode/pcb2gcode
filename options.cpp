@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,16 +10,16 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include "options.hpp"
 #include "config.h"
 
@@ -217,6 +217,8 @@ options::options()
        ("spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")
        ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
        ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
+       ("x-offset", po::value<double>()->default_value(0.0), "distance between the PCB origin and the machine origin in the X axe")
+       ("y-offset", po::value<double>()->default_value(0.0), "distance between the PCB origin and the machine origin in the Y axe")
        ("mill-speed", po::value<Frequency>(), "spindle rpm when milling")
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
@@ -360,7 +362,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVETOLERANCE);
         }
     }
-    
+
     //---------------------------------------------------------------------------
     //Check svg parameter:
 
@@ -377,7 +379,7 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
     }
-    
+
     //---------------------------------------------------------------------------
     //Check for tile parameters
 
@@ -386,7 +388,7 @@ static void check_generic_parameters(po::variables_map const& vm)
         cerr << "tile-x can't be negative!\n";
         exit(ERR_NEGATIVETILEX);
     }
-    
+
     if (vm["tile-y"].as<int>() < 1)
     {
         cerr << "tile-y can't be negative!\n";
