@@ -15,7 +15,9 @@ EXAMPLES_PATH = "testing/gerbv_example"
 TEST_CASES = [os.path.join(EXAMPLES_PATH, x)
               for x in ("multivibrator",
                         "am-test-voronoi",
-                        "slots-milldrill")]
+                        "slots-milldrill",
+                        "multivibrator_xy_offset",
+              )]
 
 class IntegrationTests(unittest.TestCase):
 
