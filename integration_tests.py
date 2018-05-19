@@ -33,7 +33,9 @@ class IntegrationTests(unittest.TestCase):
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
     os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
-    subprocess.call([pcb2gcode, "--output-dir", actual_output_path])
+    self.assertEqual(
+        subprocess.call([pcb2gcode, "--output-dir", actual_output_path]),
+        0)
     os.chdir(cwd)
     return actual_output_path
 
