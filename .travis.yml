@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'parallel', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
       env: COMPILER=g++-4.8 BOOST=1_56_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'parallel', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -22,7 +22,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'parallel', 'moreutils']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils']
       env: COMPILER=g++-7 BOOST=1_56_0
 
     - os: linux
@@ -30,21 +30,21 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'parallel', 'moreutils']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
       env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'parallel', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
       env: COMPILER=clang++ BOOST=1_56_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'parallel', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -56,7 +56,7 @@ matrix:
       env: COMPILER=clang++
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv parallel moreutils; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update && brew reinstall -s libtool && brew outdated boost || brew upgrade boost && brew install gtkmm gerbv moreutils; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
@@ -72,6 +72,7 @@ install:
       popd &&
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
     fi
+  - wget -qO- http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2 | tar xjv --wildcards "*/parallel"
   - export CXX=$COMPILER
 
 script:
@@ -81,7 +82,7 @@ script:
   - chronic make -j 4 || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
-  - ls | parallel -j 0 --halt soon,fail=1 "pushd {}; echo "Running on {}" ; ../../../pcb2gcode || exit ; popd" || travis_terminate 1
+  - ls | ../../parallel-*/src/parallel -j 0 --halt soon,fail=1 "pushd {}; echo "Running on {}" ; ../../../pcb2gcode || exit ; popd" || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
   - VERBOSE=1 make -j 4 check || travis_terminate 1
