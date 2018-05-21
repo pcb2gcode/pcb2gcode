@@ -72,7 +72,7 @@ install:
       popd &&
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
     fi
-  - wget -qO- http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2 | tar xjv --wildcards "*/parallel"
+  - wget -qO- http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2 | tar xj
   - export CXX=$COMPILER
 
 script:
