@@ -381,13 +381,34 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     bool slot = (start_x != stop_x ||
                  start_y != stop_y);
 
+    // Find the largest z_step that divides 0 through z_work into
+    // evenly sized passes such that each pass is at most
+    // cutter->stepsize in depth.
+    unsigned int stepcount = 1;
+    if (cutter->do_steps) {
+        stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
+    }
+
     if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
     {
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
-        of << "G1 Z" << cutter->zwork * cfactor << '\n';
         if (slot)
         {
-            of << "G0 X" << stop_x * cfactor << " Y" << stop_y * cfactor << '\n';
+            for (unsigned int current_step = 0; current_step < stepcount; current_step++)
+            {
+                double z = double(current_step+1)/(stepcount) * cutter->zwork;
+                of << "G1 Z" << z * cfactor << '\n';
+                of << "G1 X" << stop_x * cfactor << " Y" << stop_y * cfactor << '\n';
+                current_step++;
+                if (current_step >= stepcount) {
+                    break;
+                }
+                z = double(current_step+1)/(stepcount) * cutter->zwork;
+                of << "G1 Z" << z * cfactor << '\n';
+                of << "G1 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
+            }
+        } else {
+            of << "G1 Z" << cutter->zwork * cfactor << '\n';
         }
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
@@ -429,14 +450,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double stop2_targety = stop_y - mill_x;
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
-
-        // Find the largest z_step that divides 0 through z_work into
-        // evenly sized passes such that each pass is at most
-        // cutter->stepsize in depth.
-        unsigned int stepcount = 1;
-        if (cutter->do_steps) {
-            stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
-        }
 
         for (unsigned int current_step = 0; current_step < stepcount; current_step++)
         {

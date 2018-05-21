@@ -89,7 +89,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         xoffset = 0;
         yoffset = 0;
     }
-    
+    xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+    yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
     if( bFrontAutoleveller || bBackAutoleveller )
@@ -115,6 +117,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
             xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.forXNum-1);
             xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         }
+        xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+        yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());

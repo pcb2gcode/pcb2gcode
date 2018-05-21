@@ -287,6 +287,7 @@ int main(int argc, char* argv[])
         catch (import_exception& i)
         {
             cout << "ERROR.\n";
+            exit(EXIT_FAILURE);
         }
         catch (boost::exception& e)
         {
@@ -307,6 +308,7 @@ int main(int argc, char* argv[])
         catch (import_exception& i)
         {
             cout << "ERROR.\n";
+            exit(EXIT_FAILURE);
         }
         catch (boost::exception& e)
         {
@@ -326,6 +328,7 @@ int main(int argc, char* argv[])
         catch (import_exception& i)
         {
             cout << "ERROR.\n";
+            exit(EXIT_FAILURE);
         }
         catch (boost::exception& e)
         {
