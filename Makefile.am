@@ -7,6 +7,7 @@ pcb2gcode_SOURCES = \
     autoleveller.cpp \
     board.hpp \
     board.cpp \
+    bg_helpers.hpp \
     common.hpp \
     common.cpp \
     core.hpp \
