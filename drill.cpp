@@ -264,7 +264,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         for (map<int, drillbit>::const_iterator it = bits->begin();
                 it != bits->end(); it++)
         {
-            of << " [" << it->second.diameter << it->second.unit << "]";
+            auto diameter = it->second.diameter * cfactor;
+            auto unit = bMetricOutput ? "mm" : "inch";
+            of << " [" << diameter << " " << unit << "]";
         }
         of << " )\n\n";
     }
@@ -292,13 +294,15 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         }
         else
         {
+            auto diameter = it->second.diameter * cfactor;
+            auto unit = bMetricOutput ? "mm" : "inch";
             if (zchange_absolute)
                 of << "G53 ";
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "G04 P" << driller->spindown_time
-               << "\n(MSG, Change tool bit to drill size " << it->second.diameter
-               << " " << it->second.unit << ")\n"
+               << "\n(MSG, Change tool bit to drill size " << diameter
+               << " " << unit << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
                << "M3      (Spindle on clockwise.)\n"
@@ -542,7 +546,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++)
     {
-        of << " [" << it->second.diameter << "]";
+        auto diameter = it->second.diameter * cfactor;
+        auto unit = bMetricOutput ? "mm" : "inch";
+        of << " [" << diameter << " " << unit << "]";
     }
     of << " )\n\n";
 
@@ -681,16 +687,20 @@ void ExcellonProcessor::parse_holes()
                              icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
-    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
+    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); ) {
+        auto diameter = it->second.diameter * cfactor;
+        auto unit = bMetricOutput ? "mm" : "inch";
         if (holes->count(it->first) == 0)   //If a bit has no associated holes
         {
-			cerr << "Warning: bit " << it->first << " (" << it->second.diameter
-				 << ' ' << it->second.unit << ") has no associated holes; "
-				 "removing it." << std::endl;
+            cerr << "Warning: bit " << it->first << " (" << diameter
+               << ' ' << unit << ") has no associated holes; "
+                "removing it." << std::endl;
             bits->erase(it++);  //remove it
         }
-        else
+        else {
             ++it;
+        }
+    }
 }
 
 /******************************************************************************/
