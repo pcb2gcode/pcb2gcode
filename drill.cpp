@@ -164,7 +164,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     auto diameter = drillbit.diameter;
     if (drillbit.unit == "mm" && !bMetricOutput) {
-        diameter /= 25.4; // convert mm to  inches
+        diameter /= 25.4; // convert mm to inches
     } else if (drillbit.unit != "mm" && bMetricOutput) {
         diameter *= 25.4; // convert inches to mm
     }
