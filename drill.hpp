@@ -112,6 +112,7 @@ private:
                   double stop_x, double stop_y,
                   shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
+    string drill_to_string(drillbit drillbit);
 
     shared_ptr< map<int, ilinesegments> > optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );

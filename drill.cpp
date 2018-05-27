@@ -161,6 +161,19 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     return retval;
 }
 
+string ExcellonProcessor::drill_to_string(drillbit drillbit) {
+    auto diameter = drillbit.diameter;
+    if (drillbit.unit == "mm" && !bMetricOutput) {
+        diameter /= 25.4; // convert mm to inches
+    } else if (drillbit.unit != "mm" && bMetricOutput) {
+        diameter *= 25.4; // convert inches to mm
+    }
+    auto unit = bMetricOutput ? "mm" : "inch";
+    std::ostringstream ss;
+    ss << diameter << " " << unit;
+    return ss.str();
+}
+
 unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
     auto start_x = line.first.first;
@@ -264,7 +277,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         for (map<int, drillbit>::const_iterator it = bits->begin();
                 it != bits->end(); it++)
         {
-            of << " [" << it->second.diameter << it->second.unit << "]";
+            of << " [" << drill_to_string(it->second) << "]";
         }
         of << " )\n\n";
     }
@@ -297,8 +310,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
                << it->first << "\n" << "M5      (Spindle stop.)\n"
                << "G04 P" << driller->spindown_time
-               << "\n(MSG, Change tool bit to drill size " << it->second.diameter
-               << " " << it->second.unit << ")\n"
+               << "\n(MSG, Change tool bit to drill size "
+               << drill_to_string(it->second) << ")\n"
                << "M6      (Tool change.)\n"
                << "M0      (Temporary machine stop.)\n"
                << "M3      (Spindle on clockwise.)\n"
@@ -542,7 +555,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     for (map<int, drillbit>::const_iterator it = bits->begin();
             it != bits->end(); it++)
     {
-        of << " [" << it->second.diameter << "]";
+        of << " [" << drill_to_string(it->second) << "]";
     }
     of << " )\n\n";
 
@@ -681,16 +694,18 @@ void ExcellonProcessor::parse_holes()
                              icoordpair(currentNet->stop_x, currentNet->stop_y)));
     }
 
-    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); )
+    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); ) {
         if (holes->count(it->first) == 0)   //If a bit has no associated holes
         {
-			cerr << "Warning: bit " << it->first << " (" << it->second.diameter
-				 << ' ' << it->second.unit << ") has no associated holes; "
-				 "removing it." << std::endl;
+            cerr << "Warning: bit " << it->first << " ("
+               << drill_to_string(it->second) << ") has no associated holes; "
+                "removing it." << std::endl;
             bits->erase(it++);  //remove it
         }
-        else
+        else {
             ++it;
+        }
+    }
 }
 
 /******************************************************************************/
