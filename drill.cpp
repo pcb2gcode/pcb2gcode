@@ -679,17 +679,16 @@ void ExcellonProcessor::parse_bits()
         for (auto& wanted_drill : *bits) {
             auto& wanted_drill_bit = wanted_drill.second;
             auto old_string = drill_to_string(wanted_drill_bit);
-            double difference = std::numeric_limits<double>::infinity();
-            for (const auto& available_drill : available_drills) {
-                double new_difference =
-                    abs(wanted_drill_bit.as_length().asInch(inputFactor) -
-                        available_drill.get_diameter().asInch(inputFactor));
-                if (new_difference < difference) {
-                    difference = new_difference;
-                    wanted_drill_bit.diameter = available_drill.get_diameter().asInch(inputFactor);
-                    wanted_drill_bit.unit = "inch";
-                }
-            }
+            auto best_available_drill = std::min_element(
+                available_drills.begin(), available_drills.end(),
+                [&](AvailableDrill::AvailableDrill a, AvailableDrill::AvailableDrill b) {
+                    return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
+                               a.get_diameter().asInch(inputFactor)) <
+                        abs(wanted_drill_bit.as_length().asInch(inputFactor) -
+                            b.get_diameter().asInch(inputFactor));
+                });
+            wanted_drill_bit.diameter = best_available_drill->get_diameter().asInch(inputFactor);
+            wanted_drill_bit.unit = "inch";
             cerr << "Info: bit " << wanted_drill.first << " ("
                << old_string << ") is rounded to "
                << drill_to_string(wanted_drill_bit) << std::endl;
