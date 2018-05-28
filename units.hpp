@@ -374,4 +374,24 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 }
 }; // namespace Software
 
+namespace AvailableDrill {
+class AvailableDrill {
+ public:
+  friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
+  friend inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill);
+  Length get_diameter() const {
+    return diameter;
+  }
+ private:
+  Length diameter;
+};
+
+inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill)
+{
+  in >> available_drill.diameter;
+  return in;
+}
+
+}; // namespace AvailableDrill
+
 #endif // UNITS_HPP

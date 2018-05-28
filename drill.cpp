@@ -76,6 +76,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
+      available_drills(options["drills-available"].as<std::vector<AvailableDrill::AvailableDrill>>()),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
@@ -671,6 +672,28 @@ void ExcellonProcessor::parse_bits()
         curBit.drill_count = currentDrill->drill_count;
 
         bits->insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
+    }
+    // If there is a list of available bits, round the holes to the nearest
+    // available bit.
+    if (available_drills.size() > 0) {
+        for (auto& wanted_drill : *bits) {
+            auto& wanted_drill_bit = wanted_drill.second;
+            auto old_string = drill_to_string(wanted_drill_bit);
+            double difference = std::numeric_limits<double>::infinity();
+            for (const auto& available_drill : available_drills) {
+                double new_difference =
+                    abs(wanted_drill_bit.as_length().asInch(inputFactor) -
+                        available_drill.get_diameter().asInch(inputFactor));
+                if (new_difference < difference) {
+                    difference = new_difference;
+                    wanted_drill_bit.diameter = available_drill.get_diameter().asInch(inputFactor);
+                    wanted_drill_bit.unit = "inch";
+                }
+            }
+            cerr << "Info: bit " << wanted_drill.first << " ("
+               << old_string << ") is rounded to "
+               << drill_to_string(wanted_drill_bit) << std::endl;
+        }
     }
 }
 

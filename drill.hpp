@@ -69,6 +69,11 @@ public:
     double diameter;
     string unit;
     int drill_count;
+    Length as_length() const {
+        std::ostringstream os;
+        os << diameter << unit;
+        return parse_unit<Length>(os.str());
+    }
 };
 
 /******************************************************************************/
@@ -139,6 +144,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    const std::vector<AvailableDrill::AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
