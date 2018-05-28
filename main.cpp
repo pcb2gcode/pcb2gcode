@@ -386,80 +386,80 @@ int main(int argc, char* argv[])
 
     cout << "Importing drill... " << flush;
 
-    try
-    {
-        icoordpair min;
-        icoordpair max;
-
-        //Check if there are layers in "board"; if not, we have to compute
-        //the size of the board now, based only on the size of the drill layer
-        //(the resulting drill gcode will be probably misaligned, but this is the
-        //best we can do)
-        if(board->get_layersnum() == 0)
+    if (vm.count("drill") < 1) {
+       cout << "not specified.\n";
+    } else {
+        try
         {
-            shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
-            min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
-            max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
-        }
-        else
-        {
-            min = std::make_pair( board->get_min_x(), board->get_min_y() );
-            max = std::make_pair( board->get_max_x(), board->get_max_y() );
-        }
+            icoordpair min;
+            icoordpair max;
 
-        ExcellonProcessor ep(vm, min, max);
-
-        ep.add_header(PACKAGE_STRING);
-
-        if (vm.count("preamble") || vm.count("preamble-text"))
-        {
-            ep.set_preamble(preamble);
-        }
-
-        if (vm.count("postamble"))
-        {
-            ep.set_postamble(postamble);
-        }
-
-        cout << "DONE.\n";
-
-        if (vm["no-export"].as<bool>())
-        {
-            ep.export_svg(outputdir);
-        }
-        else
-        {
-            if (vm["milldrill"].as<bool>())
+            //Check if there are layers in "board"; if not, we have to compute
+            //the size of the board now, based only on the size of the drill layer
+            //(the resulting drill gcode will be probably misaligned, but this is the
+            //best we can do)
+            if(board->get_layersnum() == 0)
             {
-                if (vm.count("milldrill-diameter")) {
-                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
-                }
-                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-                ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
-                                vm["zchange-absolute"].as<bool>());
+                shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
+                min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
+                max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
             }
             else
             {
-                ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
-                               driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
-                               vm["zchange-absolute"].as<bool>());
+                min = std::make_pair( board->get_min_x(), board->get_min_y() );
+                max = std::make_pair( board->get_max_x(), board->get_max_y() );
             }
 
-            cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
-        }
+            ExcellonProcessor ep(vm, min, max);
 
-    }
-    catch (const drill_exception& e)
-    {
-        cout << "ERROR: drill_exception.\n";
-    }
-    catch (const import_exception& i)
-    {
-        cout << "ERROR: " << i.what() << "\n";
-    }
-    catch (const boost::exception& e)
-    {
-        cout << "not specified.\n";
+            ep.add_header(PACKAGE_STRING);
+
+            if (vm.count("preamble") || vm.count("preamble-text"))
+            {
+                ep.set_preamble(preamble);
+            }
+
+            if (vm.count("postamble"))
+            {
+                ep.set_postamble(postamble);
+            }
+
+            cout << "DONE.\n";
+
+            if (vm["no-export"].as<bool>())
+            {
+                ep.export_svg(outputdir);
+            }
+            else
+            {
+                if (vm["milldrill"].as<bool>())
+                {
+                    if (vm.count("milldrill-diameter")) {
+                        cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+                    }
+                    cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
+                                    vm["zchange-absolute"].as<bool>());
+                }
+                else
+                {
+                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
+                                   driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                                   vm["zchange-absolute"].as<bool>());
+                }
+
+                cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
+            }
+
+        }
+        catch (const drill_exception& e)
+        {
+            cout << "ERROR: drill_exception.\n";
+        }
+        catch (const import_exception& i)
+        {
+            cout << "ERROR: " << i.what() << "\n";
+        }
     }
 
     cout << "END." << endl;
