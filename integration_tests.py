@@ -134,6 +134,7 @@ class IntegrationTests(unittest.TestCase):
       test_prefix = os.path.join(test_case.input_path, "expected")
       input_path = os.path.join(cwd, test_case.input_path)
       expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
+      print("Running test case " + str(test_case))
       diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
     self.assertFalse(any(diff_texts),
                      'Files don\'t match\n' + '\n'.join(diff_texts) +
