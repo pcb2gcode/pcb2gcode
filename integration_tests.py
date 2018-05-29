@@ -11,6 +11,7 @@ import sys
 import argparse
 import re
 import collections
+import termcolor
 
 TestCase = collections.namedtuple("TestCase", ["input_path", "args", "exit_code"])
 
@@ -28,7 +29,14 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--outline=non_exsistant_file"], 1),
+               TestCase(os.path.join(EXAMPLES_PATH, "invalid-config"), [], 1),
               ])
+
+def colored(text, **color):
+  if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+    return termcolor.colored(text, **color)
+  else:
+    return text
 
 class IntegrationTests(unittest.TestCase):
 
@@ -135,7 +143,7 @@ class IntegrationTests(unittest.TestCase):
       test_prefix = os.path.join(test_case.input_path, "expected")
       input_path = os.path.join(cwd, test_case.input_path)
       expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
-      print("Running test case " + str(test_case))
+      print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]))
       diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
     self.assertFalse(any(diff_texts),
                      'Files don\'t match\n' + '\n'.join(diff_texts) +
