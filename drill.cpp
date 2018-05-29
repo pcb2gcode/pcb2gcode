@@ -329,11 +329,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                 xoffsetTot = xoffset - ( i % 2 ? tileInfo.tileX - j - 1 : j ) * tileInfo.boardWidth;
 
                 const ilinesegments drill_coords = it->second;
-                ilinesegments::const_iterator line_iter = drill_coords.cbegin();
-
-                while (line_iter != drill_coords.cend())
-                {
-                    unique_ptr<icoords> holes = line_to_holes(*line_iter, drill_diameter);
+                for (const auto& line_iter : drill_coords) {
+                    unique_ptr<icoords> holes = line_to_holes(line_iter, drill_diameter);
                     for (auto& hole : *holes)
                     {
                         const auto x = hole.first;
@@ -355,7 +352,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
                                    << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                         }
                     }
-                    ++line_iter;
                 }
             }
         }
