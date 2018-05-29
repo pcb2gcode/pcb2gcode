@@ -260,9 +260,17 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     std::ofstream of;
     of.open(build_filename(of_dir, of_name));
 
-    shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
+    shared_ptr<map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
     shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), onedrill );
 
+    // Remove all the bits that have no path.
+    for (auto it = bits->begin(); it != bits->end();) {
+        if (holes->find(it->first) == holes->end()) {
+            it = bits->erase(it);
+        } else {
+            it++;
+        }
+    }
     //write header to .ngc file
     for (string s : header)
     {
@@ -325,7 +333,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
-               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
+               << driller->zwork * cfactor << " F" << driller->feed * cfactor << "\n";
         }
         
         double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
@@ -673,27 +681,6 @@ void ExcellonProcessor::parse_bits()
 
         bits->insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
     }
-    // If there is a list of available bits, round the holes to the nearest
-    // available bit.
-    if (available_drills.size() > 0) {
-        for (auto& wanted_drill : *bits) {
-            auto& wanted_drill_bit = wanted_drill.second;
-            auto old_string = drill_to_string(wanted_drill_bit);
-            auto best_available_drill = std::min_element(
-                available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill::AvailableDrill a, AvailableDrill::AvailableDrill b) {
-                    return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
-                               a.get_diameter().asInch(inputFactor)) <
-                        abs(wanted_drill_bit.as_length().asInch(inputFactor) -
-                            b.get_diameter().asInch(inputFactor));
-                });
-            wanted_drill_bit.diameter = best_available_drill->get_diameter().asInch(inputFactor);
-            wanted_drill_bit.unit = "inch";
-            cerr << "Info: bit " << wanted_drill.first << " ("
-               << old_string << ") is rounded to "
-               << drill_to_string(wanted_drill_bit) << std::endl;
-        }
-    }
 }
 
 /******************************************************************************/
@@ -714,19 +701,6 @@ void ExcellonProcessor::parse_holes()
             (*holes)[currentNet->aperture].push_back(
                 ilinesegment(icoordpair(currentNet->start_x, currentNet->start_y),
                              icoordpair(currentNet->stop_x, currentNet->stop_y)));
-    }
-
-    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); ) {
-        if (holes->count(it->first) == 0)   //If a bit has no associated holes
-        {
-            cerr << "Warning: bit " << it->first << " ("
-               << drill_to_string(it->second) << ") has no associated holes; "
-                "removing it." << std::endl;
-            bits->erase(it++);  //remove it
-        }
-        else {
-            ++it;
-        }
     }
 }
 
@@ -764,6 +738,18 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     unsigned int size = 0;
     map<int, ilinesegments>::iterator i;
 
+    for (map<int, drillbit>::iterator it = bits->begin(); it != bits->end(); ) {
+        if (original_path->count(it->first) == 0)   //If a bit has no associated holes
+        {
+            cerr << "Warning: bit " << it->first << " ("
+               << drill_to_string(it->second) << ") has no associated holes; "
+                "removing it." << std::endl;
+            bits->erase(it++);  //remove it
+        }
+        else {
+            ++it;
+        }
+    }
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
     if( onedrill )
@@ -785,6 +771,38 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
             original_path->erase( second_element );
         }
     }
+
+    //If there are multiple drills with the same size, combine them.
+    for (auto bit0 = original_path->begin(); bit0 != original_path->end(); bit0++) {
+        auto bit_string0 = drill_to_string(get_bits()->at(bit0->first));
+        for (auto bit1 = std::next(bit0); bit1 != original_path->end(); bit1++) {
+            // If the two bits are the same size, copy the holes to drill from
+            // bit1 to bit0.
+            auto bit_string1 = drill_to_string(get_bits()->at(bit1->first));
+            if (bit_string0 == bit_string1) {
+                auto drill_num0 = bit0->first;
+                auto drill_num1 = bit1->first;
+                (*original_path)[drill_num0].insert((*original_path)[drill_num0].end(),
+                                                    (*original_path)[drill_num1].begin(),
+                                                    (*original_path)[drill_num1].end());
+                // Remove the holes in bit1.
+                (*original_path)[drill_num1].clear();
+            }
+        }
+    }
+
+    // Now remove all empty paths.
+    for (auto it = original_path->begin(); it != original_path->end();) {
+        if (it->second.empty()) {
+            it = original_path->erase(it);
+        } else {
+            it++;
+        }
+    }
+/*    // Remove all the bits that have no path.
+    for (auto it = (*get_bits())->begin(); it != (*get_bits())->end();) {
+        if (original_path->find(it->first) == original_path->end()) {
+        it = (*get_bits())*/
 
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
@@ -808,6 +826,28 @@ shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map
     //The bits optimisation function simply removes all the unnecessary bits when onedrill == true
     if( onedrill )
         original_bits->erase( boost::next( original_bits->begin() ), original_bits->end() );
+
+    // If there is a list of available bits, round the holes to the nearest
+    // available bit.
+    if (available_drills.size() > 0) {
+        for (auto& wanted_drill : *bits) {
+            auto& wanted_drill_bit = wanted_drill.second;
+            auto old_string = drill_to_string(wanted_drill_bit);
+            auto best_available_drill = std::min_element(
+                available_drills.begin(), available_drills.end(),
+                [&](AvailableDrill::AvailableDrill a, AvailableDrill::AvailableDrill b) {
+                    return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
+                               a.get_diameter().asInch(inputFactor)) <
+                        abs(wanted_drill_bit.as_length().asInch(inputFactor) -
+                            b.get_diameter().asInch(inputFactor));
+                });
+            wanted_drill_bit.diameter = best_available_drill->get_diameter().asInch(inputFactor);
+            wanted_drill_bit.unit = "inch";
+            cerr << "Info: bit " << wanted_drill.first << " ("
+               << old_string << ") is rounded to "
+               << drill_to_string(wanted_drill_bit) << std::endl;
+        }
+    }
 
     return original_bits;
 }
