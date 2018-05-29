@@ -721,9 +721,8 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
-    if( onedrill )
-    {
-        //First find the total number of holes
+    if (onedrill) {
+        // Let all drills be the same size.
         for( i = original_path->begin(); i != original_path->end(); i++ )
             size += i->second.size();
 
