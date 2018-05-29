@@ -175,7 +175,7 @@ string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     return ss.str();
 }
 
-unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
+icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
 {
     auto start_x = line.first.first;
     auto start_y = line.first.second;
@@ -203,7 +203,7 @@ unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, d
     }
     // drill all the rest
     drills_to_do.push_back(std::make_pair(1, drill_count-2));
-    unique_ptr<icoords> holes(new icoords());
+    icoords holes;
     for (unsigned int current_drill_index = 0;
          current_drill_index < drills_to_do.size();
          current_drill_index++) {
@@ -221,7 +221,7 @@ unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, d
         const auto y = start_y * (1 - ratio) + stop_y * ratio;
         drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
         drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
-        holes->push_back(icoordpair(x, y));
+        holes.push_back(icoordpair(x, y));
     }
     return holes;
 }
@@ -330,8 +330,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
                 const ilinesegments drill_coords = it->second;
                 for (const auto& line_iter : drill_coords) {
-                    unique_ptr<icoords> holes = line_to_holes(line_iter, drill_diameter);
-                    for (auto& hole : *holes)
+                    for (auto& hole : line_to_holes(line_iter, drill_diameter))
                     {
                         const auto x = hole.first;
                         const auto y = hole.second;
@@ -634,8 +633,7 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
 
         for (const ilinesegment& line : drill_lines)
         {
-            unique_ptr<icoords> holes = line_to_holes(line, radius*2);
-            for (auto& hole : *holes)
+            for (auto& hole : line_to_holes(line, radius*2))
             {
                 mapper.map(hole, "", radius * SVG_PIX_PER_IN);
             }
