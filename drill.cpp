@@ -333,7 +333,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
-               << driller->zwork * cfactor << " F" << driller->feed * cfactor << "\n";
+               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
         }
         
         double drill_diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
