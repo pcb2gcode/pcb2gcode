@@ -564,28 +564,20 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
             if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
-            for (map<int, drillbit>::const_iterator it = bits->begin();
-                    it != bits->end(); it++)
-            {
-
-                double diameter = it->second.unit == "mm" ? it->second.diameter / 25.4 : it->second.diameter;
-
-                const ilinesegments drill_coords = holes->at(it->first);
-                ilinesegments::const_iterator line_iter = drill_coords.begin();
-
-                do
-                {
-                    if( !millhole(of,
-                                  get_xvalue(line_iter->first.first) - xoffsetTot,
-                                  line_iter->first.second - yoffsetTot,
-                                  get_xvalue(line_iter->second.first) - xoffsetTot,
-                                  line_iter->second.second - yoffsetTot,
-                                  target, diameter) )
+            for (const auto& hole : *holes) {
+                const auto& bit = bits->at(hole.first);
+                double diameter = bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter;
+                const ilinesegments drill_coords = hole.second;
+                for (const auto& line_iter : drill_coords) {
+                    if (!millhole(of,
+                                  get_xvalue(line_iter.first.first) - xoffsetTot,
+                                  line_iter.first.second - yoffsetTot,
+                                  get_xvalue(line_iter.second.first) - xoffsetTot,
+                                  line_iter.second.second - yoffsetTot,
+                                  target, diameter)) {
                         ++badHoles;
-
-                    ++line_iter;
+                    }
                 }
-                while (line_iter != drill_coords.end());
             }
         }
     }
