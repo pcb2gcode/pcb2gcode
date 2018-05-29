@@ -750,6 +750,7 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
             ++it;
         }
     }
+
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
     if( onedrill )
@@ -799,10 +800,6 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
             it++;
         }
     }
-/*    // Remove all the bits that have no path.
-    for (auto it = (*get_bits())->begin(); it != (*get_bits())->end();) {
-        if (original_path->find(it->first) == original_path->end()) {
-        it = (*get_bits())*/
 
     //Otimise the holes path
     for( i = original_path->begin(); i != original_path->end(); i++ )
