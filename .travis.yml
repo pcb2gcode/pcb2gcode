@@ -60,7 +60,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then wget -qO- "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" | tar xJ && export BOOST_DIR="$PWD/boost"; fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      pip install --user cpp-coveralls &&
+      pip install --user cpp-coveralls colour_runner unittest2 &&
       mkdir .local &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
       git clone git://git.geda-project.org/gerbv.git &&

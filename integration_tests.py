@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest
+from __future__ import print_function
+import unittest2
 import subprocess
 import os
 import tempfile
@@ -12,6 +13,7 @@ import argparse
 import re
 import collections
 import termcolor
+import colour_runner.runner
 
 TestCase = collections.namedtuple("TestCase", ["input_path", "args", "exit_code"])
 
@@ -38,7 +40,7 @@ def colored(text, **color):
   else:
     return text
 
-class IntegrationTests(unittest.TestCase):
+class IntegrationTests(unittest2.TestCase):
 
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
@@ -52,9 +54,12 @@ class IntegrationTests(unittest.TestCase):
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
     os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
+    p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    result = p.communicate()
     self.assertEqual(
-        subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
+        p.returncode,
         exit_code)
+    print(result[0], file=sys.stderr)
     os.chdir(cwd)
     return actual_output_path
 
@@ -143,7 +148,7 @@ class IntegrationTests(unittest.TestCase):
       test_prefix = os.path.join(test_case.input_path, "expected")
       input_path = os.path.join(cwd, test_case.input_path)
       expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
-      print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]))
+      print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
       diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
     self.assertFalse(any(diff_texts),
                      'Files don\'t match\n' + '\n'.join(diff_texts) +
@@ -183,4 +188,8 @@ if __name__ == '__main__':
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    unittest.main()
+    suite = unittest2.TestLoader().loadTestsFromTestCase(IntegrationTests)
+    if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+      colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
+    else:
+      unittest2.TextTestRunner(verbosity=2).run(suite)
