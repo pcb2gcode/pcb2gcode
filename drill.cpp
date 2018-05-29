@@ -535,14 +535,12 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
     of.precision(5);              //Set floating-point decimal precision
 
     of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
-       << (bMetricOutput ? "mm" : "inch") << " to drill the " << bits->size()
+       << (bMetricOutput ? "mm" : "inch") << " to drill the " << holes->size()
        << " bit sizes. )" << "\n";
 
     of << "( Bit sizes:";
-    for (map<int, drillbit>::const_iterator it = bits->begin();
-            it != bits->end(); it++)
-    {
-        of << " [" << drill_to_string(it->second) << "]";
+    for (const auto& hole : *holes) {
+        of << " [" << drill_to_string(bits->at(hole.first)) << "]";
     }
     of << " )\n\n";
 
