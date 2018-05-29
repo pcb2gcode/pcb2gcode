@@ -18,6 +18,7 @@ import colour_runner.runner
 TestCase = collections.namedtuple("TestCase", ["input_path", "args", "exit_code"])
 
 EXAMPLES_PATH = "testing/gerbv_example"
+BROKEN_EXAMPLES_PATH = "testing/broken_examples"
 TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
@@ -31,7 +32,7 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--outline=non_exsistant_file"], 1),
-               TestCase(os.path.join(EXAMPLES_PATH, "invalid-config"), [], 1),
+               TestCase(os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"), [], 1),
               ])
 
 def colored(text, **color):
