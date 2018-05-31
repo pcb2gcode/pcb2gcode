@@ -28,7 +28,7 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "multivibrator_pre_post_milling_gcode",
               ]] +
-              [TestCase("multivibrator_bad_" + x, os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+              [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
                for x in ("front", "back", "outline")])
 
 class IntegrationTests(unittest.TestCase):
@@ -140,14 +140,11 @@ class IntegrationTests(unittest.TestCase):
 
 if __name__ == '__main__':
   test_cases = TEST_CASES
-  test_num = 0 # To keep the tests in the order that they are added.
   def add_test_case(t):
-    global test_num
-    test_num += 1
     def test_method(self):
       self.do_test_one(t)
-    setattr(IntegrationTests, 'test_' + ('%04d' % test_num) + "_" + t.name, test_method)
-    test_method.__name__ = 'test_' + ('%04d' % test_num) + "_" + t.name
+    setattr(IntegrationTests, 'test_' + t.name, test_method)
+    test_method.__name__ = 'test_' + t.name
     test_method.__doc__ = str(test_case)
   for test_case in test_cases:
     add_test_case(test_case)
@@ -181,7 +178,11 @@ if __name__ == '__main__':
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    if not unittest.main(exit=False).result.wasSuccessful():
+    test_loader = unittest.TestLoader()
+    all_test_names = ["test_" + t.name for t in TEST_CASES]
+    test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
+    suite = test_loader.loadTestsFromTestCase(IntegrationTests)
+    if not unittest.TextTestRunner().run(suite).wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +
             './integration_tests.py --fix --add\n' +
