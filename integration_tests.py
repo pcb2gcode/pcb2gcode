@@ -28,6 +28,7 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--outline=non_exsistant_file"], 1),
+               TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--drill=non_exsistant_file"], 1),
               ])
 
 class IntegrationTests(unittest.TestCase):
