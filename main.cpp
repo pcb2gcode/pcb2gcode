@@ -276,61 +276,61 @@ int main(int argc, char* argv[])
         //-----------------------------------------------------------------------
         cout << "Importing front side... " << flush;
 
-        try
-        {
-            string frontfile = vm["front"].as<string>();
-            shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
-            board->prepareLayer("front", importer, isolator, false);
-            cout << "DONE.\n";
-        }
-        catch (import_exception& i)
-        {
-            cout << "ERROR.\n";
-            exit(EXIT_FAILURE);
-        }
-        catch (boost::exception& e)
-        {
+        if (vm.count("front") > 0) {
+            try
+            {
+                string frontfile = vm["front"].as<string>();
+                shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
+                board->prepareLayer("front", importer, isolator, false);
+                cout << "DONE.\n";
+            }
+            catch (import_exception& i)
+            {
+                cout << "ERROR.\n";
+                exit(EXIT_FAILURE);
+            }
+        } else {
             cout << "not specified.\n";
         }
 
         //-----------------------------------------------------------------------
         cout << "Importing back side... " << flush;
 
-        try
-        {
-            string backfile = vm["back"].as<string>();
-            shared_ptr<LayerImporter> importer(
-                new GerberImporter(backfile));
-            board->prepareLayer("back", importer, isolator, true);
-            cout << "DONE.\n";
-        }
-        catch (import_exception& i)
-        {
-            cout << "ERROR.\n";
-            exit(EXIT_FAILURE);
-        }
-        catch (boost::exception& e)
-        {
+        if (vm.count("back") > 0) {
+            try
+            {
+                string backfile = vm["back"].as<string>();
+                shared_ptr<LayerImporter> importer(
+                    new GerberImporter(backfile));
+                board->prepareLayer("back", importer, isolator, true);
+                cout << "DONE.\n";
+            }
+            catch (import_exception& i)
+            {
+                cout << "ERROR.\n";
+                exit(EXIT_FAILURE);
+            }
+        } else {
             cout << "not specified.\n";
         }
 
         //-----------------------------------------------------------------------
         cout << "Importing outline... " << flush;
 
-        try
-        {
-            string outline = vm["outline"].as<string>();                               //Filename
-            shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-            board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
-            cout << "DONE.\n";
-        }
-        catch (import_exception& i)
-        {
-            cout << "ERROR.\n";
-            exit(EXIT_FAILURE);
-        }
-        catch (boost::exception& e)
-        {
+        if (vm.count("outline") > 0) {
+            try
+            {
+                string outline = vm["outline"].as<string>();                               //Filename
+                shared_ptr<LayerImporter> importer(new GerberImporter(outline));
+                board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
+                cout << "DONE.\n";
+            }
+            catch (import_exception& i)
+            {
+                cout << "ERROR.\n";
+                exit(EXIT_FAILURE);
+            }
+        } else {
             cout << "not specified.\n";
         }
 
@@ -386,9 +386,7 @@ int main(int argc, char* argv[])
 
     cout << "Importing drill... " << flush;
 
-    if (vm.count("drill") < 1) {
-       cout << "not specified.\n";
-    } else {
+    if (vm.count("drill") > 0) {
         try
         {
             icoordpair min;
@@ -426,40 +424,37 @@ int main(int argc, char* argv[])
 
             cout << "DONE.\n";
 
+            boost::optional<string> drill_filename = vm["drill-output"].as<string>();
             if (vm["no-export"].as<bool>())
             {
-                ep.export_svg(outputdir);
+                drill_filename = boost::none;
+            }
+            if (vm["milldrill"].as<bool>())
+            {
+                if (vm.count("milldrill-diameter")) {
+                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+                }
+                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+                ep.export_ngc(outputdir, drill_filename, cutter,
+                              vm["zchange-absolute"].as<bool>());
             }
             else
             {
-                if (vm["milldrill"].as<bool>())
-                {
-                    if (vm.count("milldrill-diameter")) {
-                        cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
-                    }
-                    cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
-                                    vm["zchange-absolute"].as<bool>());
-                }
-                else
-                {
-                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
-                                   driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
-                                   vm["zchange-absolute"].as<bool>());
-                }
-
-                cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
+                ep.export_ngc(outputdir, drill_filename,
+                              driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                              vm["zchange-absolute"].as<bool>());
             }
+
+            cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 
         }
         catch (const drill_exception& e)
         {
             cout << "ERROR: drill_exception.\n";
+            exit(EXIT_FAILURE);
         }
-        catch (const import_exception& i)
-        {
-            cout << "ERROR: " << i.what() << "\n";
-        }
+    } else {
+        cout << "not specified.\n";
     }
 
     cout << "END." << endl;
