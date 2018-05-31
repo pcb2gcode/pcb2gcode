@@ -426,7 +426,7 @@ int main(int argc, char* argv[])
         boost::optional<string> drill_filename = vm["drill-output"].as<string>();
         if (vm["no-export"].as<bool>())
         {
-            drill_filename = "";
+            *drill_filename = "";
         }
         if (vm["milldrill"].as<bool>())
         {
