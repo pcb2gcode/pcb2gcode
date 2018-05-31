@@ -134,14 +134,9 @@ class IntegrationTests(unittest.TestCase):
     test_prefix = os.path.join(test_case.input_path, "expected")
     input_path = os.path.join(cwd, test_case.input_path)
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
-    diff_texts = []
-    diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
-    self.assertFalse(any(diff_texts),
-                     'Files don\'t match\n' + '\n'.join(diff_texts) +
-                     '\n***\nRun one of these:\n' +
-                     './integration_tests.py --fix\n' +
-                     './integration_tests.py --fix --add\n' +
-                     '***\n')
+    diff_text = self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
+    self.assertFalse(diff_text,
+                     'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
   test_cases = TEST_CASES
@@ -186,4 +181,8 @@ if __name__ == '__main__':
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    unittest.main()
+    if not unittest.main(exit=False).result.wasSuccessful():
+      print('\n***\nRun one of these:\n' +
+            './integration_tests.py --fix\n' +
+            './integration_tests.py --fix --add\n' +
+            '***\n')
