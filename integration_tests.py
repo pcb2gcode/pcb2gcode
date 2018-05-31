@@ -24,6 +24,7 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill",
                   "slots-with-drill-metric",
                   "multivibrator_pre_post_milling_gcode",
+                  "multivibrator_no_export",
               ]] +
               [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
