@@ -138,14 +138,13 @@ class IntegrationTests(unittest.TestCase):
     self.assertFalse(diff_text, 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
-  test_cases = TEST_CASES
   def add_test_case(t):
     def test_method(self):
       self.do_test_one(t)
     setattr(IntegrationTests, 'test_' + t.name, test_method)
     test_method.__name__ = 'test_' + t.name
     test_method.__doc__ = str(test_case)
-  for test_case in test_cases:
+  for test_case in TEST_CASES:
     add_test_case(test_case)
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
   parser.add_argument('--fix', action='store_true', default=False,
