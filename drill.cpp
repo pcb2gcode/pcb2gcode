@@ -236,9 +236,9 @@ unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, d
        2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
-                                    shared_ptr<Driller> driller, bool onedrill,
-                                    bool nog81, bool zchange_absolute)
+void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                                   shared_ptr<Driller> driller, bool onedrill,
+                                   bool nog81, bool zchange_absolute)
 {
     double xoffsetTot;
     double yoffsetTot;
@@ -257,7 +257,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     //open output file
     std::ofstream of;
-    of.open(build_filename(of_dir, of_name));
+    if (of_name) {
+        of.open(build_filename(of_dir, *of_name));
+    } else {
+        of.open("");
+    }
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
     shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), onedrill );
@@ -508,8 +512,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
  mill larger holes by using a smaller mill-head
  */
 /******************************************************************************/
-void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
-                                    shared_ptr<Cutter> target, bool zchange_absolute)
+void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                                   shared_ptr<Cutter> target, bool zchange_absolute)
 {
     unsigned int badHoles = 0;
     double xoffsetTot;
@@ -528,7 +532,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const string of_name,
 
     // open output file
     std::ofstream of;
-    of.open(build_filename(of_dir, of_name));
+    if (of_name) {
+        of.open(build_filename(of_dir, *of_name));
+    } else {
+        of.open("");
+    }
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
     shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), false );
