@@ -12,10 +12,13 @@ import argparse
 import re
 import collections
 
-TestCase = collections.namedtuple("TestCase", ["input_path", "args", "exit_code"])
+TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
+
+# Sanitize a string to be a python identifier
+clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
 
 EXAMPLES_PATH = "testing/gerbv_example"
-TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
+TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
                   "am-test-voronoi",
@@ -25,13 +28,10 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "multivibrator_pre_post_milling_gcode",
               ]] +
-              [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
-               TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
-               TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--outline=non_exsistant_file"], 1),
-              ])
+              [TestCase("multivibrator_bad_" + x, os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+               for x in ("front", "back", "outline")])
 
 class IntegrationTests(unittest.TestCase):
-
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
@@ -44,10 +44,12 @@ class IntegrationTests(unittest.TestCase):
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
     os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
-    self.assertEqual(
-        subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
-        exit_code)
-    os.chdir(cwd)
+    try:
+      self.assertEqual(
+          subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
+          exit_code)
+    finally:
+      os.chdir(cwd)
     return actual_output_path
 
   def compare_directories(self, left, right, left_prefix="", right_prefix=""):
@@ -127,15 +129,13 @@ class IntegrationTests(unittest.TestCase):
     shutil.rmtree(actual_output_path)
     return diff_text
 
-  def test_all(self):
+  def do_test_one(self, test_case):
     cwd = os.getcwd()
-    test_cases = TEST_CASES
+    test_prefix = os.path.join(test_case.input_path, "expected")
+    input_path = os.path.join(cwd, test_case.input_path)
+    expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
     diff_texts = []
-    for test_case in test_cases:
-      test_prefix = os.path.join(test_case.input_path, "expected")
-      input_path = os.path.join(cwd, test_case.input_path)
-      expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
-      diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
+    diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
     self.assertFalse(any(diff_texts),
                      'Files don\'t match\n' + '\n'.join(diff_texts) +
                      '\n***\nRun one of these:\n' +
@@ -144,6 +144,18 @@ class IntegrationTests(unittest.TestCase):
                      '***\n')
 
 if __name__ == '__main__':
+  test_cases = TEST_CASES
+  test_num = 0 # To keep the tests in the order that they are added.
+  def add_test_case(t):
+    global test_num
+    test_num += 1
+    def test_method(self):
+      self.do_test_one(t)
+    setattr(IntegrationTests, 'test_' + ('%04d' % test_num) + "_" + t.name, test_method)
+    test_method.__name__ = 'test_' + ('%04d' % test_num) + "_" + t.name
+    test_method.__doc__ = str(test_case)
+  for test_case in test_cases:
+    add_test_case(test_case)
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
   parser.add_argument('--fix', action='store_true', default=False,
                       help='Generate expected outputs automatically')
