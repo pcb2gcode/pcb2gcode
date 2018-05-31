@@ -42,8 +42,8 @@ class IntegrationTests(unittest.TestCase):
     """
     cwd = os.getcwd()
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
-    os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
+    os.chdir(input_path)
     try:
       self.assertEqual(
           subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
