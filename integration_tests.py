@@ -29,9 +29,10 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_pre_post_milling_gcode",
                   "multivibrator_no_export",
                   "multivibrator_no_export_milldrill",
+                  "am-test-voronoi-front",
               ]] +
               [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
-               for x in ("front", "back", "outline")])
+               for x in ("front", "back", "outline", "drill")])
 
 class IntegrationTests(unittest.TestCase):
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
@@ -171,7 +172,7 @@ if __name__ == '__main__':
       if l.startswith("patching file "):
         files_patched.append(l[len("patching file "):])
     if args.add:
-      subprocess.check_output(["git", "add"] + files_patched)
+      subprocess.call(["git", "add"] + files_patched)
       print("Done.\nAdded to git:\n" +
             '\n'.join(files_patched))
     else:
