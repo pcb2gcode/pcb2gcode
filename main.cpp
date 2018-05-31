@@ -424,9 +424,10 @@ int main(int argc, char* argv[])
 
             cout << "DONE.\n";
 
+            boost::optional<string> output_filename = vm["drill-output"].as<string>();
             if (vm["no-export"].as<bool>())
             {
-                ep.export_svg(outputdir);
+                output_filename = boost::none;
             }
             else
             {
@@ -436,12 +437,12 @@ int main(int argc, char* argv[])
                         cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
                     }
                     cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(), cutter,
+                    ep.export_ngc(outputdir, output_filename, cutter,
                                   vm["zchange-absolute"].as<bool>());
                 }
                 else
                 {
-                    ep.export_ngc(outputdir, vm["drill-output"].as<string>(),
+                    ep.export_ngc(outputdir, output_filename,
                                   driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
                                   vm["zchange-absolute"].as<bool>());
                 }
