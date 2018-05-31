@@ -186,3 +186,6 @@ if __name__ == '__main__':
             './integration_tests.py --fix\n' +
             './integration_tests.py --fix --add\n' +
             '***\n')
+      exit(1)
+    else:
+      exit(0)
