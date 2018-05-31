@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest
+from __future__ import print_function
+import unittest2
 import subprocess
 import os
 import tempfile
@@ -11,6 +12,8 @@ import sys
 import argparse
 import re
 import collections
+import termcolor
+import colour_runner.runner
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
@@ -34,7 +37,13 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
                for x in ("front", "back", "outline", "drill")])
 
-class IntegrationTests(unittest.TestCase):
+def colored(text, **color):
+  if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+    return termcolor.colored(text, **color)
+  else:
+    return text
+
+class IntegrationTests(unittest2.TestCase):
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
@@ -48,9 +57,10 @@ class IntegrationTests(unittest.TestCase):
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
     try:
-      self.assertEqual(
-          subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
-          exit_code)
+      p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      result = p.communicate()
+      self.assertEqual(p.returncode, exit_code)
+      print(result[0], file=sys.stderr)
     finally:
       os.chdir(cwd)
     return actual_output_path
@@ -137,6 +147,7 @@ class IntegrationTests(unittest.TestCase):
     test_prefix = os.path.join(test_case.input_path, "expected")
     input_path = os.path.join(cwd, test_case.input_path)
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
+    print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
     diff_text = self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
     self.assertFalse(diff_text, 'Files don\'t match\n' + diff_text)
 
@@ -179,11 +190,15 @@ if __name__ == '__main__':
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    test_loader = unittest.TestLoader()
+    test_loader = unittest2.TestLoader()
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
-    if not unittest.TextTestRunner().run(suite).wasSuccessful():
+    if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
+    else:
+      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
+    if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +
             './integration_tests.py --fix --add\n' +

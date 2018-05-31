@@ -67,7 +67,7 @@ install:
     fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      pip install --user cpp-coveralls &&
+      pip install --user cpp-coveralls colour_runner unittest2 termcolor &&
       mkdir .local &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
       git clone git://git.geda-project.org/gerbv.git &&
