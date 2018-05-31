@@ -71,20 +71,6 @@ public:
     int drill_count;
 };
 
-class NullBuffer : public std::streambuf {
-public:
-    int overflow(int c) { return c; }
-};
-
-/* Dummy ofstream that just dumps all output. */
-class NullStream : public std::ostream {
-public:
-    NullStream() : std::ostream(&m_sb) {}
-private:
-    NullBuffer m_sb;
-};
-
-
 /******************************************************************************/
 /*
  Reads Excellon drill files and directly creates RS274-NGC gcode output.
@@ -105,10 +91,10 @@ public:
     void set_preamble(string);
     void set_postamble(string);
     unique_ptr<icoords> line_to_holes(const ilinesegment& line, double drill_diameter);
-    void export_ngc(const string of_dir, const boost::optional<string>& of_name, shared_ptr<Driller> target,
-                    bool onedrill, bool nog81, bool zchange_absolute);
-    void export_ngc(const string of_dir, const boost::optional<string>& of_name,shared_ptr<Cutter> target,
-                    bool zchange_absolute);
+    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                    shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
+    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                    shared_ptr<Cutter> target, bool zchange_absolute);
     
     inline void export_svg(const string of_dir)
     {

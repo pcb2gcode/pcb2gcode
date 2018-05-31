@@ -424,31 +424,28 @@ int main(int argc, char* argv[])
 
             cout << "DONE.\n";
 
-            boost::optional<string> output_filename = vm["drill-output"].as<string>();
+            boost::optional<string> drill_filename = vm["drill-output"].as<string>();
             if (vm["no-export"].as<bool>())
             {
-                output_filename = boost::none;
+                drill_filename = boost::none;
+            }
+            if (vm["milldrill"].as<bool>())
+            {
+                if (vm.count("milldrill-diameter")) {
+                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+                }
+                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+                ep.export_ngc(outputdir, drill_filename, cutter,
+                              vm["zchange-absolute"].as<bool>());
             }
             else
             {
-                if (vm["milldrill"].as<bool>())
-                {
-                    if (vm.count("milldrill-diameter")) {
-                        cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
-                    }
-                    cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-                    ep.export_ngc(outputdir, output_filename, cutter,
-                                  vm["zchange-absolute"].as<bool>());
-                }
-                else
-                {
-                    ep.export_ngc(outputdir, output_filename,
-                                  driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
-                                  vm["zchange-absolute"].as<bool>());
-                }
-
-                cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
+                ep.export_ngc(outputdir, drill_filename,
+                              driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                              vm["zchange-absolute"].as<bool>());
             }
+
+            cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 
         }
         catch (const drill_exception& e)

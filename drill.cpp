@@ -237,8 +237,8 @@ unique_ptr<icoords> ExcellonProcessor::line_to_holes(const ilinesegment& line, d
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                    shared_ptr<Driller> driller, bool onedrill,
-                                    bool nog81, bool zchange_absolute)
+                                   shared_ptr<Driller> driller, bool onedrill,
+                                   bool nog81, bool zchange_absolute)
 {
     double xoffsetTot;
     double yoffsetTot;
@@ -260,7 +260,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     if (of_name) {
         of.open(build_filename(of_dir, *of_name));
     } else {
-        //of = NullStream();
+        of.open("");
     }
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
@@ -513,7 +513,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                    shared_ptr<Cutter> target, bool zchange_absolute)
+                                   shared_ptr<Cutter> target, bool zchange_absolute)
 {
     unsigned int badHoles = 0;
     double xoffsetTot;
@@ -535,6 +535,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     if (of_name) {
         of.open(build_filename(of_dir, *of_name));
     } else {
+        of.open("");
     }
 
     shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
