@@ -25,6 +25,7 @@ TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "multivibrator_pre_post_milling_gcode",
                   "multivibrator_no_export",
+                  "am-test-voronoi-front",
               ]] +
               [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
                TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
@@ -139,7 +140,7 @@ class IntegrationTests(unittest.TestCase):
       expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
       diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
     self.assertFalse(any(diff_texts),
-                     'Files don\'t match\n' + '\n'.join(diff_texts) +
+                     'Files don\'t match\n' + '\n'.join(filter(None, diff_texts)) +
                      '\n***\nRun one of these:\n' +
                      './integration_tests.py --fix\n' +
                      './integration_tests.py --fix --add\n' +
@@ -169,7 +170,7 @@ if __name__ == '__main__':
       if l.startswith("patching file "):
         files_patched.append(l[len("patching file "):])
     if args.add:
-      subprocess.check_output(["git", "add"] + files_patched)
+      subprocess.call(["git", "add"] + files_patched)
       print("Done.\nAdded to git:\n" +
             '\n'.join(files_patched))
     else:
