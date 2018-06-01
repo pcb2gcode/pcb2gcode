@@ -21,6 +21,7 @@ TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "ex
 clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
 
 EXAMPLES_PATH = "testing/gerbv_example"
+BROKEN_EXAMPLES_PATH = "testing/broken_examples"
 TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
@@ -35,7 +36,12 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "am-test-voronoi-front",
               ]] +
               [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
-               for x in ("front", "back", "outline", "drill")])
+               for x in ("front", "back", "outline", "drill")] +
+              [TestCase(clean("broken_" + x),
+                        os.path.join(BROKEN_EXAMPLES_PATH, x),
+                        [], 1)
+               for x in ("invalid-config",)
+              ])
 
 def colored(text, **color):
   if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
@@ -60,8 +66,8 @@ class IntegrationTests(unittest2.TestCase):
       p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = p.communicate()
       self.assertEqual(p.returncode, exit_code)
-      print(result[0], file=sys.stderr)
     finally:
+      print(result[0], file=sys.stderr)
       os.chdir(cwd)
     return actual_output_path
 

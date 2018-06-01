@@ -163,28 +163,14 @@ void options::parse_files()
 
     std::string file("millproject");
 
-    try
-    {
-        std::ifstream stream;
-
-        try
-        {
-            stream.open(file.c_str());
-            po::store(po::parse_config_file(stream, instance().cfg_options),
-                      instance().vm);
-        }
-        catch (std::exception& e)
-        {
-            cerr << "Error parsing configuration file \"" << file << "\": "
-                 << e.what() << endl;
-        }
-
-        stream.close();
-    }
-    catch (std::exception& e)
-    {
-        cerr << "Error reading configuration file \"" << file << "\": "
+    try {
+        std::ifstream stream(file.c_str());
+        po::store(po::parse_config_file(stream, instance().cfg_options),
+                  instance().vm);
+    } catch (std::exception& e) {
+        cerr << "Error parsing configuration file \"" << file << "\": "
              << e.what() << endl;
+        exit(EXIT_FAILURE);
     }
 
     po::notify(instance().vm);
