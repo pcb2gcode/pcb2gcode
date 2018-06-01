@@ -288,9 +288,9 @@ unit_t parse_unit(const std::string& s) {
 }
 
 template <typename dimension_t>
-inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& boardside) {
+inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& unit) {
   std::string s(std::istreambuf_iterator<char>(in), {});
-  boardside = parse_unit<Unit<dimension_t>>(s);
+  unit = parse_unit<Unit<dimension_t>>(s);
   return in;
 }
 
