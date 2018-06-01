@@ -708,7 +708,6 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes()
 /******************************************************************************/
 shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill )
 {
-    unsigned int size = 0;
     map<int, ilinesegments>::iterator i;
 
     for (auto it = bits->begin(); it != bits->end(); ) {
@@ -725,21 +724,10 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
     if (onedrill) {
-        // Let all drills be the same size.
-        for( i = original_path->begin(); i != original_path->end(); i++ )
-            size += i->second.size();
-
-        //Then reserve the vector's size
-        original_path->begin()->second.reserve( size );
-
-        //Then copy all the paths inside the first and delete the source vector
-        map<int, ilinesegments>::iterator second_element;
-        while( original_path->size() > 1 )
-        {
-            second_element = boost::next( original_path->begin() );
-            original_path->begin()->second.insert( original_path->begin()->second.end(),
-                                                   second_element->second.begin(), second_element->second.end() );
-            original_path->erase( second_element );
+        // Let all drills be the same size as the first drill.
+        const auto first_drill_bit = bits->at(holes->begin()->first);
+        for (auto& current_drill : *bits) {
+            current_drill.second = first_drill_bit;
         }
     }
 
