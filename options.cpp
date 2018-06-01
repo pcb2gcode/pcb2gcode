@@ -170,7 +170,7 @@ void options::parse_files()
     } catch (std::exception& e) {
         cerr << "Error parsing configuration file \"" << file << "\": "
              << e.what() << endl;
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
     po::notify(instance().vm);

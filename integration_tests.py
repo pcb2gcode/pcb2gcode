@@ -67,8 +67,8 @@ class IntegrationTests(unittest2.TestCase):
       p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = p.communicate()
       self.assertEqual(p.returncode, exit_code)
-      print(result[0], file=sys.stderr)
     finally:
+      print(result[0], file=sys.stderr)
       os.chdir(cwd)
     return actual_output_path
 
