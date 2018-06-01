@@ -22,6 +22,9 @@ struct parse_exception : public std::exception {
   parse_exception(const std::string& get_what, const std::string& from_what) {
     what_string = "Can't get " + get_what + " from: " + from_what;
   }
+  parse_exception(const std::string& what) {
+    what_string = what;
+  }
 
   virtual const char* what() const throw()
   {
@@ -383,12 +386,25 @@ class AvailableDrill {
     return diameter;
   }
  private:
+  // The diameter for holes that this drill can be used to drill.
   Length diameter;
+  // Tolerance for drilling holes larger than the diameter.  This
+  // number must be non-negative.
+  Length positive_tolerance{std::numeric_limits<double>::infinity()};
+  // Tolerance for drilling holes smaller than the diameter.  This
+  // number must be non-negative.
+  Length negative_tolerance{std::numeric_limits<double>::infinity()};
 };
 
 inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill)
 {
-  in >> available_drill.diameter;
+  std::string input_string(std::istreambuf_iterator<char>(in), {});
+  std::vector<string> drill_parts;
+  boost::split(drill_parts, input_string, boost::is_any_of(":"));
+  if (drill_parts.size() < 1) {
+    throw parse_exception("length", "");
+  }
+  available_drill.diameter = parse_unit<Length>(drill_parts[0]);
   return in;
 }
 
