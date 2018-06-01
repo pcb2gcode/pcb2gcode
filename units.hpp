@@ -92,6 +92,7 @@ class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
   typedef dimension_t dimension;
+  UnitBase() : value(0), one(boost::none) {}
   UnitBase(double value) : value(value), one(boost::none) {}
   UnitBase(double value, boost::optional<quantity> one) : value(value), one(one) {}
 
@@ -138,6 +139,7 @@ typedef Unit<boost::units::si::frequency> Frequency;
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
  public:
+  Unit() : UnitBase() {}
   Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asInch(double factor) const {
@@ -168,6 +170,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
 template<>
 class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
+  Unit() : UnitBase() {}
   Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asSecond(double factor) const {
@@ -202,6 +205,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
 template<>
 class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
  public:
+  Unit() : UnitBase() {}
   Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   using UnitBase::as;
@@ -223,6 +227,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
 template<>
 class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
+  Unit() : UnitBase() {}
   Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asInchPerMinute(double factor) const {
@@ -242,6 +247,7 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
 template<>
 class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
  public:
+  Unit() : UnitBase() {}
   Unit(double value) : UnitBase(value) {}
   Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
   double asPerMinute(double factor) const {
@@ -282,17 +288,10 @@ unit_t parse_unit(const std::string& s) {
 }
 
 template <typename dimension_t>
-void validate(boost::any& v,
-              const std::vector<std::string>& values,
-              Unit<dimension_t>*, int) {
-  // Make sure no previous assignment was made.
-  boost::program_options::validators::check_first_occurrence(v);
-  // Extract the first string from 'values'. If there is more than
-  // one string, it's an error, and exception will be thrown.
-  const std::string& s = boost::program_options::validators::get_single_string(values);
-
-  // Figure out what unit it is.
-  v = boost::any(parse_unit<Unit<dimension_t>>(s));
+inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& unit) {
+  std::string s(std::istreambuf_iterator<char>(in), {});
+  unit = parse_unit<Unit<dimension_t>>(s);
+  return in;
 }
 
 namespace BoardSide {
