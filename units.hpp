@@ -109,8 +109,13 @@ class UnitBase {
     return s;
   }
   bool operator==(const UnitBase<dimension_t>& other) const {
-    return value == other.value &&
-        one == other.one;
+    if (!one && !other.one) {
+      return value == other.value;
+    } else if (one && other.one) {
+      return value * *one == other.value * *other.one;
+    } else {
+      return false;
+    }
   }
 
  protected:
@@ -155,6 +160,11 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "millimeters") {
       return boost::units::si::meter/1000.0;
     }
+    if (unit == "m" ||
+        unit == "meter" ||
+        unit == "meters`") {
+      return 1 * boost::units::si::meter;
+    }
     if (unit == "in" ||
         unit == "inch" ||
         unit == "inches") {
@@ -166,7 +176,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "mils") {
       return thou;
     }
-    throw parse_exception("length", unit);
+    throw parse_exception("length units", unit);
   }
   Length operator-() const {
     return Length(-value, one);
@@ -202,7 +212,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
         unit == "minutes") {
       return minute;
     }
-    throw parse_exception("time", unit);
+    throw parse_exception("time units", unit);
   }
 };
 
@@ -222,7 +232,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
         unit == "cycles") {
       return 1.0*boost::units::si::si_dimensionless;
     }
-    throw parse_exception("dimensionless", unit);
+    throw parse_exception("dimensionless units", unit);
   }
 };
 
@@ -381,7 +391,9 @@ class AvailableDrill {
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
   friend inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill);
   bool operator==(const AvailableDrill& other) const {
-    return diameter == other.diameter;
+    return diameter == other.diameter &&
+        negative_tolerance == other.negative_tolerance &&
+        positive_tolerance == other.positive_tolerance;
   }
   Length get_diameter() const {
     return diameter;
@@ -391,8 +403,6 @@ class AvailableDrill {
     std::vector<string> drill_parts;
     boost::split(drill_parts, input_string, boost::is_any_of(":"));
     switch (drill_parts.size()) {
-      case 0:
-        throw parse_exception("drills-available", input_string);
       case 3:
         available_drill.positive_tolerance = ::parse_unit<Length>(drill_parts[2]);
         // no break
@@ -422,6 +432,7 @@ class AvailableDrill {
     return available_drill;
   }
   std::ostream& write(std::ostream& in) const {
+    in << diameter << ":" << negative_tolerance << ":" << positive_tolerance;
     return in;
   }
 
@@ -438,8 +449,14 @@ class AvailableDrill {
 
 std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   std::string input_string(std::istreambuf_iterator<char>(in), {});
-  available_drill = AvailableDrill::parse_unit(input_string);
-  return in;
+  try {
+    std::cout << input_string << std::endl;
+    available_drill = AvailableDrill::parse_unit(input_string);
+    return in;
+  } catch (parse_exception& e) {
+    std::cerr << e.what() << std::endl;
+    throw boost::program_options::invalid_option_value(input_string);
+  }
 }
 
 std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {

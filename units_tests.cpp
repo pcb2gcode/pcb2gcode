@@ -29,23 +29,28 @@ BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("10000thou").asInch(0), 10);
+  Length length;
+  std::stringstream ss;
+  ss << parse_unit<Length>("4");
+  BOOST_CHECK_EQUAL(ss.str(), "4");
 
-  BOOST_CHECK_THROW(parse_unit<Length>("50.8mm/s").asInch(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Length>("50.8seconds").asInch(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Length>("50.8s").asInch(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8mm/s"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8seconds"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Length>("50.8s"), po::validation_error);
 }
 
 BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4").asSecond(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Time>("4s").asSecond(1), 4);
+  BOOST_CHECK_EQUAL(parse_unit<Time>("4ms").asSecond(1), 0.004);
   BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
 
-  BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s").asSecond(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Time>("50.8inches").asSecond(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Time>("50.8millimeters").asSecond(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Time>("blahblah").asSecond(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Time>("").asSecond(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Time>("50.8inches"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Time>("50.8millimeters"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Time>("blahblah"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Time>(""), po::validation_error);
 }
 
 BOOST_AUTO_TEST_CASE(parse_dimensionless) {
@@ -53,11 +58,11 @@ BOOST_AUTO_TEST_CASE(parse_dimensionless) {
   BOOST_CHECK_EQUAL(parse_unit<Dimensionless>("4").as(1), 4);
   BOOST_CHECK_EQUAL(parse_unit<Dimensionless>("4cycles").as(100), 4);
 
-  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8mm/s").as(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8inches").as(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8millimeters").as(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Dimensionless>("blahblah").as(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Dimensionless>("").as(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8mm/s"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8inches"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Dimensionless>("50.8millimeters"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Dimensionless>("blahblah"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Dimensionless>(""), po::validation_error);
 }
 
 BOOST_AUTO_TEST_CASE(parse_frequency) {
@@ -66,11 +71,11 @@ BOOST_AUTO_TEST_CASE(parse_frequency) {
   BOOST_CHECK_EQUAL(parse_unit<Frequency>("600   cycles\t/\tminute\t\t").asPerMinute(100), 600);
   BOOST_CHECK_EQUAL(parse_unit<Frequency>("2rotations/s").asPerMinute(100), 120);
 
-  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8mm/s").asPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8inches").asPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8millimeters").asPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Frequency>("blahblah").asPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Frequency>("").asPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8mm/s"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8inches"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("50.8millimeters"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>("blahblah"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Frequency>(""), po::validation_error);
 }
 
 BOOST_AUTO_TEST_CASE(parse_velocity) {
@@ -81,25 +86,39 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_EQUAL(parse_unit<Velocity>(" 50.8 mm per min ").asInchPerMinute(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Velocity>("  \t50.8\tmm\t/minutes").asInchPerMinute(2), 2);
 
-  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8mm").asInchPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8 mm ").asInchPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8seconds").asInchPerMinute(2), po::validation_error);
-  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s").asInchPerMinute(2), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8mm"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8 mm "), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8seconds"), po::validation_error);
+  BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s"), po::validation_error);
 }
 
 BOOST_AUTO_TEST_CASE(parse_available_drill) {
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("4"), AvailableDrill(Length(4)));
-  /*  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("25.4mm").asInch(200), 1);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("50.8mm").asInch(200), 2);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8mm").asInch(200), 2);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8mm    ").asInch(200), 2);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8 mm ").asInch(2), 2);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("  \t50.8\tmm\t").asInch(2), 2);
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("10000thou").asInch(0), 10);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("4"),
+                    AvailableDrill(parse_unit<Length>("4")));
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("25.4mm"),
+                    AvailableDrill(parse_unit<Length>("1inch")));
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:0.1mm"),
+                    AvailableDrill(parse_unit<Length>("1mm"),
+                                   parse_unit<Length>("-0.1mm"),
+                                   parse_unit<Length>("0.1mm")));
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm"),
+                    AvailableDrill(parse_unit<Length>("1mm"),
+                                   parse_unit<Length>("-0.2mm"),
+                                   parse_unit<Length>("0.1mm")));
 
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8mm/s").asInch(2), po::validation_error);
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8seconds").asInch(2), po::validation_error);
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8s").asInch(2), po::validation_error);*/
+
+
+  AvailableDrill available_drill = AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm");
+  std::stringstream ss;
+  ss << available_drill;
+  ss >> available_drill;
+  BOOST_CHECK_EQUAL(available_drill, AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm"));
+
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit(""), po::validation_error);
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8seconds"), po::validation_error);
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit("1mm:0.1mm:0.2mm"), parse_exception);
+  ss.str("1mm:0.1mm:-0.2mm:0.3mm");
+  BOOST_CHECK_THROW(ss >> available_drill, po::validation_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
