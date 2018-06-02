@@ -105,9 +105,6 @@ BOOST_AUTO_TEST_CASE(parse_available_drill) {
                     AvailableDrill(parse_unit<Length>("1mm"),
                                    parse_unit<Length>("-0.2mm"),
                                    parse_unit<Length>("0.1mm")));
-
-
-
   AvailableDrill available_drill = AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm");
   std::stringstream ss;
   ss << available_drill;
