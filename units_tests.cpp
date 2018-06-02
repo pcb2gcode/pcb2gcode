@@ -87,4 +87,19 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s").asInchPerMinute(2), po::validation_error);
 }
 
+BOOST_AUTO_TEST_CASE(parse_available_drill) {
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("4"), AvailableDrill(Length(4)));
+  /*  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("25.4mm").asInch(200), 1);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8mm    ").asInch(200), 2);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit(" 50.8 mm ").asInch(2), 2);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("  \t50.8\tmm\t").asInch(2), 2);
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("10000thou").asInch(0), 10);
+
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8mm/s").asInch(2), po::validation_error);
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8seconds").asInch(2), po::validation_error);
+  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8s").asInch(2), po::validation_error);*/
+}
+
 BOOST_AUTO_TEST_SUITE_END()

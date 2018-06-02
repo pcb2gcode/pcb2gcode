@@ -108,6 +108,10 @@ class UnitBase {
     }
     return s;
   }
+  bool operator==(const UnitBase<dimension_t>& other) const {
+    return value == other.value &&
+        one == other.one;
+  }
 
  protected:
   double as(double factor, quantity wanted_unit) const {
@@ -370,8 +374,15 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 
 class AvailableDrill {
  public:
+  AvailableDrill(Length diameter = Length(0),
+                 Length negative_tolerance = Length(-std::numeric_limits<double>::infinity()),
+                 Length positive_tolerance = Length(std::numeric_limits<double>::infinity())) :
+      diameter(diameter), negative_tolerance(negative_tolerance), positive_tolerance(positive_tolerance) {}
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
   friend inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill);
+  bool operator==(const AvailableDrill& other) const {
+    return diameter == other.diameter;
+  }
   Length get_diameter() const {
     return diameter;
   }
@@ -410,22 +421,29 @@ class AvailableDrill {
     }
     return available_drill;
   }
+  std::ostream& write(std::ostream& in) const {
+    return in;
+  }
 
  private:
   // The diameter for holes that this drill can be used to drill.
   Length diameter;
-  // Tolerance for drilling holes larger than the diameter.  This
-  // number must be non-negative.
-  Length positive_tolerance{std::numeric_limits<double>::infinity()};
   // Tolerance for drilling holes smaller than the diameter.  This
   // number must be non-negative.
-  Length negative_tolerance{-std::numeric_limits<double>::infinity()};
+  Length negative_tolerance;
+  // Tolerance for drilling holes larger than the diameter.  This
+  // number must be non-negative.
+  Length positive_tolerance;
 };
 
 std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   std::string input_string(std::istreambuf_iterator<char>(in), {});
   available_drill = AvailableDrill::parse_unit(input_string);
   return in;
+}
+
+std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
+  return available_drill.write(out);
 }
 
 #endif // UNITS_HPP
