@@ -33,6 +33,7 @@ using std::flush;
 #include <sstream>
 using std::stringstream;
 
+#include <numeric>
 #include <iomanip>
 using std::setprecision;
 using std::fixed;
@@ -76,7 +77,17 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
-      available_drills(options["drills-available"].as<std::vector<AvailableDrill::AvailableDrill>>()),
+      available_drills(std::accumulate(
+          options["drills-available"].as<std::vector<AvailableDrill::AvailableDrills>>().begin(),
+          options["drills-available"].as<std::vector<AvailableDrill::AvailableDrills>>().end(),
+          std::vector<AvailableDrill::AvailableDrill>(),
+          [](std::vector<AvailableDrill::AvailableDrill> drills,
+             AvailableDrill::AvailableDrills available_drills) {
+            drills.insert(drills.end(),
+                          available_drills.get_available_drills().begin(),
+                          available_drills.get_available_drills().end());
+            return drills;
+          })),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )

@@ -378,18 +378,47 @@ namespace AvailableDrill {
 class AvailableDrill {
  public:
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
-  friend inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill);
   Length get_diameter() const {
     return diameter;
   }
+  std::ostream& write(std::ostream& in) const {
+    in << diameter;
+    return in;
+  }
+
  private:
   Length diameter;
 };
 
-inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill)
-{
+class AvailableDrills {
+ public:
+  friend inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills);
+  const std::vector<AvailableDrill>& get_available_drills() const {
+    return available_drills;
+  }
+ private:
+  std::vector<AvailableDrill> available_drills;
+};
+
+inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   in >> available_drill.diameter;
   return in;
+}
+
+inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills) {
+  std::vector<string> available_drill_strings;
+  std::string input_string(std::istreambuf_iterator<char>(in), {});
+  boost::split(available_drill_strings, input_string, boost::is_any_of(","));
+  for (const auto& available_drill_string : available_drill_strings) {
+    AvailableDrill available_drill;
+    std::stringstream(available_drill_string) >> available_drill;
+    available_drills.available_drills.push_back(available_drill);
+  }
+  return in;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
+  return available_drill.write(out);
 }
 
 }; // namespace AvailableDrill
