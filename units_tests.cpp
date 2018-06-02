@@ -23,7 +23,7 @@ dimension_t parse_unit(const std::string& s) {
 BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>("4").asInch(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(200), 1);
-  BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("+50.8mm").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm    ").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
@@ -101,15 +101,16 @@ BOOST_AUTO_TEST_CASE(parse_available_drill) {
                     AvailableDrill(parse_unit<Length>("1mm"),
                                    parse_unit<Length>("-0.1mm"),
                                    parse_unit<Length>("0.1mm")));
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm"),
+  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:+0.1mm:-0.2mm"),
                     AvailableDrill(parse_unit<Length>("1mm"),
                                    parse_unit<Length>("-0.2mm"),
-                                   parse_unit<Length>("0.1mm")));
-  AvailableDrill available_drill = AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm");
+                                   parse_unit<Length>("+0.1mm")));
+  const string round_trip_drill("1mm:0.1mm:-0.2mm");
+  AvailableDrill available_drill = AvailableDrill::parse_unit(round_trip_drill);
   std::stringstream ss;
   ss << available_drill;
   ss >> available_drill;
-  BOOST_CHECK_EQUAL(available_drill, AvailableDrill::parse_unit("1mm:0.1mm:-0.2mm"));
+  BOOST_CHECK_EQUAL(available_drill, AvailableDrill::parse_unit(round_trip_drill));
 
   BOOST_CHECK_THROW(AvailableDrill::parse_unit(""), po::validation_error);
   BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8seconds"), po::validation_error);

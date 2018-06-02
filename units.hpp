@@ -49,7 +49,7 @@ class Lexer {
   double get_double() {
     get_whitespace();
     std::string text = get_string<bool>([](int c) {
-        return std::isdigit(c) || c == '-' || c == '.';
+        return std::isdigit(c) || c == '-' || c == '.' || c == '+';
       });
     try {
       return boost::lexical_cast<double>(text);
@@ -432,7 +432,7 @@ class AvailableDrill {
     return available_drill;
   }
   std::ostream& write(std::ostream& in) const {
-    in << diameter << ":" << negative_tolerance << ":" << positive_tolerance;
+    in << diameter << ":" << negative_tolerance << ":+" << positive_tolerance;
     return in;
   }
 
