@@ -76,7 +76,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
-      available_drills(options["drills-available"].as<std::vector<AvailableDrill::AvailableDrill>>()),
+      available_drills(options["drills-available"].as<std::vector<AvailableDrill>>()),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
@@ -786,7 +786,7 @@ shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map
             auto old_string = drill_to_string(wanted_drill_bit);
             auto best_available_drill = std::min_element(
                 available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill::AvailableDrill a, AvailableDrill::AvailableDrill b) {
+                [&](AvailableDrill a, AvailableDrill b) {
                     return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
                                a.get_diameter().asInch(inputFactor)) <
                         abs(wanted_drill_bit.as_length().asInch(inputFactor) -

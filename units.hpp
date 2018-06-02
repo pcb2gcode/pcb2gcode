@@ -95,9 +95,7 @@ class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
   typedef dimension_t dimension;
-  UnitBase() : value(0), one(boost::none) {}
-  UnitBase(double value) : value(value), one(boost::none) {}
-  UnitBase(double value, boost::optional<quantity> one) : value(value), one(one) {}
+  UnitBase(double value = 0, boost::optional<quantity> one = boost::none) : value(value), one(one) {}
 
   double asDouble() const {
     return value;
@@ -142,9 +140,7 @@ typedef Unit<boost::units::si::frequency> Frequency;
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
  public:
-  Unit() : UnitBase() {}
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asInch(double factor) const {
     return as(factor, inch);
   }
@@ -168,14 +164,15 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
     }
     throw parse_exception("length", unit);
   }
+  Length operator-() const {
+    return Length(-value, one);
+  }
 };
 
 template<>
 class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
-  Unit() : UnitBase() {}
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asSecond(double factor) const {
     return as(factor, 1.0*boost::units::si::second);
   }
@@ -208,9 +205,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
 template<>
 class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
  public:
-  Unit() : UnitBase() {}
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   using UnitBase::as;
   double as(double factor) const {
     return as(factor, 1.0*boost::units::si::si_dimensionless);
@@ -230,9 +225,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
 template<>
 class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
-  Unit() : UnitBase() {}
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asInchPerMinute(double factor) const {
     return as(factor, inch/minute);
   }
@@ -250,9 +243,7 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
 template<>
 class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
  public:
-  Unit() : UnitBase() {}
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asPerMinute(double factor) const {
     return as(factor, 1.0/minute);
   }
@@ -377,7 +368,6 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 }
 }; // namespace Software
 
-namespace AvailableDrill {
 class AvailableDrill {
  public:
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
@@ -385,6 +375,42 @@ class AvailableDrill {
   Length get_diameter() const {
     return diameter;
   }
+  static AvailableDrill parse_unit(const std::string& input_string) {
+    AvailableDrill available_drill;
+    std::vector<string> drill_parts;
+    boost::split(drill_parts, input_string, boost::is_any_of(":"));
+    switch (drill_parts.size()) {
+      case 0:
+        throw parse_exception("drills-available", input_string);
+      case 3:
+        available_drill.positive_tolerance = ::parse_unit<Length>(drill_parts[2]);
+        // no break
+      case 2:
+        available_drill.negative_tolerance = ::parse_unit<Length>(drill_parts[1]);
+        // no break
+      case 1:
+        available_drill.diameter = ::parse_unit<Length>(drill_parts[0]);
+        break;
+      default:
+        throw parse_exception("Too many parts in " + input_string);
+    }
+    if (drill_parts.size() == 2) {
+      available_drill.positive_tolerance =
+          -available_drill.negative_tolerance;
+    }
+    if (available_drill.positive_tolerance.asInch(1) < 0 ||
+        available_drill.negative_tolerance.asInch(1) > 0) {
+      std::swap(available_drill.positive_tolerance,
+                available_drill.negative_tolerance);
+    }
+    if (available_drill.positive_tolerance.asInch(1) < 0 ||
+        available_drill.negative_tolerance.asInch(1) > 0) {
+      throw parse_exception("One tolerance must be negative and "
+                            "one must be positive");
+    }
+    return available_drill;
+  }
+
  private:
   // The diameter for holes that this drill can be used to drill.
   Length diameter;
@@ -393,21 +419,13 @@ class AvailableDrill {
   Length positive_tolerance{std::numeric_limits<double>::infinity()};
   // Tolerance for drilling holes smaller than the diameter.  This
   // number must be non-negative.
-  Length negative_tolerance{std::numeric_limits<double>::infinity()};
+  Length negative_tolerance{-std::numeric_limits<double>::infinity()};
 };
 
-inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill)
-{
+std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   std::string input_string(std::istreambuf_iterator<char>(in), {});
-  std::vector<string> drill_parts;
-  boost::split(drill_parts, input_string, boost::is_any_of(":"));
-  if (drill_parts.size() < 1) {
-    throw parse_exception("length", "");
-  }
-  available_drill.diameter = parse_unit<Length>(drill_parts[0]);
+  available_drill = AvailableDrill::parse_unit(input_string);
   return in;
 }
-
-}; // namespace AvailableDrill
 
 #endif // UNITS_HPP
