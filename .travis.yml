@@ -1,5 +1,5 @@
 language: cpp
-sudo: false
+sudo: required # This is done to increase the memory that the jobs get so that we can make -j 4
 
 matrix:
   include:
@@ -74,7 +74,7 @@ install:
       pushd gerbv &&
       sh autogen.sh &&
       ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
-      make -j 2 &&
+      make -j &&
       make install &&
       popd &&
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
@@ -90,13 +90,13 @@ script:
   - autoreconf -fvi || travis_terminate 1
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then ./configure --disable-dependency-tracking --disable-silent-rules "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}"; fi || travis_terminate 1
-  - chronic make -j 2 || travis_terminate 1
+  - chronic make -j || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
-  - ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo "Running on {}" ; ../../../pcb2gcode || exit ; popd" || travis_terminate 1
+  - ls | ../../parallel-*/src/parallel -j 0 --halt soon,fail=1 "pushd {}; echo "Running on {}" ; ../../../pcb2gcode || exit ; popd" || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
-  - VERBOSE=1 make -j 2 check || travis_terminate 1
+  - VERBOSE=1 make -j check || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
 
 after_success:
