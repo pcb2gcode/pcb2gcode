@@ -144,7 +144,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
-    const std::vector<AvailableDrill::AvailableDrill> available_drills;
+    const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;

@@ -78,11 +78,11 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
       available_drills(std::accumulate(
-          options["drills-available"].as<std::vector<AvailableDrill::AvailableDrills>>().begin(),
-          options["drills-available"].as<std::vector<AvailableDrill::AvailableDrills>>().end(),
-          std::vector<AvailableDrill::AvailableDrill>(),
-          [](std::vector<AvailableDrill::AvailableDrill> drills,
-             AvailableDrill::AvailableDrills available_drills) {
+          options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
+          options["drills-available"].as<std::vector<AvailableDrills>>().end(),
+          std::vector<AvailableDrill>(),
+          [](std::vector<AvailableDrill> drills,
+             AvailableDrills available_drills) {
             drills.insert(drills.end(),
                           available_drills.get_available_drills().begin(),
                           available_drills.get_available_drills().end());
@@ -785,7 +785,7 @@ shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map
             auto old_string = drill_to_string(wanted_drill_bit);
             auto best_available_drill = std::min_element(
                 available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill::AvailableDrill a, AvailableDrill::AvailableDrill b) {
+                [&](AvailableDrill a, AvailableDrill b) {
                     return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
                                a.get_diameter().asInch(inputFactor)) <
                         abs(wanted_drill_bit.as_length().asInch(inputFactor) -

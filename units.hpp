@@ -374,7 +374,6 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 }
 }; // namespace Software
 
-namespace AvailableDrill {
 class AvailableDrill {
  public:
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
@@ -420,7 +419,5 @@ inline std::istream& operator>>(std::istream& in, AvailableDrills& available_dri
 inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
   return available_drill.write(out);
 }
-
-}; // namespace AvailableDrill
 
 #endif // UNITS_HPP
