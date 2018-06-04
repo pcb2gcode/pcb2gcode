@@ -1,5 +1,5 @@
 language: cpp
-sudo: false
+sudo: required # This is done to increase the memory that the jobs get so that we can make -j 4
 
 matrix:
   include:
