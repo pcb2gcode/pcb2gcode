@@ -186,8 +186,7 @@ string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     return ss.str();
 }
 
-icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter)
-{
+icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter) {
     auto start_x = line.first.first;
     auto start_y = line.first.second;
     auto stop_x = line.second.first;
