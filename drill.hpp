@@ -90,7 +90,7 @@ public:
     void add_header(string);
     void set_preamble(string);
     void set_postamble(string);
-    unique_ptr<icoords> line_to_holes(const ilinesegment& line, double drill_diameter);
+    icoords line_to_holes(const ilinesegment& line, double drill_diameter);
     void export_ngc(const string of_dir, const boost::optional<string>& of_name,
                     shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const string of_dir, const boost::optional<string>& of_name,
