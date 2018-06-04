@@ -398,6 +398,7 @@ class AvailableDrill {
   Length get_diameter() const {
     return diameter;
   }
+
   static AvailableDrill parse_unit(const std::string& input_string) {
     AvailableDrill available_drill;
     std::vector<string> drill_parts;
@@ -447,7 +448,7 @@ class AvailableDrill {
   Length positive_tolerance;
 };
 
-std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
+inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   std::string input_string(std::istreambuf_iterator<char>(in), {});
   try {
     std::cout << input_string << std::endl;
@@ -459,8 +460,30 @@ std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
   }
 }
 
-std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
+inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
   return available_drill.write(out);
+}
+
+class AvailableDrills {
+ public:
+  friend inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills);
+  const std::vector<AvailableDrill>& get_available_drills() const {
+    return available_drills;
+  }
+ private:
+  std::vector<AvailableDrill> available_drills;
+};
+
+inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills) {
+  std::vector<string> available_drill_strings;
+  std::string input_string(std::istreambuf_iterator<char>(in), {});
+  boost::split(available_drill_strings, input_string, boost::is_any_of(","));
+  for (const auto& available_drill_string : available_drill_strings) {
+    AvailableDrill available_drill;
+    std::stringstream(available_drill_string) >> available_drill;
+    available_drills.available_drills.push_back(available_drill);
+  }
+  return in;
 }
 
 #endif // UNITS_HPP
