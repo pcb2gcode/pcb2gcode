@@ -28,6 +28,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 #include "units.hpp"
+#include "available_drills.hpp"
 
 #include <iostream>
 using std::cerr;

@@ -57,6 +57,7 @@ class drill_exception: virtual std::exception, virtual boost::exception
 #include "tile.hpp"
 #include "unique_codes.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 /******************************************************************************/
 /*

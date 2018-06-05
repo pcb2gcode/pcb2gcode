@@ -48,6 +48,7 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "common.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 using std::pair;
 using std::make_pair;
