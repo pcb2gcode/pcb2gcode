@@ -3,25 +3,30 @@
 
 class AvailableDrill {
  public:
-  AvailableDrill(Length diameter) : diameter(diameter) {}
+  AvailableDrill(Length diameter) : diameter_(diameter) {}
   AvailableDrill() {}
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
   bool operator==(const AvailableDrill& other) const {
-    return diameter == other.diameter;
+    return diameter_ == other.diameter_;
   }
-  Length get_diameter() const {
-    return diameter;
+  Length diameter() const {
+    return diameter_;
   }
   std::ostream& write(std::ostream& out) const {
-    out << diameter;
+    out << diameter_;
     return out;
   }
   std::istream& read(std::istream& in) {
-    in >> diameter;
+    in >> diameter_;
     return in;
   }
+  // Returns the difference in inches.
+  double difference(Length wanted_diameter, double inputFactor) {
+    return abs(wanted_diameter.asInch(inputFactor) -
+               diameter_.asInch(inputFactor));
+  }
  private:
-  Length diameter;
+  Length diameter_;
 };
 
 inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
