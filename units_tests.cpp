@@ -87,4 +87,29 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s"), po::validation_error);
 }
 
+void available_drills_test(const string& text, const AvailableDrills& expected) {
+  stringstream ss(text);
+  AvailableDrills available_drills;
+  ss >> available_drills;;
+  BOOST_CHECK_EQUAL(available_drills, expected);
+
+  // Round-trip test
+  ss << expected;
+  ss >> available_drills;
+  BOOST_CHECK_EQUAL(available_drills, expected);
+}
+
+void available_drills_test(const string& text) {
+  available_drills_test(text, AvailableDrills());
+}
+
+BOOST_AUTO_TEST_CASE(parse_available_drills) {
+  available_drills_test("4", AvailableDrills(parse_unit<Length>("4")));
+  available_drills_test("25.4mm", AvailableDrills(parse_unit<Length>("1inch")));
+
+  BOOST_CHECK_THROW(available_drills_test(""), po::validation_error);
+  BOOST_CHECK_THROW(available_drills_test("50.8seconds"), po::validation_error);
+}
+
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -107,6 +107,15 @@ class UnitBase {
     }
     return s;
   }
+  bool operator==(const UnitBase<dimension_t>& other) const {
+    if (!one && !other.one) {
+      return value == other.value;
+    } else if (one && other.one) {
+      return value * *one == other.value * *other.one;
+    } else {
+      return false;
+    }
+  }
 
  protected:
   double as(double factor, quantity wanted_unit) const {
@@ -377,32 +386,46 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 class AvailableDrill {
  public:
   friend inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill);
+  bool operator==(const AvailableDrill& other) const {
+    return diameter == other.diameter;
+  }
+
   Length get_diameter() const {
     return diameter;
   }
-  std::ostream& write(std::ostream& in) const {
-    in << diameter;
+  std::ostream& write(std::ostream& out) const {
+    out << diameter;
+    return out;
+  }
+  std::istream& read(std::istream& in) {
+    in >> diameter;
     return in;
   }
-
  private:
   Length diameter;
 };
 
+inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
+  return available_drill.read(in);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
+  return available_drill.write(out);
+}
+
 class AvailableDrills {
  public:
+  AvailableDrills(const auto& diameter) :: iameter(diameter){}
   friend inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills);
+  bool operator==(const AvailableDrills& other) const {
+    return available_drills == other.available_drills;
+  }
   const std::vector<AvailableDrill>& get_available_drills() const {
     return available_drills;
   }
  private:
   std::vector<AvailableDrill> available_drills;
 };
-
-inline std::istream& operator>>(std::istream& in, AvailableDrill& available_drill) {
-  in >> available_drill.diameter;
-  return in;
-}
 
 inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills) {
   std::vector<string> available_drill_strings;
@@ -414,10 +437,6 @@ inline std::istream& operator>>(std::istream& in, AvailableDrills& available_dri
     available_drills.available_drills.push_back(available_drill);
   }
   return in;
-}
-
-inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& available_drill) {
-  return available_drill.write(out);
 }
 
 #endif // UNITS_HPP
