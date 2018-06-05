@@ -40,6 +40,7 @@ BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4s").asSecond(1), 4);
   BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Time>(" 10ms").asSecond(2), 0.01);
 
   BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s"), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Time>("50.8inches"), po::validation_error);
@@ -87,28 +88,30 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s"), po::validation_error);
 }
 
-void available_drills_test(const string& text, const AvailableDrills& expected) {
+AvailableDrills string_to_available_drills(const string& text) {
   stringstream ss(text);
   AvailableDrills available_drills;
   ss >> available_drills;;
-  BOOST_CHECK_EQUAL(available_drills, expected);
-
-  // Round-trip test
-  ss << expected;
-  ss >> available_drills;
-  BOOST_CHECK_EQUAL(available_drills, expected);
+  return available_drills;
 }
 
-void available_drills_test(const string& text) {
-  available_drills_test(text, AvailableDrills());
+string available_drills_to_string(const AvailableDrills& available_drills) {
+  stringstream ss;
+  ss << available_drills;;
+  return ss.str();
 }
 
 BOOST_AUTO_TEST_CASE(parse_available_drills) {
-  available_drills_test("4", AvailableDrills(parse_unit<Length>("4")));
-  available_drills_test("25.4mm", AvailableDrills(parse_unit<Length>("1inch")));
+  BOOST_CHECK_EQUAL(string_to_available_drills("4"), AvailableDrills({parse_unit<Length>("4")}));
+  BOOST_CHECK_EQUAL(string_to_available_drills("25.4mm"), AvailableDrills({parse_unit<Length>("1inch")}));
+  BOOST_CHECK_EQUAL(available_drills_to_string(AvailableDrills({parse_unit<Length>("1inch")})), "0.0254 m");
+  BOOST_CHECK_EQUAL(available_drills_to_string(AvailableDrills({parse_unit<Length>("1")})), "1");
+  BOOST_CHECK_EQUAL(available_drills_to_string(AvailableDrills({parse_unit<Length>("1inch"),
+                                                                parse_unit<Length>("9")})),
+    "0.0254 m, 9");
 
-  BOOST_CHECK_THROW(available_drills_test(""), po::validation_error);
-  BOOST_CHECK_THROW(available_drills_test("50.8seconds"), po::validation_error);
+  BOOST_CHECK_THROW(string_to_available_drills(""), po::validation_error);
+  BOOST_CHECK_THROW(string_to_available_drills("50.8seconds"), po::validation_error);
 }
 
 
