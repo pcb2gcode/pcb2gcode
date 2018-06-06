@@ -48,6 +48,7 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "common.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -783,15 +784,14 @@ shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map
         for (auto& wanted_drill : *bits) {
             auto& wanted_drill_bit = wanted_drill.second;
             auto old_string = drill_to_string(wanted_drill_bit);
+            const Length& wanted_length = wanted_drill_bit.as_length();
             auto best_available_drill = std::min_element(
                 available_drills.begin(), available_drills.end(),
                 [&](AvailableDrill a, AvailableDrill b) {
-                    return abs(wanted_drill_bit.as_length().asInch(inputFactor) -
-                               a.get_diameter().asInch(inputFactor)) <
-                        abs(wanted_drill_bit.as_length().asInch(inputFactor) -
-                            b.get_diameter().asInch(inputFactor));
+                    return a.difference(wanted_length, inputFactor) <
+                        b.difference(wanted_length, inputFactor);
                 });
-            wanted_drill_bit.diameter = best_available_drill->get_diameter().asInch(inputFactor);
+            wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
             wanted_drill_bit.unit = "inch";
             cerr << "Info: bit " << wanted_drill.first << " ("
                << old_string << ") is rounded to "

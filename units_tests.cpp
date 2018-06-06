@@ -45,6 +45,7 @@ BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4ms").asSecond(1), 0.004);
   BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Time>(" 10ms").asSecond(2), 0.01);
 
   BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s"), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Time>("50.8inches"), po::validation_error);
@@ -90,33 +91,6 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8 mm "), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8seconds"), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s"), po::validation_error);
-}
-
-BOOST_AUTO_TEST_CASE(parse_available_drill) {
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("4"),
-                    AvailableDrill(parse_unit<Length>("4")));
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("25.4mm"),
-                    AvailableDrill(parse_unit<Length>("1inch")));
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:0.1mm"),
-                    AvailableDrill(parse_unit<Length>("1mm"),
-                                   parse_unit<Length>("-0.1mm"),
-                                   parse_unit<Length>("0.1mm")));
-  BOOST_CHECK_EQUAL(AvailableDrill::parse_unit("1mm:+0.1mm:-0.2mm"),
-                    AvailableDrill(parse_unit<Length>("1mm"),
-                                   parse_unit<Length>("-0.2mm"),
-                                   parse_unit<Length>("+0.1mm")));
-  const string round_trip_drill("1mm:0.1mm:-0.2mm");
-  AvailableDrill available_drill = AvailableDrill::parse_unit(round_trip_drill);
-  std::stringstream ss;
-  ss << available_drill;
-  ss >> available_drill;
-  BOOST_CHECK_EQUAL(available_drill, AvailableDrill::parse_unit(round_trip_drill));
-
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit(""), po::validation_error);
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit("50.8seconds"), po::validation_error);
-  BOOST_CHECK_THROW(AvailableDrill::parse_unit("1mm:0.1mm:0.2mm"), parse_exception);
-  ss.str("1mm:0.1mm:-0.2mm:0.3mm");
-  BOOST_CHECK_THROW(ss >> available_drill, po::validation_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
