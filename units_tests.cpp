@@ -40,6 +40,7 @@ BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4s").asSecond(1), 4);
   BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
+  BOOST_CHECK_EQUAL(parse_unit<Time>(" 10ms").asSecond(2), 0.01);
 
   BOOST_CHECK_THROW(parse_unit<Time>("50.8mm/s"), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Time>("50.8inches"), po::validation_error);

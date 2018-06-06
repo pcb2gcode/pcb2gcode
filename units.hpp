@@ -107,6 +107,15 @@ class UnitBase {
     }
     return s;
   }
+  bool operator==(const UnitBase<dimension_t>& other) const {
+    if (!one && !other.one) {
+      return value == other.value;
+    } else if (one && other.one) {
+      return value * *one == other.value * *other.one;
+    } else {
+      return false;
+    }
+  }
 
  protected:
   double as(double factor, quantity wanted_unit) const {

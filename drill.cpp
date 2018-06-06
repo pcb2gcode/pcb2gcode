@@ -33,6 +33,7 @@ using std::flush;
 #include <sstream>
 using std::stringstream;
 
+#include <numeric>
 #include <iomanip>
 using std::setprecision;
 using std::fixed;
@@ -47,6 +48,7 @@ using Glib::build_filename;
 #include "tsp_solver.hpp"
 #include "common.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -76,6 +78,17 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
+      available_drills(std::accumulate(
+          options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
+          options["drills-available"].as<std::vector<AvailableDrills>>().end(),
+          std::vector<AvailableDrill>(),
+          [](std::vector<AvailableDrill> drills,
+             AvailableDrills available_drills) {
+            drills.insert(drills.end(),
+                          available_drills.get_available_drills().begin(),
+                          available_drills.get_available_drills().end());
+            return drills;
+          })),
       ocodes(1),
       globalVars(100),
       tileInfo( Tiling::generateTileInfo( options, ocodes, max.second - min.second, max.first - min.first ) )
@@ -765,7 +778,26 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
 /******************************************************************************/
 shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill )
 {
-    // No need to remove unused bits because we only loop through the holes to be drilled.
+    // If there is a list of available bits, round the holes to the nearest
+    // available bit.
+    if (available_drills.size() > 0) {
+        for (auto& wanted_drill : *bits) {
+            auto& wanted_drill_bit = wanted_drill.second;
+            auto old_string = drill_to_string(wanted_drill_bit);
+            const Length& wanted_length = wanted_drill_bit.as_length();
+            auto best_available_drill = std::min_element(
+                available_drills.begin(), available_drills.end(),
+                [&](AvailableDrill a, AvailableDrill b) {
+                    return a.difference(wanted_length, inputFactor) <
+                        b.difference(wanted_length, inputFactor);
+                });
+            wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
+            wanted_drill_bit.unit = "inch";
+            cerr << "Info: bit " << wanted_drill.first << " ("
+               << old_string << ") is rounded to "
+               << drill_to_string(wanted_drill_bit) << std::endl;
+        }
+    }
     return original_bits;
 }
 

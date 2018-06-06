@@ -28,6 +28,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 #include "units.hpp"
+#include "available_drills.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -228,6 +229,9 @@ options::options()
        ("drill-speed", po::value<Frequency>(), "spindle rpm when drilling")
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
+       ("drills-available", po::value<std::vector<AvailableDrills>>()
+        ->default_value(std::vector<AvailableDrills>{}, "")
+        ->multitoken(), "list of drills available")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
        ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
        ("metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")

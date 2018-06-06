@@ -57,6 +57,7 @@ class drill_exception: virtual std::exception, virtual boost::exception
 #include "tile.hpp"
 #include "unique_codes.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 /******************************************************************************/
 /*
@@ -69,6 +70,11 @@ public:
     double diameter;
     string unit;
     int drill_count;
+    Length as_length() const {
+        std::ostringstream os;
+        os << diameter << unit;
+        return parse_unit<Length>(os.str());
+    }
 };
 
 /******************************************************************************/
@@ -139,6 +145,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
