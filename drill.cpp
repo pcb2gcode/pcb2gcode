@@ -788,14 +788,16 @@ shared_ptr<map<int, drillbit> > ExcellonProcessor::optimise_bits( shared_ptr<map
             auto best_available_drill = std::min_element(
                 available_drills.begin(), available_drills.end(),
                 [&](AvailableDrill a, AvailableDrill b) {
-                    return a.difference(wanted_length, inputFactor) <
-                        b.difference(wanted_length, inputFactor);
+                    return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
+                        b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
                 });
-            wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
-            wanted_drill_bit.unit = "inch";
-            cerr << "Info: bit " << wanted_drill.first << " ("
-               << old_string << ") is rounded to "
-               << drill_to_string(wanted_drill_bit) << std::endl;
+            if (best_available_drill->difference(wanted_length, inputFactor)) {
+                wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
+                wanted_drill_bit.unit = "inch";
+                cerr << "Info: bit " << wanted_drill.first << " ("
+                   << old_string << ") is rounded to "
+                   << drill_to_string(wanted_drill_bit) << std::endl;
+            }
         }
     }
     return original_bits;

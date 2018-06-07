@@ -48,9 +48,13 @@ class AvailableDrill {
     }
   }
   // Returns the difference in inches.
-  double difference(Length wanted_diameter, double inputFactor) {
-    return abs(wanted_diameter.asInch(inputFactor) -
-               diameter_.asInch(inputFactor));
+  boost::optional<double> difference(Length wanted_diameter, double inputFactor) const {
+    if (wanted_diameter.asInch(inputFactor) >= diameter_.asInch(inputFactor) + negative_tolerance.asInch(inputFactor) &&
+        wanted_diameter.asInch(inputFactor) <= diameter_.asInch(inputFactor) + positive_tolerance.asInch(inputFactor)) {
+      return abs(wanted_diameter.asInch(inputFactor) - diameter_.asInch(inputFactor));
+    } else {
+      return boost::none;
+    }
   }
  private:
   // The diameter for holes that this drill can be used to drill.
