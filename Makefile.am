@@ -65,6 +65,6 @@ eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
-available_drills_tests_SOURCES = units_tests.cpp units.hpp
+available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 
 TESTS = $(check_PROGRAMS)
