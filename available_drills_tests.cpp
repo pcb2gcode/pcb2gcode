@@ -40,6 +40,7 @@ BOOST_AUTO_TEST_CASE(parse_available_drills) {
   BOOST_CHECK_THROW(string_to_available_drills(""), po::validation_error);
   BOOST_CHECK_THROW(string_to_available_drills("50.8seconds"), po::validation_error);
   BOOST_CHECK_THROW(string_to_available_drills("1mm:0.1mm:0.2mm"), parse_exception);
+  BOOST_CHECK_THROW(string_to_available_drills("1:0.1:0.2:0.3"), po::validation_error);
 }
 
 
