@@ -1,6 +1,10 @@
 #ifndef AVAILABLE_DRILLS_HPP
 #define AVAILABLE_DRILLS_HPP
 
+#include "units.hpp"
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
 class AvailableDrill {
  public:
   AvailableDrill(Length diameter = Length(0),
@@ -17,7 +21,11 @@ class AvailableDrill {
     return diameter_;
   }
   std::ostream& write(std::ostream& out) const {
-    out << diameter_ << ":" << negative_tolerance << ":+" << positive_tolerance;
+    out << diameter_;
+    if (negative_tolerance == Length(-std::numeric_limits<double>::infinity())) {
+      return out;
+    }
+    out << ":" << negative_tolerance << ":+" << positive_tolerance;
     return out;
   }
   void read(const string& input_string) {
