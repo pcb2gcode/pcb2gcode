@@ -29,6 +29,7 @@ BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("10000thou").asInch(0), 10);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("0.254 m").asInch(0), 10);
   Length length;
   std::stringstream ss;
   ss << parse_unit<Length>("4");
