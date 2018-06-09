@@ -22,7 +22,8 @@ class AvailableDrill {
   }
   std::ostream& write(std::ostream& out) const {
     out << diameter_;
-    if (negative_tolerance == Length(-std::numeric_limits<double>::infinity())) {
+    if (negative_tolerance == Length(-std::numeric_limits<double>::infinity()) &&
+        positive_tolerance == Length( std::numeric_limits<double>::infinity())) {
       return out;
     }
     out << ":" << negative_tolerance << ":+" << positive_tolerance;
