@@ -34,13 +34,13 @@ class AvailableDrill {
     boost::split(drill_parts, input_string, boost::is_any_of(":"));
     switch (drill_parts.size()) {
       case 3:
-        positive_tolerance = ::parse_unit<Length>(drill_parts[2]);
+        positive_tolerance = parse_unit<Length>(drill_parts[2]);
         // no break
       case 2:
-        negative_tolerance = ::parse_unit<Length>(drill_parts[1]);
+        negative_tolerance = parse_unit<Length>(drill_parts[1]);
         // no break
       case 1:
-        diameter_ = ::parse_unit<Length>(drill_parts[0]);
+        diameter_ = parse_unit<Length>(drill_parts[0]);
         break;
       default:
         throw parse_exception("Too many parts in " + input_string);
