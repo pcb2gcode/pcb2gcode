@@ -26,6 +26,7 @@ using std::cerr;
 using std::endl;
 
 #include <boost/format.hpp>
+#include <boost/optional.hpp>
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -95,6 +96,10 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
     if (tolerance <= 0)
         tolerance = 0.0001 * scale;
+
+    if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
+        preserve_thermal_reliefs(*vectorial_surface, std::max(grow, tolerance));
+    }
 
     bg::unique(*vectorial_surface);
     box_type voronoi_bounding_box;
@@ -484,6 +489,33 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
       PointLessThan>(segments_as_linestrings);
 }
 
+size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& grow) {
+    // For each shape, see if it has any holes that are empty.
+    size_t thermal_reliefs_found = 0;
+    boost::optional<svg_writer> image;
+    multi_polygon_type holes;
+    for (auto& p : milling_surface) {
+        for (auto& inner : p.inners()) {
+            auto thermal_hole = inner;
+            bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
+            multi_polygon_type shrunk_thermal_hole;
+            bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
+            bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
+            if (empty_hole) {
+                thermal_reliefs_found++;
+                if (!image) {
+                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+                }
+                image->add(shrunk_thermal_hole, 1, true);
+                for (const auto& p : shrunk_thermal_hole) {
+                    holes.push_back(p);
+                }
+            }
+        }
+    }
+    milling_surface.insert(milling_surface.end(), holes.begin(), holes.end());
+    return thermal_reliefs_found;
+}
 
 svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
     output_file(filename),
