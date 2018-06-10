@@ -57,6 +57,7 @@ class drill_exception: virtual std::exception, virtual boost::exception
 #include "tile.hpp"
 #include "unique_codes.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 /******************************************************************************/
 /*
@@ -69,6 +70,11 @@ public:
     double diameter;
     string unit;
     int drill_count;
+    Length as_length() const {
+        std::ostringstream os;
+        os << diameter << unit;
+        return parse_unit<Length>(os.str());
+    }
 };
 
 /******************************************************************************/
@@ -90,11 +96,11 @@ public:
     void add_header(string);
     void set_preamble(string);
     void set_postamble(string);
-    unique_ptr<icoords> line_to_holes(const ilinesegment& line, double drill_diameter);
-    void export_ngc(const string of_dir, const string of_name, shared_ptr<Driller> target,
-                    bool onedrill, bool nog81, bool zchange_absolute);
-    void export_ngc(const string of_dir, const string of_name,shared_ptr<Cutter> target,
-                    bool zchange_absolute);
+    icoords line_to_holes(const ilinesegment& line, double drill_diameter);
+    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                    shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
+    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
+                    shared_ptr<Cutter> target, bool zchange_absolute);
     
     inline void export_svg(const string of_dir)
     {
@@ -112,6 +118,7 @@ private:
                   double stop_x, double stop_y,
                   shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
+    string drill_to_string(drillbit drillbit);
 
     shared_ptr< map<int, ilinesegments> > optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill );
     shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
@@ -138,6 +145,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
