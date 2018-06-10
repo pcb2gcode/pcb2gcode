@@ -304,7 +304,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         if (mask) {
             bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
         } else {
-            bg::convert(masked_milling_poly, masked_milling_polys);
+            bg::intersection(masked_milling_poly, bounding_box, masked_milling_polys);
         }
         if (expand_by == 0)
         {
