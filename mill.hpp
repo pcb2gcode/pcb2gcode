@@ -72,6 +72,7 @@ class Isolator: public RoutingMill
 public:
     int extra_passes;
     bool voronoi;
+    bool preserve_thermal_reliefs;
 };
 
 /******************************************************************************/
