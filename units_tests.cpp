@@ -23,12 +23,17 @@ dimension_t parse_unit(const std::string& s) {
 BOOST_AUTO_TEST_CASE(parse_length) {
   BOOST_CHECK_EQUAL(parse_unit<Length>("4").asInch(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Length>("25.4mm").asInch(200), 1);
-  BOOST_CHECK_EQUAL(parse_unit<Length>("50.8mm").asInch(200), 2);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("+50.8mm").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8mm    ").asInch(200), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>(" 50.8 mm ").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("  \t50.8\tmm\t").asInch(2), 2);
   BOOST_CHECK_EQUAL(parse_unit<Length>("10000thou").asInch(0), 10);
+  BOOST_CHECK_EQUAL(parse_unit<Length>("0.254 m").asInch(0), 10);
+  Length length;
+  std::stringstream ss;
+  ss << parse_unit<Length>("4");
+  BOOST_CHECK_EQUAL(ss.str(), "4");
 
   BOOST_CHECK_THROW(parse_unit<Length>("50.8mm/s"), po::validation_error);
   BOOST_CHECK_THROW(parse_unit<Length>("50.8seconds"), po::validation_error);
@@ -38,6 +43,7 @@ BOOST_AUTO_TEST_CASE(parse_length) {
 BOOST_AUTO_TEST_CASE(parse_time) {
   BOOST_CHECK_EQUAL(parse_unit<Time>("4").asSecond(2), 8);
   BOOST_CHECK_EQUAL(parse_unit<Time>("4s").asSecond(1), 4);
+  BOOST_CHECK_EQUAL(parse_unit<Time>("4ms").asSecond(1), 0.004);
   BOOST_CHECK_EQUAL(parse_unit<Time>("-10minutes").asSecond(2), -600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10 min").asSecond(2), 600);
   BOOST_CHECK_EQUAL(parse_unit<Time>(" 10ms").asSecond(2), 0.01);

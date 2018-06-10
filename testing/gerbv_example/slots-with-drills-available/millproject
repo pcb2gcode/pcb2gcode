@@ -23,5 +23,4 @@ zcut=-0.13
 fill-outline=true
 zsafe=0.08
 zchange=1.0
-drills-available=0.03inch
-drills-available=0.1
+drills-available=0.01inches:+0.01inches:-0, 0.15inches:0.01inches

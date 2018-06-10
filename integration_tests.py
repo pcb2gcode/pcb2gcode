@@ -157,7 +157,7 @@ class IntegrationTests(unittest2.TestCase):
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
     print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
     diff_text = self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
-    self.assertFalse(diff_text, 'Files don\'t match\n' + diff_text)
+    self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
   def add_test_case(t):
