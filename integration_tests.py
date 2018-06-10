@@ -36,6 +36,8 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_no_export_milldrill",
                   "am-test-voronoi-front",
                   "slots-with-drills-available",
+                  "KNoT-Gateway Mini Starter Board",
+                  "KNoT_Thing_Starter_Board",
               ]] +
               [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
                for x in ("front", "back", "outline", "drill")] +
@@ -93,7 +95,7 @@ class IntegrationTests(unittest2.TestCase):
         left_file = os.path.join(left, f)
         with open(left_file, 'r') as myfile:
           data=myfile.readlines()
-          all_diffs += difflib.unified_diff(data, [], os.path.join(left_prefix, f), "/dev/null")
+          all_diffs += difflib.unified_diff(data, [], '"' + os.path.join(left_prefix, f) + '"', "/dev/null")
       return ''.join(all_diffs)
 
     # Left side might not exist.
@@ -104,7 +106,7 @@ class IntegrationTests(unittest2.TestCase):
         right_file = os.path.join(right, f)
         with open(right_file, 'r') as myfile:
           data=myfile.readlines()
-          all_diffs += difflib.unified_diff([], data, "/dev/null", os.path.join(right_prefix, f))
+          all_diffs += difflib.unified_diff([], data, "/dev/null", '"' + os.path.join(right_prefix, f) + '"')
       return ''.join(all_diffs)
 
 
@@ -116,20 +118,20 @@ class IntegrationTests(unittest2.TestCase):
       left_file = os.path.join(left, f)
       with open(left_file, 'r') as myfile:
         data=myfile.readlines()
-        all_diffs += difflib.unified_diff(data, [], os.path.join(left_prefix, f), "/dev/null")
+        all_diffs += difflib.unified_diff(data, [], '"' + os.path.join(left_prefix, f) + '"', "/dev/null")
     for f in diff.right_only:
       all_diffs += "Found %s but not %s.\n" % (os.path.join(right_prefix, f), os.path.join(left_prefix, f))
       right_file = os.path.join(right, f)
       with open(right_file, 'r') as myfile:
         data=myfile.readlines()
-        all_diffs += difflib.unified_diff([], data, "/dev/null", os.path.join(right_prefix, f))
+        all_diffs += difflib.unified_diff([], data, "/dev/null", '"' + os.path.join(right_prefix, f) + '"')
     for f in diff.diff_files:
       left_file = os.path.join(left, f)
       right_file = os.path.join(right, f)
       with open(left_file, 'r') as myfile0, open(right_file, 'r') as myfile1:
         data0=myfile0.readlines()
         data1=myfile1.readlines()
-        all_diffs += difflib.unified_diff(data0, data1, os.path.join(left_prefix, f), os.path.join(right_prefix, f))
+        all_diffs += difflib.unified_diff(data0, data1, '"' + os.path.join(left_prefix, f) + '"', '"' + os.path.join(right_prefix, f) + '"')
     return ''.join(all_diffs)
 
   def run_one_directory(self, input_path, expected_output_path, test_prefix, args=[], exit_code=0):
@@ -188,8 +190,11 @@ if __name__ == '__main__':
     result = p.communicate(input=output)
     files_patched = []
     for l in result[0].split('\n'):
-      if l.startswith("patching file "):
+      if l.startswith("patching file '"):
+        files_patched.append(l[len("patching file '"):-1])
+      elif l.startswith("patching file "):
         files_patched.append(l[len("patching file "):])
+    print(result[0])
     if args.add:
       subprocess.call(["git", "add"] + files_patched)
       print("Done.\nAdded to git:\n" +
