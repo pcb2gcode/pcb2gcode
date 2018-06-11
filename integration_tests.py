@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest
+from __future__ import print_function
+import unittest2
 import subprocess
 import os
 import tempfile
@@ -11,24 +12,46 @@ import sys
 import argparse
 import re
 import collections
+import termcolor
+import colour_runner.runner
 
-TestCase = collections.namedtuple("TestCase", ["input_path", "args", "exit_code"])
+TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
+
+# Sanitize a string to be a python identifier
+clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
 
 EXAMPLES_PATH = "testing/gerbv_example"
-TEST_CASES = ([TestCase(os.path.join(EXAMPLES_PATH, x), [], 0)
+BROKEN_EXAMPLES_PATH = "testing/broken_examples"
+TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
+                  "multivibrator-no-tsp-2opt",
                   "am-test-voronoi",
                   "slots-milldrill",
                   "multivibrator_xy_offset",
+                  "slots-with-drill",
+                  "slots-with-drill-metric",
+                  "multivibrator_pre_post_milling_gcode",
+                  "multivibrator_no_export",
+                  "multivibrator_no_export_milldrill",
+                  "am-test-voronoi-front",
+                  "slots-with-drills-available",
               ]] +
-              [TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--front=non_existant_file"], 1),
-               TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--back=non_existant_file"], 1),
-               TestCase(os.path.join(EXAMPLES_PATH, "multivibrator"), ["--outline=non_exsistant_file"], 1),
+              [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+               for x in ("front", "back", "outline", "drill")] +
+              [TestCase(clean("broken_" + x),
+                        os.path.join(BROKEN_EXAMPLES_PATH, x),
+                        [], 1)
+               for x in ("invalid-config",)
               ])
 
-class IntegrationTests(unittest.TestCase):
+def colored(text, **color):
+  if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+    return termcolor.colored(text, **color)
+  else:
+    return text
 
+class IntegrationTests(unittest2.TestCase):
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
@@ -39,12 +62,15 @@ class IntegrationTests(unittest.TestCase):
     """
     cwd = os.getcwd()
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
-    os.chdir(input_path)
     actual_output_path = tempfile.mkdtemp()
-    self.assertEqual(
-        subprocess.call([pcb2gcode, "--output-dir", actual_output_path] + args),
-        exit_code)
-    os.chdir(cwd)
+    os.chdir(input_path)
+    try:
+      p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      result = p.communicate()
+      self.assertEqual(p.returncode, exit_code)
+    finally:
+      print(result[0], file=sys.stderr)
+      os.chdir(cwd)
     return actual_output_path
 
   def compare_directories(self, left, right, left_prefix="", right_prefix=""):
@@ -124,23 +150,24 @@ class IntegrationTests(unittest.TestCase):
     shutil.rmtree(actual_output_path)
     return diff_text
 
-  def test_all(self):
+  def do_test_one(self, test_case):
     cwd = os.getcwd()
-    test_cases = TEST_CASES
-    diff_texts = []
-    for test_case in test_cases:
-      test_prefix = os.path.join(test_case.input_path, "expected")
-      input_path = os.path.join(cwd, test_case.input_path)
-      expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
-      diff_texts.append(self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code))
-    self.assertFalse(any(diff_texts),
-                     'Files don\'t match\n' + '\n'.join(diff_texts) +
-                     '\n***\nRun one of these:\n' +
-                     './integration_tests.py --fix\n' +
-                     './integration_tests.py --fix --add\n' +
-                     '***\n')
+    test_prefix = os.path.join(test_case.input_path, "expected")
+    input_path = os.path.join(cwd, test_case.input_path)
+    expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
+    print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
+    diff_text = self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
+    self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
+  def add_test_case(t):
+    def test_method(self):
+      self.do_test_one(t)
+    setattr(IntegrationTests, 'test_' + t.name, test_method)
+    test_method.__name__ = 'test_' + t.name
+    test_method.__doc__ = str(test_case)
+  for test_case in TEST_CASES:
+    add_test_case(test_case)
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
   parser.add_argument('--fix', action='store_true', default=False,
                       help='Generate expected outputs automatically')
@@ -164,11 +191,26 @@ if __name__ == '__main__':
       if l.startswith("patching file "):
         files_patched.append(l[len("patching file "):])
     if args.add:
-      subprocess.check_output(["git", "add"] + files_patched)
+      subprocess.call(["git", "add"] + files_patched)
       print("Done.\nAdded to git:\n" +
             '\n'.join(files_patched))
     else:
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    unittest.main()
+    test_loader = unittest2.TestLoader()
+    all_test_names = ["test_" + t.name for t in TEST_CASES]
+    test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
+    suite = test_loader.loadTestsFromTestCase(IntegrationTests)
+    if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
+    else:
+      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
+    if not test_result.wasSuccessful():
+      print('\n***\nRun one of these:\n' +
+            './integration_tests.py --fix\n' +
+            './integration_tests.py --fix --add\n' +
+            '***\n')
+      exit(1)
+    else:
+      exit(0)

@@ -22,6 +22,9 @@ struct parse_exception : public std::exception {
   parse_exception(const std::string& get_what, const std::string& from_what) {
     what_string = "Can't get " + get_what + " from: " + from_what;
   }
+  parse_exception(const std::string& what) {
+    what_string = what;
+  }
 
   virtual const char* what() const throw()
   {
@@ -46,7 +49,7 @@ class Lexer {
   double get_double() {
     get_whitespace();
     std::string text = get_string<bool>([](int c) {
-        return std::isdigit(c) || c == '-' || c == '.';
+        return std::isdigit(c) || c == '-' || c == '.' || c == '+';
       });
     try {
       return boost::lexical_cast<double>(text);
@@ -92,8 +95,7 @@ class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
   typedef dimension_t dimension;
-  UnitBase(double value) : value(value), one(boost::none) {}
-  UnitBase(double value, boost::optional<quantity> one) : value(value), one(one) {}
+  UnitBase(double value = 0, boost::optional<quantity> one = boost::none) : value(value), one(one) {}
 
   double asDouble() const {
     return value;
@@ -105,6 +107,15 @@ class UnitBase {
       s << length.value;
     }
     return s;
+  }
+  bool operator==(const UnitBase<dimension_t>& other) const {
+    if (!one && !other.one) {
+      return value == other.value;
+    } else if (one && other.one) {
+      return value * *one == other.value * *other.one;
+    } else {
+      return false;
+    }
   }
 
  protected:
@@ -138,8 +149,7 @@ typedef Unit<boost::units::si::frequency> Frequency;
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
  public:
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asInch(double factor) const {
     return as(factor, inch);
   }
@@ -149,6 +159,11 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "millimeter" ||
         unit == "millimeters") {
       return boost::units::si::meter/1000.0;
+    }
+    if (unit == "m" ||
+        unit == "meter" ||
+        unit == "meters`") {
+      return 1 * boost::units::si::meter;
     }
     if (unit == "in" ||
         unit == "inch" ||
@@ -161,15 +176,17 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "mils") {
       return thou;
     }
-    throw parse_exception("length", unit);
+    throw parse_exception("length units", unit);
+  }
+  Length operator-() const {
+    return Length(-value, one);
   }
 };
 
 template<>
 class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
  public:
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asSecond(double factor) const {
     return as(factor, 1.0*boost::units::si::second);
   }
@@ -195,15 +212,14 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
         unit == "minutes") {
       return minute;
     }
-    throw parse_exception("time", unit);
+    throw parse_exception("time units", unit);
   }
 };
 
 template<>
 class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
  public:
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   using UnitBase::as;
   double as(double factor) const {
     return as(factor, 1.0*boost::units::si::si_dimensionless);
@@ -216,15 +232,14 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
         unit == "cycles") {
       return 1.0*boost::units::si::si_dimensionless;
     }
-    throw parse_exception("dimensionless", unit);
+    throw parse_exception("dimensionless units", unit);
   }
 };
 
 template<>
 class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::velocity> {
  public:
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asInchPerMinute(double factor) const {
     return as(factor, inch/minute);
   }
@@ -242,8 +257,7 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
 template<>
 class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
  public:
-  Unit(double value) : UnitBase(value) {}
-  Unit(double value, boost::optional<quantity> one) : UnitBase(value, one) {}
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
   double asPerMinute(double factor) const {
     return as(factor, 1.0/minute);
   }
@@ -282,17 +296,10 @@ unit_t parse_unit(const std::string& s) {
 }
 
 template <typename dimension_t>
-void validate(boost::any& v,
-              const std::vector<std::string>& values,
-              Unit<dimension_t>*, int) {
-  // Make sure no previous assignment was made.
-  boost::program_options::validators::check_first_occurrence(v);
-  // Extract the first string from 'values'. If there is more than
-  // one string, it's an error, and exception will be thrown.
-  const std::string& s = boost::program_options::validators::get_single_string(values);
-
-  // Figure out what unit it is.
-  v = boost::any(parse_unit<Unit<dimension_t>>(s));
+inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& unit) {
+  std::string s(std::istreambuf_iterator<char>(in), {});
+  unit = parse_unit<Unit<dimension_t>>(s);
+  return in;
 }
 
 namespace BoardSide {
