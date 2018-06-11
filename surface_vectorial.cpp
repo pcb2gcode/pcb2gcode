@@ -61,10 +61,12 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
     unique_ptr<multi_polygon_type> vectorial_surface_not_simplified;
 
-    vectorial_surface = make_shared<multi_polygon_type>();
+    vectorial_surface = make_shared<multi_polygon_type_fp>();
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
+    multi_polygon_type_fp vectorial_surface_not_simplified_fp;
+    bg::convert(*vectorial_surface_not_simplified, vectorial_surface_not_simplified_fp);
 
-    if (bg::intersects(*vectorial_surface_not_simplified))
+    if (bg::intersects(vectorial_surface_not_simplified_fp))
     {
         cerr << "\nWarning: Geometry of layer '" << name << "' is"
              << " self-intersecting. This can cause pcb2gcode to produce"
@@ -75,19 +77,19 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     scale = importer->vectorial_scale();
 
     //With a very small loss of precision we can reduce memory usage and processing time
-    bg::simplify(*vectorial_surface_not_simplified, *vectorial_surface, scale / 10000);
+    bg::simplify(vectorial_surface_not_simplified_fp, *vectorial_surface, scale / 10000);
     bg::envelope(*vectorial_surface, bounding_box);
 }
 
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    multi_linestring_type toolpath;
+    multi_linestring_type_fp toolpath;
     vector<shared_ptr<icoords> > toolpath_optimised;
     multi_polygon_type_fp voronoi;
-    coordinate_type tolerance = mill->tolerance * scale;
+    coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
-    coordinate_type grow = mill->tool_diameter / 2 * scale;
+    coordinate_type_fp grow = mill->tool_diameter / 2 * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     // Extra passes are done on each trace if requested, each offset by half the tool diameter.
@@ -104,14 +106,16 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bg::unique(*vectorial_surface);
     box_type voronoi_bounding_box;
     bg::convert(bounding_box, voronoi_bounding_box);
-    voronoi = Voronoi::build_voronoi(*vectorial_surface, voronoi_bounding_box, tolerance);
+    multi_polygon_type voronoi_vectorial_surface;
+    bg::convert(*vectorial_surface, voronoi_vectorial_surface);
+    voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, tolerance);
 
-    box_type svg_bounding_box;
+    box_type_fp svg_bounding_box;
 
     if (grow > 0)
         bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
     else
-        bg::assign(svg_bounding_box, bounding_box);
+        bg::convert(bounding_box, svg_bounding_box);
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
@@ -130,7 +134,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
 
-        unique_ptr<vector<polygon_type> > polygons;
+        unique_ptr<vector<polygon_type_fp> > polygons;
     
         polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
                                   grow, i, extra_passes + 1, do_voronoi);
@@ -154,9 +158,9 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         toolpath = eulerian_paths(toolpath);
     }
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, point_type(0, 0) );
+        tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, point_type(0, 0) );
+        tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
     }
     auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
     if (mill->optimise)
@@ -195,7 +199,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 
     if (mask)
     {
-        auto masked_surface = make_shared<multi_polygon_type>();
+        auto masked_surface = make_shared<multi_polygon_type_fp>();
 
         bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_surface);
         vectorial_surface = masked_surface;
@@ -207,7 +211,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
-    const multi_linestring_type& mls, bool mirror) {
+    const multi_linestring_type_fp& mls, bool mirror) {
     vector<shared_ptr<icoords>> result;
     for (const auto& ls : mls) {
         icoords coords;
@@ -225,22 +229,22 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
     return result;
 }
 
-unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type_fp& voronoi_polygons, multi_linestring_type& toolpath,
-                            bool& contentions, coordinate_type offset, size_t index,
+unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(const multi_polygon_type_fp& input,
+                            const multi_polygon_type_fp& voronoi_polygons, multi_linestring_type_fp& toolpath,
+                            bool& contentions, coordinate_type_fp offset, size_t index,
                             unsigned int steps, bool do_voronoi)
 {
-    unique_ptr<vector<polygon_type> > polygons (new vector<polygon_type>(steps));
-    list<list<const ring_type *> > rings (steps);
+    unique_ptr<vector<polygon_type_fp> > polygons (new vector<polygon_type_fp>(steps));
+    list<list<const ring_type_fp *> > rings (steps);
     auto ring_i = rings.begin();
-    point_type last_point;
+    point_type_fp last_point;
 
-    auto push_point = [&](const point_type& point)
+    auto push_point = [&](const point_type_fp& point)
     {
         toolpath.back().push_back(point);
     };
 
-    auto copy_ring_to_toolpath = [&](const ring_type& ring, unsigned int start)
+    auto copy_ring_to_toolpath = [&](const ring_type_fp& ring, unsigned int start)
     {
         const auto size_minus_1 = ring.size() - 1;
         unsigned int i = start;
@@ -263,7 +267,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         return rings.end();
     };
 
-    auto find_closest_point_index = [&](const ring_type& ring)
+    auto find_closest_point_index = [&](const ring_type_fp& ring)
     {
         const unsigned int size = ring.size();
         auto min_distance = bg::comparable_distance(ring[0], last_point);
@@ -283,13 +287,13 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         return index;
     };
 
-    toolpath.push_back(linestring_type());
+    toolpath.push_back(linestring_type_fp());
 
     bool outer_collapsed = false;
 
     for (unsigned int i = 0; i < steps; i++)
     {
-        coordinate_type expand_by;
+        coordinate_type_fp expand_by;
         if (!do_voronoi) {
             // Number of rings is the same as the number of steps.
             expand_by = offset * (i+1);
@@ -302,10 +306,8 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
             }
             expand_by = offset * factor;
         }
-        multi_polygon_type integral_voronoi_polygons;
-        bg::convert(voronoi_polygons, integral_voronoi_polygons);
-        polygon_type masked_milling_poly = do_voronoi ? integral_voronoi_polygons[index] : input[index];
-        multi_polygon_type masked_milling_polys;
+        polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
+        multi_polygon_type_fp masked_milling_polys;
         if (mask) {
             bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
         } else {
@@ -317,21 +319,19 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
         }
         else
         {
-            multi_polygon_type_fp mpoly_temp_fp;
+            multi_polygon_type_fp mpoly_temp;
             // Buffer should be done on floating point polygons.
-            bg_helpers::buffer(masked_milling_polys[0], mpoly_temp_fp, expand_by);
+            bg_helpers::buffer(masked_milling_polys[0], mpoly_temp, expand_by);
 
-            auto mpoly_fp = make_shared<multi_polygon_type_fp>();
+            auto mpoly = make_shared<multi_polygon_type_fp>();
             if (!do_voronoi) {
-                bg::intersection(mpoly_temp_fp[0], voronoi_polygons[index], *mpoly_fp);
+                bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
             } else {
-                polygon_type_fp min_shape;
-                bg::convert(input[index], min_shape);
-                bg::union_(mpoly_temp_fp[0], min_shape, *mpoly_fp);
+                bg::union_(mpoly_temp[0], input[index], *mpoly);
             }
-            bg::convert((*mpoly_fp)[0], (*polygons)[i]);
+            (*polygons)[i] = (*mpoly)[0];
 
-            if (!bg::equals((*mpoly_fp)[0], mpoly_temp_fp[0]))
+            if (!bg::equals((*mpoly)[0], mpoly_temp[0]))
                 contentions = true;
         }
 
@@ -346,7 +346,7 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                 copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
         }
 
-        for (const ring_type& ring : (*polygons)[i].inners())
+        for (const ring_type_fp& ring : (*polygons)[i].inners())
             ring_i->push_back(&ring);
         
         ++ring_i;
@@ -356,16 +356,16 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
 
     while (ring_i != rings.end())
     {
-        const ring_type *biggest = ring_i->front();
-        const ring_type *prev = biggest;
+        const ring_type_fp *biggest = ring_i->front();
+        const ring_type_fp *prev = biggest;
         auto ring_j = next(ring_i);
 
-        toolpath.push_back(linestring_type());
+        toolpath.push_back(linestring_type_fp());
         copy_ring_to_toolpath(*biggest, 0);
 
         while (ring_j != rings.end())
         {
-            list<const ring_type *>::iterator j;
+            list<const ring_type_fp *>::iterator j;
 
             for (j = ring_j->begin(); j != ring_j->end(); j++)
             {
@@ -379,8 +379,8 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
                     if (bg::covered_by(**j, *prev))
                     {
                         auto index = find_closest_point_index(**j);
-                        ring_type ring (prev->rbegin(), prev->rend());
-                        linestring_type segment;
+                        ring_type_fp ring (prev->rbegin(), prev->rend());
+                        linestring_type_fp segment;
 
                         segment.push_back((**j)[index]);
                         segment.push_back(last_point);
@@ -409,14 +409,14 @@ unique_ptr<vector<polygon_type> > Surface_vectorial::offset_polygon(const multi_
     return polygons;
 }
 
-size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
+size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {
     struct PointLessThan {
-        bool operator()(const point_type& a, const point_type& b) const {
+        bool operator()(const point_type_fp& a, const point_type_fp& b) const {
             return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
         }
     };
 
-    std::map<point_type, point_type, PointLessThan> points;
+    std::map<point_type_fp, point_type_fp, PointLessThan> points;
     for (const auto& ls : mls) {
         for (const auto& point : ls) {
             points[point] = point;
@@ -427,7 +427,7 @@ size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
     size_t points_merged = 0;
     for (auto i = points.begin(); i != points.end(); i++) {
         for (auto j = i;
-             j != points.upper_bound(point_type(i->second.x()+10,
+             j != points.upper_bound(point_type_fp(i->second.x()+10,
                                                 i->second.y()+10));
              j++) {
             if (!bg::equals(j->second, i->second) &&
@@ -447,10 +447,10 @@ size_t Surface_vectorial::merge_near_points(multi_linestring_type& mls) {
     return points_merged;
 }
 
-multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_type& toolpaths) {
+multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestring_type_fp& toolpaths) {
     // Merge points that are very close to each other because it makes
     // us more likely to find intersections that was can use.
-    multi_linestring_type merged_toolpaths(toolpaths);
+    multi_linestring_type_fp merged_toolpaths(toolpaths);
     merge_near_points(merged_toolpaths);
 
     // First we need to split all paths so that they don't cross.
@@ -465,40 +465,40 @@ multi_linestring_type Surface_vectorial::eulerian_paths(const multi_linestring_t
     }
     vector<segment_type_p> split_segments = segmentize(all_segments);
 
-    multi_linestring_type segments_as_linestrings;
+    multi_linestring_type_fp segments_as_linestrings;
     for (const auto& segment : split_segments) {
         // Make a little 1-edge linestrings, filter out those that
         // aren't in the mask.
-        linestring_type ls;
-        ls.push_back(point_type(segment.low().x(), segment.low().y()));
-        ls.push_back(point_type(segment.high().x(), segment.high().y()));
+        linestring_type_fp ls;
+        ls.push_back(point_type_fp(segment.low().x(), segment.low().y()));
+        ls.push_back(point_type_fp(segment.high().x(), segment.high().y()));
         segments_as_linestrings.push_back(ls);
     }
 
     // Make a minimal number of paths from those segments.
     struct PointLessThan {
-      bool operator()(const point_type& a, const point_type& b) const {
+      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
 
     return eulerian_paths::get_eulerian_paths<
-      point_type,
-      linestring_type,
-      multi_linestring_type,
+      point_type_fp,
+      linestring_type_fp,
+      multi_linestring_type_fp,
       PointLessThan>(segments_as_linestrings);
 }
 
-size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& grow) {
+size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& grow) {
     // For each shape, see if it has any holes that are empty.
     size_t thermal_reliefs_found = 0;
     boost::optional<svg_writer> image;
-    multi_polygon_type holes;
+    multi_polygon_type_fp holes;
     for (auto& p : milling_surface) {
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
             bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-            multi_polygon_type shrunk_thermal_hole;
+            multi_polygon_type_fp shrunk_thermal_hole;
             bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
             bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
             if (empty_hole) {
@@ -517,21 +517,21 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type& milling_s
     return thermal_reliefs_found;
 }
 
-svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box) :
+svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type_fp scale, box_type_fp bounding_box) :
     output_file(filename),
     bounding_box(bounding_box)
 {
-    const coordinate_type width =
+    const coordinate_type_fp width =
         (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * pixel_per_in / scale;
-    const coordinate_type height =
+    const coordinate_type_fp height =
         (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * pixel_per_in / scale;
 
     //Some SVG readers does not behave well when viewBox is not specified
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
 
-    mapper = unique_ptr<bg::svg_mapper<point_type> >
-        (new bg::svg_mapper<point_type>(output_file, width, height, svg_dimensions));
+    mapper = unique_ptr<bg::svg_mapper<point_type_fp> >
+        (new bg::svg_mapper<point_type_fp>(output_file, width, height, svg_dimensions));
     mapper->add(bounding_box);
 }
 
@@ -557,7 +557,7 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
     }
 }
 
-void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int r, int g, int b)
+void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, int r, int g, int b)
 {
     if (r < 0 || g < 0 || b < 0)
     {
@@ -568,7 +568,7 @@ void svg_writer::add(const vector<polygon_type>& geometries, double opacity, int
 
     for (unsigned int i = geometries.size(); i != 0; i--)
     {
-        multi_polygon_type mpoly;
+        multi_polygon_type_fp mpoly;
 
         bg::intersection(geometries[i - 1], bounding_box, mpoly);
 
