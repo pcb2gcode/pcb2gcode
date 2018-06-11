@@ -9,3 +9,4 @@ mill-feed=6
 mill-speed=30000
 zchange=1.0
 optimise=true
+vectorial=false
