@@ -87,45 +87,45 @@ protected:
 
     bool fill;
 
-    shared_ptr<multi_polygon_type> vectorial_surface;
-    coordinate_type scale;
-    box_type bounding_box;
+    shared_ptr<multi_polygon_type_fp> vectorial_surface;
+    coordinate_type_fp scale;
+    box_type_fp bounding_box;
     
     shared_ptr<Surface_vectorial> mask;
 
     // Points that are very close to each other, probably because of a
     // rounding error, are merged together to a single location.
-    static size_t merge_near_points(multi_linestring_type& mls);
+    static size_t merge_near_points(multi_linestring_type_fp& mls);
     // Returns a minimal number of toolpaths that include all the
     // milling in the oroginal toolpaths.  Each path is traversed
     // once.
-    multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
+    multi_linestring_type_fp eulerian_paths(const multi_linestring_type_fp& toolpaths);
     // Fill thermal reliefs in with a polygon of appropriate size so
     // that they will get milled even in voronoi mode or if the offset
     // is larger than the half the thickness of the thermal relief.
     // Returns the number of thermal reliefs found and filled.
-    size_t preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& tollerance);
+    size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
     vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
-        const multi_linestring_type& mls, bool mirror);
-    unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
-                            const multi_polygon_type_fp& voronoi, multi_linestring_type& toolpath,
-                            bool& contentions, coordinate_type offset, size_t index,
+        const multi_linestring_type_fp& mls, bool mirror);
+    unique_ptr<vector<polygon_type_fp> > offset_polygon(const multi_polygon_type_fp& input,
+                            const multi_polygon_type_fp& voronoi, multi_linestring_type_fp& toolpath,
+                            bool& contentions, coordinate_type_fp offset, size_t index,
                             unsigned int steps, bool do_voronoi);
 };
 
 class svg_writer
 {
 public:
-    svg_writer(string filename, unsigned int pixel_per_in, coordinate_type scale, box_type bounding_box);
+    svg_writer(string filename, unsigned int pixel_per_in, coordinate_type_fp scale, box_type_fp bounding_box);
     template <typename multi_polygon_type_t>
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
-    void add(const vector<polygon_type>& geometries, double opacity,
+    void add(const vector<polygon_type_fp>& geometries, double opacity,
         int r = -1, int g = -1, int b = -1);
 
 protected:
     ofstream output_file;
-    box_type bounding_box;
-    unique_ptr<bg::svg_mapper<point_type> > mapper;
+    box_type_fp bounding_box;
+    unique_ptr<bg::svg_mapper<point_type_fp> > mapper;
 };
 
 #endif // SURFACE_VECTORIAL_H
