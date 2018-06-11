@@ -112,6 +112,7 @@ int main(int argc, char* argv[])
         isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
+        isolator->preserve_thermal_reliefs = vm["preserve-thermal-reliefs"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->tolerance = tolerance;
         isolator->explicit_tolerance = explicit_tolerance;

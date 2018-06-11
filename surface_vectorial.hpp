@@ -100,6 +100,11 @@ protected:
     // milling in the oroginal toolpaths.  Each path is traversed
     // once.
     multi_linestring_type eulerian_paths(const multi_linestring_type& toolpaths);
+    // Fill thermal reliefs in with a polygon of appropriate size so
+    // that they will get milled even in voronoi mode or if the offset
+    // is larger than the half the thickness of the thermal relief.
+    // Returns the number of thermal reliefs found and filled.
+    size_t preserve_thermal_reliefs(multi_polygon_type& milling_surface, const coordinate_type& tollerance);
     vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
         const multi_linestring_type& mls, bool mirror);
     unique_ptr<vector<polygon_type> > offset_polygon(const multi_polygon_type& input,
