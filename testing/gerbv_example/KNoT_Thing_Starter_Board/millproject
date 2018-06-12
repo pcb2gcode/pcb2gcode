@@ -15,7 +15,6 @@ offset=0.254
 mill-feed=360
 mill-vertfeed=30
 mill-speed=10000 # this is the max for Nomad Carbide 3D printer
-vectorial=true
 
 cutter-diameter=2.5
 zcut=-1.8 # The FR4 measured 1.57mm

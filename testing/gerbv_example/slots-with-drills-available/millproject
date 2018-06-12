@@ -1,6 +1,5 @@
 drill=slots.drl
 
-vectorial=true
 mill-feed=360
 mill-speed=12000
 voronoi=true
