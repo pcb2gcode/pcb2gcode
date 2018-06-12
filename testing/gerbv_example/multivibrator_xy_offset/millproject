@@ -2,7 +2,6 @@ back=multivibrator-B.Cu.gbr
 drill=multivibrator.drl
 outline=multivibrator-Edge.Cuts.gbr
 
-vectorial=true
 mill-feed=360 in/min
 mill-speed=200rotations/second
 voronoi=true
