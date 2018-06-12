@@ -26,6 +26,8 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
                   "multivibrator-extra-passes",
+                  "multivibrator-extra-passes-voronoi",
+                  "multivibrator-contentions",
                   "multivibrator-no-tsp-2opt",
                   "am-test-voronoi",
                   "slots-milldrill",
