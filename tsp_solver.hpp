@@ -32,42 +32,64 @@ using std::shared_ptr;
 #include "geometry.hpp"
 using std::pair;
 
+#include <boost/optional.hpp>
+
 using std::next;
 
 class tsp_solver
 {
 private:
+    enum class Side { FRONT, BACK };
     // You can extend this class adding new overloads of get with this prototype:
-    //  icoordpair get(T _name_) { ... }
-    static inline icoordpair get(const icoordpair& point)
+    //  icoordpair get(T _name_, Side side) { ... }
+    //  icoordpair reverse(T _name_) { ... }
+    static inline icoordpair get(const icoordpair& point, Side side)
     {
         return point;
     }
 
-    static inline icoordpair get(const shared_ptr<icoords>& path)
-    {
-        return path->front();
+    static inline void reverse(icoordpair& point) {
+        return;
     }
 
-    static inline icoordpair get(const ilinesegment& line)
+    static inline icoordpair get(const shared_ptr<icoords>& path, Side side)
     {
-        // For finding the nearest neighbor, assume that the drilling
-        // will begin and end at the start point.
-        return get(line.first);
+        if (side == Side::FRONT) {
+            return path->front();
+        } else {
+            return path->back();
+        }
     }
 
-    static inline point_type get(const linestring_type& path)
-    {
-        // For finding the nearest neighbor, assume that the drilling
-        // will begin and end at the start point.
-        return path.front();
+    static inline void reverse(shared_ptr<icoords>& path) {
+        std::reverse(path->begin(), path->end());
     }
 
-    static inline point_type_fp get(const linestring_type_fp& path)
+    static inline icoordpair get(const ilinesegment& line, Side side)
     {
-        // For finding the nearest neighbor, assume that the drilling
-        // will begin and end at the start point.
-        return path.front();
+        if (side == Side::FRONT) {
+            return line.first;
+        } else {
+            return line.second;
+        }
+    }
+
+    static inline void reverse(ilinesegment& line) {
+        std::swap(line.first, line.second);
+    }
+
+    template <typename point_type_t>
+    static inline point_type_t get(const bg::model::linestring<point_type_t>& path, Side side) {
+        if (side == Side::FRONT) {
+            return path.front();
+        } else {
+            return path.back();
+        }
+    }
+
+    template <typename point_type_t>
+    static inline void reverse(bg::model::linestring<point_type_t>& path) {
+        std::reverse(path.begin(), path.end());
     }
 
     // Return the Chebyshev distance, which is a good approximation
@@ -114,28 +136,35 @@ public:
             new_length = 0;
 
             //Find the original path length
-            original_length = distance(startingPoint, get(temp_path.front()));
+            original_length = distance(startingPoint, get(temp_path.front(), Side::FRONT));
             for (auto point = temp_path.cbegin(); next(point) != temp_path.cend(); point++)
-                original_length += distance(get(*point), get(*next(point)));
+                original_length += distance(get(*point, Side::BACK), get(*next(point), Side::FRONT));
 
             point_t currentPoint = startingPoint;
             while (temp_path.size() > 0)
             {
-                auto minDistance = distance(currentPoint, get(temp_path.front()));
+                auto minDistance = distance(currentPoint, get(temp_path.front(), Side::FRONT));
                 auto nearestPoint = temp_path.begin();
+                Side side = Side::FRONT;
 
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
-                    auto newDistance = distance(currentPoint, get(*i));
-                    if (newDistance < minDistance) {
-                        minDistance = newDistance;
-                        nearestPoint = i;
+                    for (auto newSide : {Side::FRONT, Side::BACK}) {
+                        auto newDistance = distance(currentPoint, get(*i, newSide));
+                        if (newDistance < minDistance) {
+                            minDistance = distance(currentPoint, get(*i, newSide));
+                            nearestPoint = i;
+                            side = newSide;
+                        }
                     }
                 }
 
+                if (side == Side::BACK) {
+                    reverse(*nearestPoint);
+                }
                 new_length += minDistance; //Update the new path total length
                 newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
-                currentPoint = get(*(nearestPoint)); //Set the next currentPoint to the chosen point
+                currentPoint = get(*(nearestPoint), Side::BACK); //Set the next currentPoint to the chosen point
                 temp_path.erase(nearestPoint); //Remove the chosen point from the path list
             }
 
@@ -145,29 +174,48 @@ public:
     }
 
     // Same as nearest_neighbor but afterwards does 2opt optimizations.
-    template <typename T, typename point_t>
-    static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
+    template <typename point_t, typename T>
+    static void tsp_2opt(vector<T> &path, const boost::optional<point_t>& startingPoint) {
         // Perform greedy on path if it improves.
-        nearest_neighbour(path, startingPoint);
+        nearest_neighbour(path, startingPoint ? *startingPoint : get(path.front(), Side::FRONT));
         bool found_one = true;
         while (found_one) {
             found_one = false;
-            for (auto a = path.begin(); a < path.end(); a++) {
-                auto b = a+1;
-                for (auto c = b+1; c+1 < path.end(); c++) {
-                    auto d = c+1;
+            for (unsigned int i = 0; i < path.size(); i++) {
+                for (unsigned int j = i; j < path.size(); j++) {
+                    // Potentially reverse path elements i through j inclusive.
+                    auto b = get(path[i], Side::FRONT);
+                    auto a = (i == 0 && startingPoint ? *startingPoint :
+                              i == 0 && !startingPoint ? b :
+                              get(path[i-1], Side::BACK));
+                    auto c = get(path[j], Side::BACK);
+                    auto d = j + 1 == path.size() ? c : get(path[j+1], Side::FRONT);
+                    double old_gap = distance(a, b) + distance(c, d);
+                    double new_gap = distance(a, c) + distance(b, d);
                     // Should we make this 2opt swap?
-                    if (boost::geometry::distance(get(*a), get(*b)) +
-                        boost::geometry::distance(get(*c), get(*d)) >
-                        boost::geometry::distance(get(*a), get(*c)) +
-                        boost::geometry::distance(get(*b), get(*d))) {
+                    if (new_gap < old_gap) {
                         // Do the 2opt swap.
-                        std::reverse(b,d);
+                        const auto reverse_start = path.begin() + i;
+                        const auto reverse_end = path.begin() + j + 1;
+                        for (auto to_reverse = reverse_start; to_reverse != reverse_end; to_reverse++) {
+                            reverse(*to_reverse);
+                        }
+                        std::reverse(reverse_start, reverse_end);
                         found_one = true;
                     }
                 }
             }
         }
+    }
+
+    template <typename point_t, typename T>
+    static void tsp_2opt(vector<T> &path, const point_t& startingPoint) {
+        tsp_2opt(path, boost::optional<point_t>(startingPoint));
+    }
+
+    template <typename point_t, typename T>
+    static void tsp_2opt(vector<T> &path) {
+        tsp_2opt(path, boost::optional<point_t>());
     }
 };
 
