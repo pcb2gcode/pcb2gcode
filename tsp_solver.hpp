@@ -78,8 +78,8 @@ private:
         std::swap(line.first, line.second);
     }
 
-    static inline point_type get(const linestring_type& path, Side side)
-    {
+    template <typename point_type_t>
+    static inline point_type_t get(const bg::model::linestring<point_type_t>& path, Side side) {
         if (side == Side::FRONT) {
             return path.front();
         } else {
@@ -87,15 +87,9 @@ private:
         }
     }
 
-    static inline void reverse(linestring_type& path) {
+    template <typename point_type_t>
+    static inline void reverse(bg::model::linestring<point_type_t>& path) {
         std::reverse(path.begin(), path.end());
-    }
-
-    static inline point_type_fp get(const linestring_type_fp& path)
-    {
-        // For finding the nearest neighbor, assume that the drilling
-        // will begin and end at the start point.
-        return path.front();
     }
 
     // Return the Chebyshev distance, which is a good approximation
