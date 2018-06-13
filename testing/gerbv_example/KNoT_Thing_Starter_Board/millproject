@@ -1,0 +1,45 @@
+metric=1
+metricoutput=1
+nog81=1
+nog64=1
+#nog91-1=1
+zero-start=1
+
+#front=KNoT_Thing_Starter_Board.GTL
+back=KNoT_Thing_Starter_Board.GBL
+
+zwork=-0.1
+zsafe=10
+voronoi=true
+offset=0.254
+mill-feed=360
+mill-vertfeed=30
+mill-speed=10000 # this is the max for Nomad Carbide 3D printer
+
+cutter-diameter=2.5
+zcut=-1.8 # The FR4 measured 1.57mm
+cut-feed=360
+cut-vertfeed=60
+cut-speed=10000
+cut-infeed=0.2
+cut-side=auto
+fill-outline=true
+
+drill-feed=60
+drill-side=auto
+drill-speed=10000
+milldrill=false
+onedrill=false
+zdrill=-2.2 # The FR4 measured 1.57mm
+
+bridges=2 # width of bridges
+bridgesnum=4 # As many as possible
+zbridges=-0.8
+zchange=50
+
+#al-back=1
+#software=custom
+#al-x=10
+#al-y=10
+#al-probefeed=0.01
+preserve-thermal-reliefs=true

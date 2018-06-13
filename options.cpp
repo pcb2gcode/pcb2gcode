@@ -28,6 +28,7 @@
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 #include "units.hpp"
+#include "available_drills.hpp"
 
 #include <iostream>
 using std::cerr;
@@ -163,28 +164,14 @@ void options::parse_files()
 
     std::string file("millproject");
 
-    try
-    {
-        std::ifstream stream;
-
-        try
-        {
-            stream.open(file.c_str());
-            po::store(po::parse_config_file(stream, instance().cfg_options),
-                      instance().vm);
-        }
-        catch (std::exception& e)
-        {
-            cerr << "Error parsing configuration file \"" << file << "\": "
-                 << e.what() << endl;
-        }
-
-        stream.close();
-    }
-    catch (std::exception& e)
-    {
-        cerr << "Error reading configuration file \"" << file << "\": "
+    try {
+        std::ifstream stream(file.c_str());
+        po::store(po::parse_config_file(stream, instance().cfg_options),
+                  instance().vm);
+    } catch (std::exception& e) {
+        cerr << "Error parsing configuration file \"" << file << "\": "
              << e.what() << endl;
+        exit(EXIT_FAILURE);
     }
 
     po::notify(instance().vm);
@@ -211,12 +198,15 @@ options::options()
        ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
        ("offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
+       ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")
        ("post-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted after the end of milling each trace (used to deactivate pump or fan or laser connected to fan)")
        ("spinup-time", po::value<Time>()->default_value(parse_unit<Time>("1 ms")), "time required to the spindle to reach the correct speed")
        ("spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")
        ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
        ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
+       ("x-offset", po::value<Length>()->default_value(0), "offset the origin in the x-axis by this length")
+       ("y-offset", po::value<Length>()->default_value(0), "offset the origin in the y-axis by this length")
        ("mill-speed", po::value<Frequency>(), "spindle rpm when milling")
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
@@ -240,6 +230,9 @@ options::options()
        ("drill-speed", po::value<Frequency>(), "spindle rpm when drilling")
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
+       ("drills-available", po::value<std::vector<AvailableDrills>>()
+        ->default_value(std::vector<AvailableDrills>{}, "")
+        ->multitoken(), "list of drills available")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
        ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
        ("metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")
@@ -263,7 +256,7 @@ options::options()
        ("al-probevar", po::value<unsigned int>()->default_value(2002), "number of the variable where the result of the probing is saved (default is 2002)")
        ("al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)")
        ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
-       ("vectorial", po::value<bool>()->default_value(false)->implicit_value(true), "EXPERIMENTAL!! Enable the experimental vectorial core")
+       ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
        ("zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")
        ("g64", po::value<double>(), "[DEPRECATED, use tolerance instead] maximum deviation from toolpath, overrides internal calculation")
        ("tolerance", po::value<double>(), "maximum toolpath tolerance")

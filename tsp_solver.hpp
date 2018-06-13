@@ -91,6 +91,13 @@ private:
         std::reverse(path.begin(), path.end());
     }
 
+    static inline point_type_fp get(const linestring_type_fp& path)
+    {
+        // For finding the nearest neighbor, assume that the drilling
+        // will begin and end at the start point.
+        return path.front();
+    }
+
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
     template <typename value_t>
@@ -103,7 +110,9 @@ private:
 
     // Return the Chebyshev distance, which is a good approximation
     // for the time it takes to do a rapid move on a CNC router.
-    static inline coordinate_type distance(const point_type& p0, const point_type& p1)
+    template <typename coordinate_type_t>
+    static inline coordinate_type_t distance(const bg::model::d2::point_xy<coordinate_type_t>& p0,
+                                             const bg::model::d2::point_xy<coordinate_type_t>& p1)
     {
         return std::max(std::abs(p0.x() - p1.x()),
                         std::abs(p0.y() - p1.y()));
