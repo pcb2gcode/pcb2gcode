@@ -50,6 +50,7 @@ using Glib::build_filename;
 #include "units.hpp"
  
 #include <boost/algorithm/string.hpp>
+#include <boost/version.hpp>
 
 /******************************************************************************/
 /*
@@ -68,6 +69,8 @@ int main(int argc, char* argv[])
     if (vm.count("version"))        //return version and quit
     {
         cout << PACKAGE_VERSION << endl;
+        cout << "Git commit: " << GIT_VERSION << endl;
+        cout << "Boost: " << BOOST_VERSION << endl;
         exit(EXIT_SUCCESS);
     }
 

@@ -187,7 +187,7 @@ options::options()
    cli_options.add_options()
        ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
        ("help,?", "produce help message")
-       ("version", "show the current software version");
+       ("version,V", "show the current software version");
    cfg_options.add_options()
        ("front", po::value<string>(),"front side RS274-X .gbr")
        ("back", po::value<string>(), "back side RS274-X .gbr")
