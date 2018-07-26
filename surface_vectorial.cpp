@@ -140,6 +140,12 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
           debug_image.add(polygon, 0.6, r, g, b);
           traced_debug_image.add(polygon, 1, r, g, b);
         }
+        // The polygon is made of rings.  We want to look for rings such that
+        // one is entirely inside the other and they have a spot where the
+        // distance between them is less than the width of the milling tool.
+        // Those are rings that we can mill in a single plunge without lifting
+        // the tool.
+        
     }
 
     srand(1);
