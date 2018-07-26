@@ -135,8 +135,8 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
 
         unique_ptr<vector<polygon_type_fp> > polygons;
     
-        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
-                                  grow, i, extra_passes + 1, do_voronoi);
+        polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], toolpath, contentions,
+                                  grow, extra_passes + 1, do_voronoi);
 
         debug_image.add(*polygons, 0.6, r, g, b);
         traced_debug_image.add(*polygons, 1, r, g, b);
@@ -229,11 +229,11 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
     return result;
 }
 
-unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(const multi_polygon_type_fp& input,
-                            const multi_polygon_type_fp& voronoi_polygons, multi_linestring_type_fp& toolpath,
-                            bool& contentions, coordinate_type_fp offset, size_t index,
-                            unsigned int steps, bool do_voronoi)
-{
+unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(
+    const polygon_type_fp& input,
+    const polygon_type_fp& voronoi_polygon, multi_linestring_type_fp& toolpath,
+    bool& contentions, coordinate_type_fp offset,
+    unsigned int steps, bool do_voronoi) {
     unique_ptr<vector<polygon_type_fp> > polygons (new vector<polygon_type_fp>(steps));
     list<list<const ring_type_fp *> > rings (steps);
     auto ring_i = rings.begin();
@@ -306,7 +306,7 @@ unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(const mul
             }
             expand_by = offset * factor;
         }
-        polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
+        polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : input;
         multi_polygon_type_fp masked_milling_polys;
         if (mask) {
             bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
@@ -325,9 +325,9 @@ unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(const mul
 
             auto mpoly = make_shared<multi_polygon_type_fp>();
             if (!do_voronoi) {
-                bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
+                bg::intersection(mpoly_temp[0], voronoi_polygon, *mpoly);
             } else {
-                bg::union_(mpoly_temp[0], input[index], *mpoly);
+                bg::union_(mpoly_temp[0], input, *mpoly);
             }
             (*polygons)[i] = (*mpoly)[0];
 
