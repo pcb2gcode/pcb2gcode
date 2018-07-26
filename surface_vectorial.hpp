@@ -107,9 +107,9 @@ protected:
     size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
     vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
         const multi_linestring_type_fp& mls, bool mirror);
-    unique_ptr<vector<polygon_type_fp> > offset_polygon(
+    vector<multi_polygon_type_fp> offset_polygon(
         const polygon_type_fp& input,
-        const polygon_type_fp& voronoi, multi_linestring_type_fp& toolpath,
+        const polygon_type_fp& voronoi,
         bool& contentions, coordinate_type_fp offset,
         unsigned int steps, bool do_voronoi);
 };
