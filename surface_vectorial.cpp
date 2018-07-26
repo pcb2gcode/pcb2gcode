@@ -84,8 +84,6 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror)
 {
-    multi_linestring_type_fp toolpath;
-    vector<shared_ptr<icoords> > toolpath_optimised;
     multi_polygon_type_fp voronoi;
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
@@ -127,6 +125,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bool contentions = false;
 
     srand(1);
+    multi_linestring_type_fp toolpath;
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
@@ -165,6 +164,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
     if (mill->optimise)
     {
+        vector<shared_ptr<icoords> > toolpath_optimised;
         for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
