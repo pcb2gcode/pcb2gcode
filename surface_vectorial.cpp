@@ -287,10 +287,11 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
 
 // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
 // there is a point on the ring that is close enough to the toolpath endpoint.
+// toolpath must not be empty.
 bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
-  double best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+  double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
   for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
     if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
       best_distance = bg::comparable_distance(*ring_point, toolpath.front());
@@ -315,6 +316,20 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
   auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
   *close_ring_point = *best_ring_point;
   return true;
+}
+
+// Given a ring, attach it to one of the toolpaths.  Only attach if there is a
+// point on the ring that is close enough to one of the toolpaths' endpoints.
+// If none of the toolpaths have a close enough endpint, a new toolpath is added
+// to the list of toolpaths.
+void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                                    const coordinate_type_fp& max_distance) {
+  for (auto& toolpath : toolpaths) {
+    if (attach_ring(ring, toolpath, max_distance)) {
+      return;
+    }
+  }
+  toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
 }
 
 size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {

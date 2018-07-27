@@ -114,7 +114,12 @@ protected:
   // there is a point on the ring that is close enough to the toolpath endpoint.
   static bool attach_ring(
       const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance);
-
+  // Given a ring, attach it to one of the toolpaths.  Only attach if there is a
+  // point on the ring that is close enough to one of the toolpaths' endpoints.
+  // If none of the toolpaths have a close enough endpint, a new toolpath is added
+  // to the list of toolpaths.
+  void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                   const coordinate_type_fp& max_distance);
 };
 
 class svg_writer
