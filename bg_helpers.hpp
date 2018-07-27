@@ -10,6 +10,20 @@ namespace bg_helpers {
 // 0, unlike bg::buffer.
 static const int points_per_circle = 30;
 template<typename CoordinateType>
+void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+  if (expand_by == 0) {
+    bg::convert(geometry_in, geometry_out);
+  } else {
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+  }
+}
+
+template<typename CoordinateType>
 void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);

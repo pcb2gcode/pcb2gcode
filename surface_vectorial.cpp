@@ -271,15 +271,18 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     } else {
       multi_polygon_type_fp mpoly_temp;
       // Buffer should be done on floating point polygons.
-      bg_helpers::buffer(masked_milling_polys[0], mpoly_temp, expand_by);
+      bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
 
       multi_polygon_type_fp mpoly;
       if (!do_voronoi) {
-        bg::intersection(mpoly_temp[0], voronoi_polygon, mpoly);
+        bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
       } else {
-        bg::union_(mpoly_temp[0], input, mpoly);
+        bg::union_(mpoly_temp, input, mpoly);
       }
       polygons.push_back(mpoly);
+      if (!bg::equals(mpoly_temp, mpoly)) {
+        contentions = true;
+      }
     }
   }
 
