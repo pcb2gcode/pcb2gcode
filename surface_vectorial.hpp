@@ -120,6 +120,10 @@ protected:
   // to the list of toolpaths.
   void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
                    const coordinate_type_fp& max_distance);
+  // Given polygons, attach all the rings inside to the toolpaths.
+  void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                       const coordinate_type_fp& max_distance);
+
 };
 
 class svg_writer

@@ -133,6 +133,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
         for (multi_polygon_type_fp polygon : polygons) {
+          attach_polygons(polygon, toolpath, grow*2);
           debug_image.add(polygon, 0.6, r, g, b);
           traced_debug_image.add(polygon, 1, r, g, b);
         }
@@ -330,6 +331,26 @@ void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_t
     }
   }
   toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+}
+
+// Given polygons, attach all the rings inside to the toolpaths.
+void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                                        const coordinate_type_fp& max_distance) {
+  // Loop through the polygons by ring index because that will lead to better
+  // connections between loops.
+  for (const auto& poly : polygons) {
+    attach_ring(poly.outer(), toolpaths, max_distance);
+  }
+  bool found_one = true;
+  for (size_t i = 0; found_one; i++) {
+    found_one = false;
+    for (const auto& poly : polygons) {
+      if (poly.inners().size() > i) {
+        found_one = true;
+        attach_ring(poly.inners()[i], toolpaths, max_distance);
+      }
+    }
+  }
 }
 
 size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {
