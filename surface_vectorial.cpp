@@ -52,10 +52,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t wi
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
-    fill(false)
-{
-
-}
+    fill(false) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
@@ -81,9 +78,8 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     bg::envelope(*vectorial_surface, bounding_box);
 }
 
-vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirror)
-{
+vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
+        bool mirror) {
     multi_polygon_type_fp voronoi;
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
@@ -145,7 +141,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         // distance between them is less than the width of the milling tool.
         // Those are rings that we can mill in a single plunge without lifting
         // the tool.
-        
+
     }
 
     srand(1);
@@ -287,6 +283,38 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   }
 
   return polygons;
+}
+
+// Given a ring, attach it to one of the ends of the toolpath.  Only attach if
+// there is a point on the ring that is close enough to the toolpath endpoint.
+bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance) {
+  bool insert_at_front = true;
+  auto best_ring_point = ring.begin();
+  double best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+  for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
+    if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+      best_ring_point = ring_point;
+      insert_at_front = true;
+    }
+    if (bg::comparable_distance(*ring_point, toolpath.back()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+      best_ring_point = ring_point;
+      insert_at_front = false;
+    }
+  }
+  if (bg::distance(*best_ring_point,
+                   insert_at_front ? toolpath.front() : toolpath.back()) >= max_distance) {
+    return false;
+  }
+  toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
+  auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
+  if (insert_at_front) {
+    insertion_point = toolpath.begin();
+  }
+  auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+  *close_ring_point = *best_ring_point;
+  return true;
 }
 
 size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {
