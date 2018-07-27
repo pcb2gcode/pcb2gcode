@@ -300,7 +300,7 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
       insert_at_front = true;
     }
     if (bg::comparable_distance(*ring_point, toolpath.back()) < best_distance) {
-      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+      best_distance = bg::comparable_distance(*ring_point, toolpath.back());
       best_ring_point = ring_point;
       insert_at_front = false;
     }
@@ -312,6 +312,7 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
   toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
   auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
   if (insert_at_front) {
+    std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
     insertion_point = toolpath.begin();
   }
   auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
