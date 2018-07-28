@@ -157,14 +157,15 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
     }
 
     if (mill->eulerian_paths) {
-        toolpath = eulerian_paths(toolpath);
+      toolpath = eulerian_paths(toolpath);
     }
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
+      tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
+      tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
     }
     auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
+
     if (mill->optimise)
     {
         vector<shared_ptr<icoords> > toolpath_optimised;
