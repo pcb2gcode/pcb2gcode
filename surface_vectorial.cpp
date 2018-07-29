@@ -52,10 +52,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t wi
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
-    fill(false)
-{
-
-}
+    fill(false) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
@@ -81,11 +78,8 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     bg::envelope(*vectorial_surface, bounding_box);
 }
 
-vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirror)
-{
-    multi_linestring_type_fp toolpath;
-    vector<shared_ptr<icoords> > toolpath_optimised;
+vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
+        bool mirror) {
     multi_polygon_type_fp voronoi;
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
@@ -127,6 +121,7 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     bool contentions = false;
 
     srand(1);
+    multi_linestring_type_fp toolpath;
 
     for (unsigned int i = 0; i < vectorial_surface->size(); i++)
     {
@@ -134,13 +129,20 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
 
-        unique_ptr<vector<polygon_type_fp> > polygons;
-    
-        polygons = offset_polygon(*vectorial_surface, voronoi, toolpath, contentions,
-                                  grow, i, extra_passes + 1, do_voronoi);
+        vector<multi_polygon_type_fp> polygons;
+        polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
+                                  grow, extra_passes + 1, do_voronoi);
+        for (multi_polygon_type_fp polygon : polygons) {
+          attach_polygons(polygon, toolpath, grow*2);
+          debug_image.add(polygon, 0.6, r, g, b);
+          traced_debug_image.add(polygon, 1, r, g, b);
+        }
+        // The polygon is made of rings.  We want to look for rings such that
+        // one is entirely inside the other and they have a spot where the
+        // distance between them is less than the width of the milling tool.
+        // Those are rings that we can mill in a single plunge without lifting
+        // the tool.
 
-        debug_image.add(*polygons, 0.6, r, g, b);
-        traced_debug_image.add(*polygons, 1, r, g, b);
     }
 
     srand(1);
@@ -155,16 +157,18 @@ vector<shared_ptr<icoords> > Surface_vectorial::get_toolpath(shared_ptr<RoutingM
     }
 
     if (mill->eulerian_paths) {
-        toolpath = eulerian_paths(toolpath);
+      toolpath = eulerian_paths(toolpath);
     }
     if (tsp_2opt) {
-        tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
+      tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
     } else {
-        tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
+      tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
     }
     auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
+
     if (mill->optimise)
     {
+        vector<shared_ptr<icoords> > toolpath_optimised;
         for (const shared_ptr<icoords>& ring : scaled_toolpath)
         {
             toolpath_optimised.push_back(make_shared<icoords>());
@@ -229,184 +233,129 @@ vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
     return result;
 }
 
-unique_ptr<vector<polygon_type_fp> > Surface_vectorial::offset_polygon(const multi_polygon_type_fp& input,
-                            const multi_polygon_type_fp& voronoi_polygons, multi_linestring_type_fp& toolpath,
-                            bool& contentions, coordinate_type_fp offset, size_t index,
-                            unsigned int steps, bool do_voronoi)
-{
-    unique_ptr<vector<polygon_type_fp> > polygons (new vector<polygon_type_fp>(steps));
-    list<list<const ring_type_fp *> > rings (steps);
-    auto ring_i = rings.begin();
-    point_type_fp last_point;
+vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
+    const polygon_type_fp& input,
+    const polygon_type_fp& voronoi_polygon,
+    bool& contentions, coordinate_type_fp offset,
+    unsigned int steps, bool do_voronoi) {
+  // The polygons to add to the PNG debuging output files.
+  vector<multi_polygon_type_fp> polygons;
 
-    auto push_point = [&](const point_type_fp& point)
-    {
-        toolpath.back().push_back(point);
-    };
+  // Mask the polygon that we need to mill.
+  polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : input;  // Milling voronoi or trace?
+  multi_polygon_type_fp masked_milling_polys;
+  if (mask) {
+    bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
+  } else {
+    bg::intersection(masked_milling_poly, bounding_box, masked_milling_polys);
+  }
 
-    auto copy_ring_to_toolpath = [&](const ring_type_fp& ring, unsigned int start)
-    {
-        const auto size_minus_1 = ring.size() - 1;
-        unsigned int i = start;
-
-        do
-        {
-            push_point(ring[i]);
-            i = (i + 1) % size_minus_1;
-        } while (i != start);
-
-        push_point(ring[i]);
-        last_point = ring[i];
-    };
-
-    auto find_first_nonempty = [&]()
-    {
-        for (auto i = rings.begin(); i != rings.end(); i++)
-            if (!i->empty())
-                return i;
-        return rings.end();
-    };
-
-    auto find_closest_point_index = [&](const ring_type_fp& ring)
-    {
-        const unsigned int size = ring.size();
-        auto min_distance = bg::comparable_distance(ring[0], last_point);
-        unsigned int index = 0;
-
-        for (unsigned int i = 1; i < size; i++)
-        {
-            const auto distance = bg::comparable_distance(ring[i], last_point);
-
-            if (distance < min_distance)
-            {
-                min_distance = distance;
-                index = i;
-            }
-        }
-
-        return index;
-    };
-
-    toolpath.push_back(linestring_type_fp());
-
-    bool outer_collapsed = false;
-
-    for (unsigned int i = 0; i < steps; i++)
-    {
-        coordinate_type_fp expand_by;
-        if (!do_voronoi) {
-            // Number of rings is the same as the number of steps.
-            expand_by = offset * (i+1);
-        } else {
-            // Voronoi lines are on the boundary and shared between
-            // multi_polygons so we only need half as many of them.
-            double factor = ((1-double(steps))/2 + i);
-            if (factor > 0) {
-                continue; // Don't need it.
-            }
-            expand_by = offset * factor;
-        }
-        polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygons[index] : input[index];
-        multi_polygon_type_fp masked_milling_polys;
-        if (mask) {
-            bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
-        } else {
-            bg::intersection(masked_milling_poly, bounding_box, masked_milling_polys);
-        }
-        if (expand_by == 0)
-        {
-            (*polygons)[i] = masked_milling_polys[0];
-        }
-        else
-        {
-            multi_polygon_type_fp mpoly_temp;
-            // Buffer should be done on floating point polygons.
-            bg_helpers::buffer(masked_milling_polys[0], mpoly_temp, expand_by);
-
-            auto mpoly = make_shared<multi_polygon_type_fp>();
-            if (!do_voronoi) {
-                bg::intersection(mpoly_temp[0], voronoi_polygons[index], *mpoly);
-            } else {
-                bg::union_(mpoly_temp[0], input[index], *mpoly);
-            }
-            (*polygons)[i] = (*mpoly)[0];
-
-            if (!bg::equals((*mpoly)[0], mpoly_temp[0]))
-                contentions = true;
-        }
-
-        if (i == 0)
-            copy_ring_to_toolpath((*polygons)[i].outer(), 0);
-        else
-        {
-            if (!outer_collapsed && bg::equals((*polygons)[i].outer(), (*polygons)[i - 1].outer()))
-                outer_collapsed = true;
-
-            if (!outer_collapsed)
-                copy_ring_to_toolpath((*polygons)[i].outer(), find_closest_point_index((*polygons)[i].outer()));
-        }
-
-        for (const ring_type_fp& ring : (*polygons)[i].inners())
-            ring_i->push_back(&ring);
-        
-        ++ring_i;
+  // Convert the input shape into a bunch of rings that need to be milled.
+  for (unsigned int i = 0; i < steps; i++) {
+    coordinate_type_fp expand_by;
+    if (!do_voronoi) {
+      // Number of rings is the same as the number of steps.
+      expand_by = offset * (i+1);
+    } else {
+      // Voronoi lines are on the boundary and shared between
+      // multi_polygons so we only need half as many of them.
+      double factor = ((1-double(steps))/2 + i);
+      if (factor > 0) {
+        continue; // Don't need this step.
+      }
+      expand_by = offset * factor;
     }
 
-    ring_i = find_first_nonempty();
+    if (expand_by == 0) {
+      // We simply need to mill every ring in the shape.
+      polygons.push_back(masked_milling_polys);
+    } else {
+      multi_polygon_type_fp mpoly_temp;
+      // Buffer should be done on floating point polygons.
+      bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
 
-    while (ring_i != rings.end())
-    {
-        const ring_type_fp *biggest = ring_i->front();
-        const ring_type_fp *prev = biggest;
-        auto ring_j = next(ring_i);
-
-        toolpath.push_back(linestring_type_fp());
-        copy_ring_to_toolpath(*biggest, 0);
-
-        while (ring_j != rings.end())
-        {
-            list<const ring_type_fp *>::iterator j;
-
-            for (j = ring_j->begin(); j != ring_j->end(); j++)
-            {
-                if (bg::equals(**j, *prev))
-                {
-                    ring_j->erase(j);
-                    break;
-                }
-                else
-                {
-                    if (bg::covered_by(**j, *prev))
-                    {
-                        auto index = find_closest_point_index(**j);
-                        ring_type_fp ring (prev->rbegin(), prev->rend());
-                        linestring_type_fp segment;
-
-                        segment.push_back((**j)[index]);
-                        segment.push_back(last_point);
-
-                        if (bg::covered_by(segment, ring))
-                        {
-                            copy_ring_to_toolpath(**j, index);
-                            prev = *j;
-                            ring_j->erase(j);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (j == ring_j->end())
-                ring_j = rings.end();
-            else
-                ++ring_j;
-        }
-
-        ring_i->erase(ring_i->begin());
-        ring_i = find_first_nonempty();
+      multi_polygon_type_fp mpoly;
+      if (!do_voronoi) {
+        bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
+      } else {
+        bg::union_(mpoly_temp, input, mpoly);
+      }
+      polygons.push_back(mpoly);
+      if (!bg::equals(mpoly_temp, mpoly)) {
+        contentions = true;
+      }
     }
+  }
 
-    return polygons;
+  return polygons;
+}
+
+// Given a ring, attach it to one of the ends of the toolpath.  Only attach if
+// there is a point on the ring that is close enough to the toolpath endpoint.
+// toolpath must not be empty.
+bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance) {
+  bool insert_at_front = true;
+  auto best_ring_point = ring.begin();
+  double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
+  for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
+    if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+      best_ring_point = ring_point;
+      insert_at_front = true;
+    }
+    if (bg::comparable_distance(*ring_point, toolpath.back()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.back());
+      best_ring_point = ring_point;
+      insert_at_front = false;
+    }
+  }
+  if (bg::distance(*best_ring_point,
+                   insert_at_front ? toolpath.front() : toolpath.back()) >= max_distance) {
+    return false;
+  }
+  toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
+  auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
+  if (insert_at_front) {
+    std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
+    insertion_point = toolpath.begin();
+  }
+  auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+  *close_ring_point = *best_ring_point;
+  return true;
+}
+
+// Given a ring, attach it to one of the toolpaths.  Only attach if there is a
+// point on the ring that is close enough to one of the toolpaths' endpoints.
+// If none of the toolpaths have a close enough endpint, a new toolpath is added
+// to the list of toolpaths.
+void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                                    const coordinate_type_fp& max_distance) {
+  for (auto& toolpath : toolpaths) {
+    if (attach_ring(ring, toolpath, max_distance)) {
+      return;
+    }
+  }
+  toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+}
+
+// Given polygons, attach all the rings inside to the toolpaths.
+void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                                        const coordinate_type_fp& max_distance) {
+  // Loop through the polygons by ring index because that will lead to better
+  // connections between loops.
+  for (const auto& poly : polygons) {
+    attach_ring(poly.outer(), toolpaths, max_distance);
+  }
+  bool found_one = true;
+  for (size_t i = 0; found_one; i++) {
+    found_one = false;
+    for (const auto& poly : polygons) {
+      if (poly.inners().size() > i) {
+        found_one = true;
+        attach_ring(poly.inners()[i], toolpaths, max_distance);
+      }
+    }
+  }
 }
 
 size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {

@@ -56,61 +56,74 @@ using std::make_pair;
 class Surface_vectorial: public Core, virtual public boost::noncopyable
 {
 public:
-    Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
-                      string name, string outputdir, bool tsp_2opt);
+  Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
+                    string name, string outputdir, bool tsp_2opt);
 
-    vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror);
-    void save_debug_image(string message);
-    void enable_filling();
-    void add_mask(shared_ptr<Core> surface);
-    void render(shared_ptr<VectorialLayerImporter> importer);
-    
-    inline ivalue_t get_width_in()
-    {
-        return width_in;
-    }
+  vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
+                                            bool mirror);
+  void save_debug_image(string message);
+  void enable_filling();
+  void add_mask(shared_ptr<Core> surface);
+  void render(shared_ptr<VectorialLayerImporter> importer);
 
-    inline ivalue_t get_height_in()
-    {
-        return height_in;
-    }
-    
+  inline ivalue_t get_width_in() {
+    return width_in;
+  }
+
+  inline ivalue_t get_height_in() {
+    return height_in;
+  }
+
 protected:
-    const unsigned int points_per_circle;
-    const ivalue_t width_in;
-    const ivalue_t height_in;
-    const string name;
-    const string outputdir;
-    const bool tsp_2opt;
-    static unsigned int debug_image_index;
+  const unsigned int points_per_circle;
+  const ivalue_t width_in;
+  const ivalue_t height_in;
+  const string name;
+  const string outputdir;
+  const bool tsp_2opt;
+  static unsigned int debug_image_index;
 
-    bool fill;
+  bool fill;
 
-    shared_ptr<multi_polygon_type_fp> vectorial_surface;
-    coordinate_type_fp scale;
-    box_type_fp bounding_box;
-    
-    shared_ptr<Surface_vectorial> mask;
+  shared_ptr<multi_polygon_type_fp> vectorial_surface;
+  coordinate_type_fp scale;
+  box_type_fp bounding_box;
 
-    // Points that are very close to each other, probably because of a
-    // rounding error, are merged together to a single location.
-    static size_t merge_near_points(multi_linestring_type_fp& mls);
-    // Returns a minimal number of toolpaths that include all the
-    // milling in the oroginal toolpaths.  Each path is traversed
-    // once.
-    multi_linestring_type_fp eulerian_paths(const multi_linestring_type_fp& toolpaths);
-    // Fill thermal reliefs in with a polygon of appropriate size so
-    // that they will get milled even in voronoi mode or if the offset
-    // is larger than the half the thickness of the thermal relief.
-    // Returns the number of thermal reliefs found and filled.
-    size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
-    vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
-        const multi_linestring_type_fp& mls, bool mirror);
-    unique_ptr<vector<polygon_type_fp> > offset_polygon(const multi_polygon_type_fp& input,
-                            const multi_polygon_type_fp& voronoi, multi_linestring_type_fp& toolpath,
-                            bool& contentions, coordinate_type_fp offset, size_t index,
-                            unsigned int steps, bool do_voronoi);
+  shared_ptr<Surface_vectorial> mask;
+
+  // Points that are very close to each other, probably because of a
+  // rounding error, are merged together to a single location.
+  static size_t merge_near_points(multi_linestring_type_fp& mls);
+  // Returns a minimal number of toolpaths that include all the
+  // milling in the oroginal toolpaths.  Each path is traversed
+  // once.
+  multi_linestring_type_fp eulerian_paths(const multi_linestring_type_fp& toolpaths);
+  // Fill thermal reliefs in with a polygon of appropriate size so
+  // that they will get milled even in voronoi mode or if the offset
+  // is larger than the half the thickness of the thermal relief.
+  // Returns the number of thermal reliefs found and filled.
+  size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
+  vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
+      const multi_linestring_type_fp& mls, bool mirror);
+  vector<multi_polygon_type_fp> offset_polygon(
+      const polygon_type_fp& input,
+      const polygon_type_fp& voronoi,
+      bool& contentions, coordinate_type_fp offset,
+      unsigned int steps, bool do_voronoi);
+  // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
+  // there is a point on the ring that is close enough to the toolpath endpoint.
+  static bool attach_ring(
+      const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance);
+  // Given a ring, attach it to one of the toolpaths.  Only attach if there is a
+  // point on the ring that is close enough to one of the toolpaths' endpoints.
+  // If none of the toolpaths have a close enough endpint, a new toolpath is added
+  // to the list of toolpaths.
+  void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                   const coordinate_type_fp& max_distance);
+  // Given polygons, attach all the rings inside to the toolpaths.
+  void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                       const coordinate_type_fp& max_distance);
+
 };
 
 class svg_writer
