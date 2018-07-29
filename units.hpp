@@ -276,7 +276,7 @@ template <typename unit_t>
 unit_t parse_unit(const std::string& s) {
   Lexer lex(s);
   double value;
-  boost::optional<boost::units::quantity<typename unit_t::dimension>> one = boost::none;
+  boost::optional<boost::units::quantity<typename unit_t::dimension>> one = boost::make_optional(false, boost::units::quantity<typename unit_t::dimension>());
   try {
     value = lex.get_double();
     lex.get_whitespace();
