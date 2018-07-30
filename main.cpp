@@ -439,9 +439,9 @@ int main(int argc, char* argv[])
               cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
             }
             cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-            ep.export_ngc(outputdir, drill_filename, cutter,
+            ep.export_ngc(outputdir, milldrill_filename, cutter,
                           vm["zchange-absolute"].as<bool>());
-            ep.export_ngc(outputdir, milldrill_filename,
+            ep.export_ngc(outputdir, drill_filename,
                           driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
                           vm["zchange-absolute"].as<bool>());
 
