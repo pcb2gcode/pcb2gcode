@@ -106,9 +106,9 @@ public:
     shared_ptr< map<int, ilinesegments> > get_holes();
 
 private:
+  gerbv_project_t* parse_project(const string& filename);
   map<int, drillbit> parse_bits();
   map<int, ilinesegments> parse_holes();
-  gerbv_project_t* parse_project(const string& filename);
 
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
@@ -146,7 +146,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
-    // The minimum size hole that is milldrills.  Below this, holes are drilled regularly.
+    // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
     const boost::optional<Length> min_milldrill_diameter;
     const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;

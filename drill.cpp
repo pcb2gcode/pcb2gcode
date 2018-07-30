@@ -232,14 +232,12 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
  driller: ...
  onedrill: if true, only the first drill bit is used, the others are skipped
 
- TODO: 1. Optimize the implementation of onedrill by modifying the bits and using the smallest bit only.
-       2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
+ TODO: Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
                                    shared_ptr<Driller> driller, bool onedrill,
-                                   bool nog81, bool zchange_absolute)
-{
+                                   bool nog81, bool zchange_absolute) {
     stringstream zchange;
 
     cout << "Exporting drill... ";
@@ -705,7 +703,7 @@ map<int, ilinesegments> ExcellonProcessor::optimize_holes(
   }
 
   //If the onedrill option has been selected, we can merge all the holes in a single path
-  //in order to optimise it even more
+  //in order to optimize it even more
   if (onedrill && holes.size() > 0) {
     // Let all drills be the same size as the first drill.
     const auto& first_drill_bit = bits.at(holes.begin()->first);
@@ -742,7 +740,7 @@ map<int, ilinesegments> ExcellonProcessor::optimize_holes(
     }
   }
 
-  //Optimise the holes path
+  //Optimize the holes path
   for (auto& path : holes) {
     if (tsp_2opt) {
       tsp_solver::tsp_2opt(path.second, icoordpair(get_xvalue(0) + xoffset, yoffset));
