@@ -1,8 +1,8 @@
 ( pcb2gcode 1.3.2 )
 ( Software-independent Gcode )
 
-( This file uses 2 drill bit sizes. )
-( Bit sizes: [0.015748 inch] [0.0394094 inch] )
+( This file uses 1 drill bit sizes. )
+( Bit sizes: [0.015748 inch] )
 
 G94       (Inches per minute feed rate.)
 G20       (Units == INCHES.)
@@ -31,50 +31,6 @@ X4.55000 Y-2.85000
 X4.50000 Y-3.17126
 X4.50000 Y-3.25000
 X4.50000 Y-3.32874
-
-G00 Z1.00000 (Retract)
-T2
-M5      (Spindle stop.)
-G04 P1.00000
-(MSG, Change tool bit to drill size 0.0394094 inch)
-M6      (Tool change.)
-M0      (Temporary machine stop.)
-M3      (Spindle on clockwise.)
-G0 Z0.08000
-G04 P1.00000
-
-G81 R0.08000 Z-1.60000 F30.00000 X3.25000 Y-2.55000
-X3.65000 Y-2.55000
-X3.81500 Y-2.66535
-X3.81500 Y-2.58665
-X3.81500 Y-2.62163
-X3.81500 Y-2.63912
-X3.81500 Y-2.60414
-X3.81500 Y-2.64787
-X3.81500 Y-2.63038
-X3.81500 Y-2.61289
-X3.81500 Y-2.59540
-X3.81500 Y-2.65661
-X3.96067 Y-2.50791
-X4.03933 Y-2.50791
-X4.00437 Y-2.50791
-X3.98689 Y-2.50791
-X4.02185 Y-2.50791
-X3.97815 Y-2.50791
-X3.99563 Y-2.50791
-X4.01311 Y-2.50791
-X4.03059 Y-2.50791
-X3.96941 Y-2.50791
-X3.65000 Y-2.95000
-X3.25000 Y-2.95000
-X3.75000 Y-3.30000
-X3.85000 Y-3.30000
-X4.05000 Y-3.30000
-X4.15000 Y-3.30000
-X4.30000 Y-2.95000
-X4.70000 Y-2.55000
-X4.30000 Y-2.55000
-X4.70000 Y-2.95000
 
 G00 Z1.000 ( All done -- retract )
 
