@@ -29,6 +29,7 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator-extra-passes-voronoi",
                   "multivibrator-contentions",
                   "multivibrator-no-tsp-2opt",
+                  "multivibrator-no-zbridges",
                   "am-test-voronoi",
                   "slots-milldrill",
                   "multivibrator_xy_offset",
