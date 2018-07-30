@@ -106,8 +106,10 @@ public:
     shared_ptr< map<int, ilinesegments> > get_holes();
 
 private:
-    void parse_holes();
-    void parse_bits();
+  map<int, drillbit> parse_bits();
+  map<int, ilinesegments> parse_holes();
+  gerbv_project_t* parse_project(const string& filename);
+
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
                   double stop_x, double stop_y,
@@ -115,21 +117,21 @@ private:
     double get_xvalue(double);
     string drill_to_string(drillbit drillbit);
 
-  shared_ptr<map<int, ilinesegments>> optimise_path(shared_ptr<map<int, ilinesegments>> original_path, bool onedrill,
-                                                    const boost::optional<Length>& min_diameter,
-                                                    const boost::optional<Length>& max_diameter);
-    shared_ptr<map<int, drillbit>> optimise_bits(shared_ptr<map<int, drillbit>> original_bits, bool onedrill);
+  map<int, ilinesegments> optimize_holes(map<int, drillbit>& bits, bool onedrill,
+                                         const boost::optional<Length>& min_diameter,
+                                         const boost::optional<Length>& max_diameter);
+  map<int, drillbit> optimize_bits(bool onedrill);
 
     void save_svg(
-        shared_ptr<const map<int, drillbit>> bits, shared_ptr<const map<int, ilinesegments>> holes,
+        const map<int, drillbit>& bits, const map<int, ilinesegments>& holes,
         const string& of_dir, const string& of_name);
 
     const box_type_fp board_dimensions;
     const ivalue_t board_center_x;
 
-    shared_ptr<map<int, drillbit> > bits;
-    shared_ptr<map<int, ilinesegments> > holes;
-    gerbv_project_t* project;
+    gerbv_project_t * const project;
+    const map<int, drillbit> parsed_bits;
+    const map<int, ilinesegments> parsed_holes;
     vector<string> header;
     string preamble;        //Preamble for output file
 
