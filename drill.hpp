@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,12 +10,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -101,7 +101,7 @@ public:
                     shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const string of_dir, const boost::optional<string>& of_name,
                     shared_ptr<Cutter> target, bool zchange_absolute);
-    
+
     inline void export_svg(const string of_dir)
     {
         save_svg(get_bits(), get_holes(), of_dir);
@@ -120,8 +120,10 @@ private:
     double get_xvalue(double);
     string drill_to_string(drillbit drillbit);
 
-    shared_ptr< map<int, ilinesegments> > optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill );
-    shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
+  shared_ptr<map<int, ilinesegments>> optimise_path(shared_ptr<map<int, ilinesegments>> original_path, bool onedrill,
+                                                    const boost::optional<Length>& min_diameter,
+                                                    const boost::optional<Length>& max_diameter);
+    shared_ptr<map<int, drillbit>> optimise_bits(shared_ptr<map<int, drillbit>> original_bits, bool onedrill);
 
     void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir);
 
@@ -145,6 +147,8 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    // The minimum size hole that is milldrills.  Below this, holes are drilled regularly.
+    const boost::optional<Length> min_milldrill_diameter;
     const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;

@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,16 +10,16 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <fstream>
 using std::ofstream;
 
@@ -78,6 +78,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       xoffset(options["zero-start"].as<bool>() ? min.first : 0),
       yoffset(options["zero-start"].as<bool>() ? min.second : 0),
       mirror_axis(options["mirror-axis"].as<Length>()),
+      min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
       available_drills(std::accumulate(
           options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
           options["drills-available"].as<std::vector<AvailableDrills>>().end(),
@@ -243,7 +244,7 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
  of_name: output filename
  driller: ...
  onedrill: if true, only the first drill bit is used, the others are skipped
- 
+
  TODO: 1. Optimise the implementation of onedrill by modifying the bits and using the smallest bit only.
        2. Replace the current tiling implementation (gcode repetition) with a subroutine-based solution
  */
@@ -273,8 +274,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         of.open("");
     }
 
-    shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), onedrill );
-    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), onedrill );
+    shared_ptr<const map<int, drillbit> > bits = optimise_bits(get_bits(), onedrill);
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path(get_holes(), onedrill, boost::none, min_milldrill_diameter);
 
     //write header to .ngc file
     for (string s : header)
@@ -367,10 +368,10 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         }
         of << "\n";
     }
-    
+
     //tiling->footer( of ); // See TODO #2
     of << tiling->getGCodeEnd();
-    
+
     of.close();
 
     save_svg(bits, holes, of_dir);
@@ -503,7 +504,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
 /******************************************************************************/
 /*
- mill larger holes by using a smaller mill-head
+ milldrill holes
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
@@ -512,7 +513,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     unsigned int badHoles = 0;
     stringstream zchange;
 
-    cout << "Exporting drill... " << flush;
+    cout << "Exporting milldrill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
     tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
@@ -530,8 +531,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         of.open("");
     }
 
-    shared_ptr<const map<int, drillbit> > bits = optimise_bits( get_bits(), false );
-    shared_ptr<const map<int, ilinesegments> > holes = optimise_path( get_holes(), false );
+    shared_ptr<const map<int, drillbit>> bits = optimise_bits(get_bits(), false);
+    shared_ptr<const map<int, ilinesegments>> holes = optimise_path(get_holes(), false, min_milldrill_diameter, boost::none);
 
     // write header to .ngc file
     for (string s : header)
@@ -570,7 +571,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
     {
         const double yoffsetTot = yoffset - i * tileInfo.boardHeight;
-        
+
         for( unsigned int j = 0; j < tileInfo.forXNum; j++ )
         {
             const double xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
@@ -596,7 +597,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
             }
         }
     }
-    
+
     tiling->footer( of );
 
     of.close();
@@ -698,12 +699,11 @@ shared_ptr< map<int, drillbit> > ExcellonProcessor::get_bits()
 /*
  */
 /******************************************************************************/
-shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes()
-{
-    if (!holes)
-        parse_holes();
+shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes() {
+  if (!holes)
+    parse_holes();
 
-    return holes;
+  return holes;
 }
 
 /******************************************************************************/
@@ -711,15 +711,31 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::get_holes()
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill )
-{
+shared_ptr<map<int, ilinesegments>> ExcellonProcessor::optimise_path(
+    shared_ptr<map<int, ilinesegments>> original_path, bool onedrill,
+    const boost::optional<Length>& min_diameter,
+    const boost::optional<Length>& max_diameter) {
     // Report all bits that are unused as warnings.
     for (const auto& bit : *bits) {
         if (original_path->count(bit.first) == 0) { //If a bit has no associated holes
             cerr << "Warning: bit " << bit.first << " ("
                << drill_to_string(bit.second) << ") has no associated holes; "
                 "removing it." << std::endl;
+            // We don't really remove the bit.  If there are no holes
+            // associated, we'll remove the hole later and there will be no
+            // output for the bit.
         }
+    }
+
+    // Holes that are larger than max_diameter or smaller than min_diameter are removed.
+    for (auto path = original_path->begin(); path != original_path->end(); ) {
+      const auto& bit_diameter = get_bits()->at(path->first).as_length();
+      if ((max_diameter && bit_diameter >= *max_diameter) ||
+          (min_diameter && bit_diameter < *min_diameter)) {
+        path = original_path->erase(path); // remove because it's outside the range.
+      } else {
+        path++;
+      }
     }
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
@@ -760,7 +776,7 @@ shared_ptr< map<int, ilinesegments> > ExcellonProcessor::optimise_path( shared_p
         }
     }
 
-    //Otimise the holes path
+    //Optimise the holes path
     for (auto& path : *original_path) {
         if (tsp_2opt) {
             tsp_solver::tsp_2opt(path.second, icoordpair(get_xvalue(0) + xoffset, yoffset));

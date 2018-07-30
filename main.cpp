@@ -433,8 +433,7 @@ int main(int argc, char* argv[])
             {
                 drill_filename = boost::none;
             }
-            if (vm["milldrill"].as<bool>())
-            {
+            if (vm["milldrill"].as<bool>() || vm.count("min-milldrill-diameter")) {
                 if (vm.count("milldrill-diameter")) {
                     cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
                 }
@@ -442,8 +441,7 @@ int main(int argc, char* argv[])
                 ep.export_ngc(outputdir, drill_filename, cutter,
                               vm["zchange-absolute"].as<bool>());
             }
-            else
-            {
+            if (!vm["milldrill"].as<bool>() || vm.count("min-milldrill-diameter")) {
                 ep.export_ngc(outputdir, drill_filename,
                               driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
                               vm["zchange-absolute"].as<bool>());
