@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net> and others
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,12 +10,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -48,7 +48,7 @@ using Glib::build_filename;
 #include "drill.hpp"
 #include "options.hpp"
 #include "units.hpp"
- 
+
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
 
@@ -127,35 +127,35 @@ int main(int argc, char* argv[])
         isolator->spindown_time = spindown_time;
     }
 
-    shared_ptr<Cutter> cutter;
+    shared_ptr<Cutter> cutter(new Cutter());
 
-    if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
-    {
-        cutter = shared_ptr<Cutter>(new Cutter());
-        cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
-        cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
-        cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-        cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
-        if (vm.count("cut-vertfeed"))
-            cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
-        else
-            cutter->vertfeed = cutter->feed / 2;
-        cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
-        cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
-        cutter->do_steps = true;
-        cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
-        cutter->optimise = vm["optimise"].as<bool>();
-        cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
-        cutter->tolerance = tolerance;
-        cutter->explicit_tolerance = explicit_tolerance;
-        cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
-        cutter->spindown_time = spindown_time;
-        cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
-        cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
-        if (vm.count("zbridges"))
-            cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
-        else
-            cutter->bridges_height = cutter->zsafe;
+    if (vm.count("outline") ||
+        (vm.count("drill") &&
+         vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity()))) {
+      cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+      cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
+      cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+      cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
+      if (vm.count("cut-vertfeed"))
+        cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
+      else
+        cutter->vertfeed = cutter->feed / 2;
+      cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
+      cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
+      cutter->do_steps = true;
+      cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
+      cutter->optimise = vm["optimise"].as<bool>();
+      cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
+      cutter->tolerance = tolerance;
+      cutter->explicit_tolerance = explicit_tolerance;
+      cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+      cutter->spindown_time = spindown_time;
+      cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
+      cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
+      if (vm.count("zbridges"))
+        cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
+      else
+        cutter->bridges_height = cutter->zsafe;
     }
 
     shared_ptr<Driller> driller;
@@ -429,23 +429,21 @@ int main(int argc, char* argv[])
             cout << "DONE.\n";
 
             boost::optional<string> drill_filename = vm["drill-output"].as<string>();
+            boost::optional<string> milldrill_filename = vm["milldrill-output"].as<string>();
             if (vm["no-export"].as<bool>())
             {
                 drill_filename = boost::none;
+                milldrill_filename = boost::none;
             }
-            if (vm["milldrill"].as<bool>() || vm.count("min-milldrill-diameter")) {
-                if (vm.count("milldrill-diameter")) {
-                    cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
-                }
-                cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-                ep.export_ngc(outputdir, drill_filename, cutter,
-                              vm["zchange-absolute"].as<bool>());
+            if (vm.count("milldrill-diameter")) {
+              cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
             }
-            if (!vm["milldrill"].as<bool>() || vm.count("min-milldrill-diameter")) {
-                ep.export_ngc(outputdir, drill_filename,
-                              driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
-                              vm["zchange-absolute"].as<bool>());
-            }
+            cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+            ep.export_ngc(outputdir, drill_filename, cutter,
+                          vm["zchange-absolute"].as<bool>());
+            ep.export_ngc(outputdir, milldrill_filename,
+                          driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                          vm["zchange-absolute"].as<bool>());
 
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 

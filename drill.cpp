@@ -266,17 +266,16 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "\nM9      (Coolant off.)\n"
                          "M2      (Program end.)\n\n");
 
+    shared_ptr<const map<int, drillbit> > bits = optimise_bits(get_bits(), onedrill);
+    shared_ptr<const map<int, ilinesegments> > holes = optimise_path(get_holes(), onedrill, boost::none, min_milldrill_diameter);
+
     //open output file
     std::ofstream of;
-    if (of_name) {
+    if (of_name && holes->size() > 0) {
         of.open(build_filename(of_dir, *of_name));
     } else {
         of.open("");
     }
-
-    shared_ptr<const map<int, drillbit> > bits = optimise_bits(get_bits(), onedrill);
-    shared_ptr<const map<int, ilinesegments> > holes = optimise_path(get_holes(), onedrill, boost::none, min_milldrill_diameter);
-
     //write header to .ngc file
     for (string s : header)
     {
@@ -374,7 +373,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
     of.close();
 
-    save_svg(bits, holes, of_dir);
+    save_svg(bits, holes, of_dir, "original_drill.svg");
 }
 
 /******************************************************************************/
@@ -523,16 +522,16 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "\nM9      (Coolant off.)\n"
                          "M2      (Program end.)\n\n");
 
+    shared_ptr<const map<int, drillbit>> bits = optimise_bits(get_bits(), false);
+    shared_ptr<const map<int, ilinesegments>> holes = optimise_path(get_holes(), false, min_milldrill_diameter, boost::none);
+
     // open output file
     std::ofstream of;
-    if (of_name) {
+    if (of_name && holes->size() > 0) {
         of.open(build_filename(of_dir, *of_name));
     } else {
         of.open("");
     }
-
-    shared_ptr<const map<int, drillbit>> bits = optimise_bits(get_bits(), false);
-    shared_ptr<const map<int, ilinesegments>> holes = optimise_path(get_holes(), false, min_milldrill_diameter, boost::none);
 
     // write header to .ngc file
     for (string s : header)
@@ -609,15 +608,19 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
              << " bigger than the milling tool." << endl;
     }
 
-    save_svg(bits, holes, of_dir);
+    save_svg(bits, holes, of_dir, "original_milldrill.svg");
 }
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir)
-{
+void ExcellonProcessor::save_svg(
+    shared_ptr<const map<int, drillbit>> bits, shared_ptr<const map<int, ilinesegments>> holes,
+    const string& of_dir, const string& of_name) {
+    if (holes->size() == 0) {
+      return;
+    }
     const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
     const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
 
@@ -625,7 +628,7 @@ void ExcellonProcessor::save_svg(shared_ptr<const map<int, drillbit> > bits, sha
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
 
-    ofstream svg_out (build_filename(of_dir, "original_drill.svg"));
+    ofstream svg_out (build_filename(of_dir, of_name));
     bg::svg_mapper<point_type_fp> mapper (svg_out, width, height, svg_dimensions);
 
     mapper.add(board_dimensions);
@@ -740,7 +743,7 @@ shared_ptr<map<int, ilinesegments>> ExcellonProcessor::optimise_path(
 
     //If the onedrill option has been selected, we can merge all the holes in a single path
     //in order to optimise it even more
-    if (onedrill) {
+    if (onedrill && holes->size() > 0) {
         // Let all drills be the same size as the first drill.
         const auto& first_drill_bit = bits->at(holes->begin()->first);
         for (auto& current_drill : *bits) {

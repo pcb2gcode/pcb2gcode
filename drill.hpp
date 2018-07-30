@@ -102,11 +102,6 @@ public:
     void export_ngc(const string of_dir, const boost::optional<string>& of_name,
                     shared_ptr<Cutter> target, bool zchange_absolute);
 
-    inline void export_svg(const string of_dir)
-    {
-        save_svg(get_bits(), get_holes(), of_dir);
-    }
-
     shared_ptr< map<int, drillbit> > get_bits();
     shared_ptr< map<int, ilinesegments> > get_holes();
 
@@ -125,7 +120,9 @@ private:
                                                     const boost::optional<Length>& max_diameter);
     shared_ptr<map<int, drillbit>> optimise_bits(shared_ptr<map<int, drillbit>> original_bits, bool onedrill);
 
-    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir);
+    void save_svg(
+        shared_ptr<const map<int, drillbit>> bits, shared_ptr<const map<int, ilinesegments>> holes,
+        const string& of_dir, const string& of_name);
 
     const box_type_fp board_dimensions;
     const ivalue_t board_center_x;
