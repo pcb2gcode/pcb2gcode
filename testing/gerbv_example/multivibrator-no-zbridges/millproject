@@ -13,6 +13,7 @@ milldrill=true
 onedrill=true
 zdrill=-1.6
 cut-feed=100
+cut-vertfeed=75
 cut-infeed=100
 cut-side=auto
 cut-speed=10000
