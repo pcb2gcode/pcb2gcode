@@ -120,10 +120,17 @@ class UnitBase {
     return s;
   }
   bool operator<(const UnitBase<dimension_t>& other) const {
-    if (!one && !other.one) {
-      return value < other.value;
-    } else if (one && other.one) {
-      return value * *one < other.value * *other.one;
+    auto a = *this;
+    auto b = other;
+    if (isinf(a.value) || a.value == 0 || isinf(b.value) || b.value == 0) {
+      // inf, -inf, and zero times anything is unchanged so the units don't matter
+      a.one = boost::none;
+      b.one = boost::none;
+    }
+    if (!a.one && !b.one) {
+      return a.value < b.value;
+    } else if (a.one && b.one) {
+      return a.value * *a.one < b.value * *b.one;
     } else {
       throw comparison_exception("Can't compare with units and without.");
     }
