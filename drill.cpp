@@ -78,8 +78,10 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
       bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
-      xoffset(options["zero-start"].as<bool>() ? min.first : 0),
-      yoffset(options["zero-start"].as<bool>() ? min.second : 0),
+      xoffset((options["zero-start"].as<bool>() ? min.first : 0) -
+              options["x-offset"].as<Length>().asInch(inputFactor)),
+      yoffset((options["zero-start"].as<bool>() ? min.second : 0) -
+              options["y-offset"].as<Length>().asInch(inputFactor)),
       mirror_axis(options["mirror-axis"].as<Length>()),
       min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
       available_drills(std::accumulate(

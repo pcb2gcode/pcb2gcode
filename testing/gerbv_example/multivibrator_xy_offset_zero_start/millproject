@@ -25,9 +25,9 @@ zchange=1.0
 
 tile-x=2
 tile-y=3
-zero-start=false
+zero-start=true
 x-offset=10 mm
 y-offset=-1 inch
 mirror-axis=10mm
-drill-side=auto
-cut-side=auto
+drill-side=back
+cut-side=back
