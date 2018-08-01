@@ -435,10 +435,15 @@ int main(int argc, char* argv[])
                 drill_filename = boost::none;
                 milldrill_filename = boost::none;
             }
+            // We can modify the cutter because we're not going to use it again.
             if (vm.count("milldrill-diameter")) {
               cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
             }
-            cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+            if (vm.count("zmilldrill")) {
+              cutter->zwork = vm["zmilldrill"].as<Length>().asInch(unit);
+            } else {
+              cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
+            }
             ep.export_ngc(outputdir, milldrill_filename, cutter,
                           vm["zchange-absolute"].as<bool>());
             ep.export_ngc(outputdir, drill_filename,
