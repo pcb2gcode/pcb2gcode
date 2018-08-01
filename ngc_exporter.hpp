@@ -66,7 +66,7 @@ public:
     }
 
 protected:
-    void export_layer(shared_ptr<Layer> layer, string of_name);
+  void export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller);
 
     shared_ptr<Board> board;
     vector<string> header;
@@ -81,9 +81,6 @@ protected:
     const unsigned int dpi;
     const double quantization_error;
 
-    autoleveller *leveller;
-    bool bFrontAutoleveller;
-    bool bBackAutoleveller;
     bool bTile;
 
     double xoffset;
