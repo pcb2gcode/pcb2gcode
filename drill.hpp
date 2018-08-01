@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,12 +10,12 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -101,18 +101,15 @@ public:
                     shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const string of_dir, const boost::optional<string>& of_name,
                     shared_ptr<Cutter> target, bool zchange_absolute);
-    
-    inline void export_svg(const string of_dir)
-    {
-        save_svg(get_bits(), get_holes(), of_dir);
-    }
 
     shared_ptr< map<int, drillbit> > get_bits();
     shared_ptr< map<int, ilinesegments> > get_holes();
 
 private:
-    void parse_holes();
-    void parse_bits();
+  gerbv_project_t* parse_project(const string& filename);
+  map<int, drillbit> parse_bits();
+  map<int, ilinesegments> parse_holes();
+
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
                   double stop_x, double stop_y,
@@ -120,17 +117,21 @@ private:
     double get_xvalue(double);
     string drill_to_string(drillbit drillbit);
 
-    shared_ptr< map<int, ilinesegments> > optimise_path( shared_ptr< map<int, ilinesegments> > original_path, bool onedrill );
-    shared_ptr<map<int, drillbit> > optimise_bits( shared_ptr<map<int, drillbit> > original_bits, bool onedrill );
+  map<int, ilinesegments> optimize_holes(map<int, drillbit>& bits, bool onedrill,
+                                         const boost::optional<Length>& min_diameter,
+                                         const boost::optional<Length>& max_diameter);
+  map<int, drillbit> optimize_bits(bool onedrill);
 
-    void save_svg(shared_ptr<const map<int, drillbit> > bits, shared_ptr<const map<int, ilinesegments> > holes, const string of_dir);
+    void save_svg(
+        const map<int, drillbit>& bits, const map<int, ilinesegments>& holes,
+        const string& of_dir, const string& of_name);
 
     const box_type_fp board_dimensions;
     const ivalue_t board_center_x;
 
-    shared_ptr<map<int, drillbit> > bits;
-    shared_ptr<map<int, ilinesegments> > holes;
-    gerbv_project_t* project;
+    gerbv_project_t * const project;
+    const map<int, drillbit> parsed_bits;
+    const map<int, ilinesegments> parsed_holes;
     vector<string> header;
     string preamble;        //Preamble for output file
 
@@ -145,6 +146,8 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
+    const boost::optional<Length> min_milldrill_diameter;
     const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;

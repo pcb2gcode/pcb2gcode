@@ -1,6 +1,6 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2009, 2010 Patrick Birnzain <pbirnzain@users.sourceforge.net>
  * Copyright (C) 2010 Bernhard Kubicek <kubicek@gmx.at>
  * Copyright (C) 2013 Erik Schuster <erik@muenchen-ist-toll.de>
@@ -10,16 +10,16 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include "options.hpp"
 #include "config.h"
 
@@ -77,33 +77,19 @@ void options::parse(int argc, char** argv)
     if( !instance().vm["noconfigfile"].as<bool>() )
         parse_files();
 
-    /*
-     * this needs to be an extra step, as --basename modifies the default
-     * values of the --...-output parameters
-     */
-    string basename = "";
-
-    if (instance().vm.count("basename"))
-    {
-        basename = instance().vm["basename"].as<string>() + "_";
+    if (instance().vm.count("basename")) {
+      /*
+       * this needs to be an extra step, as --basename modifies the default
+       * values of the --...-output parameters
+       */
+      string basename = "";
+      basename = instance().vm["basename"].as<string>() + "_";
+      instance().vm.at("front-output").value() = basename + "front.ngc";
+      instance().vm.at("back-output").value() = basename + "back.ngc";
+      instance().vm.at("drill-output").value() = basename + "drill.ngc";
+      instance().vm.at("outline-output").value() = basename + "outline.ngc";
+      instance().vm.at("milldrill-output").value() = basename + "milldrill.ngc";
     }
-
-    string front_output = "--front-output=" + basename + "front.ngc";
-    string back_output = "--back-output=" + basename + "back.ngc";
-    string outline_output = "--outline-output=" + basename + "outline.ngc";
-    string drill_output = "--drill-output=" + basename + "drill.ngc";
-
-    const char *fake_basename_command_line[] = { "", front_output.c_str(),
-                                                 back_output.c_str(),
-                                                 outline_output.c_str(),
-                                                 drill_output.c_str()
-                                               };
-
-    po::store(
-        po::parse_command_line(5, (char**) fake_basename_command_line,
-                               generic, style),
-        instance().vm);
-
 
     if (instance().vm.count("tolerance"))
     {
@@ -138,6 +124,11 @@ void options::parse(int argc, char** argv)
         po::store(po::parse_command_line(2,
                         (char**) fake_tolerance_command_line,
                         generic, style), instance().vm);
+    }
+
+    // Deal with the deprecated milldrill option.
+    if (instance().vm["min-milldrill-hole-diameter"].defaulted() && instance().vm["milldrill"].as<bool>()) {
+      instance().vm.at("min-milldrill-hole-diameter").value() = Length(0);
     }
 
     po::notify(instance().vm);
@@ -208,8 +199,10 @@ options::options()
        ("x-offset", po::value<Length>()->default_value(0), "offset the origin in the x-axis by this length")
        ("y-offset", po::value<Length>()->default_value(0), "offset the origin in the y-axis by this length")
        ("mill-speed", po::value<Frequency>(), "spindle rpm when milling")
-       ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "drill using the mill head")
+       ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
+       ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
+        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
        ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
        ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
        ("extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")
@@ -270,6 +263,7 @@ options::options()
        ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
        ("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
        ("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
+       ("milldrill-output", po::value<string>()->default_value("milldrill.ngc"), "output file for milldrilling")
        ("preamble-text", po::value<string>(), "preamble text file, inserted at the very beginning as a comment.")
        ("preamble", po::value<string>(), "gcode preamble file, inserted at the very beginning.")
        ("postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.")
@@ -353,7 +347,7 @@ static void check_generic_parameters(po::variables_map const& vm)
             exit(ERR_NEGATIVETOLERANCE);
         }
     }
-    
+
     //---------------------------------------------------------------------------
     //Check svg parameter:
 
@@ -370,7 +364,7 @@ static void check_generic_parameters(po::variables_map const& vm)
     {
         cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
     }
-    
+
     //---------------------------------------------------------------------------
     //Check for tile parameters
 
@@ -379,7 +373,7 @@ static void check_generic_parameters(po::variables_map const& vm)
         cerr << "tile-x can't be negative!\n";
         exit(ERR_NEGATIVETILEX);
     }
-    
+
     if (vm["tile-y"].as<int>() < 1)
     {
         cerr << "tile-y can't be negative!\n";
@@ -620,8 +614,9 @@ static void check_cutting_parameters(po::variables_map const& vm)
     unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
 
     //only check the parameters if an outline file is given or milldrill is enabled
-    if (vm.count("outline") || (vm.count("drill") && vm["milldrill"].as<bool>()))
-    {
+    if (vm.count("outline") ||
+        (vm.count("drill") &&
+         (vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity())))) {
         if (vm["fill-outline"].as<bool>() && !vm["vectorial"].as<bool>())
         {
             if (!vm.count("outline-width"))

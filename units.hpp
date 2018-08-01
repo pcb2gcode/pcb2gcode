@@ -16,13 +16,24 @@
 
 #include "common.hpp"
 
-// String parsers: Each on uses characters from the front of the
-// string and leaves the unused characters in place.
 struct parse_exception : public std::exception {
   parse_exception(const std::string& get_what, const std::string& from_what) {
     what_string = "Can't get " + get_what + " from: " + from_what;
   }
   parse_exception(const std::string& what) {
+    what_string = what;
+  }
+
+  virtual const char* what() const throw()
+  {
+    return what_string.c_str();
+  }
+ private:
+  std::string what_string;
+};
+
+struct comparison_exception : public std::exception {
+  comparison_exception(const std::string& what) {
     what_string = what;
   }
 
@@ -100,7 +111,7 @@ class UnitBase {
   double asDouble() const {
     return value;
   }
-  friend std::ostream& operator<< (std::ostream& s, const UnitBase<dimension_t>& length) {
+  friend std::ostream& operator<<(std::ostream& s, const UnitBase<dimension_t>& length) {
     if (length.one) {
       s << length.value * *length.one;
     } else {
@@ -108,14 +119,23 @@ class UnitBase {
     }
     return s;
   }
-  bool operator==(const UnitBase<dimension_t>& other) const {
-    if (!one && !other.one) {
-      return value == other.value;
-    } else if (one && other.one) {
-      return value * *one == other.value * *other.one;
+  bool operator<(const UnitBase<dimension_t>& other) const {
+    if (isinf(this->value) || this->value == 0 || isinf(other.value) || other.value == 0) {
+      // inf, -inf, and zero times anything is unchanged so the units don't matter
+      return this->value < other.value;
+    } else if (!this->one && !other.one) {
+      return this->value < other.value;
+    } else if (this->one && other.one) {
+      return this->value * *this->one < other.value * *other.one;
     } else {
-      return false;
+      throw comparison_exception("Can't compare with units and without.");
     }
+  }
+  bool operator>=(const UnitBase<dimension_t>& other) const {
+    return !(*this < other);
+  }
+  bool operator==(const UnitBase<dimension_t>& other) const {
+    return (*this >= other && other >= *this);
   }
 
  protected:

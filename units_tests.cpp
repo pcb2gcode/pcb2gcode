@@ -94,4 +94,10 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
   BOOST_CHECK_THROW(parse_unit<Velocity>("50.8s"), po::validation_error);
 }
 
+BOOST_AUTO_TEST_CASE(compare) {
+  BOOST_CHECK_LT(parse_unit<Length>("3inch"),  parse_unit<Length>("4inch"));
+  BOOST_CHECK_THROW(parse_unit<Length>("3") < parse_unit<Length>("4inch"), comparison_exception);
+  BOOST_CHECK_EQUAL(comparison_exception("foo").what(), "foo");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
