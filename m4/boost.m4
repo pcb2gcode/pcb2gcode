@@ -115,14 +115,20 @@ AC_DEFUN_ONCE([BOOST_REQUIRE],
 [AC_REQUIRE([AC_PROG_CXX])dnl
 AC_REQUIRE([AC_PROG_GREP])dnl
 echo "$as_me: this is boost.m4[]_BOOST_SERIAL" >&AS_MESSAGE_LOG_FD
-boost_save_IFS=$IFS
-boost_version_req=$1
-IFS=.
-set x $boost_version_req 0 0 0
-IFS=$boost_save_IFS
-shift
-boost_version_req=`expr "$[1]" '*' 100000 + "$[2]" '*' 100 + "$[3]"`
-boost_version_req_string=$[1].$[2].$[3]
+# If the version starts with a digit, assume we want >=
+if test `expr "$1" ":" '^[[0-9]]'` -eq 1; then
+  boost_save_IFS=$IFS
+  boost_version_req=$1
+  IFS=.
+  set x $boost_version_req 0 0 0
+  IFS=$boost_save_IFS
+  shift
+  boost_version_req="BOOST_VERSION >= `expr "$[1]" '*' 100000 + "$[2]" '*' 100 + "$[3]"`"
+  boost_version_req_string=Boost headers version ">=" `expr "$[1]" '*' 100000 + "$[2]" '*' 100 + "$[3]"`
+else
+  boost_version_req="$1"
+  boost_version_req_string="$1"
+fi
 AC_ARG_WITH([boost],
    [AS_HELP_STRING([--with-boost=DIR],
                    [prefix of Boost $1 @<:@guess@:>@])])dnl
@@ -140,7 +146,7 @@ fi
 AC_SUBST([DISTCHECK_CONFIGURE_FLAGS],
          ["$DISTCHECK_CONFIGURE_FLAGS '--with-boost=$with_boost'"])dnl
 boost_save_CPPFLAGS=$CPPFLAGS
-  AC_CACHE_CHECK([for Boost headers version >= $boost_version_req_string],
+  AC_CACHE_CHECK([for $boost_version_req_string],
     [boost_cv_inc_path],
     [boost_cv_inc_path=no
 AC_LANG_PUSH([C++])dnl
@@ -148,8 +154,8 @@ m4_pattern_allow([^BOOST_VERSION$])dnl
     AC_LANG_CONFTEST([AC_LANG_PROGRAM([[#include <boost/version.hpp>
 #if !defined BOOST_VERSION
 # error BOOST_VERSION is not defined
-#elif BOOST_VERSION < $boost_version_req
-# error Boost headers version < $boost_version_req
+#elif !($boost_version_req)
+# error Not true: $boost_version_req_string
 #endif
 ]])])
     # If the user provided a value to --with-boost, use it and only it.
@@ -208,7 +214,7 @@ AC_LANG_POP([C++])dnl
     ])
     case $boost_cv_inc_path in #(
       no)
-        boost_errmsg="cannot find Boost headers version >= $boost_version_req_string"
+        boost_errmsg="not true: $boost_version_req_string"
         m4_if([$2], [],  [AC_MSG_ERROR([$boost_errmsg])],
                         [AC_MSG_NOTICE([$boost_errmsg])])
         $2
