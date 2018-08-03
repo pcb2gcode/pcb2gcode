@@ -110,7 +110,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         if (layername == "back" ||
             (layername == "outline" && !workSide(options, "cut"))) {
-            xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.forXNum-1);
+            xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.tileX-1);
             xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         }
 

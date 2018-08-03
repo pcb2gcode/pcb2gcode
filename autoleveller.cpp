@@ -158,7 +158,6 @@ void autoleveller::header( std::ofstream &of )
         "M40 (Begins a probe log file, when the window appears, enter a name for the log file such as \"RawProbeLog.txt\")"
     };
     const char *logFileClose[] = { "(PROBECLOSE)" , "M41", "M41" };
-    int incr_decr = 1;
 
     if( software == Software::LINUXCNC )
         footerNoIf( of );
@@ -202,20 +201,20 @@ void autoleveller::header( std::ofstream &of )
     }
     else
     {
-        for(unsigned int i = 0; i < numXPoints; i++ )
-        {
-            unsigned int j = 1;
-
-            while (j <= numYPoints - 1)
-            {
-                of << "G0 Z" << zprobe << '\n';
-                of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
-                of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
-                of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
-                j += incr_decr;
-            }
-            incr_decr = -incr_decr;
-            j += incr_decr;
+      for (unsigned int i = 0; i < numXPoints; i++) {
+          int j_start = i == 0 ? 1 : // Because the first probe was done above
+                        i % 2 == 0 ? 0 : // Count up
+                        numYPoints-1; // Count down
+          int j_end = i % 2 == 0 ? numYPoints : // Count up
+                      -1; // Count down
+          int j_direction = i % 2 == 0 ? 1 : // Count up
+                            -1; // Count down
+          for (int j = j_start; j != j_end; j += j_direction) {
+            of << "G0 Z" << zprobe << '\n';
+            of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
+            of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
+            of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
+          }
         }
     }
 
