@@ -157,8 +157,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
         "\nM9 ( Coolant off. )\n"
         "M2 ( Program end. )\n\n" );
 
-    tiling.initialXOffsetVar = globalVars.getUniqueCode();
-    tiling.initialYOffsetVar = globalVars.getUniqueCode();
+    globalVars.getUniqueCode();
+    globalVars.getUniqueCode();
 
     // open output file
     std::ofstream of;

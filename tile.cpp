@@ -28,7 +28,6 @@ using boost::format;
 
 Tiling::Tiling( TileInfo tileInfo, double cfactor ) :
     tileInfo( tileInfo ), cfactor( cfactor ),
-    initialXOffsetVar(0), initialYOffsetVar(0)
 {
 
 }
