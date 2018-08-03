@@ -72,8 +72,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
     bZchangeG53 = options["zchange-absolute"].as<bool>();
-    bFrontAutoleveller = options["al-front"].as<bool>();
-    bBackAutoleveller = options["al-back"].as<bool>();
     string outputdir = options["output-dir"].as<string>();
     
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
@@ -93,10 +91,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
 
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
-
-    if( bFrontAutoleveller || bBackAutoleveller )
-        leveller = new autoleveller ( options, &ocodes, &globalVars, quantization_error,
-                                      xoffset, yoffset, tileInfo );
 
     if (options["bridges"].as<Length>().asInch(1) > 0 && options["bridgesnum"].as<unsigned int>() > 0)
         bBridges = true;
@@ -120,11 +114,18 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
             xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         }
 
+        boost::optional<autoleveller> leveller = boost::none;
+        if ((options["al-front"].as<bool>() && layername == "front") ||
+            (options["al-back"].as<bool>() && layername == "back")) {
+          leveller.emplace(options, &ocodes, &globalVars, quantization_error,
+                           xoffset, yoffset, tileInfo);
+        }
+
         std::stringstream option_name;
         option_name << layername << "-output";
         string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
         cout << "Exporting " << layername << "... " << flush;
-        export_layer(board->get_layer(layername), of_name);
+        export_layer(board->get_layer(layername), of_name, leveller);
         cout << "DONE." << " (Height: " << board->get_height() * cfactor
              << (bMetricoutput ? "mm" : "in") << " Width: "
              << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
@@ -139,11 +140,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 /*
  */
 /******************************************************************************/
-void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
-{
+void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    bool bAutolevelNow;
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
@@ -171,13 +170,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
         of << "( " << s << " )\n";
     }
 
-    if( ( bFrontAutoleveller && layername == "front" ) ||
-        ( bBackAutoleveller && layername == "back" ) )
-        bAutolevelNow = true;
-    else
-        bAutolevelNow = false;
-
-    if( bAutolevelNow || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
+    if( leveller || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
         of << "( Gcode for " << tileInfo.software << " )\n";
     else
         of << "( Software-independent Gcode )\n";
@@ -206,8 +199,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
-    if( bAutolevelNow )
-    {
+    if (leveller) {
         if( !leveller->prepareWorkarea( toolpaths ) )
         {
             std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
@@ -310,8 +302,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
                     // isolating (front/backside)
                     of << "G01 F" << mill->vertfeed * cfactor << '\n';
 
-                    if( bAutolevelNow )
-                    {
+                    if (leveller) {
                         leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
                                                      ( path->begin()->second - yoffsetTot ) * cfactor ) );
                         of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
@@ -333,12 +324,13 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
 
                     while (iter != path->end())
                     {
-                        if( bAutolevelNow )
-                            of << leveller->addChainPoint( icoordpair( ( iter->first - xoffsetTot ) * cfactor,
-                                                                           ( iter->second - yoffsetTot ) * cfactor ) );
-                        else
+                        if (leveller) {
+                          of << leveller->addChainPoint( icoordpair((iter->first - xoffsetTot) * cfactor,
+                                                                    (iter->second - yoffsetTot) * cfactor));
+                        } else {
                             of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                << ( iter->second - yoffsetTot ) * cfactor << '\n';
+                        }
                         ++iter;
                     }
                     if (!mill->post_milling_gcode.empty()) {
@@ -353,9 +345,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name)
     
     tiling.footer( of );
 
-    if( bAutolevelNow )
-    {
-        leveller->footer( of );
+    if (leveller) {
+      leveller->footer(of);
     }
 
     of.close();
