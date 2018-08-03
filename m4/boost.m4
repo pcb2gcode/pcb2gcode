@@ -124,7 +124,7 @@ if test `expr "$1" ":" '^[[0-9]]'` -eq 1; then
   IFS=$boost_save_IFS
   shift
   boost_version_req="BOOST_VERSION >= `expr "$[1]" '*' 100000 + "$[2]" '*' 100 + "$[3]"`"
-  boost_version_req_string="Boost headers version >= `expr \"$[1]\" '*' 100000 + \"$[2]\" '*' 100 + \"$[3]\"`"
+  boost_version_req_string="Boost headers version >= $[1].$[2].$[3]"
 else
   boost_version_req="$1"
   boost_version_req_string="$1"

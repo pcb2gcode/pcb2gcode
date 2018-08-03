@@ -34,6 +34,8 @@ AX_CODE_COVERAGE
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
+# Don't use Boost >= 1.67 because it has broken geometry.
+# https://svn.boost.org/trac10/ticket/13645
 BOOST_REQUIRE([BOOST_VERSION >= 105600 && BOOST_VERSION < 106700])
 BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
