@@ -45,7 +45,7 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drills-available",
                   "KNoT-Gateway Mini Starter Board",
                   "KNoT_Thing_Starter_Board",
-                  "example_board_autoleveller",
+                  "example_board_al_custom",
               ]] +
               [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
                for x in ("front", "back", "outline", "drill")] +
