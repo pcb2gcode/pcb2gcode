@@ -59,7 +59,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       brew update &&
       brew reinstall -s libtool &&
-      brew install boost@1.56 &&
+      brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
       export BOOST_DIR="/usr/local/opt/boost@1.60";
     fi
