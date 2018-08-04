@@ -61,8 +61,6 @@ public:
 
     const TileInfo tileInfo;
     const double cfactor;
-    unsigned int initialXOffsetVar;
-    unsigned int initialYOffsetVar;
 
 private:
     void tileSequence( std::ofstream &of );

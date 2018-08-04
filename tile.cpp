@@ -27,11 +27,7 @@ using boost::format;
 #include "units.hpp"
 
 Tiling::Tiling( TileInfo tileInfo, double cfactor ) :
-    tileInfo( tileInfo ), cfactor( cfactor ),
-    initialXOffsetVar(0), initialYOffsetVar(0)
-{
-
-}
+    tileInfo( tileInfo ), cfactor( cfactor ) {}
 
 void Tiling::header( std::ofstream &of )
 {
