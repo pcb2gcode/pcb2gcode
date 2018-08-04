@@ -34,7 +34,9 @@ AX_CODE_COVERAGE
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
-BOOST_REQUIRE([1.56.0])
+# Don't use Boost >= 1.67 because it has broken geometry.
+# https://svn.boost.org/trac10/ticket/13645
+BOOST_REQUIRE([BOOST_VERSION >= 105600 && BOOST_VERSION < 106700])
 BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
 BOOST_STRING_ALGO
@@ -43,7 +45,6 @@ BOOST_OPTIONAL
 
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
-
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 
 AC_SUBST(gerbv_LIBS)
