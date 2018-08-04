@@ -402,4 +402,44 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 }
 }; // namespace Software
 
+namespace MillFeedDirection {
+enum MillFeedDirection {
+  ANY,
+  CLOCKWISE,
+  COUNTERCLOCKWISE
+};
+
+inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection)
+{
+  std::string token;
+  in >> token;
+  if (boost::iequals(token, "clockwise")) {
+    millfeeddirection = MillFeedDirection::CLOCKWISE;
+  } else if (boost::iequals(token, "counterclockwise")) {
+    millfeeddirection = MillFeedDirection::COUNTERCLOCKWISE;
+  } else if (boost::iequals(token, "any")) {
+    millfeeddirection = MillFeedDirection::ANY;
+  } else {
+      throw parse_exception("MillFeeddirection", token);
+  }
+  return in;
+}
+
+inline std::ostream& operator<<(std::ostream& out, const MillFeedDirection& millfeeddirection)
+{
+  switch (millfeeddirection) {
+    case MillFeedDirection::ANY:
+      out << "any";
+      break;
+    case MillFeedDirection::CLOCKWISE:
+      out << "clockwise";
+      break;
+    case MillFeedDirection::COUNTERCLOCKWISE:
+      out << "counterclockwise";
+      break;
+  }
+  return out;
+}
+}; // namespace MillFeedDirection
+
 #endif // UNITS_HPP

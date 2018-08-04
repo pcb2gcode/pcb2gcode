@@ -36,6 +36,7 @@ using Glib::build_filename;
 #include "eulerian_paths.hpp"
 #include "segmentize.hpp"
 #include "bg_helpers.hpp"
+#include "units.hpp"
 
 using std::max;
 using std::max_element;
@@ -45,14 +46,15 @@ unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
                                      ivalue_t height, string name, string outputdir,
-                                     bool tsp_2opt) :
+                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
-    fill(false) {}
+    fill(false),
+    mill_feed_direction(mill_feed_direction) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
@@ -293,7 +295,8 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
 // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
 // there is a point on the ring that is close enough to the toolpath endpoint.
 // toolpath must not be empty.
-bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance) {
+bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
+                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -319,8 +322,15 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
     std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
     insertion_point = toolpath.begin();
   }
-  auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
-  *close_ring_point = *best_ring_point;
+  if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+    // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
+    auto close_ring_point = std::reverse_copy(ring.begin(), best_ring_point, insertion_point);
+    close_ring_point = std::reverse_copy(best_ring_point, std::prev(ring.end()), close_ring_point);
+    *close_ring_point = *best_ring_point;
+  } else {
+    auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+    *close_ring_point = *best_ring_point;
+  }
   return true;
 }
 
@@ -329,13 +339,28 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
 // If none of the toolpaths have a close enough endpint, a new toolpath is added
 // to the list of toolpaths.
 void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                                    const coordinate_type_fp& max_distance) {
+                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   for (auto& toolpath : toolpaths) {
-    if (attach_ring(ring, toolpath, max_distance)) {
+    if (attach_ring(ring, toolpath, max_distance, dir)) {
       return;
     }
   }
-  toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+  if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+    toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
+  } else {
+    toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+  }
+}
+
+// If the direction is ccw, return cw and vice versa.  If any, return any.
+MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDirection& dir) {
+  if (dir == MillFeedDirection::CLOCKWISE) {
+    return MillFeedDirection::COUNTERCLOCKWISE;
+  } else if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+    return MillFeedDirection::CLOCKWISE;
+  } else {
+    return dir;
+  }
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
@@ -343,8 +368,14 @@ void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, m
                                         const coordinate_type_fp& max_distance) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
+  bool first = true;
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, max_distance);
+    MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
+    if (first) {
+      dir = invert(dir);
+      first = false;
+    }
+    attach_ring(poly.outer(), toolpaths, max_distance, dir);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -352,7 +383,11 @@ void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, m
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, max_distance);
+        MillFeedDirection::MillFeedDirection dir = invert(mill_feed_direction); // inner rings are already reversed
+        if (i == 0) {
+          dir = invert(dir); // First
+        }
+        attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
       }
     }
   }
