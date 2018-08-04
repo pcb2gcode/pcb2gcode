@@ -202,20 +202,30 @@ void autoleveller::header( std::ofstream &of )
     else
     {
       for (unsigned int i = 0; i < numXPoints; i++) {
-          int j_start = i == 0 ? 1 : // Because the first probe was done above
-                        i % 2 == 0 ? 0 : // Count up
-                        numYPoints-1; // Count down
-          int j_end = i % 2 == 0 ? numYPoints : // Count up
-                      -1; // Count down
-          int j_direction = i % 2 == 0 ? 1 : // Count up
-                            -1; // Count down
-          for (int j = j_start; j != j_end; j += j_direction) {
-            of << "G0 Z" << zprobe << '\n';
-            of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
-            of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
-            of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
-          }
+        int j_start;
+        int j_end;
+        int j_direction;
+        if (i % 2 == 0) {
+          // Count upward.
+          j_start = 0;
+          j_end = numYPoints;
+          j_direction = 1;
+        } else {
+          // Count downward.
+          j_start = numYPoints - 1;
+          j_end = -1;
+          j_direction = -1;
         }
+        if (i == 0) {
+          j_start = 1; // Because the first probe was done above
+        }
+        for (int j = j_start; j != j_end; j += j_direction) {
+          of << "G0 Z" << zprobe << '\n';
+          of << "X" << i * XProbeDist + startPointX << " Y" << j * YProbeDist + startPointY << '\n';
+          of << probeCodeCustom << " Z" << zfail << " F" << feedrate << '\n';
+          of << getVarName(i, j) << "=" << zProbeResultVarCustom << '\n';
+        }
+      }
     }
 
     of << '\n';
