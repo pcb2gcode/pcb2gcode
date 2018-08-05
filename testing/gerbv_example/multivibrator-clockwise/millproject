@@ -3,7 +3,7 @@ drill=multivibrator.drl
 outline=multivibrator-Edge.Cuts.gbr
 
 offset=0.05mm
-extra-passes=7
+extra-passes=2
 vectorial=true
 mill-feed=360 in/min
 mill-speed=200rotations/second
