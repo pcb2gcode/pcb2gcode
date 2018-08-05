@@ -49,6 +49,14 @@ void print_path(const vector<T>& path) {
 }
 
 template <>
+void print_path(const vector<ilinesegment>& path) {
+  for (size_t i = 0; i+1 < path.size(); i++) {
+    cout << path[i].second.first << "," << path[i].second.second << "->"
+         << path[i+1].first.first << "," << path[i+1].first.second << endl;
+  }
+}
+
+template <>
 void print_path(const vector<icoordpair>& path) {
   for (size_t i = 0; i < path.size(); i++) {
     cout << "(" << path[i].first << "," << path[i].second << ") ";
@@ -104,7 +112,7 @@ BOOST_AUTO_TEST_CASE(reversable_paths) {
                                 icoordpair(i, 100)));
   }
   icoordpair start(0,0);
-  tsp_solver::nearest_neighbour(path, start);
+  tsp_solver::tsp_2opt(path, start);
   double nn = get_path_length(path, start);
   BOOST_CHECK_LT(nn, 10);
 }

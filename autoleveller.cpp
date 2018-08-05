@@ -109,13 +109,13 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
     startPointX = workarea.min_corner().x() * cfactor;
     startPointY = workarea.min_corner().y() * cfactor;
 
-    temp = round ( workareaLenX / XProbeDistRequired );    //We need at least 2 probe points
+    temp = ceil(workareaLenX / XProbeDistRequired);    //We need at least 2 probe points
     if( temp > 1 )
         numXPoints = temp + 1;
     else
         numXPoints = 2;
 
-    temp = round ( workareaLenY / YProbeDistRequired );    //We need at least 2 probe points
+    temp = ceil(workareaLenY / YProbeDistRequired);    //We need at least 2 probe points
     if( temp > 1 )
         numYPoints = temp + 1;
     else
