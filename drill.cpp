@@ -84,6 +84,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
               options["y-offset"].as<Length>().asInch(inputFactor)),
       mirror_axis(options["mirror-axis"].as<Length>()),
       min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
+      mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>())
       available_drills(std::accumulate(
           options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
           options["drills-available"].as<std::vector<AvailableDrills>>().end(),

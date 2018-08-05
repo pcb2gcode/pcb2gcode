@@ -148,6 +148,7 @@ private:
     const Length mirror_axis;
     // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
     const boost::optional<Length> min_milldrill_diameter;
+    const MillFeedDirection::MillFeedDirection mill_feed_direction;
     const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
