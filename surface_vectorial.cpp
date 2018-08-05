@@ -1,18 +1,18 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -80,6 +80,17 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     bg::envelope(*vectorial_surface, bounding_box);
 }
 
+// If the direction is ccw, return cw and vice versa.  If any, return any.
+MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDirection& dir) {
+  if (dir == MillFeedDirection::CLOCKWISE) {
+    return MillFeedDirection::COUNTERCLOCKWISE;
+  } else if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+    return MillFeedDirection::CLOCKWISE;
+  } else {
+    return dir;
+  }
+}
+
 vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror) {
     multi_polygon_type_fp voronoi;
@@ -134,10 +145,14 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         vector<multi_polygon_type_fp> polygons;
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
-        for (multi_polygon_type_fp polygon : polygons) {
-          attach_polygons(polygon, toolpath, grow*2);
-          debug_image.add(polygon, 0.6, r, g, b);
-          traced_debug_image.add(polygon, 1, r, g, b);
+        for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
+          MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
+          if (std::next(polygon) != polygons.cend()) {
+            dir = invert(dir);
+          }
+          attach_polygons(*polygon, toolpath, grow*2, dir);
+          debug_image.add(*polygon, 0.6, r, g, b);
+          traced_debug_image.add(*polygon, 1, r, g, b);
         }
         // The polygon is made of rings.  We want to look for rings such that
         // one is entirely inside the other and they have a spot where the
@@ -354,29 +369,12 @@ void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_t
   }
 }
 
-// If the direction is ccw, return cw and vice versa.  If any, return any.
-MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDirection& dir) {
-  if (dir == MillFeedDirection::CLOCKWISE) {
-    return MillFeedDirection::COUNTERCLOCKWISE;
-  } else if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
-    return MillFeedDirection::CLOCKWISE;
-  } else {
-    return dir;
-  }
-}
-
 // Given polygons, attach all the rings inside to the toolpaths.
 void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                                        const coordinate_type_fp& max_distance) {
+                                        const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
-  bool first = true;
   for (const auto& poly : polygons) {
-    MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-    if (first) {
-      dir = invert(dir);
-      first = false;
-    }
     attach_ring(poly.outer(), toolpaths, max_distance, dir);
   }
   bool found_one = true;
@@ -385,10 +383,6 @@ void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, m
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        MillFeedDirection::MillFeedDirection dir = invert(mill_feed_direction); // inner rings are already reversed
-        if (i == 0) {
-          dir = invert(dir); // First
-        }
         attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
       }
     }
@@ -570,4 +564,3 @@ void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, 
         }
     }
 }
-

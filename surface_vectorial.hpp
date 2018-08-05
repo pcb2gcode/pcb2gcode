@@ -1,18 +1,18 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -125,7 +125,7 @@ protected:
                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
   // Given polygons, attach all the rings inside to the toolpaths.
   void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                       const coordinate_type_fp& max_distance);
+                       const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
 
 };
 
