@@ -5,6 +5,21 @@
 xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
 <circle cx="39" cy="123.2" r="16" style=""/>
+<circle cx="839" cy="923.2" r="16" style=""/>
+<circle cx="535.8" cy="723.2" r="16" style=""/>
+<circle cx="339" cy="723.2" r="16" style=""/>
+<circle cx="39" cy="923.2" r="16" style=""/>
+<circle cx="339" cy="1365.8" r="16" style=""/>
+<circle cx="339" cy="1523.2" r="16" style=""/>
+<circle cx="339" cy="1680.6" r="16" style=""/>
+<circle cx="1039" cy="1623.2" r="16" style=""/>
+<circle cx="1239" cy="1623.2" r="16" style=""/>
+<circle cx="1639" cy="1623.2" r="16" style=""/>
+<circle cx="1839" cy="1623.2" r="16" style=""/>
+<circle cx="2539" cy="1680.6" r="16" style=""/>
+<circle cx="2539" cy="1523.2" r="16" style=""/>
+<circle cx="2539" cy="1365.8" r="16" style=""/>
+<circle cx="2139" cy="923.2" r="16" style=""/>
 <circle cx="839" cy="123.2" r="16" style=""/>
 <circle cx="1169" cy="354" r="16" style=""/>
 <circle cx="1169" cy="196.6" r="16" style=""/>
@@ -106,23 +121,8 @@ xmlns:xlink="http://www.w3.org/1999/xlink">
 <circle cx="1575.63" cy="39" r="16" style=""/>
 <circle cx="1596.61" cy="39" r="16" style=""/>
 <circle cx="2139" cy="123.2" r="16" style=""/>
-<circle cx="2939" cy="123.2" r="16" style=""/>
 <circle cx="2939" cy="923.2" r="16" style=""/>
 <circle cx="2639" cy="723.2" r="16" style=""/>
 <circle cx="2442.2" cy="723.2" r="16" style=""/>
-<circle cx="2139" cy="923.2" r="16" style=""/>
-<circle cx="2539" cy="1365.8" r="16" style=""/>
-<circle cx="2539" cy="1523.2" r="16" style=""/>
-<circle cx="2539" cy="1680.6" r="16" style=""/>
-<circle cx="1839" cy="1623.2" r="16" style=""/>
-<circle cx="1639" cy="1623.2" r="16" style=""/>
-<circle cx="1239" cy="1623.2" r="16" style=""/>
-<circle cx="1039" cy="1623.2" r="16" style=""/>
-<circle cx="839" cy="923.2" r="16" style=""/>
-<circle cx="535.8" cy="723.2" r="16" style=""/>
-<circle cx="339" cy="723.2" r="16" style=""/>
-<circle cx="39" cy="923.2" r="16" style=""/>
-<circle cx="339" cy="1365.8" r="16" style=""/>
-<circle cx="339" cy="1523.2" r="16" style=""/>
-<circle cx="339" cy="1680.6" r="16" style=""/>
+<circle cx="2939" cy="123.2" r="16" style=""/>
 </svg>
