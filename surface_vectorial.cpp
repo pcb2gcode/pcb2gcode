@@ -324,8 +324,10 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
   }
   if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
     // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
-    auto close_ring_point = std::reverse_copy(ring.begin(), best_ring_point, insertion_point);
-    close_ring_point = std::reverse_copy(best_ring_point, std::prev(ring.end()), close_ring_point);
+    // Next to take the next of each element because the range is closed at the
+    // start and open at the end.
+    auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
+    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
     *close_ring_point = *best_ring_point;
   } else {
     auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
