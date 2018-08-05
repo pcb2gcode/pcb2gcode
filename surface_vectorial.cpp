@@ -143,23 +143,25 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         const unsigned int b = rand() % 256;
 
         vector<multi_polygon_type_fp> polygons;
+        std::cout << bg::wkt(vectorial_surface->at(i)) << std::endl;
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
         for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
+          bg::correct(*polygon);
           MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-          if (std::next(polygon) != polygons.cend()) {
+          if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
+            // This is the outermost loop and it isn't the only loop so invert
+            // it to remove burrs.
+            dir = invert(dir);
+          }
+          if (mirror) {
+            // This is on the back so all loops are reversed.
             dir = invert(dir);
           }
           attach_polygons(*polygon, toolpath, grow*2, dir);
           debug_image.add(*polygon, 0.6, r, g, b);
           traced_debug_image.add(*polygon, 1, r, g, b);
         }
-        // The polygon is made of rings.  We want to look for rings such that
-        // one is entirely inside the other and they have a spot where the
-        // distance between them is less than the width of the milling tool.
-        // Those are rings that we can mill in a single plunge without lifting
-        // the tool.
-
     }
 
     srand(1);
