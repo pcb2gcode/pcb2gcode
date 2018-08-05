@@ -143,7 +143,6 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         const unsigned int b = rand() % 256;
 
         vector<multi_polygon_type_fp> polygons;
-        std::cout << bg::wkt(vectorial_surface->at(i)) << std::endl;
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
         for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
