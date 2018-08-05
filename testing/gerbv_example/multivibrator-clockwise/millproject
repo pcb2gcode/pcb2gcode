@@ -21,7 +21,7 @@ cut-infeed=0.2mm
 cut-side=auto
 cut-speed=10000
 cutter-diameter=0.8mm
-milldrill-diameter=0.8
+milldrill-diameter=1.8mm
 zbridges=-0.6000mm
 bridges=8mm
 bridgesnum=2
@@ -29,7 +29,7 @@ zcut=-1.6mm
 fill-outline=true
 zsafe=0.08
 zchange=1.0
-mill-feed-direction=counterclockwise
+mill-feed-direction=clockwise
 eulerian-paths=false
 tsp-2opt=false
 

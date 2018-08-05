@@ -387,12 +387,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
     }
 
-    if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
-    {
+    if (cutdiameter * 1.001 >= holediameter) { //In order to avoid a "zero radius arc" error
+        // Hole is smaller than cutdiameter so just drill/zig-zag.
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
         if (slot)
         {
-            for (unsigned int current_step = 0; current_step < stepcount; current_step++)
+            for (unsigned int current_step = 0; true;)
             {
                 double z = double(current_step+1)/(stepcount) * cutter->zwork;
                 of << "G1 Z" << z * cfactor << '\n';
@@ -404,6 +404,10 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                 z = double(current_step+1)/(stepcount) * cutter->zwork;
                 of << "G1 Z" << z * cfactor << '\n';
                 of << "G1 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
+                current_step++;
+                if (current_step >= stepcount) {
+                    break;
+                }
             }
         } else {
             of << "G1 Z" << cutter->zwork * cfactor << '\n';
@@ -411,10 +415,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return false;
-    }
-    else
-    {
-
+    } else {
+        // Hole is larger than cutter diameter so make circles/ovals.
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
         double mill_x;
         double mill_y;
