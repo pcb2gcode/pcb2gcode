@@ -82,10 +82,10 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 
 // If the direction is ccw, return cw and vice versa.  If any, return any.
 MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDirection& dir) {
-  if (dir == MillFeedDirection::CLOCKWISE) {
-    return MillFeedDirection::COUNTERCLOCKWISE;
-  } else if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
-    return MillFeedDirection::CLOCKWISE;
+  if (dir == MillFeedDirection::CLIMB) {
+    return MillFeedDirection::CONVENTIONAL;
+  } else if (dir == MillFeedDirection::CONVENTIONAL) {
+    return MillFeedDirection::CLIMB;
   } else {
     return dir;
   }
@@ -338,7 +338,7 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
     std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
     insertion_point = toolpath.begin();
   }
-  if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+  if (dir == MillFeedDirection::CONVENTIONAL) {
     // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
     // Next to take the next of each element because the range is closed at the
     // start and open at the end.
@@ -363,7 +363,7 @@ void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_t
       return;
     }
   }
-  if (dir == MillFeedDirection::COUNTERCLOCKWISE) {
+  if (dir == MillFeedDirection::CONVENTIONAL) {
     toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
   } else {
     toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));

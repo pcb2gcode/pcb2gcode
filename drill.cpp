@@ -435,7 +435,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         }
         // We will draw a shape that looks like a rectangle with
         // half circles attached on just two opposite sides.
-        if (mill_feed_direction == MillFeedDirection::CLOCKWISE) {
+        if (mill_feed_direction == MillFeedDirection::CLIMB) {
           // Negate the variables for rotating in the opposite direction.
           mill_y = -mill_y;
           mill_x = -mill_x;
@@ -455,7 +455,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        string arc_gcode = mill_feed_direction == MillFeedDirection::CLOCKWISE ? "G3" : "G2";
+        string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
         for (unsigned int current_step = 0; current_step < stepcount; current_step++) {
           double z = double(current_step+1)/(stepcount) * cutter->zwork;
           of << "G1 Z" << z * cfactor << '\n';

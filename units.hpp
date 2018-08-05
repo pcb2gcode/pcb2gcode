@@ -405,37 +405,37 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
 namespace MillFeedDirection {
 enum MillFeedDirection {
   ANY,
-  CLOCKWISE,
-  COUNTERCLOCKWISE
+  CLIMB,
+  CONVENTIONAL
 };
 
-inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection)
-{
+inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection) {
   std::string token;
   in >> token;
-  if (boost::iequals(token, "clockwise")) {
-    millfeeddirection = MillFeedDirection::CLOCKWISE;
-  } else if (boost::iequals(token, "counterclockwise")) {
-    millfeeddirection = MillFeedDirection::COUNTERCLOCKWISE;
+  if (boost::iequals(token, "climb") ||
+      boost::iequals(token, "clockwise")) {
+    millfeeddirection = MillFeedDirection::CLIMB;
+  } else if (boost::iequals(token, "conventional") ||
+             boost::iequals(token, "counterclockwise")) {
+    millfeeddirection = MillFeedDirection::CONVENTIONAL;
   } else if (boost::iequals(token, "any")) {
     millfeeddirection = MillFeedDirection::ANY;
   } else {
-      throw parse_exception("MillFeeddirection", token);
+    throw parse_exception("MillFeedDirection", token);
   }
   return in;
 }
 
-inline std::ostream& operator<<(std::ostream& out, const MillFeedDirection& millfeeddirection)
-{
+inline std::ostream& operator<<(std::ostream& out, const MillFeedDirection& millfeeddirection) {
   switch (millfeeddirection) {
     case MillFeedDirection::ANY:
       out << "any";
       break;
-    case MillFeedDirection::CLOCKWISE:
-      out << "clockwise";
+    case MillFeedDirection::CLIMB:
+      out << "climb";
       break;
-    case MillFeedDirection::COUNTERCLOCKWISE:
-      out << "counterclockwise";
+    case MillFeedDirection::CONVENTIONAL:
+      out << "conventional";
       break;
   }
   return out;
