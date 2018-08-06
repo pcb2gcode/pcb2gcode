@@ -447,8 +447,8 @@ static void check_generic_parameters(po::variables_map const& vm)
 
     }
     if (vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() != MillFeedDirection::ANY &&
-        (vm["eulerian-paths"].as<bool>() || vm["tsp-2opt"].as<bool>())) {
-      cerr << "Error: Can't use eulerian-paths nor tsp-2opt together with mill-feed-direction" << endl;
+        vm["tsp-2opt"].as<bool>()) {
+      cerr << "Error: Can't use tsp-2opt together with mill-feed-direction" << endl;
       exit(ERR_INVALIDPARAMETER);
     }
 }

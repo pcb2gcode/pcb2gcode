@@ -444,7 +444,9 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
                     point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
     }
-    vector<segment_type_p> split_segments = segmentize(all_segments);
+    vector<segment_type_p> split_segments = mill_feed_direction == MillFeedDirection::ANY ?
+                                            segmentize::segmentize(all_segments) :
+                                            segmentize::segmentize_directed(all_segments);
 
     multi_linestring_type_fp segments_as_linestrings;
     for (const auto& segment : split_segments) {
@@ -462,12 +464,12 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
-
+    // Only allow reversing the direction of travel if mill_feed_direction is ANY.
     return eulerian_paths::get_eulerian_paths<
       point_type_fp,
       linestring_type_fp,
       multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings);
+      PointLessThan>(segments_as_linestrings, mill_feed_direction == MillFeedDirection::ANY);
 }
 
 size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& grow) {

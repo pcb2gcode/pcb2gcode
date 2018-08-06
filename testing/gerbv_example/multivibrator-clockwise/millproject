@@ -30,6 +30,5 @@ fill-outline=true
 zsafe=0.08
 zchange=1.0
 mill-feed-direction=clockwise
-eulerian-paths=false
+eulerian-paths=true
 tsp-2opt=false
-
