@@ -178,8 +178,7 @@ public:
                 for (unsigned int j = i; j < path.size(); j++) {
                     // Potentially reverse path elements i through j inclusive.
                     auto b = get(path[i], Side::FRONT);
-                    auto a = (i == 0 && startingPoint ? boost::make_optional(*startingPoint) :
-                              i == 0 && !startingPoint ? boost::none :
+                    auto a = (i == 0 ? startingPoint :
                               boost::make_optional(get(path[i-1], Side::BACK)));
                     auto c = get(path[j], Side::BACK);
                     auto d = j + 1 == path.size() ? boost::none : boost::make_optional(get(path[j+1], Side::FRONT));
