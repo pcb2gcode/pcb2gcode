@@ -425,21 +425,6 @@ inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddir
   }
   return in;
 }
-
-inline std::ostream& operator<<(std::ostream& out, const MillFeedDirection& millfeeddirection) {
-  switch (millfeeddirection) {
-    case MillFeedDirection::ANY:
-      out << "any";
-      break;
-    case MillFeedDirection::CLIMB:
-      out << "climb";
-      break;
-    case MillFeedDirection::CONVENTIONAL:
-      out << "conventional";
-      break;
-  }
-  return out;
-}
 }; // namespace MillFeedDirection
 
 #endif // UNITS_HPP
