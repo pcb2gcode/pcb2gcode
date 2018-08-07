@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
   mls.push_back(ls);
   multi_linestring_type result =
       get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(mls);
-  BOOST_CHECK_EQUAL(result.size(), 1);
+  BOOST_CHECK_EQUAL(result.size(), 1UL);
 }
 
 // 3x3 grid connected like a window pane:
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(window_pane) {
     printf("\n");
   }
   BOOST_CHECK_EQUAL(edges_visited, 12);
-  BOOST_CHECK_EQUAL(euler_paths.size(), 2);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
 }
 
 // 3x3 grid connected like a window pane, but corners are longer paths:
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
     printf("\n");
   }
   BOOST_CHECK_EQUAL(edges_visited, 12);
-  BOOST_CHECK_EQUAL(euler_paths.size(), 2);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
 }
 
 // Bridge
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
     printf("\n");
   }
   BOOST_CHECK_EQUAL(edges_visited, 9);
-  BOOST_CHECK_EQUAL(euler_paths.size(), 1);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
 
 // Disjoint Loops
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
     printf("\n");
   }
   BOOST_CHECK_EQUAL(edges_visited, 9);
-  BOOST_CHECK_EQUAL(euler_paths.size(), 3);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 3UL);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
