@@ -57,7 +57,15 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                         [], 1)
                for x in ("invalid-config",)
               ] +
-              [TestCase(clean("version"), os.path.join(EXAMPLES_PATH), ["--version"], 0)])
+              [TestCase(clean("version"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--version"],
+                        0)] +
+              [TestCase(clean("tsp_2opt_with_millfeedirection"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--tsp-2opt", "--mill-feed-direction=climb"],
+                        3)]
+)
 
 def colored(text, **color):
   if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
