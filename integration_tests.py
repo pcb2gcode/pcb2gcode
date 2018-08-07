@@ -64,7 +64,11 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase(clean("tsp_2opt_with_millfeedirection"),
                         os.path.join(EXAMPLES_PATH),
                         ["--tsp-2opt", "--mill-feed-direction=climb"],
-                        3)]
+                        3)] +
+              [TestCase(clean("invalid_millfeedirection"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--mill-feed-direction=invalid_value"],
+                        -6)]
 )
 
 def colored(text, **color):
