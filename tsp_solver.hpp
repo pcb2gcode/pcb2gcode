@@ -1,18 +1,18 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2015 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -145,23 +145,16 @@ public:
             {
                 auto minDistance = distance(currentPoint, get(temp_path.front(), Side::FRONT));
                 auto nearestPoint = temp_path.begin();
-                Side side = Side::FRONT;
 
                 //Compute all the distances
                 for (auto i = temp_path.begin(); i != temp_path.end(); i++) {
-                    for (auto newSide : {Side::FRONT, Side::BACK}) {
-                        auto newDistance = distance(currentPoint, get(*i, newSide));
-                        if (newDistance < minDistance) {
-                            minDistance = distance(currentPoint, get(*i, newSide));
-                            nearestPoint = i;
-                            side = newSide;
-                        }
-                    }
+                  auto newDistance = distance(currentPoint, get(*i, Side::FRONT));
+                  if (newDistance < minDistance) {
+                    minDistance = distance(currentPoint, get(*i, Side::FRONT));
+                    nearestPoint = i;
+                  }
                 }
 
-                if (side == Side::BACK) {
-                    reverse(*nearestPoint);
-                }
                 new_length += minDistance; //Update the new path total length
                 newpath.push_back(*(nearestPoint)); //Copy the chosen point into newpath
                 currentPoint = get(*(nearestPoint), Side::BACK); //Set the next currentPoint to the chosen point
@@ -185,13 +178,14 @@ public:
                 for (unsigned int j = i; j < path.size(); j++) {
                     // Potentially reverse path elements i through j inclusive.
                     auto b = get(path[i], Side::FRONT);
-                    auto a = (i == 0 && startingPoint ? *startingPoint :
-                              i == 0 && !startingPoint ? b :
-                              get(path[i-1], Side::BACK));
+                    auto a = (i == 0 ? startingPoint :
+                              boost::make_optional(get(path[i-1], Side::BACK)));
                     auto c = get(path[j], Side::BACK);
-                    auto d = j + 1 == path.size() ? c : get(path[j+1], Side::FRONT);
-                    double old_gap = distance(a, b) + distance(c, d);
-                    double new_gap = distance(a, c) + distance(b, d);
+                    auto d = j + 1 == path.size() ? boost::none : boost::make_optional(get(path[j+1], Side::FRONT));
+                    double old_gap = (a ? distance(*a, b) : 0) +
+                                     (d ? distance(c, *d) : 0);
+                    double new_gap = (a ? distance(*a, c) : 0) +
+                                     (d ? distance(b, *d) : 0);
                     // Should we make this 2opt swap?
                     if (new_gap < old_gap) {
                         // Do the 2opt swap.
