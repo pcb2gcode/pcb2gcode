@@ -340,7 +340,7 @@ inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
   } else if (boost::iequals(token, "back")) {
     boardside = BoardSide::BACK;
   } else {
-      throw parse_exception("BoardSide", token);
+    throw boost::program_options::invalid_option_value(token);
   }
   return in;
 }
@@ -377,7 +377,7 @@ inline std::istream& operator>>(std::istream& in, Software& software)
   } else if (boost::iequals(token, "Mach3")) {
     software = MACH3;
   } else {
-      throw parse_exception("Software", token);
+    throw boost::program_options::invalid_option_value(token);
   }
   return in;
 }
@@ -416,12 +416,13 @@ inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddir
       boost::iequals(token, "clockwise")) {
     millfeeddirection = MillFeedDirection::CLIMB;
   } else if (boost::iequals(token, "conventional") ||
+             boost::iequals(token, "anticlockwise") ||
              boost::iequals(token, "counterclockwise")) {
     millfeeddirection = MillFeedDirection::CONVENTIONAL;
   } else if (boost::iequals(token, "any")) {
     millfeeddirection = MillFeedDirection::ANY;
   } else {
-    throw parse_exception("MillFeedDirection", token);
+    throw boost::program_options::invalid_option_value("foo");
   }
   return in;
 }
