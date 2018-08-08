@@ -263,7 +263,8 @@ int main(int argc, char* argv[])
                 INFINITY,
             outputdir,
             vm["vectorial"].as<bool>(),
-            vm["tsp-2opt"].as<bool>()));
+            vm["tsp-2opt"].as<bool>(),
+            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))

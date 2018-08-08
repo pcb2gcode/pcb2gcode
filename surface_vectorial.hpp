@@ -1,18 +1,18 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -48,6 +48,7 @@ using std::make_pair;
 #include "gerberimporter.hpp"
 #include "core.hpp"
 #include "voronoi.hpp"
+#include "units.hpp"
 
 /******************************************************************************/
 /*
@@ -57,7 +58,7 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable
 {
 public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
-                    string name, string outputdir, bool tsp_2opt);
+                    string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
   vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
                                             bool mirror);
@@ -84,6 +85,7 @@ protected:
   static unsigned int debug_image_index;
 
   bool fill;
+  const MillFeedDirection::MillFeedDirection mill_feed_direction;
 
   shared_ptr<multi_polygon_type_fp> vectorial_surface;
   coordinate_type_fp scale;
@@ -113,16 +115,17 @@ protected:
   // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
   // there is a point on the ring that is close enough to the toolpath endpoint.
   static bool attach_ring(
-      const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance);
+      const ring_type_fp& ring, linestring_type_fp& toolpath,
+      const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
   // Given a ring, attach it to one of the toolpaths.  Only attach if there is a
   // point on the ring that is close enough to one of the toolpaths' endpoints.
   // If none of the toolpaths have a close enough endpint, a new toolpath is added
   // to the list of toolpaths.
   void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                   const coordinate_type_fp& max_distance);
+                   const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
   // Given polygons, attach all the rings inside to the toolpaths.
   void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                       const coordinate_type_fp& max_distance);
+                       const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
 
 };
 

@@ -26,14 +26,16 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt) :
+Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
+             MillFeedDirection::MillFeedDirection mill_feed_direction) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
     outline_width(outline_width),
     outputdir(outputdir),
     vectorial(vectorial),
-    tsp_2opt(tsp_2opt)
+    tsp_2opt(tsp_2opt),
+    mill_feed_direction(mill_feed_direction)
 {
 
 }
@@ -157,7 +159,8 @@ void Board::createLayers()
             {
                 shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
                                                                             max_y - min_y,
-                                                                            it->first, outputdir, tsp_2opt));
+                                                                            it->first, outputdir, tsp_2opt,
+                                                                            mill_feed_direction));
                 if (fill)
                     surface->enable_filling();
 

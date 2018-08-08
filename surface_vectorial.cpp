@@ -1,18 +1,18 @@
 /*
  * This file is part of pcb2gcode.
- * 
+ *
  * Copyright (C) 2016 Nicola Corna <nicola@corna.info>
  *
  * pcb2gcode is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * pcb2gcode is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -36,6 +36,7 @@ using Glib::build_filename;
 #include "eulerian_paths.hpp"
 #include "segmentize.hpp"
 #include "bg_helpers.hpp"
+#include "units.hpp"
 
 using std::max;
 using std::max_element;
@@ -45,14 +46,15 @@ unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
                                      ivalue_t height, string name, string outputdir,
-                                     bool tsp_2opt) :
+                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction) :
     points_per_circle(points_per_circle),
     width_in(width),
     height_in(height),
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
-    fill(false) {}
+    fill(false),
+    mill_feed_direction(mill_feed_direction) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 {
@@ -76,6 +78,17 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
     //With a very small loss of precision we can reduce memory usage and processing time
     bg::simplify(vectorial_surface_not_simplified_fp, *vectorial_surface, scale / 10000);
     bg::envelope(*vectorial_surface, bounding_box);
+}
+
+// If the direction is ccw, return cw and vice versa.  If any, return any.
+MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDirection& dir) {
+  if (dir == MillFeedDirection::CLIMB) {
+    return MillFeedDirection::CONVENTIONAL;
+  } else if (dir == MillFeedDirection::CONVENTIONAL) {
+    return MillFeedDirection::CLIMB;
+  } else {
+    return dir;
+  }
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
@@ -132,17 +145,22 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         vector<multi_polygon_type_fp> polygons;
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
-        for (multi_polygon_type_fp polygon : polygons) {
-          attach_polygons(polygon, toolpath, grow*2);
-          debug_image.add(polygon, 0.6, r, g, b);
-          traced_debug_image.add(polygon, 1, r, g, b);
+        for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
+          bg::correct(*polygon);
+          MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
+          if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
+            // This is the outermost loop and it isn't the only loop so invert
+            // it to remove burrs.
+            dir = invert(dir);
+          }
+          if (mirror) {
+            // This is on the back so all loops are reversed.
+            dir = invert(dir);
+          }
+          attach_polygons(*polygon, toolpath, grow*2, dir);
+          debug_image.add(*polygon, 0.6, r, g, b);
+          traced_debug_image.add(*polygon, 1, r, g, b);
         }
-        // The polygon is made of rings.  We want to look for rings such that
-        // one is entirely inside the other and they have a spot where the
-        // distance between them is less than the width of the milling tool.
-        // Those are rings that we can mill in a single plunge without lifting
-        // the tool.
-
     }
 
     srand(1);
@@ -293,7 +311,8 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
 // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
 // there is a point on the ring that is close enough to the toolpath endpoint.
 // toolpath must not be empty.
-bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath, const coordinate_type_fp& max_distance) {
+bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
+                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -319,8 +338,17 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
     std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
     insertion_point = toolpath.begin();
   }
-  auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
-  *close_ring_point = *best_ring_point;
+  if (dir == MillFeedDirection::CONVENTIONAL) {
+    // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
+    // Next to take the next of each element because the range is closed at the
+    // start and open at the end.
+    auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
+    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
+    *close_ring_point = *best_ring_point;
+  } else {
+    auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+    *close_ring_point = *best_ring_point;
+  }
   return true;
 }
 
@@ -329,22 +357,26 @@ bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp
 // If none of the toolpaths have a close enough endpint, a new toolpath is added
 // to the list of toolpaths.
 void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                                    const coordinate_type_fp& max_distance) {
+                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   for (auto& toolpath : toolpaths) {
-    if (attach_ring(ring, toolpath, max_distance)) {
+    if (attach_ring(ring, toolpath, max_distance, dir)) {
       return;
     }
   }
-  toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+  if (dir == MillFeedDirection::CONVENTIONAL) {
+    toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
+  } else {
+    toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+  }
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
 void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                                        const coordinate_type_fp& max_distance) {
+                                        const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, max_distance);
+    attach_ring(poly.outer(), toolpaths, max_distance, dir);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -352,7 +384,7 @@ void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, m
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, max_distance);
+        attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
       }
     }
   }
@@ -412,7 +444,9 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
                     point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
     }
-    vector<segment_type_p> split_segments = segmentize(all_segments);
+    vector<segment_type_p> split_segments = mill_feed_direction == MillFeedDirection::ANY ?
+                                            segmentize::segmentize(all_segments) :
+                                            segmentize::segmentize_directed(all_segments);
 
     multi_linestring_type_fp segments_as_linestrings;
     for (const auto& segment : split_segments) {
@@ -430,12 +464,12 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
-
+    // Only allow reversing the direction of travel if mill_feed_direction is ANY.
     return eulerian_paths::get_eulerian_paths<
       point_type_fp,
       linestring_type_fp,
       multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings);
+      PointLessThan>(segments_as_linestrings, mill_feed_direction == MillFeedDirection::ANY);
 }
 
 size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& grow) {
@@ -533,4 +567,3 @@ void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, 
         }
     }
 }
-

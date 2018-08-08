@@ -100,4 +100,14 @@ BOOST_AUTO_TEST_CASE(compare) {
   BOOST_CHECK_EQUAL(comparison_exception("foo").what(), "foo");
 }
 
+BOOST_AUTO_TEST_CASE(parse_MillFeedDirection) {
+  BOOST_CHECK_EQUAL(parse_unit<MillFeedDirection::MillFeedDirection>("any"), MillFeedDirection::ANY);
+  BOOST_CHECK_EQUAL(parse_unit<MillFeedDirection::MillFeedDirection>("climb"), MillFeedDirection::CLIMB);
+  BOOST_CHECK_EQUAL(parse_unit<MillFeedDirection::MillFeedDirection>("clockwise"), MillFeedDirection::CLIMB);
+  BOOST_CHECK_EQUAL(parse_unit<MillFeedDirection::MillFeedDirection>("conventional"), MillFeedDirection::CONVENTIONAL);
+  BOOST_CHECK_EQUAL(parse_unit<MillFeedDirection::MillFeedDirection>("counterclockwise"), MillFeedDirection::CONVENTIONAL);
+
+  BOOST_CHECK_THROW(parse_unit<MillFeedDirection::MillFeedDirection>("all"), po::validation_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

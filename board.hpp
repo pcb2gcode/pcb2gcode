@@ -65,7 +65,8 @@ using std::get;
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt);
+    Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
+          MillFeedDirection::MillFeedDirection mill_feed_direction);
 
     void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
                       shared_ptr<RoutingMill> manufacturer, bool backside);
@@ -93,6 +94,7 @@ private:
     const string outputdir;
     const bool vectorial;
     const bool tsp_2opt;
+    const MillFeedDirection::MillFeedDirection mill_feed_direction;
     ivalue_t min_x;
     ivalue_t max_x;
     ivalue_t min_y;

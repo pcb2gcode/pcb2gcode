@@ -26,6 +26,8 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "multivibrator",
                   "multivibrator-extra-passes",
+                  "multivibrator-clockwise",
+                  "am-test-counterclockwise",
                   "multivibrator-extra-passes-voronoi",
                   "multivibrator-contentions",
                   "multivibrator-no-tsp-2opt",
@@ -55,7 +57,19 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                         [], 1)
                for x in ("invalid-config",)
               ] +
-              [TestCase(clean("version"), os.path.join(EXAMPLES_PATH), ["--version"], 0)])
+              [TestCase(clean("version"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--version"],
+                        0)] +
+              [TestCase(clean("tsp_2opt_with_millfeedirection"),
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--tsp-2opt", "--mill-feed-direction=climb"],
+                        100)] +
+              [TestCase(clean("invalid_millfeedirection"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--mill-feed-direction=invalid_value"],
+                        101)]
+)
 
 def colored(text, **color):
   if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
@@ -77,7 +91,9 @@ class IntegrationTests(unittest2.TestCase):
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
     try:
-      p = subprocess.Popen([pcb2gcode, "--output-dir", actual_output_path] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      cmd = [pcb2gcode, "--output-dir", actual_output_path] + args
+      print("Running {}".format(" ".join("'{}'".format(x) for x in cmd)))
+      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = p.communicate()
       self.assertEqual(p.returncode, exit_code)
     finally:
