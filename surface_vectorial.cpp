@@ -146,7 +146,6 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
                                   grow, extra_passes + 1, do_voronoi);
         for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
-          bg::correct(*polygon);
           MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
           if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
             // This is the outermost loop and it isn't the only loop so invert
