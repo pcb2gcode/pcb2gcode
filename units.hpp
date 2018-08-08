@@ -331,8 +331,7 @@ enum BoardSide {
 
 inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
 {
-  std::string token;
-  in >> token;
+  std::string token(std::istreambuf_iterator<char>(in), {});
   if (boost::iequals(token, "auto")) {
     boardside = BoardSide::AUTO;
   } else if (boost::iequals(token, "front")) {
@@ -366,8 +365,7 @@ namespace Software {
 
 inline std::istream& operator>>(std::istream& in, Software& software)
 {
-  std::string token;
-  in >> token;
+  std::string token(std::istreambuf_iterator<char>(in), {});
   if (boost::iequals(token, "Custom")) {
     software = CUSTOM;
   } else if (boost::iequals(token, "LinuxCNC")) {
@@ -410,8 +408,7 @@ enum MillFeedDirection {
 };
 
 inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection) {
-  std::string token;
-  in >> token;
+  std::string token(std::istreambuf_iterator<char>(in), {});
   if (boost::iequals(token, "climb") ||
       boost::iequals(token, "clockwise")) {
     millfeeddirection = MillFeedDirection::CLIMB;
@@ -422,7 +419,7 @@ inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddir
   } else if (boost::iequals(token, "any")) {
     millfeeddirection = MillFeedDirection::ANY;
   } else {
-    throw boost::program_options::invalid_option_value("foo");
+    throw boost::program_options::invalid_option_value(token);
   }
   return in;
 }
