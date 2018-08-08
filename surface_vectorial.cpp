@@ -443,9 +443,7 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
                     point_type_p(toolpath[i  ].x(), toolpath[i  ].y())));
         }
     }
-    vector<segment_type_p> split_segments = mill_feed_direction == MillFeedDirection::ANY ?
-                                            segmentize::segmentize(all_segments) :
-                                            segmentize::segmentize_directed(all_segments);
+    vector<segment_type_p> split_segments = segmentize::segmentize(all_segments, mill_feed_direction == MillFeedDirection::ANY);
 
     multi_linestring_type_fp segments_as_linestrings;
     for (const auto& segment : split_segments) {
