@@ -42,101 +42,6 @@ class eulerian_paths {
       paths(paths),
       allow_reversal(allow_reversal) {};
   multi_linestring_t get() {
-    // Create a map from vertex to each path that starts or ends (or
-    // both) at that vertex.  It's a map to an input into the input
-    // paths.
-    std::multimap<point_t, size_t, point_less_than_p> vertex_to_unvisited_path_index;
-    // This maps from endpoints to path index and is only used if allow_reversal is false.
-    std::multimap<point_t, size_t, point_less_than_p> end_vertex_to_unvisited_path_index;
-    for (size_t i = 0; i < paths.size(); i++) {
-      auto& path = paths[i];
-      if (path.size() < 2) {
-        // Valid path must have a start and end.
-        continue;
-      }
-      point_t start = path.front();
-      vertex_to_unvisited_path_index.emplace(start, i);
-      point_t end = path.back();
-      if (allow_reversal) {
-        // Put both the front and end into the same list.
-        vertex_to_unvisited_path_index.emplace(end, i);
-      } else {
-        // Put end vertex to the list of end vertices.
-        end_vertex_to_unvisited_path_index.emplace(end, i);
-      }
-    }
-
-    // Given a point, make a path from that point as long as possible
-    // until a dead end.  Assume that point itself is already in the
-    // list.
-    std::function<void(const point_t&, linestring_t*)> make_path = [&] (const point_t& point, linestring_t* new_path) -> void {
-      // Find an unvisited path that leads from point, any will do.
-      auto vertex_and_path_index = vertex_to_unvisited_path_index.find(point);
-      if (vertex_and_path_index == vertex_to_unvisited_path_index.end()) {
-        // No more paths to follow.
-        return;
-      }
-      size_t path_index = vertex_and_path_index->second;
-      auto& path = paths[path_index];
-      if (point == path.front()) {
-        // Append this path in the forward direction.
-        new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
-      } else {
-        // Append this path in the reverse direction.
-        new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
-      }
-      vertex_to_unvisited_path_index.erase(vertex_and_path_index); // Remove from the first vertex.
-      point_t& new_point = new_path->back();
-      if (allow_reversal) {
-        // If we added both directions then we're bound to find one, otherwise
-        // there is a serious error in the algorithm.
-        auto range = vertex_to_unvisited_path_index.equal_range(new_point);
-        for (auto iter = range.first; iter != range.second; iter++) {
-          if (iter->second == path_index) {
-            // Remove the path from the last vertex
-            vertex_to_unvisited_path_index.erase(iter);
-            break;
-          }
-        }
-      } else {
-        // We added the end into a different list so find it there and remove it.
-        // We're bound to find exactly one unless there is a serious error.
-        auto range = end_vertex_to_unvisited_path_index.equal_range(new_point);
-        for (auto iter = range.first; iter != range.second; iter++) {
-          if (iter->second == path_index) {
-            // Remove the path that ends on the vertex.
-            end_vertex_to_unvisited_path_index.erase(iter);
-            break;
-          }
-        }
-      }
-      // Continue making the path from here.
-      make_path(new_point, new_path);
-    };
-
-    // Only call this when there are no vertices with uneven edge count.  That
-    // means that all vertices must have as many edges leading in as edges leading
-    // out.  This can be true if a vertex has no paths at all.  This is also true
-    // if paths are reversable and the number of paths is even.  It's also true if
-    // the number of paths in equals the number of paths out for non-reversable.
-    // This will traverse a path and, if it finds an unvisited edge, will make a
-    // Euler circuit there and stitch it into the current path.  Because all paths
-    // have the same number of in and out, the stitch can only possibly end in a
-    // loop.  This continues until the end of the path.
-    auto stitch_loops = [&] (linestring_t *euler_path) -> void {
-      // Use a counter and not a pointer because we will add to the list beyond i.
-      for (size_t i = 0; i < euler_path->size(); i++) {
-        // Does this vertex have any unvisited edges?
-        if (vertex_to_unvisited_path_index.count((*euler_path)[i]) > 0) {
-          // Make a path from here.  We don't need the first element, it's already in our path.
-          linestring_t new_loop{};
-          make_path((*euler_path)[i], &new_loop);
-          // Now we stitch it in.
-          euler_path->insert(euler_path->begin()+i+1, new_loop.begin(), new_loop.end());
-        }
-      }
-    };
-
     /* We use Hierholzer's algorithm to find the minimum cycles.  First, make a
      * path from each vertex with more paths out than in.  In the reversible case,
      * that means an odd path count.  Follow the path until it ends.
@@ -166,32 +71,10 @@ class eulerian_paths {
      * number of outbound and inbound, which means that we have made the
      * precondition to stich_loops.
      */
-    std::vector<point_t> odd_vertices;
-    // First find all vertices with more outbound than inbound edges.  For
-    // reversible, that means odd count.  For non-reversible, that means the
-    // outbound table is bigger than the inbound one.  We do it separate from the
-    // loop below because the below loop will modify
-    // vertex_to_unvisited_path_index and invalidate the iterator.
-    for (auto iter = vertex_to_unvisited_path_index.cbegin();
-         iter != vertex_to_unvisited_path_index.cend();) {
-      auto& vertex = iter->first;
-      if (allow_reversal) {
-        if (vertex_to_unvisited_path_index.count(vertex) % 2 == 1) {
-          odd_vertices.push_back(vertex);
-        }
-      } else {
-        if (vertex_to_unvisited_path_index.count(vertex) > end_vertex_to_unvisited_path_index.count(vertex)) {
-          odd_vertices.push_back(vertex);
-        }
-      }
-      // Advance to a different vertex.
-      iter = vertex_to_unvisited_path_index.upper_bound(vertex);
-    }
+    add_paths_to_maps();
 
     multi_linestring_t euler_paths{};
-    for (const auto& vertex : odd_vertices) {
-      // We check again because it might have become even after being connected to
-      // a different path in a different call to make_path.
+    for (const auto& vertex : all_vertices) {
       while ((allow_reversal  && vertex_to_unvisited_path_index.count(vertex) % 2 == 1) ||
              (!allow_reversal && vertex_to_unvisited_path_index.count(vertex) > end_vertex_to_unvisited_path_index.count(vertex))) {
         // Make a path starting from vertex with odd count.
@@ -216,8 +99,8 @@ class eulerian_paths {
       linestring_t new_path;
       new_path.push_back(vertex);
       make_path(vertex, &new_path);
-      // We can stitch right now because all vertices already have
-      // even number of edges.
+      // We can stitch right now because all vertices already have even number
+      // of edges.
       stitch_loops(&new_path);
       euler_paths.push_back(new_path);
     }
@@ -226,8 +109,100 @@ class eulerian_paths {
   }
 
  private:
+  void add_paths_to_maps() {
+    // Reset the maps
+    vertex_to_unvisited_path_index = std::multimap<point_t, size_t, point_less_than_p>{};
+    end_vertex_to_unvisited_path_index = std::multimap<point_t, size_t, point_less_than_p>{};
+    all_vertices = std::set<point_t, point_less_than_p>{};
+
+    for (size_t i = 0; i < paths.size(); i++) {
+      auto& path = paths[i];
+      if (path.size() < 2) {
+        // Valid path must have a start and end.
+        continue;
+      }
+      point_t start = path.front();
+      all_vertices.insert(start);
+      vertex_to_unvisited_path_index.emplace(start, i);
+      point_t end = path.back();
+      if (allow_reversal) {
+        all_vertices.insert(end);
+      }
+      get_end_map().emplace(end, i);
+    }
+  }
+  // Given a point, make a path from that point as long as possible
+  // until a dead end.  Assume that point itself is already in the
+  // list.
+  void make_path(const point_t& point, linestring_t* new_path) {
+    // Find an unvisited path that leads from point, any will do.
+    auto vertex_and_path_index = vertex_to_unvisited_path_index.find(point);
+    if (vertex_and_path_index == vertex_to_unvisited_path_index.end()) {
+      // No more paths to follow.
+      return;
+    }
+    size_t path_index = vertex_and_path_index->second;
+    auto& path = paths[path_index];
+    if (point == path.front()) {
+      // Append this path in the forward direction.
+      new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
+    } else {
+      // Append this path in the reverse direction.
+      new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
+    }
+    vertex_to_unvisited_path_index.erase(vertex_and_path_index); // Remove from the first vertex.
+    point_t& new_point = new_path->back();
+    // We're bound to find exactly one unless there is a serious error.
+    auto range = get_end_map().equal_range(new_point);
+    for (auto iter = range.first; iter != range.second; iter++) {
+      if (iter->second == path_index) {
+        // Remove the path that ends on the vertex.
+        get_end_map().erase(iter);
+        break;
+      }
+    }
+    // Continue making the path from here.
+    make_path(new_point, new_path);
+  }
+  // Only call this when there are no vertices with uneven edge count.  That
+  // means that all vertices must have as many edges leading in as edges leading
+  // out.  This can be true if a vertex has no paths at all.  This is also true
+  // if paths are reversable and the number of paths is even.  It's also true if
+  // the number of paths in equals the number of paths out for non-reversable.
+  // This will traverse a path and, if it finds an unvisited edge, will make a
+  // Euler circuit there and stitch it into the current path.  Because all paths
+  // have the same number of in and out, the stitch can only possibly end in a
+  // loop.  This continues until the end of the path.
+  void stitch_loops(linestring_t *euler_path) {
+    // Use a counter and not a pointer because we will add to the list beyond i.
+    for (size_t i = 0; i < euler_path->size(); i++) {
+      // Does this vertex have any unvisited edges?
+      if (vertex_to_unvisited_path_index.count((*euler_path)[i]) > 0) {
+        // Make a path from here.  We don't need the first element, it's already in our path.
+        linestring_t new_loop{};
+        make_path((*euler_path)[i], &new_loop);
+        // Now we stitch it in.
+        euler_path->insert(euler_path->begin()+i+1, new_loop.begin(), new_loop.end());
+      }
+    }
+  }
+  std::multimap<point_t, size_t, point_less_than_p>& get_end_map() {
+    if (allow_reversal) {
+      return vertex_to_unvisited_path_index;
+    } else {
+      return end_vertex_to_unvisited_path_index;
+    }
+  }
+
   const multi_linestring_t& paths;
   const bool allow_reversal;
+  // Create a map from vertex to each path that starts or ends (or both) at that
+  // vertex.  It's a map to an input into the input paths.
+  std::multimap<point_t, size_t, point_less_than_p> vertex_to_unvisited_path_index;
+  // This maps from endpoints to path index and is only used if allow_reversal
+  // is false.
+  std::multimap<point_t, size_t, point_less_than_p> end_vertex_to_unvisited_path_index;
+  std::set<point_t, point_less_than_p> all_vertices;
 }; //class eulerian_paths
 
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
