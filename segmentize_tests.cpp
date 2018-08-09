@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(parallel_with_overlap_directed) {
   ms.push_back(segment_type_p(point_type_p(10, 10), point_type_p(0, 0)));
   ms.push_back(segment_type_p(point_type_p(9, 9), point_type_p(20, 20)));
   ms.push_back(segment_type_p(point_type_p(9, 9), point_type_p(30, 30)));
-  const auto& result = segmentize::segmentize_directed(ms);
+  const auto& result = segmentize::segmentize(ms, false);
   BOOST_CHECK(result.size() == 5);
   //print_result(result);
 }
