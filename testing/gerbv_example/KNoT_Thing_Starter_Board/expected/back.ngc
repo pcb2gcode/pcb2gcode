@@ -983,8 +983,6 @@ G01 Z-0.10000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
 G01 X-33.24885 Y6.15188
-G01 X-33.28228 Y6.28673
-G01 X-33.29635 Y6.34429
 G01 X-33.32549 Y6.46504
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z10.00000 ( retract )

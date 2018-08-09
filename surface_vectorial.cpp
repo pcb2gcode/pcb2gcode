@@ -91,6 +91,33 @@ MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDir
   }
 }
 
+multi_linestring_type_fp scale_and_mirror_toolpath(
+    const multi_linestring_type_fp& mls, bool mirror, double scale) {
+  multi_linestring_type_fp result;
+  for (const auto& ls : mls) {
+    linestring_type_fp new_ls;
+    for (const auto& point : ls) {
+      new_ls.push_back(
+          point_type_fp(
+              (mirror ? -point.x() : point.x()) / scale,
+              point.y() / scale));
+    }
+    result.push_back(new_ls);
+  }
+  return result;
+}
+
+vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
+  vector<shared_ptr<icoords>> result;
+  for (const auto& ls : mls) {
+    result.push_back(make_shared<icoords>());
+    for (const auto& p : ls) {
+      result.back()->push_back(icoordpair(p.x(), p.y()));
+    }
+  }
+  return result;
+}
+
 vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror) {
     multi_polygon_type_fp voronoi;
@@ -181,21 +208,14 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
     } else {
       tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
     }
-    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror);
+    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, scale);
 
-    if (mill->optimise)
-    {
-        vector<shared_ptr<icoords> > toolpath_optimised;
-        for (const shared_ptr<icoords>& ring : scaled_toolpath)
-        {
-            toolpath_optimised.push_back(make_shared<icoords>());
-            bg::simplify(*ring, *(toolpath_optimised.back()), mill->tolerance);
-        }
-
-        return toolpath_optimised;
+    if (mill->optimise) {
+      multi_linestring_type_fp temp_mls;
+      bg::simplify(scaled_toolpath, temp_mls, mill->tolerance);
+      scaled_toolpath = temp_mls;
     }
-    else
-        return scaled_toolpath;
+    return mls_to_icoords(scaled_toolpath);
 }
 
 void Surface_vectorial::save_debug_image(string message)
@@ -229,25 +249,6 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
     }
     else
         throw std::logic_error("Can't cast Core to Surface_vectorial");
-}
-
-vector<shared_ptr<icoords>> Surface_vectorial::scale_and_mirror_toolpath(
-    const multi_linestring_type_fp& mls, bool mirror) {
-    vector<shared_ptr<icoords>> result;
-    for (const auto& ls : mls) {
-        icoords coords;
-        for (const auto& point : ls) {
-            if (mirror) {
-                coords.push_back(make_pair((-point.x()) / double(scale),
-                                           point.y() / double(scale)));
-            } else {
-                coords.push_back(make_pair(point.x() / double(scale),
-                                           point.y() / double(scale)));
-            }
-        }
-        result.push_back(make_shared<icoords>(coords));
-    }
-    return result;
 }
 
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
@@ -461,12 +462,14 @@ multi_linestring_type_fp Surface_vectorial::eulerian_paths(const multi_linestrin
           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
       }
     };
-    // Only allow reversing the direction of travel if mill_feed_direction is ANY.
+    // Only allow reversing the direction of travel if mill_feed_direction is
+    // ANY.
     return eulerian_paths::get_eulerian_paths<
       point_type_fp,
       linestring_type_fp,
       multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings, mill_feed_direction == MillFeedDirection::ANY);
+      PointLessThan>(segments_as_linestrings,
+                     mill_feed_direction == MillFeedDirection::ANY);
 }
 
 size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& grow) {
