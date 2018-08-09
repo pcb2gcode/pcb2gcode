@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
 
-// Disjoint Loops
+// Disjoint Loops and two degenerate paths
 // 5---2   1---6  0---9
 // |   |   |   |
 // 3---4   7---8
@@ -131,6 +131,8 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
       {1,7},
       {6,8},
       {0,9},
+      {},
+      {12}
           });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
