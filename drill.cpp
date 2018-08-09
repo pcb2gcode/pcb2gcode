@@ -84,6 +84,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
               options["y-offset"].as<Length>().asInch(inputFactor)),
       mirror_axis(options["mirror-axis"].as<Length>()),
       min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
+      mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
       available_drills(std::accumulate(
           options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
           options["drills-available"].as<std::vector<AvailableDrills>>().end(),
@@ -387,12 +388,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
     }
 
-    if (cutdiameter * 1.001 >= holediameter)         //In order to avoid a "zero radius arc" error
-    {
+    if (cutdiameter * 1.001 >= holediameter) { //In order to avoid a "zero radius arc" error
+        // Hole is smaller than cutdiameter so just drill/zig-zag.
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
         if (slot)
         {
-            for (unsigned int current_step = 0; current_step < stepcount; current_step++)
+            for (unsigned int current_step = 0; true;)
             {
                 double z = double(current_step+1)/(stepcount) * cutter->zwork;
                 of << "G1 Z" << z * cfactor << '\n';
@@ -404,6 +405,10 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                 z = double(current_step+1)/(stepcount) * cutter->zwork;
                 of << "G1 Z" << z * cfactor << '\n';
                 of << "G1 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
+                current_step++;
+                if (current_step >= stepcount) {
+                    break;
+                }
             }
         } else {
             of << "G1 Z" << cutter->zwork * cfactor << '\n';
@@ -411,75 +416,74 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
         return false;
-    }
-    else
-    {
-
+    } else {
+        // Hole is larger than cutter diameter so make circles/ovals.
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
         double mill_x;
         double mill_y;
-        if (slot)
-        {
-            double delta_x = stop_x - start_x;
-            double delta_y = stop_y - start_y;
-            double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
-            mill_x = delta_x*millr/distance;
-            mill_y = delta_y*millr/distance;
+        if (slot) {
+          double delta_x = stop_x - start_x;
+          double delta_y = stop_y - start_y;
+          double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
+          mill_x = delta_x*millr/distance;
+          mill_y = delta_y*millr/distance;
         } else {
-            // No distance so just use a start that is directly north
-            // of the start.
-            mill_x = 0;
-            mill_y = millr;
+          // No distance so just use a start that is directly north
+          // of the start.
+          mill_x = 0;
+          mill_y = millr;
         }
         // We will draw a shape that looks like a rectangle with
         // half circles attached on just two opposite sides.
-
-        // add delta rotated 90 degrees clockwise then normalize to length millr
+        if (mill_feed_direction == MillFeedDirection::CLIMB) {
+          // Negate the variables for rotating in the opposite direction.
+          mill_y = -mill_y;
+          mill_x = -mill_x;
+        }
+        // add delta rotated 90 degrees CW/CCW then normalize to length millr
         double start_targetx = start_x + mill_y;
         double start_targety = start_y - mill_x;
-        // add delta rotated 90 degrees counterclockwise then normalize to length millr
+        // add delta rotated 90 degrees CCW/CW then normalize to length millr
         double start2_targetx = start_x - mill_y;
         double start2_targety = start_y + mill_x;
-        // add delta rotated 90 degrees counterclockwise then normalize to length millr
+        // add delta rotated 90 degrees CCW/CW then normalize to length millr
         double stop_targetx = stop_x - mill_y;
-        double stop_targety = stop_y + mill_x;
-        // add delta rotated 90 degrees clockwise then normalize to length millr
+        double stop_targety = stop_y + mill_x ;
+        // add delta rotated 90 degrees CW/CCW then normalize to length millr
         double stop2_targetx = stop_x + mill_y;
         double stop2_targety = stop_y - mill_x;
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        for (unsigned int current_step = 0; current_step < stepcount; current_step++)
-        {
-            double z = double(current_step+1)/(stepcount) * cutter->zwork;
-            of << "G1 Z" << z * cfactor << '\n';
-            if (!slot) {
-                // Just drill a full-circle.
-                of << "G2 "
-                   << " X" << start_targetx * cfactor
-                   << " Y" << start_targety * cfactor
-                   << " I" << (start_x-start_targetx) * cfactor
-                   << " J" << (start_y-start_targety) * cfactor << "\n";
-            }
-            else
-            {
-                // Draw the first half circle
-                of << "G2 X" << start2_targetx * cfactor
-                   << " Y" << start2_targety * cfactor
-                   << " I" << (start_x-start_targetx) * cfactor
-                   << " J" << (start_y-start_targety) * cfactor << "\n";
-                // Now across to the second half circle
-                of << "G1 X" << stop_targetx * cfactor
-                   << " Y" << stop_targety * cfactor << "\n";
-                // Draw the second half circle
-                of << "G2 X" << stop2_targetx * cfactor
-                   << " Y" << stop2_targety * cfactor
-                   << " I" << (stop_x-stop_targetx) * cfactor
-                   << " J" << (stop_y-stop_targety) * cfactor << "\n";
-                // Now back to the start of the first half circle
-                of << "G1 X" << start_targetx * cfactor
-                   << " Y" << start_targety << "\n";
-            }
+        string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
+        for (unsigned int current_step = 0; current_step < stepcount; current_step++) {
+          double z = double(current_step+1)/(stepcount) * cutter->zwork;
+          of << "G1 Z" << z * cfactor << '\n';
+          if (!slot) {
+            // Just drill a full-circle.
+            of << arc_gcode << " "
+               << " X" << start_targetx * cfactor
+               << " Y" << start_targety * cfactor
+               << " I" << (start_x-start_targetx) * cfactor
+               << " J" << (start_y-start_targety) * cfactor << "\n";
+          } else {
+            // Draw the first half circle
+            of << arc_gcode << " X" << start2_targetx * cfactor
+               << " Y" << start2_targety * cfactor
+               << " I" << (start_x-start_targetx) * cfactor
+               << " J" << (start_y-start_targety) * cfactor << "\n";
+            // Now across to the second half circle
+            of << "G1 X" << stop_targetx * cfactor
+               << " Y" << stop_targety * cfactor << "\n";
+            // Draw the second half circle
+            of << arc_gcode << " X" << stop2_targetx * cfactor
+               << " Y" << stop2_targety * cfactor
+               << " I" << (stop_x-stop_targetx) * cfactor
+               << " J" << (stop_y-stop_targety) * cfactor << "\n";
+            // Now back to the start of the first half circle
+            of << "G1 X" << start_targetx * cfactor
+               << " Y" << start_targety << "\n";
+          }
         }
 
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";

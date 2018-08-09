@@ -331,8 +331,7 @@ enum BoardSide {
 
 inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
 {
-  std::string token;
-  in >> token;
+  std::string token(std::istreambuf_iterator<char>(in), {});
   if (boost::iequals(token, "auto")) {
     boardside = BoardSide::AUTO;
   } else if (boost::iequals(token, "front")) {
@@ -340,7 +339,7 @@ inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
   } else if (boost::iequals(token, "back")) {
     boardside = BoardSide::BACK;
   } else {
-      throw parse_exception("BoardSide", token);
+    throw boost::program_options::invalid_option_value(token);
   }
   return in;
 }
@@ -366,8 +365,7 @@ namespace Software {
 
 inline std::istream& operator>>(std::istream& in, Software& software)
 {
-  std::string token;
-  in >> token;
+  std::string token(std::istreambuf_iterator<char>(in), {});
   if (boost::iequals(token, "Custom")) {
     software = CUSTOM;
   } else if (boost::iequals(token, "LinuxCNC")) {
@@ -377,7 +375,7 @@ inline std::istream& operator>>(std::istream& in, Software& software)
   } else if (boost::iequals(token, "Mach3")) {
     software = MACH3;
   } else {
-      throw parse_exception("Software", token);
+    throw boost::program_options::invalid_option_value(token);
   }
   return in;
 }
@@ -401,5 +399,30 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
   return out;
 }
 }; // namespace Software
+
+namespace MillFeedDirection {
+enum MillFeedDirection {
+  ANY,
+  CLIMB,
+  CONVENTIONAL
+};
+
+inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection) {
+  std::string token(std::istreambuf_iterator<char>(in), {});
+  if (boost::iequals(token, "climb") ||
+      boost::iequals(token, "clockwise")) {
+    millfeeddirection = MillFeedDirection::CLIMB;
+  } else if (boost::iequals(token, "conventional") ||
+             boost::iequals(token, "anticlockwise") ||
+             boost::iequals(token, "counterclockwise")) {
+    millfeeddirection = MillFeedDirection::CONVENTIONAL;
+  } else if (boost::iequals(token, "any")) {
+    millfeeddirection = MillFeedDirection::ANY;
+  } else {
+    throw boost::program_options::invalid_option_value(token);
+  }
+  return in;
+}
+}; // namespace MillFeedDirection
 
 #endif // UNITS_HPP
