@@ -120,7 +120,8 @@ class UnitBase {
     return s;
   }
   bool operator<(const UnitBase<dimension_t>& other) const {
-    if (isinf(this->value) || this->value == 0 || isinf(other.value) || other.value == 0) {
+    if (std::isinf(this->value) || this->value == 0 ||
+        std::isinf(other.value) || other.value == 0) {
       // inf, -inf, and zero times anything is unchanged so the units don't matter
       return this->value < other.value;
     } else if (!this->one && !other.one) {
