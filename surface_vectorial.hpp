@@ -105,8 +105,6 @@ protected:
   // is larger than the half the thickness of the thermal relief.
   // Returns the number of thermal reliefs found and filled.
   size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
-  vector<shared_ptr<icoords>> scale_and_mirror_toolpath(
-      const multi_linestring_type_fp& mls, bool mirror);
   vector<multi_polygon_type_fp> offset_polygon(
       const polygon_type_fp& input,
       const polygon_type_fp& voronoi,
