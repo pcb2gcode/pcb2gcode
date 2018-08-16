@@ -230,19 +230,20 @@ polygon_type make_rectangle(point_type center, coordinate_type width, coordinate
   return polygon;
 }
 
-void GerberImporter::draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon)
-{
-    const double angle = atan2(point2.y() - point1.y(), point2.x() - point1.x());
-    const coordinate_type dx = height / 2 * sin(angle);
-    const coordinate_type dy = height / 2 * cos(angle);
+polygon_type make_rectangle(point_type point1, point_type point2, coordinate_type height) {
+  polygon_type polygon;
+  const double angle = atan2(point2.y() - point1.y(), point2.x() - point1.x());
+  const coordinate_type dx = height / 2 * sin(angle);
+  const coordinate_type dy = height / 2 * cos(angle);
 
-    polygon.outer().push_back(point_type(point1.x() + dx, point1.y() - dy));
-    polygon.outer().push_back(point_type(point1.x() - dx, point1.y() + dy));
-    polygon.outer().push_back(point_type(point2.x() - dx, point2.y() + dy));
-    polygon.outer().push_back(point_type(point2.x() + dx, point2.y() - dy));
-    polygon.outer().push_back(polygon.outer().front());
-    
-    bg::correct(polygon);
+  polygon.outer().push_back(point_type(point1.x() + dx, point1.y() - dy));
+  polygon.outer().push_back(point_type(point1.x() - dx, point1.y() + dy));
+  polygon.outer().push_back(point_type(point2.x() - dx, point2.y() + dy));
+  polygon.outer().push_back(point_type(point2.x() + dx, point2.y() - dy));
+  polygon.outer().push_back(polygon.outer().front());
+
+  bg::correct(polygon);
+  return polygon;
 }
 
 void GerberImporter::draw_oval(point_type center, coordinate_type width, coordinate_type height,
@@ -911,13 +912,12 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                                break;
 
 	                            case GERBV_APTYPE_MACRO_LINE20:
-	                                mpoly.resize(1);
-                                    draw_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                    point_type(parameters[4] * cfactor, parameters[5] * cfactor),
-                                                    parameters[1] * cfactor, mpoly.front());
-	                                polarity = parameters[0];
-                                    rotation = parameters[6];
-	                                break;
+                                      mpoly.push_back(make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                                     point_type(parameters[4] * cfactor, parameters[5] * cfactor),
+                                                                     parameters[1] * cfactor));
+                                      polarity = parameters[0];
+                                      rotation = parameters[6];
+                                      break;
 
 	                            case GERBV_APTYPE_MACRO_LINE21:
                                       mpoly.push_back(make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
