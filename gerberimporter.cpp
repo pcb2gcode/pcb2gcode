@@ -230,14 +230,14 @@ polygon_type make_rectangle(point_type center, coordinate_type width, coordinate
   return polygon;
 }
 
-polygon_type make_rectangle(point_type point1, point_type point2, coordinate_type height) {
+polygon_type make_rectangle(point_type point1, point_type point2, double height) {
   polygon_type polygon;
   const double distance = bg::distance(point1, point2);
   const double normalized_dy = (point2.y() - point1.y()) / distance;
   const double normalized_dx = (point2.x() - point1.x()) / distance;
   // Rotate the normalized vectors by 90 degrees ccw.
-  const coordinate_type dy = height / 2 * normalized_dx;
-  const coordinate_type dx = height / 2 * -normalized_dy;
+  const double dy = height / 2 * normalized_dx;
+  const double dx = height / 2 * -normalized_dy;
 
   polygon.outer().push_back(point_type(point1.x() - dx, point1.y() - dy));
   polygon.outer().push_back(point_type(point1.x() + dx, point1.y() + dy));
