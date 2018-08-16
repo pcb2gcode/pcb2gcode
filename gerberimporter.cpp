@@ -191,42 +191,43 @@ ring_type make_regular_polygon(point_type center, coordinate_type diameter, unsi
 
   offset *= bg::math::pi<double>() / 180.0;
 
-  ring_type ret;
+  ring_type ring;
   for (unsigned int i = 0; i < vertices; i++)
-    ret.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
+    ring.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
                               sin(angle_step * i + offset) * diameter / 2 + center.y()));
 
-  ret.push_back(ret.front()); // Don't forget to close the ring.
-  return ret;
+  ring.push_back(ring.front()); // Don't forget to close the ring.
+  return ring;
 }
 
 polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
                                coordinate_type offset, coordinate_type hole_diameter,
                                unsigned int circle_points) {
-  polygon_type ret;
-  ret.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
+  polygon_type polygon;
+  polygon.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
 
   if (hole_diameter > 0) {
-    ret.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
   }
-  return ret;
+  return polygon;
 }
 
-void GerberImporter::draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
-                                    coordinate_type hole_diameter, unsigned int circle_points, polygon_type& polygon)
-{
-    const coordinate_type x = center.x();
-    const coordinate_type y = center.y();
+polygon_type make_rectangle(point_type center, coordinate_type width, coordinate_type height,
+                            coordinate_type hole_diameter, unsigned int circle_points) {
+  polygon_type polygon;
+  const coordinate_type x = center.x();
+  const coordinate_type y = center.y();
 
-    polygon.outer().push_back(point_type(x - width / 2, y - height / 2));
-    polygon.outer().push_back(point_type(x - width / 2, y + height / 2));
-    polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
-    polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
-    polygon.outer().push_back(polygon.outer().front());
-    
-    if (hole_diameter != 0) {
-      polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
-    }
+  polygon.outer().push_back(point_type(x - width / 2, y - height / 2));
+  polygon.outer().push_back(point_type(x - width / 2, y + height / 2));
+  polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
+  polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
+  polygon.outer().push_back(polygon.outer().front());
+
+  if (hole_diameter != 0) {
+    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+  }
+  return polygon;
 }
 
 void GerberImporter::draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon)
@@ -730,8 +731,8 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
 
     mpoly2->resize(2);
 
-    draw_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0, (*mpoly2)[0]);
-    draw_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0, (*mpoly2)[1]);
+    mpoly2->at(0) = make_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0);
+    mpoly2->at(1) = make_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0);
     bg::union_((*mpoly2)[0], (*mpoly2)[1], *mpoly1);
 
     mpoly2->clear();
@@ -768,8 +769,8 @@ void GerberImporter::draw_thermal(point_type center, coordinate_type external_di
     polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
                                              0, internal_diameter, circle_points);
 
-    draw_rectangle(center, gap_width, 2 * external_diameter, 0, 0, rect1);
-    draw_rectangle(center, 2 * external_diameter, gap_width, 0, 0, rect2);
+    rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
+    rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
     bg::union_(rect1, rect2, cross);
     bg::difference(ring, cross, output);
 }
@@ -803,14 +804,12 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                   break;
 
                 case GERBV_APTYPE_RECTANGLE:
-                    input->resize(1);
-                    draw_rectangle(origin,
-                                    parameters[0] * cfactor,
-                                    parameters[1] * cfactor,
-                                    parameters[2] * cfactor,
-                                    circle_points,
-                                    input->back());
-                    break;
+                  input->push_back(make_rectangle(origin,
+                                                  parameters[0] * cfactor,
+                                                  parameters[1] * cfactor,
+                                                  parameters[2] * cfactor,
+                                                  circle_points));
+                  break;
 
                 case GERBV_APTYPE_OVAL:
                     input->resize(1);
@@ -921,25 +920,23 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                                break;
 
 	                            case GERBV_APTYPE_MACRO_LINE21:
-	                                mpoly.resize(1);
-                                    draw_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
-                                                    parameters[1] * cfactor,
-                                                    parameters[2] * cfactor,
-                                                    0, 0, mpoly.front());
-	                                polarity = parameters[0];
-                                    rotation = parameters[5];
-	                                break;
+                                      mpoly.push_back(make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
+                                                                     parameters[1] * cfactor,
+                                                                     parameters[2] * cfactor,
+                                                                     0, 0));
+                                      polarity = parameters[0];
+                                      rotation = parameters[5];
+                                      break;
 
 	                            case GERBV_APTYPE_MACRO_LINE22:
-	                                mpoly.resize(1);
-                                    draw_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
-                                                                (parameters[4] + parameters[2] / 2) * cfactor),
-                                                    parameters[1] * cfactor,
-                                                    parameters[2] * cfactor,
-                                                    0, 0, mpoly.front());
-	                                polarity = parameters[0];
-                                    rotation = parameters[5];
-	                                break;
+                                      mpoly.push_back(make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
+                                                                                (parameters[4] + parameters[2] / 2) * cfactor),
+                                                                     parameters[1] * cfactor,
+                                                                     parameters[2] * cfactor,
+                                                                     0, 0));
+                                      polarity = parameters[0];
+                                      rotation = parameters[5];
+                                      break;
 
 	                            default:
                                     cerr << "Unrecognized aperture: skipping" << endl;
