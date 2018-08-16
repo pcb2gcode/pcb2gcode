@@ -200,15 +200,16 @@ ring_type make_regular_polygon(point_type center, coordinate_type diameter, unsi
   return ret;
 }
 
-void GerberImporter::draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                            coordinate_type offset, coordinate_type hole_diameter,
-                            unsigned int circle_points, polygon_type& polygon)
-{
-  polygon.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
+polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                               coordinate_type offset, coordinate_type hole_diameter,
+                               unsigned int circle_points) {
+  polygon_type ret;
+  ret.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
 
   if (hole_diameter > 0) {
-    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+    ret.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
   }
+  return ret;
 }
 
 void GerberImporter::draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
@@ -739,7 +740,6 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
     {
         const double external_diameter = parameters[2] - 2 * (parameters[3] + parameters[4]) * i;
         double internal_diameter = external_diameter - 2 * parameters[3];
-        polygon_type poly;
 
         if (external_diameter <= 0)
             break;
@@ -747,8 +747,8 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
         if (internal_diameter < 0)
             internal_diameter = 0;
 
-        draw_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
-                                internal_diameter * cfactor, circle_points, poly);
+        polygon_type poly = make_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
+                                                 internal_diameter * cfactor, circle_points);
 
         bg::union_(poly, *mpoly1, *mpoly2);
         mpoly1->clear();
@@ -761,13 +761,12 @@ void GerberImporter::draw_moire(const double * const parameters, unsigned int ci
 void GerberImporter::draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
                                     coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output)
 {
-    polygon_type ring;
     polygon_type rect1;
     polygon_type rect2;
     multi_polygon_type cross;
-    
-    draw_regular_polygon(center, external_diameter, circle_points,
-                            0, internal_diameter, circle_points, ring);
+
+    polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
+                                             0, internal_diameter, circle_points);
 
     draw_rectangle(center, gap_width, 2 * external_diameter, 0, 0, rect1);
     draw_rectangle(center, 2 * external_diameter, gap_width, 0, 0, rect2);
@@ -795,15 +794,13 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                     continue;
 
                 case GERBV_APTYPE_CIRCLE:
-                    input->resize(1);
-                    draw_regular_polygon(origin,
-                                            parameters[0] * cfactor,
-                                            circle_points,
-                                            parameters[1] * cfactor,
-                                            parameters[2] * cfactor,
-                                            circle_points,
-                                            input->back());
-                    break;
+                  input->push_back(make_regular_polygon(origin,
+                                                        parameters[0] * cfactor,
+                                                        circle_points,
+                                                        parameters[1] * cfactor,
+                                                        parameters[2] * cfactor,
+                                                        circle_points));
+                  break;
 
                 case GERBV_APTYPE_RECTANGLE:
                     input->resize(1);
@@ -826,14 +823,12 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                     break;
 
                 case GERBV_APTYPE_POLYGON:
-                    input->resize(1);
-                    draw_regular_polygon(origin,
-                                            parameters[0] * cfactor,
-                                            parameters[1] * cfactor,
-                                            parameters[2] * cfactor,
-                                            parameters[3] * cfactor,
-                                            circle_points,
-                                            input->back());
+                    input->push_back(make_regular_polygon(origin,
+                                                         parameters[0] * cfactor,
+                                                         parameters[1] * cfactor,
+                                                         parameters[2] * cfactor,
+                                                         parameters[3] * cfactor,
+                                                         circle_points));
                     break;
                 
                 case GERBV_APTYPE_MACRO:

@@ -94,15 +94,11 @@ protected:
 
     static const unsigned int scale;
 
-    static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                            coordinate_type offset, coordinate_type hole_diameter,
-                            unsigned int circle_points, polygon_type& polygon);
-    
     static void draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
                     coordinate_type hole_diameter, unsigned int circle_points, polygon_type& polygon);
 
     static void draw_rectangle(point_type point1, point_type point2, coordinate_type height, polygon_type& polygon);
-    
+
     static void draw_oval(point_type center, coordinate_type width, coordinate_type height, coordinate_type hole_diameter,
                 unsigned int circle_points, polygon_type& polygon);
 
