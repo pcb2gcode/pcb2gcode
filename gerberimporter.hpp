@@ -95,9 +95,6 @@ protected:
     static const unsigned int scale;
 
     static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                                        coordinate_type offset, bool clockwise, ring_type& ring);
-
-    static void draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
                             coordinate_type offset, coordinate_type hole_diameter,
                             unsigned int circle_points, polygon_type& polygon);
     

@@ -46,127 +46,85 @@ typedef bg::strategy::transform::translate_transformer<coordinate_type, 2, 2> tr
 //As suggested by the Gerber specification, we retain 6 decimals
 const unsigned int GerberImporter::scale = 1000000;
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-GerberImporter::GerberImporter(const string path)
-{
-    project = gerbv_create_project();
+GerberImporter::GerberImporter(const string path) {
+  project = gerbv_create_project();
 
-    const char* cfilename = path.c_str();
-    char *filename = new char[strlen(cfilename) + 1];
-    strcpy(filename, cfilename);
+  const char* cfilename = path.c_str();
+  char *filename = new char[strlen(cfilename) + 1];
+  strcpy(filename, cfilename);
 
-    gerbv_open_layer_from_filename(project, filename);
-    delete[] filename;
+  gerbv_open_layer_from_filename(project, filename);
+  delete[] filename;
 
-    if (project->file[0] == NULL)
-        throw gerber_exception();
+  if (project->file[0] == NULL)
+    throw gerber_exception();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_width()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_width() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
+  return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_height()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_height() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
+  return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_min_x()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_min_x() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->min_x;
-
+  return project->file[0]->image->info->min_x;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_max_x()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_max_x() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->max_x;
+  return project->file[0]->image->info->max_x;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_min_y()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_min_y() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->min_y;
+  return project->file[0]->image->info->min_y;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-gdouble GerberImporter::get_max_y()
-{
-    if (!project || !project->file[0])
-        throw gerber_exception();
+gdouble GerberImporter::get_max_y() {
+  if (!project || !project->file[0])
+    throw gerber_exception();
 
-    return project->file[0]->image->info->max_y;
+  return project->file[0]->image->info->max_y;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y)
-{
-    gerbv_render_info_t render_info;
+void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) {
+  gerbv_render_info_t render_info;
 
-    render_info.scaleFactorX = dpi;
-    render_info.scaleFactorY = dpi;
-    render_info.lowerLeftX = min_x;
-    render_info.lowerLeftY = min_y;
-    render_info.displayWidth = surface->get_width();
-    render_info.displayHeight = surface->get_height();
-    render_info.renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL;
+  render_info.scaleFactorX = dpi;
+  render_info.scaleFactorY = dpi;
+  render_info.lowerLeftX = min_x;
+  render_info.lowerLeftY = min_y;
+  render_info.displayWidth = surface->get_width();
+  render_info.displayHeight = surface->get_height();
+  render_info.renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL;
 
-    GdkColor color_saturated_white = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
-    project->file[0]->color = color_saturated_white;
+  GdkColor color_saturated_white = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
+  project->file[0]->color = color_saturated_white;
 
-    cairo_t* cr = cairo_create(surface->cobj());
-    gerbv_render_layer_to_cairo_target(cr, project->file[0], &render_info);
+  cairo_t* cr = cairo_create(surface->cobj());
+  gerbv_render_layer_to_cairo_target(cr, project->file[0], &render_info);
 
-    cairo_destroy(cr);
+  cairo_destroy(cr);
 
-    /// @todo check wheter importing was successful
+  /// @todo check wheter importing was successful
 }
 
-void GerberImporter::rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly)
-{
+void GerberImporter::rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly) {
     list<const ring_type *> rings_ptr;
     map<const ring_type *, coordinate_type> areas;
 
@@ -218,36 +176,39 @@ void GerberImporter::rings_to_polygons(const vector<ring_type>& rings, multi_pol
     }
 }
 
-void GerberImporter::draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                            coordinate_type offset, bool clockwise, ring_type& ring)
-{
-    double angle_step;
-    
-    if (clockwise)
-        angle_step = -2 * bg::math::pi<double>() / vertices;
-    else
-        angle_step = 2 * bg::math::pi<double>() / vertices;
+// Draw a regular polygon with outer diameter as specified and center.  The
+// number of vertices is provided.  offset is an angle in degrees to the
+// starting vertex of the shape.  clockwise to put the vertices in clockwise
+// order.
+ring_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                               double offset, bool clockwise) {
+  double angle_step;
 
-    offset *= bg::math::pi<double>() / 180.0;
+  if (clockwise)
+    angle_step = -2 * bg::math::pi<double>() / vertices;
+  else
+    angle_step = 2 * bg::math::pi<double>() / vertices;
 
-    for (unsigned int i = 0; i < vertices; i++)
-       ring.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
-                        sin(angle_step * i + offset) * diameter / 2 + center.y()));
+  offset *= bg::math::pi<double>() / 180.0;
 
-    ring.push_back(ring.front());
+  ring_type ret;
+  for (unsigned int i = 0; i < vertices; i++)
+    ret.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
+                              sin(angle_step * i + offset) * diameter / 2 + center.y()));
+
+  ret.push_back(ret.front()); // Don't forget to close the ring.
+  return ret;
 }
 
 void GerberImporter::draw_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
                             coordinate_type offset, coordinate_type hole_diameter,
                             unsigned int circle_points, polygon_type& polygon)
 {
-    draw_regular_polygon(center, diameter, vertices, offset, true, polygon.outer());
+  polygon.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
 
-    if (hole_diameter > 0)
-    {
-        polygon.inners().resize(1);
-        draw_regular_polygon(center, hole_diameter, circle_points, 0, false, polygon.inners().front());
-    }
+  if (hole_diameter > 0) {
+    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+  }
 }
 
 void GerberImporter::draw_rectangle(point_type center, coordinate_type width, coordinate_type height,
@@ -262,10 +223,8 @@ void GerberImporter::draw_rectangle(point_type center, coordinate_type width, co
     polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
     polygon.outer().push_back(polygon.outer().front());
     
-    if (hole_diameter != 0)
-    {
-        polygon.inners().resize(1);
-        draw_regular_polygon(center, hole_diameter, circle_points, 0, false, polygon.inners().front());
+    if (hole_diameter != 0) {
+      polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
     }
 }
 
@@ -325,10 +284,8 @@ void GerberImporter::draw_oval(point_type center, coordinate_type width, coordin
 
     polygon.outer().push_back(polygon.outer().front());
 
-    if (hole_diameter != 0)
-    {
-        polygon.inners().resize(1);
-        draw_regular_polygon(center, hole_diameter, circle_points, 0, false, polygon.inners().front());
+    if (hole_diameter != 0) {
+      polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
     }
 }
 
@@ -910,11 +867,10 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	
 	                            case GERBV_APTYPE_MACRO_CIRCLE:
 	                                mpoly.resize(1);
-	                                draw_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-	                                                        parameters[1] * cfactor,
-	                                                        circle_points,
-	                                                        0, true,
-	                                                        mpoly.front().outer());
+	                                mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                                                     parameters[1] * cfactor,
+                                                                                     circle_points,
+                                                                                     0, true);
 	                                polarity = parameters[0];
 	                                rotation = parameters[4];
 	                                break;
@@ -934,11 +890,10 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                            
 	                            case GERBV_APTYPE_MACRO_POLYGON:
 	                                mpoly.resize(1);
-	                                draw_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-	                                                        parameters[4] * cfactor,
-	                                                        parameters[1],
-	                                                        0, true,
-	                                                        mpoly.front().outer());
+	                                mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                                                     parameters[4] * cfactor,
+                                                                                     parameters[1],
+                                                                                     0, true);
 	                                polarity = parameters[0];
 	                                rotation = parameters[5];
 	                                break;
