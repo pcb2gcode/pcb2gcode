@@ -232,14 +232,17 @@ polygon_type make_rectangle(point_type center, coordinate_type width, coordinate
 
 polygon_type make_rectangle(point_type point1, point_type point2, coordinate_type height) {
   polygon_type polygon;
-  const double angle = atan2(point2.y() - point1.y(), point2.x() - point1.x());
-  const coordinate_type dx = height / 2 * sin(angle);
-  const coordinate_type dy = height / 2 * cos(angle);
+  const double distance = bg::distance(point1, point2);
+  const double normalized_dy = (point2.y() - point1.y()) / distance;
+  const double normalized_dx = (point2.x() - point1.x()) / distance;
+  // Rotate the normalized vectors by 90 degrees ccw.
+  const coordinate_type dy = height / 2 * normalized_dx;
+  const coordinate_type dx = height / 2 * -normalized_dy;
 
-  polygon.outer().push_back(point_type(point1.x() + dx, point1.y() - dy));
-  polygon.outer().push_back(point_type(point1.x() - dx, point1.y() + dy));
-  polygon.outer().push_back(point_type(point2.x() - dx, point2.y() + dy));
-  polygon.outer().push_back(point_type(point2.x() + dx, point2.y() - dy));
+  polygon.outer().push_back(point_type(point1.x() - dx, point1.y() - dy));
+  polygon.outer().push_back(point_type(point1.x() + dx, point1.y() + dy));
+  polygon.outer().push_back(point_type(point2.x() + dx, point2.y() + dy));
+  polygon.outer().push_back(point_type(point2.x() - dx, point2.y() - dy));
   polygon.outer().push_back(polygon.outer().front());
 
   bg::correct(polygon);
