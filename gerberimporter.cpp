@@ -245,7 +245,6 @@ polygon_type make_rectangle(point_type point1, point_type point2, double height)
   polygon.outer().push_back(point_type(point2.x() - dx, point2.y() - dy));
   polygon.outer().push_back(polygon.outer().front());
 
-  bg::correct(polygon);
   return polygon;
 }
 
