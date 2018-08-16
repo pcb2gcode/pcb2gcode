@@ -212,7 +212,7 @@ polygon_type make_regular_polygon(point_type center, coordinate_type diameter, u
   return polygon;
 }
 
-polygon_type make_rectangle(point_type center, coordinate_type width, coordinate_type height,
+polygon_type make_rectangle(point_type center, double width, double height,
                             coordinate_type hole_diameter, unsigned int circle_points) {
   polygon_type polygon;
   const coordinate_type x = center.x();
