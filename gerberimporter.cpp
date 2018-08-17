@@ -676,41 +676,36 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
     return output;
 }
 
-void GerberImporter::draw_moire(const double * const parameters, unsigned int circle_points,
-                                 coordinate_type cfactor, polygon_type& output)
-{
-    const point_type center (parameters[0] * cfactor, parameters[1] * cfactor);
-    unique_ptr<multi_polygon_type> mpoly1 (new multi_polygon_type());
-    unique_ptr<multi_polygon_type> mpoly2 (new multi_polygon_type());
+polygon_type make_moire(const double * const parameters, unsigned int circle_points,
+                        coordinate_type cfactor) {
+  const point_type center(parameters[0] * cfactor, parameters[1] * cfactor);
+  multi_polygon_type moire_parts;
 
-    mpoly2->resize(2);
-
-    mpoly2->at(0) = make_rectangle(center, parameters[6] * cfactor, parameters[7] * cfactor, 0, 0);
-    mpoly2->at(1) = make_rectangle(center, parameters[7] * cfactor, parameters[6] * cfactor, 0, 0);
-    bg::union_((*mpoly2)[0], (*mpoly2)[1], *mpoly1);
-
-    mpoly2->clear();
-
-    for (unsigned int i = 0; i < parameters[5]; i++)
-    {
-        const double external_diameter = parameters[2] - 2 * (parameters[3] + parameters[4]) * i;
-        double internal_diameter = external_diameter - 2 * parameters[3];
-
-        if (external_diameter <= 0)
-            break;
-        
-        if (internal_diameter < 0)
-            internal_diameter = 0;
-
-        polygon_type poly = make_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
-                                                 internal_diameter * cfactor, circle_points);
-
-        bg::union_(poly, *mpoly1, *mpoly2);
-        mpoly1->clear();
-        mpoly1.swap(mpoly2);
-    }
-
-    output = (*mpoly1)[0];
+  double crosshair_thickness = parameters[6];
+  double crosshair_length = parameters[7];
+  moire_parts.push_back(make_rectangle(center, crosshair_thickness * cfactor, crosshair_length * cfactor, 0, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_length * cfactor, crosshair_thickness * cfactor, 0, 0));
+  const int max_number_of_rings = parameters[5];
+  const double outer_ring_diameter = parameters[2];
+  const double ring_thickness = parameters[3];
+  const double gap_thickness = parameters[4];
+  for (int i = 0; i < max_number_of_rings; i++) {
+    const double external_diameter = outer_ring_diameter - 2 * (ring_thickness + gap_thickness) * i;
+    double internal_diameter = external_diameter - 2 * ring_thickness;
+    if (external_diameter <= 0)
+      break;
+    if (internal_diameter < 0)
+      internal_diameter = 0;
+    moire_parts.push_back(make_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
+                                               internal_diameter * cfactor, circle_points));
+  }
+  multi_polygon_type moire;
+  for (const auto& p : moire_parts) {
+    multi_polygon_type union_temp;
+    bg::union_(moire, p, union_temp);
+    moire = union_temp;
+  }
+  return moire.front();
 }
 
 void GerberImporter::draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
@@ -910,11 +905,10 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
 	                                break;
 	                            
 	                            case GERBV_APTYPE_MACRO_MOIRE:
-	                                mpoly.resize(1);
-                                    draw_moire(parameters, circle_points, cfactor, mpoly[0]);
-                                    polarity = 1;
-                                    rotation = parameters[8];
-	                                break;
+                                      mpoly.push_back(make_moire(parameters, circle_points, cfactor));
+                                      polarity = 1;
+                                      rotation = parameters[8];
+                                      break;
 
 	                            case GERBV_APTYPE_MACRO_THERMAL:
 	                                draw_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
