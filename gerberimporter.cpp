@@ -295,37 +295,16 @@ multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point
   return hull;
 }
 
-void GerberImporter::linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
-                                    coordinate_type radius, unsigned int circle_points, ring_type& ring) {
-    const coordinate_type dx = endpoint.x() - startpoint.x();
-    const coordinate_type dy = endpoint.y() - startpoint.y();
-    double angle_step;
-    double offset;
-    
-    if (circle_points % 2 == 0)
-        ++circle_points;
-
-    if (startpoint.x() > endpoint.x())
-        swap(startpoint, endpoint);
-
-    angle_step = 2 * bg::math::pi<double>() / circle_points;
-    
-    if (dx == 0)
-        offset = bg::math::pi<double>();
-    else
-        offset = atan(dy / dx) + bg::math::pi<double>() / 2;
-    
-    for (unsigned int i = 0; i < circle_points / 2 + 1; i++)
-        ring.push_back(point_type(cos(angle_step * i + offset) * radius + startpoint.x(),
-                               sin(angle_step * i + offset) * radius + startpoint.y()));
-
-    offset += bg::math::pi<double>();
-
-    for (unsigned int i = 0; i < circle_points / 2 + 1; i++)
-        ring.push_back(point_type(cos(angle_step * i + offset) * radius + endpoint.x(),
-                               sin(angle_step * i + offset) * radius + endpoint.y()));
-    
-    bg::correct(ring);
+multi_polygon_type linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
+                                                 coordinate_type radius, unsigned int circle_points) {
+  multi_polygon_type oval;
+  bg::buffer(linestring_type{startpoint, endpoint}, oval,
+             bg::strategy::buffer::distance_symmetric<coordinate_type>(radius),
+             bg::strategy::buffer::side_straight(),
+             bg::strategy::buffer::join_round(circle_points),
+             bg::strategy::buffer::end_round(circle_points),
+             bg::strategy::buffer::point_circle(circle_points));
+  return oval;
 }
 
 void GerberImporter::circular_arc(point_type center, coordinate_type radius,
