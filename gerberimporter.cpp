@@ -708,20 +708,21 @@ polygon_type make_moire(const double * const parameters, unsigned int circle_poi
   return moire.front();
 }
 
-void GerberImporter::draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
-                                    coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output)
-{
-    polygon_type rect1;
-    polygon_type rect2;
-    multi_polygon_type cross;
+multi_polygon_type make_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
+                                coordinate_type gap_width, unsigned int circle_points) {
+  polygon_type rect1;
+  polygon_type rect2;
+  multi_polygon_type cross;
 
-    polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
-                                             0, internal_diameter, circle_points);
+  polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
+                                           0, internal_diameter, circle_points);
 
-    rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
-    rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
-    bg::union_(rect1, rect2, cross);
-    bg::difference(ring, cross, output);
+  rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
+  rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
+  bg::union_(rect1, rect2, cross);
+  multi_polygon_type output;
+  bg::difference(ring, cross, output);
+  return output;
 }
 
 // Look through ring for crossing points and snip them out of the input so that
@@ -911,15 +912,14 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                                       break;
 
 	                            case GERBV_APTYPE_MACRO_THERMAL:
-	                                draw_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
-	                                                parameters[2] * cfactor,
-	                                                parameters[3] * cfactor,
-	                                                parameters[4] * cfactor,
-	                                                circle_points,
-	                                                mpoly);
-	                                polarity = 1;
-	                                rotation = parameters[5];
-	                                break;
+                                      mpoly = make_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
+                                                           parameters[2] * cfactor,
+                                                           parameters[3] * cfactor,
+                                                           parameters[4] * cfactor,
+                                                           circle_points);
+                                      polarity = 1;
+                                      rotation = parameters[5];
+                                      break;
 
 	                            case GERBV_APTYPE_MACRO_LINE20:
                                       mpoly.push_back(make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),

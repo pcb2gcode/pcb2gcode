@@ -94,9 +94,6 @@ protected:
 
     static const unsigned int scale;
 
-    static void draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
-                coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output);
-
     static void generate_apertures_map(const gerbv_aperture_t * const apertures[],
                 map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor);
 
