@@ -1002,44 +1002,43 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
     }
 }
 
-unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle)
-{
-    map<int, multi_polygon_type> apertures_map;
-    ring_type region;
-    coordinate_type cfactor;
-    unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
-    bool contour = false;
+bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* const layer2) {
+  const gerbv_step_and_repeat_t& sr1 = layer1->stepAndRepeat;
+  const gerbv_step_and_repeat_t& sr2 = layer2->stepAndRepeat;
 
-    vector<pair<const gerbv_layer_t *, gerberimporter_layer> >layers (1);
+  return (layer1->polarity == layer2->polarity &&
+          sr1.X == sr2.X &&
+          sr1.Y == sr2.Y &&
+          sr1.dist_X == sr2.dist_X &&
+          sr1.dist_Y == sr2.dist_Y);
+}
 
-    auto layers_equivalent = [](const gerbv_layer_t * const layer1, const gerbv_layer_t * const layer2)
-    {
-        const gerbv_step_and_repeat_t& sr1 = layer1->stepAndRepeat;
-        const gerbv_step_and_repeat_t& sr2 = layer2->stepAndRepeat;
-    
-        if (layer1->polarity == layer2->polarity &&
-            sr1.X == sr2.X &&
-            sr1.Y == sr2.Y &&
-            sr1.dist_X == sr2.dist_X &&
-            sr1.dist_Y == sr2.dist_Y)
-            return true;
-        else
-            return false;
-    };
+// Convert the gerber file into a multi_polygon_type.  If fill_closed_lines is
+// true, return all closed shapes without holes in them.  points_per_circle is
+// the number of lines to use to appoximate circles.
+unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
+  map<int, multi_polygon_type> apertures_map;
+  ring_type region;
+  coordinate_type cfactor;
+  unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
+  bool contour = false; // Are we in contour mode?
 
-    gerbv_image_t *gerber = project->file[0]->image;
+  vector<pair<const gerbv_layer_t *, gerberimporter_layer> >layers (1);
 
-    if (gerber->info->polarity != GERBV_POLARITY_POSITIVE)
-        unsupported_polarity_throw_exception();
+  gerbv_image_t *gerber = project->file[0]->image;
 
-    if (gerber->netlist->state->unit == GERBV_UNIT_MM)
-        cfactor = scale / 25.4;
-    else
-        cfactor = scale;
+  if (gerber->info->polarity != GERBV_POLARITY_POSITIVE)
+    unsupported_polarity_throw_exception();
 
-    layers.front().first = gerber->netlist->layer;
+  if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
+    cfactor = scale / 25.4;
+  } else {
+    cfactor = scale;
+  }
 
-    generate_apertures_map(gerber->aperture, apertures_map, points_per_circle, cfactor);
+  generate_apertures_map(gerber->aperture, apertures_map, points_per_circle, cfactor);
+  layers.front().first = gerber->netlist->layer;
+
 
     for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next){
 
