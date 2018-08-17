@@ -729,6 +729,67 @@ void GerberImporter::draw_thermal(point_type center, coordinate_type external_di
     bg::difference(ring, cross, output);
 }
 
+// Look through ring for crossing points and snip them out of the input so that
+// the return value is a series of rings such that no ring has the same point in
+// it twice.
+vector<ring_type> get_all_rings(const ring_type& ring) {
+  for (auto start = ring.cbegin(); start != ring.cend(); start++) {
+    for (auto end = std::next(start); end != ring.cend(); end++) {
+      if (bg::equals(*start, *end)) {
+        if (start == ring.cbegin() && end == std::prev(ring.cend())) {
+          continue; // This is just the entire ring, no need to try to recurse here.
+        }
+        ring_type inner_ring(start, end); // Build the ring that we've found.
+        inner_ring.push_back(inner_ring.front()); // Close the ring.
+
+        // Make a ring from the rest of the points.
+        ring_type outer_ring(ring.cbegin(), start);
+        outer_ring.insert(outer_ring.end(), end, ring.cend());
+        // Recurse on outer and inner and put together.
+        vector<ring_type> all_rings = get_all_rings(outer_ring);
+        vector<ring_type> all_inner_rings = get_all_rings(inner_ring);
+        all_rings.insert(all_rings.end(), all_inner_rings.cbegin(), all_inner_rings.cend());
+        return all_rings;
+      }
+    }
+  }
+  // No points repeated so just return the original without recursion.
+  return vector<ring_type>{ring};
+}
+
+multi_polygon_type simplify_cutins(const ring_type& ring) {
+  const auto area = bg::area(ring); // Positive if the original ring is clockwise, otherwise negative.
+  vector<ring_type> all_rings = get_all_rings(ring);
+  multi_polygon_type ret;
+  for (auto r : all_rings) {
+    const auto this_area = bg::area(r);
+    if (r.size() < 4 || this_area == 0) {
+      continue; // No area so ignore it.
+    }
+    if (this_area * area > 0) {
+      multi_polygon_type temp_ret;
+      auto correct_r = r;
+      bg::correct(correct_r);
+      bg::union_(ret, correct_r, temp_ret);
+      ret = temp_ret;
+    }
+  }
+  for (auto r : all_rings) {
+    const auto this_area = bg::area(r);
+    if (r.size() < 4 || this_area == 0) {
+      continue; // No area so ignore it.
+    }
+    if (this_area * area < 0) {
+      multi_polygon_type temp_ret;
+      auto correct_r = r;
+      bg::correct(correct_r);
+      bg::difference(ret, correct_r, temp_ret);
+      ret = temp_ret;
+    }
+  }
+  return ret;
+}
+
 void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apertures[], map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor)
 {
     const point_type origin (0, 0);
@@ -829,10 +890,14 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                                                                                     parameters [i * 2 + 3] * cfactor));
                                     }
                                     bg::correct(mpoly.front());
-                                    simplify_cutins(mpoly.front().outer(), mpoly.front());
-	                                polarity = parameters[0];
+                                    {
+                                      auto new_polys = simplify_cutins(mpoly.front().outer());
+                                      mpoly.erase(mpoly.begin());
+                                      mpoly.insert(mpoly.end(), new_polys.cbegin(), new_polys.cend());
+                                    }
+                                    polarity = parameters[0];
                                     rotation = parameters[(2 * int(round(parameters[1])) + 4)];
-	                                break;
+                                    break;
 	                            
 	                            case GERBV_APTYPE_MACRO_POLYGON:
 	                                mpoly.resize(1);
@@ -937,39 +1002,6 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
     }
 }
 
-bool GerberImporter::simplify_cutins(ring_type& ring, polygon_type& polygon)
-{
-    for (int i = 0; i < int(ring.size()) - 2; i++)
-    {
-        for (int j = i + 1; j < int(ring.size()) - 1; j++)
-        {
-            if (bg::equals(ring.at(i), ring.at(j + 1)) &&
-                bg::equals(ring.at(i + 1), ring.at(j)))
-            {
-                polygon.inners().resize(polygon.inners().size() + 1);
-                polygon.inners().back().resize(j - i); 
-                copy(ring.begin() + i + 1, ring.begin() + j + 1, polygon.inners().back().begin());
-                ring.erase(ring.begin() + i + 1, ring.begin() + j + 2);
-                break;
-            }
-        }
-    }
-    
-    if (polygon.inners().size() > 0)
-    {
-        if (&ring != &(polygon.outer()))
-        {
-            polygon.outer().resize(ring.size());
-            copy(ring.begin(), ring.end(), polygon.outer().begin());
-        }
-        bg::correct(polygon);
-
-        return true;
-    }
-    else
-        return false;
-}
-
 unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle)
 {
     map<int, multi_polygon_type> apertures_map;
@@ -1032,10 +1064,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
                 polygon_type polygon;
                 bg::correct(ring);
                 
-                if (simplify_cutins(ring, polygon))
-                    bg::union_(*draws, polygon, *temp_mpoly);
-                else
-                    bg::union_(*draws, ring, *temp_mpoly);
+                bg::union_(*draws, simplify_cutins(ring), *temp_mpoly);
 
                 ring.clear();
                 draws.swap(temp_mpoly);

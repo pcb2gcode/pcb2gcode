@@ -116,8 +116,6 @@ protected:
 
     static void rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly);
 
-    static bool simplify_cutins(ring_type& ring, polygon_type& polygon);
-
     inline static void unsupported_polarity_throw_exception()
     {
         cerr << "Non-positive image polarity is deprecated by the Gerber "
