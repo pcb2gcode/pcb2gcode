@@ -283,46 +283,20 @@ multi_polygon_type make_oval(point_type center, coordinate_type width, coordinat
   bg::convert(oval, ret);
   return ret;
 }
-void GerberImporter::linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
-                                coordinate_type height, ring_type& ring)
-{
-    if (startpoint.y() > endpoint.y())
-        swap(startpoint, endpoint);
-    
-    if (startpoint.x() > endpoint.x())
-    {
-        ring.push_back(point_type(startpoint.x() + width / 2, startpoint.y() + height / 2));
-        ring.push_back(point_type(startpoint.x() + width / 2, startpoint.y() - height / 2));
-        ring.push_back(point_type(startpoint.x() - width / 2, startpoint.y() - height / 2));
-        ring.push_back(point_type(endpoint.x() - width / 2, endpoint.y() - height / 2));
-        ring.push_back(point_type(endpoint.x() - width / 2, endpoint.y() + height / 2));
-        ring.push_back(point_type(endpoint.x() + width / 2, endpoint.y() + height / 2));
-    }
-    else
-    {
-        ring.push_back(point_type(startpoint.x() + width / 2, startpoint.y() - height / 2));
-        ring.push_back(point_type(startpoint.x() - width / 2, startpoint.y() - height / 2));
-        ring.push_back(point_type(startpoint.x() - width / 2, startpoint.y() + height / 2));
-        ring.push_back(point_type(endpoint.x() - width / 2, endpoint.y() + height / 2));
-        ring.push_back(point_type(endpoint.x() + width / 2, endpoint.y() + height / 2));
-        ring.push_back(point_type(endpoint.x() + width / 2, endpoint.y() - height / 2));
-    }
 
-    bg::correct(ring);   
-}
-/*multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
+multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
                                                     coordinate_type height) {
   multi_polygon_type hull_input;
   hull_input.push_back(make_rectangle(startpoint, width, height, 0, 0));
   hull_input.push_back(make_rectangle(endpoint, width, height, 0, 0));
   multi_polygon_type hull;
-  bg::convex_hull(hull_input, hull);
+  hull.resize(1);
+  bg::convex_hull(hull_input, hull[0]);
   return hull;
-  }*/
+}
 
 void GerberImporter::linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
-                                    coordinate_type radius, unsigned int circle_points, ring_type& ring)
-{
+                                    coordinate_type radius, unsigned int circle_points, ring_type& ring) {
     const coordinate_type dx = endpoint.x() - startpoint.x();
     const coordinate_type dy = endpoint.y() - startpoint.y();
     double angle_step;
@@ -1122,16 +1096,10 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
 
                         merge_paths(paths[coordinate_type(diameter / 2)], new_segment, fill_closed_lines ? diameter : 0);
                     }
-                    else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE)
-                    {
-                        mpoly.resize(1);
-                        linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
-                                                parameters[1] * cfactor, mpoly.back().outer());
-                        //                      mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
-                        //                                                               parameters[1] * cfactor);
-
-                        merge_ring(mpoly.back().outer());
-                        //                      merge_ring(mpoly.back().outer());
+                    else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
+                      mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
+                                                               parameters[1] * cfactor);
+                      merge_ring(mpoly.back().outer());
                     }
                     else
                         cerr << "Drawing with an aperture different from a circle "

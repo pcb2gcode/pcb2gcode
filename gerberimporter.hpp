@@ -103,9 +103,6 @@ protected:
     static void generate_apertures_map(const gerbv_aperture_t * const apertures[],
                 map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor);
 
-    static void linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
-                                coordinate_type height, ring_type& ring);
-
     static void linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
                                     coordinate_type radius, unsigned int circle_points, ring_type& ring);
     
