@@ -248,52 +248,41 @@ polygon_type make_rectangle(point_type point1, point_type point2, double height)
   return polygon;
 }
 
-void GerberImporter::draw_oval(point_type center, coordinate_type width, coordinate_type height,
-                                coordinate_type hole_diameter, unsigned int circle_points, polygon_type& polygon)
-{
-    double angle_step;
-    double offset;
-    coordinate_type x;
-    coordinate_type y;
-    coordinate_type radius;
-    
-    if (circle_points % 2 == 0)
-        ++circle_points;
-    
-    angle_step = -2 * bg::math::pi<double>() / circle_points;
-    
-    if (width < height)
-    {
-        radius = width / 2;
-        offset = 0;
-        x = 0;
-        y = height / 2 - radius;
-    }
-    else
-    {
-        radius = height / 2;
-        offset = -bg::math::pi<double>() / 2;
-        x = width / 2 - radius;
-        y = 0;
-    }
-    
-    for (unsigned int i = 0; i < circle_points / 2 + 1; i++)
-        polygon.outer().push_back(point_type(cos(angle_step * i + offset) * radius + center.x() - x,
-                                                sin(angle_step * i + offset) * radius + center.y() - y));
+multi_polygon_type make_oval(point_type center, coordinate_type width, coordinate_type height,
+                             coordinate_type hole_diameter, unsigned int circle_points) {
+  point_type_fp start(center.x(), center.y());
+  point_type_fp end(center.x(), center.y());
+  if (width > height) {
+    // The oval is more wide than tall.
+    start.x(start.x() - (width - height)/2);
+    end.x(end.x() + (width - height)/2);
+  } else {
+    // The oval is more tall than wide.
+    start.y(start.y() - (height - width)/2);
+    end.y(end.y() + (height - width)/2);
+  }
+  // TODO: Make sure this works when width==height.
 
-    offset += bg::math::pi<double>();
+  multi_polygon_type_fp oval;
+  bg::buffer(linestring_type_fp{start, end}, oval,
+             bg::strategy::buffer::distance_symmetric<coordinate_type>(std::min(width, height)/2),
+             bg::strategy::buffer::side_straight(),
+             bg::strategy::buffer::join_round(circle_points),
+             bg::strategy::buffer::end_round(circle_points),
+             bg::strategy::buffer::point_circle(circle_points));
 
-    for (unsigned int i = 0; i < circle_points / 2 + 1; i++)
-        polygon.outer().push_back(point_type(cos(angle_step * i + offset) * radius + center.x() + x,
-                                                sin(angle_step * i + offset) * radius + center.y() + y));
-
-    polygon.outer().push_back(polygon.outer().front());
-
-    if (hole_diameter != 0) {
-      polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
-    }
+  if (hole_diameter > 0) {
+    multi_polygon_type_fp temp;
+    auto hole = make_regular_polygon(center, hole_diameter, circle_points, 0, true);
+    multi_polygon_type_fp hole_fp;
+    bg::convert(hole, hole_fp);
+    bg::difference(oval, hole_fp, temp);
+    oval = temp;
+  }
+  multi_polygon_type ret;
+  bg::convert(oval, ret);
+  return ret;
 }
-
 void GerberImporter::linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
                                 coordinate_type height, ring_type& ring)
 {
@@ -321,6 +310,15 @@ void GerberImporter::linear_draw_rectangular_aperture(point_type startpoint, poi
 
     bg::correct(ring);   
 }
+/*multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
+                                                    coordinate_type height) {
+  multi_polygon_type hull_input;
+  hull_input.push_back(make_rectangle(startpoint, width, height, 0, 0));
+  hull_input.push_back(make_rectangle(endpoint, width, height, 0, 0));
+  multi_polygon_type hull;
+  bg::convex_hull(hull_input, hull);
+  return hull;
+  }*/
 
 void GerberImporter::linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
                                     coordinate_type radius, unsigned int circle_points, ring_type& ring)
@@ -815,13 +813,11 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
                   break;
 
                 case GERBV_APTYPE_OVAL:
-                    input->resize(1);
-                    draw_oval(origin,
-                                parameters[0] * cfactor,
-                                parameters[1] * cfactor,
-                                parameters[2] * cfactor,
-                                circle_points,
-                                input->back());
+                  *input = make_oval(origin,
+                                     parameters[0] * cfactor,
+                                     parameters[1] * cfactor,
+                                     parameters[2] * cfactor,
+                                     circle_points);
                     break;
 
                 case GERBV_APTYPE_POLYGON:
@@ -1131,8 +1127,11 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
                         mpoly.resize(1);
                         linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
                                                 parameters[1] * cfactor, mpoly.back().outer());
+                        //                      mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
+                        //                                                               parameters[1] * cfactor);
 
                         merge_ring(mpoly.back().outer());
+                        //                      merge_ring(mpoly.back().outer());
                     }
                     else
                         cerr << "Drawing with an aperture different from a circle "

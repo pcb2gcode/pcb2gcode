@@ -94,9 +94,6 @@ protected:
 
     static const unsigned int scale;
 
-    static void draw_oval(point_type center, coordinate_type width, coordinate_type height, coordinate_type hole_diameter,
-                unsigned int circle_points, polygon_type& polygon);
-
     static void draw_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
                 coordinate_type gap_width, unsigned int circle_points, multi_polygon_type& output);
 
