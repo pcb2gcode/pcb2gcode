@@ -786,19 +786,16 @@ multi_polygon_type simplify_cutins(const ring_type& ring) {
   return ret;
 }
 
-void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apertures[], map<int, multi_polygon_type>& apertures_map, unsigned int circle_points, coordinate_type cfactor)
-{
-    const point_type origin (0, 0);
+map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points, coordinate_type cfactor) {
+  const point_type origin (0, 0);
+  map<int, multi_polygon_type> apertures_map;
+  for (int i = 0; i < APERTURE_MAX; i++) {
+    const gerbv_aperture_t * const aperture = apertures[i];
 
-    for (int i = 0; i < APERTURE_MAX; i++)
-    {
-        const gerbv_aperture_t * const aperture = apertures[i];
-
-        if (aperture)
-        {
-            const double * const parameters = aperture->parameter;
-            unique_ptr<multi_polygon_type> input (new multi_polygon_type());
-            unique_ptr<multi_polygon_type> output (new multi_polygon_type());
+    if (aperture) {
+      const double * const parameters = aperture->parameter;
+      unique_ptr<multi_polygon_type> input (new multi_polygon_type());
+      unique_ptr<multi_polygon_type> output (new multi_polygon_type());
 
             switch (aperture->type)
             {
@@ -994,6 +991,7 @@ void GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apert
             apertures_map[i] = *input;
         }
     }
+  return apertures_map;
 }
 
 bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* const layer2) {
@@ -1011,7 +1009,6 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
 // true, return all closed shapes without holes in them.  points_per_circle is
 // the number of lines to use to appoximate circles.
 unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
-  map<int, multi_polygon_type> apertures_map;
   ring_type region;
   coordinate_type cfactor;
   unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
@@ -1030,7 +1027,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     cfactor = scale;
   }
 
-  generate_apertures_map(gerber->aperture, apertures_map, points_per_circle, cfactor);
+  const map<int, multi_polygon_type> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle, cfactor);
   layers.front().first = gerber->netlist->layer;
 
 
