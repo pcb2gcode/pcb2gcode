@@ -178,60 +178,78 @@ void GerberImporter::rings_to_polygons(const vector<ring_type>& rings, multi_pol
 
 // Draw a regular polygon with outer diameter as specified and center.  The
 // number of vertices is provided.  offset is an angle in degrees to the
-// starting vertex of the shape.  clockwise to put the vertices in clockwise
-// order.
-ring_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                               double offset, bool clockwise) {
+// starting vertex of the shape.
+multi_polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                                        double offset) {
   double angle_step;
 
-  if (clockwise)
-    angle_step = -2 * bg::math::pi<double>() / vertices;
-  else
-    angle_step = 2 * bg::math::pi<double>() / vertices;
-
-  offset *= bg::math::pi<double>() / 180.0;
+  angle_step = -2 * bg::math::pi<double>() / vertices;
+  offset *= bg::math::pi<double>() / 180.0; // Convert to radians.
 
   ring_type ring;
-  for (unsigned int i = 0; i < vertices; i++)
+  for (unsigned int i = 0; i < vertices; i++) {
     ring.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
                               sin(angle_step * i + offset) * diameter / 2 + center.y()));
-
+  }
   ring.push_back(ring.front()); // Don't forget to close the ring.
-  return ring;
+  multi_polygon_type ret;
+  bg::convert(ring, ret);
+  return ret;
 }
 
-polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
-                               coordinate_type offset, coordinate_type hole_diameter,
-                               unsigned int circle_points) {
-  polygon_type polygon;
-  polygon.outer() = make_regular_polygon(center, diameter, vertices, offset, true);
+template <typename polygon_type_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename polygon_type_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::union_(lhs, rhs, ret);
+  return ret;
+}
+
+// Same as above but potentially puts a hole in the center.
+multi_polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+                                        coordinate_type offset, coordinate_type hole_diameter,
+                                        unsigned int circle_points) {
+  multi_polygon_type ret;
+  ret = make_regular_polygon(center, diameter, vertices, offset);
 
   if (hole_diameter > 0) {
-    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
   }
-  return polygon;
+  return ret;
 }
 
-polygon_type make_rectangle(point_type center, double width, double height,
-                            coordinate_type hole_diameter, unsigned int circle_points) {
-  polygon_type polygon;
+multi_polygon_type make_rectangle(point_type center, double width, double height,
+                                  coordinate_type hole_diameter, unsigned int circle_points) {
   const coordinate_type x = center.x();
   const coordinate_type y = center.y();
 
+  multi_polygon_type ret;
+  ret.resize(1);
+  auto& polygon = ret.front();
   polygon.outer().push_back(point_type(x - width / 2, y - height / 2));
   polygon.outer().push_back(point_type(x - width / 2, y + height / 2));
   polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
   polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
   polygon.outer().push_back(polygon.outer().front());
 
-  if (hole_diameter != 0) {
-    polygon.inners().push_back(make_regular_polygon(center, hole_diameter, circle_points, 0, false));
+  if (hole_diameter > 0) {
+    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
   }
-  return polygon;
+  return ret;
 }
 
-polygon_type make_rectangle(point_type point1, point_type point2, double height) {
-  polygon_type polygon;
+multi_polygon_type make_rectangle(point_type point1, point_type point2, double height) {
+  multi_polygon_type ret;
+  ret.resize(1);
+  auto& polygon = ret.front();
   const double distance = bg::distance(point1, point2);
   const double normalized_dy = (point2.y() - point1.y()) / distance;
   const double normalized_dx = (point2.x() - point1.x()) / distance;
@@ -245,7 +263,7 @@ polygon_type make_rectangle(point_type point1, point_type point2, double height)
   polygon.outer().push_back(point_type(point2.x() - dx, point2.y() - dy));
   polygon.outer().push_back(polygon.outer().front());
 
-  return polygon;
+  return ret;
 }
 
 multi_polygon_type make_oval(point_type center, coordinate_type width, coordinate_type height,
@@ -272,12 +290,10 @@ multi_polygon_type make_oval(point_type center, coordinate_type width, coordinat
              bg::strategy::buffer::point_circle(circle_points));
 
   if (hole_diameter > 0) {
-    multi_polygon_type_fp temp;
-    auto hole = make_regular_polygon(center, hole_diameter, circle_points, 0, true);
+    multi_polygon_type hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
     multi_polygon_type_fp hole_fp;
     bg::convert(hole, hole_fp);
-    bg::difference(oval, hole_fp, temp);
-    oval = temp;
+    oval = oval - hole_fp;
   }
   multi_polygon_type ret;
   bg::convert(oval, ret);
@@ -286,12 +302,13 @@ multi_polygon_type make_oval(point_type center, coordinate_type width, coordinat
 
 multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
                                                     coordinate_type height) {
-  multi_polygon_type hull_input;
-  hull_input.push_back(make_rectangle(startpoint, width, height, 0, 0));
-  hull_input.push_back(make_rectangle(endpoint, width, height, 0, 0));
+  auto start_rect = make_rectangle(startpoint, width, height, 0, 0);
+  auto end_rect = make_rectangle(endpoint, width, height, 0, 0);
+  multi_polygon_type both_rects;
+  both_rects = start_rect + end_rect;
   multi_polygon_type hull;
   hull.resize(1);
-  bg::convex_hull(hull_input, hull[0]);
+  bg::convex_hull(both_rects, hull[0]);
   return hull;
 }
 
@@ -676,15 +693,15 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
     return output;
 }
 
-polygon_type make_moire(const double * const parameters, unsigned int circle_points,
-                        coordinate_type cfactor) {
+multi_polygon_type make_moire(const double * const parameters, unsigned int circle_points,
+                              coordinate_type cfactor) {
   const point_type center(parameters[0] * cfactor, parameters[1] * cfactor);
-  multi_polygon_type moire_parts;
+  multi_polygon_type moire;
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
-  moire_parts.push_back(make_rectangle(center, crosshair_thickness * cfactor, crosshair_length * cfactor, 0, 0));
-  moire_parts.push_back(make_rectangle(center, crosshair_length * cfactor, crosshair_thickness * cfactor, 0, 0));
+  moire = moire + make_rectangle(center, crosshair_thickness * cfactor, crosshair_length * cfactor, 0, 0);
+  moire = moire + make_rectangle(center, crosshair_length * cfactor, crosshair_thickness * cfactor, 0, 0);
   const int max_number_of_rings = parameters[5];
   const double outer_ring_diameter = parameters[2];
   const double ring_thickness = parameters[3];
@@ -696,33 +713,20 @@ polygon_type make_moire(const double * const parameters, unsigned int circle_poi
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire_parts.push_back(make_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
-                                               internal_diameter * cfactor, circle_points));
+    moire = moire + make_regular_polygon(center, external_diameter * cfactor, circle_points, 0,
+                                         internal_diameter * cfactor, circle_points);
   }
-  multi_polygon_type moire;
-  for (const auto& p : moire_parts) {
-    multi_polygon_type union_temp;
-    bg::union_(moire, p, union_temp);
-    moire = union_temp;
-  }
-  return moire.front();
+  return moire;
 }
 
 multi_polygon_type make_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
                                 coordinate_type gap_width, unsigned int circle_points) {
-  polygon_type rect1;
-  polygon_type rect2;
-  multi_polygon_type cross;
+  multi_polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
+                                                 0, internal_diameter, circle_points);
 
-  polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
-                                           0, internal_diameter, circle_points);
-
-  rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
-  rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
-  bg::union_(rect1, rect2, cross);
-  multi_polygon_type output;
-  bg::difference(ring, cross, output);
-  return output;
+  multi_polygon_type rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
+  multi_polygon_type rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
+  return ring - rect1 - rect2;
 }
 
 // Look through ring for crossing points and snip them out of the input so that
@@ -802,19 +806,19 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
           continue;
 
         case GERBV_APTYPE_CIRCLE:
-          input.push_back(make_regular_polygon(origin,
-                                               parameters[0] * cfactor,
-                                               circle_points,
-                                               parameters[1] * cfactor,
-                                               parameters[2] * cfactor,
-                                               circle_points));
+          input = make_regular_polygon(origin,
+                                       parameters[0] * cfactor,
+                                       circle_points,
+                                       parameters[1] * cfactor,
+                                       parameters[2] * cfactor,
+                                       circle_points);
           break;
         case GERBV_APTYPE_RECTANGLE:
-          input.push_back(make_rectangle(origin,
-                                         parameters[0] * cfactor,
-                                         parameters[1] * cfactor,
-                                         parameters[2] * cfactor,
-                                         circle_points));
+          input = make_rectangle(origin,
+                                 parameters[0] * cfactor,
+                                 parameters[1] * cfactor,
+                                 parameters[2] * cfactor,
+                                 circle_points);
           break;
         case GERBV_APTYPE_OVAL:
           input = make_oval(origin,
@@ -824,12 +828,12 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                             circle_points);
           break;
         case GERBV_APTYPE_POLYGON:
-          input.push_back(make_regular_polygon(origin,
-                                               parameters[0] * cfactor,
-                                               parameters[1] * cfactor,
-                                               parameters[2] * cfactor,
-                                               parameters[3] * cfactor,
-                                               circle_points));
+          input = make_regular_polygon(origin,
+                                       parameters[0] * cfactor,
+                                       parameters[1] * cfactor,
+                                       parameters[2] * cfactor,
+                                       parameters[3] * cfactor,
+                                       circle_points);
           break;
         case GERBV_APTYPE_MACRO:
           if (aperture->simplified) {
@@ -857,44 +861,40 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   simplified_amacro = simplified_amacro->next;
                   continue;
                 case GERBV_APTYPE_MACRO_CIRCLE:
-                  mpoly.resize(1);
-                  mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                               parameters[1] * cfactor,
-                                                               circle_points,
-                                                               0, true);
+                  mpoly = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                               parameters[1] * cfactor,
+                                               circle_points,
+                                               0);
                   polarity = parameters[0];
                   rotation = parameters[4];
                   break;
                 case GERBV_APTYPE_MACRO_OUTLINE:
-                  mpoly.resize(1);
-                  for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
-                    mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2] * cfactor,
-                                                               parameters [i * 2 + 3] * cfactor));
-                  }
-                  bg::correct(mpoly.front());
                   {
-                    auto new_polys = simplify_cutins(mpoly.front().outer());
-                    mpoly.erase(mpoly.begin());
-                    mpoly.insert(mpoly.end(), new_polys.cbegin(), new_polys.cend());
+                    ring_type ring;
+                    for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
+                      ring.push_back(point_type(parameters[i * 2 + 2] * cfactor,
+                                                parameters [i * 2 + 3] * cfactor));
+                    }
+                    bg::correct(ring);
+                    mpoly = simplify_cutins(ring);
                   }
                   polarity = parameters[0];
                   rotation = parameters[(2 * int(round(parameters[1])) + 4)];
                   break;
-                case GERBV_APTYPE_MACRO_POLYGON:
-                  mpoly.resize(1);
-                  mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                               parameters[4] * cfactor,
-                                                               parameters[1],
-                                                               0, true);
+                case GERBV_APTYPE_MACRO_POLYGON: // 4.12.4.6 Polygon, Primitve Code 5
+                  mpoly = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                               parameters[4] * cfactor,
+                                               parameters[1],
+                                               0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
-                case GERBV_APTYPE_MACRO_MOIRE:
-                  mpoly.push_back(make_moire(parameters, circle_points, cfactor));
+                case GERBV_APTYPE_MACRO_MOIRE: // 4.12.4.7 Moire, Primitive Code 6
+                  mpoly = make_moire(parameters, circle_points, cfactor);
                   polarity = 1;
                   rotation = parameters[8];
                   break;
-                case GERBV_APTYPE_MACRO_THERMAL:
+                case GERBV_APTYPE_MACRO_THERMAL: // 4.12.4.8 Thermal, Primitive Code 7
                   mpoly = make_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
                                        parameters[2] * cfactor,
                                        parameters[3] * cfactor,
@@ -903,27 +903,27 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   polarity = 1;
                   rotation = parameters[5];
                   break;
-                case GERBV_APTYPE_MACRO_LINE20:
-                  mpoly.push_back(make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                 point_type(parameters[4] * cfactor, parameters[5] * cfactor),
-                                                 parameters[1] * cfactor));
+                case GERBV_APTYPE_MACRO_LINE20: // 4.12.4.3 Vector Line, Primitive Code 20
+                  mpoly = make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                         point_type(parameters[4] * cfactor, parameters[5] * cfactor),
+                                         parameters[1] * cfactor);
                   polarity = parameters[0];
                   rotation = parameters[6];
                   break;
-                case GERBV_APTYPE_MACRO_LINE21:
-                  mpoly.push_back(make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
-                                                 parameters[1] * cfactor,
-                                                 parameters[2] * cfactor,
-                                                 0, 0));
+                case GERBV_APTYPE_MACRO_LINE21: // 4.12.4.4 Center Line, Primitive Code 21
+                  mpoly = make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
+                                         parameters[1] * cfactor,
+                                         parameters[2] * cfactor,
+                                         0, 0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_LINE22:
-                  mpoly.push_back(make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
-                                                            (parameters[4] + parameters[2] / 2) * cfactor),
-                                                 parameters[1] * cfactor,
-                                                 parameters[2] * cfactor,
-                                                 0, 0));
+                  mpoly = make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
+                                                    (parameters[4] + parameters[2] / 2) * cfactor),
+                                         parameters[1] * cfactor,
+                                         parameters[2] * cfactor,
+                                         0, 0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
