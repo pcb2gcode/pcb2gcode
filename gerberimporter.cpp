@@ -990,8 +990,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
   layers.front().first = gerber->netlist->layer;
 
 
-  for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next){
-
+  for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next) {
     const point_type start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
     const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
     const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
@@ -1048,7 +1047,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
                                                      parameters[1] * cfactor);
-            merge_ring(mpoly.back().outer());
+            *draws = *draws + mpoly;
           } else {
             cerr << ("Drawing with an aperture different from a circle "
                      "or a rectangle is forbidden by the Gerber standard; skipping.")
