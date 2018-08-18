@@ -1073,7 +1073,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
         if (contour) {
           if (!region.empty()) {
             bg::append(region, stop);
-            merge_ring(region);
+            *draws = *draws + simplify_cutins(region);
           }
         }
       } else {
