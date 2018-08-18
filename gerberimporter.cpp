@@ -794,203 +794,178 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
 
     if (aperture) {
       const double * const parameters = aperture->parameter;
-      unique_ptr<multi_polygon_type> input (new multi_polygon_type());
-      unique_ptr<multi_polygon_type> output (new multi_polygon_type());
+      multi_polygon_type input;
+      multi_polygon_type output;
 
-            switch (aperture->type)
-            {
+      switch (aperture->type) {
+        case GERBV_APTYPE_NONE:
+          continue;
+
+        case GERBV_APTYPE_CIRCLE:
+          input.push_back(make_regular_polygon(origin,
+                                               parameters[0] * cfactor,
+                                               circle_points,
+                                               parameters[1] * cfactor,
+                                               parameters[2] * cfactor,
+                                               circle_points));
+          break;
+        case GERBV_APTYPE_RECTANGLE:
+          input.push_back(make_rectangle(origin,
+                                         parameters[0] * cfactor,
+                                         parameters[1] * cfactor,
+                                         parameters[2] * cfactor,
+                                         circle_points));
+          break;
+        case GERBV_APTYPE_OVAL:
+          input = make_oval(origin,
+                            parameters[0] * cfactor,
+                            parameters[1] * cfactor,
+                            parameters[2] * cfactor,
+                            circle_points);
+          break;
+        case GERBV_APTYPE_POLYGON:
+          input.push_back(make_regular_polygon(origin,
+                                               parameters[0] * cfactor,
+                                               parameters[1] * cfactor,
+                                               parameters[2] * cfactor,
+                                               parameters[3] * cfactor,
+                                               circle_points));
+          break;
+        case GERBV_APTYPE_MACRO:
+          if (aperture->simplified) {
+            // I thikn that this means that the marco's variables are substitued.
+            const gerbv_simplified_amacro_t *simplified_amacro = aperture->simplified;
+
+            while (simplified_amacro) {
+              const double * const parameters = simplified_amacro->parameter;
+              double rotation;
+              int polarity;
+              multi_polygon_type mpoly;
+              multi_polygon_type mpoly_rotated;
+
+              switch (simplified_amacro->type) {
                 case GERBV_APTYPE_NONE:
-                    continue;
-
                 case GERBV_APTYPE_CIRCLE:
-                  input->push_back(make_regular_polygon(origin,
-                                                        parameters[0] * cfactor,
-                                                        circle_points,
-                                                        parameters[1] * cfactor,
-                                                        parameters[2] * cfactor,
-                                                        circle_points));
-                  break;
-
                 case GERBV_APTYPE_RECTANGLE:
-                  input->push_back(make_rectangle(origin,
-                                                  parameters[0] * cfactor,
-                                                  parameters[1] * cfactor,
-                                                  parameters[2] * cfactor,
-                                                  circle_points));
-                  break;
-
                 case GERBV_APTYPE_OVAL:
-                  *input = make_oval(origin,
-                                     parameters[0] * cfactor,
-                                     parameters[1] * cfactor,
-                                     parameters[2] * cfactor,
-                                     circle_points);
-                    break;
-
                 case GERBV_APTYPE_POLYGON:
-                    input->push_back(make_regular_polygon(origin,
-                                                         parameters[0] * cfactor,
-                                                         parameters[1] * cfactor,
-                                                         parameters[2] * cfactor,
-                                                         parameters[3] * cfactor,
-                                                         circle_points));
-                    break;
-                
+                  cerr << "Non-macro aperture during macro drawing: skipping" << endl;
+                  simplified_amacro = simplified_amacro->next;
+                  continue;
                 case GERBV_APTYPE_MACRO:
-                    if (aperture->simplified)
-                    {
-                        const gerbv_simplified_amacro_t *simplified_amacro = aperture->simplified;
-
-                        while (simplified_amacro)
-                        {
-                            const double * const parameters = simplified_amacro->parameter;
-                            double rotation;
-                            int polarity;
-                            multi_polygon_type mpoly;
-                            multi_polygon_type mpoly_rotated;
-
-                            switch (simplified_amacro->type)
-                            {                     
-                                case GERBV_APTYPE_NONE:
-	                            case GERBV_APTYPE_CIRCLE:
-	                            case GERBV_APTYPE_RECTANGLE:
-	                            case GERBV_APTYPE_OVAL:
-	                            case GERBV_APTYPE_POLYGON:
-	                                cerr << "Non-macro aperture during macro drawing: skipping" << endl;
-	                                simplified_amacro = simplified_amacro->next;
-	                                continue;
-	
-	                            case GERBV_APTYPE_MACRO:
-	                                cerr << "Macro start aperture during macro drawing: skipping" << endl;
-	                                simplified_amacro = simplified_amacro->next;
-	                                continue;
-	
-	                            case GERBV_APTYPE_MACRO_CIRCLE:
-	                                mpoly.resize(1);
-	                                mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                                                     parameters[1] * cfactor,
-                                                                                     circle_points,
-                                                                                     0, true);
-	                                polarity = parameters[0];
-	                                rotation = parameters[4];
-	                                break;
-	                            
-	                            case GERBV_APTYPE_MACRO_OUTLINE:
-	                                mpoly.resize(1);
-                                    for (unsigned int i = 0; i < round(parameters[1]) + 1; i++)
-                                    {
-                                        mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2] * cfactor,
-                                                                                    parameters [i * 2 + 3] * cfactor));
-                                    }
-                                    bg::correct(mpoly.front());
-                                    {
-                                      auto new_polys = simplify_cutins(mpoly.front().outer());
-                                      mpoly.erase(mpoly.begin());
-                                      mpoly.insert(mpoly.end(), new_polys.cbegin(), new_polys.cend());
-                                    }
-                                    polarity = parameters[0];
-                                    rotation = parameters[(2 * int(round(parameters[1])) + 4)];
-                                    break;
-	                            
-	                            case GERBV_APTYPE_MACRO_POLYGON:
-	                                mpoly.resize(1);
-	                                mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                                                     parameters[4] * cfactor,
-                                                                                     parameters[1],
-                                                                                     0, true);
-	                                polarity = parameters[0];
-	                                rotation = parameters[5];
-	                                break;
-	                            
-	                            case GERBV_APTYPE_MACRO_MOIRE:
-                                      mpoly.push_back(make_moire(parameters, circle_points, cfactor));
-                                      polarity = 1;
-                                      rotation = parameters[8];
-                                      break;
-
-	                            case GERBV_APTYPE_MACRO_THERMAL:
-                                      mpoly = make_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
-                                                           parameters[2] * cfactor,
-                                                           parameters[3] * cfactor,
-                                                           parameters[4] * cfactor,
-                                                           circle_points);
-                                      polarity = 1;
-                                      rotation = parameters[5];
-                                      break;
-
-	                            case GERBV_APTYPE_MACRO_LINE20:
-                                      mpoly.push_back(make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                                                     point_type(parameters[4] * cfactor, parameters[5] * cfactor),
-                                                                     parameters[1] * cfactor));
-                                      polarity = parameters[0];
-                                      rotation = parameters[6];
-                                      break;
-
-	                            case GERBV_APTYPE_MACRO_LINE21:
-                                      mpoly.push_back(make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
-                                                                     parameters[1] * cfactor,
-                                                                     parameters[2] * cfactor,
-                                                                     0, 0));
-                                      polarity = parameters[0];
-                                      rotation = parameters[5];
-                                      break;
-
-	                            case GERBV_APTYPE_MACRO_LINE22:
-                                      mpoly.push_back(make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
-                                                                                (parameters[4] + parameters[2] / 2) * cfactor),
-                                                                     parameters[1] * cfactor,
-                                                                     parameters[2] * cfactor,
-                                                                     0, 0));
-                                      polarity = parameters[0];
-                                      rotation = parameters[5];
-                                      break;
-
-	                            default:
-                                    cerr << "Unrecognized aperture: skipping" << endl;
-                                    simplified_amacro = simplified_amacro->next;
-                                    continue;
-                            }
-
-                            // For Boost.Geometry a positive angle is considered
-                            // clockwise, for Gerber is the opposite
-                            bg::transform(mpoly, mpoly_rotated, rotate_deg(-rotation));
-
-                            if (polarity == 0)
-                                bg::difference(*input, mpoly_rotated, *output);
-                            else
-                                bg::union_(*input, mpoly_rotated, *output);
-                            input->clear();
-                            input.swap(output);
-                        
-                            simplified_amacro = simplified_amacro->next;
-                        }
-                    }
-                    else
-                    {
-                        cerr << "Macro aperture " << i << " is not simplified: skipping" << endl;
-                        continue;
-                    }
-                    break;
-                
+                  cerr << "Macro start aperture during macro drawing: skipping" << endl;
+                  simplified_amacro = simplified_amacro->next;
+                  continue;
                 case GERBV_APTYPE_MACRO_CIRCLE:
-	            case GERBV_APTYPE_MACRO_OUTLINE:
-	            case GERBV_APTYPE_MACRO_POLYGON:
-	            case GERBV_APTYPE_MACRO_MOIRE:
-	            case GERBV_APTYPE_MACRO_THERMAL:
-	            case GERBV_APTYPE_MACRO_LINE20:
-	            case GERBV_APTYPE_MACRO_LINE21:
-	            case GERBV_APTYPE_MACRO_LINE22:
-	                cerr << "Macro aperture during non-macro drawing: skipping" << endl;
-	                continue;
-	            
-	            default:
-	                cerr << "Unrecognized aperture: skipping" << endl;
-                    continue;
-            }
+                  mpoly.resize(1);
+                  mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                               parameters[1] * cfactor,
+                                                               circle_points,
+                                                               0, true);
+                  polarity = parameters[0];
+                  rotation = parameters[4];
+                  break;
+                case GERBV_APTYPE_MACRO_OUTLINE:
+                  mpoly.resize(1);
+                  for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
+                    mpoly.front().outer().push_back(point_type(parameters[i * 2 + 2] * cfactor,
+                                                               parameters [i * 2 + 3] * cfactor));
+                  }
+                  bg::correct(mpoly.front());
+                  {
+                    auto new_polys = simplify_cutins(mpoly.front().outer());
+                    mpoly.erase(mpoly.begin());
+                    mpoly.insert(mpoly.end(), new_polys.cbegin(), new_polys.cend());
+                  }
+                  polarity = parameters[0];
+                  rotation = parameters[(2 * int(round(parameters[1])) + 4)];
+                  break;
+                case GERBV_APTYPE_MACRO_POLYGON:
+                  mpoly.resize(1);
+                  mpoly.front().outer() = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                               parameters[4] * cfactor,
+                                                               parameters[1],
+                                                               0, true);
+                  polarity = parameters[0];
+                  rotation = parameters[5];
+                  break;
+                case GERBV_APTYPE_MACRO_MOIRE:
+                  mpoly.push_back(make_moire(parameters, circle_points, cfactor));
+                  polarity = 1;
+                  rotation = parameters[8];
+                  break;
+                case GERBV_APTYPE_MACRO_THERMAL:
+                  mpoly = make_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
+                                       parameters[2] * cfactor,
+                                       parameters[3] * cfactor,
+                                       parameters[4] * cfactor,
+                                       circle_points);
+                  polarity = 1;
+                  rotation = parameters[5];
+                  break;
+                case GERBV_APTYPE_MACRO_LINE20:
+                  mpoly.push_back(make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                                                 point_type(parameters[4] * cfactor, parameters[5] * cfactor),
+                                                 parameters[1] * cfactor));
+                  polarity = parameters[0];
+                  rotation = parameters[6];
+                  break;
+                case GERBV_APTYPE_MACRO_LINE21:
+                  mpoly.push_back(make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
+                                                 parameters[1] * cfactor,
+                                                 parameters[2] * cfactor,
+                                                 0, 0));
+                  polarity = parameters[0];
+                  rotation = parameters[5];
+                  break;
+                case GERBV_APTYPE_MACRO_LINE22:
+                  mpoly.push_back(make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
+                                                            (parameters[4] + parameters[2] / 2) * cfactor),
+                                                 parameters[1] * cfactor,
+                                                 parameters[2] * cfactor,
+                                                 0, 0));
+                  polarity = parameters[0];
+                  rotation = parameters[5];
+                  break;
+                default:
+                  cerr << "Unrecognized aperture: skipping" << endl;
+                  simplified_amacro = simplified_amacro->next;
+                  continue;
+              }
+              // For Boost.Geometry a positive angle is considered
+              // clockwise, for Gerber is the opposite
+              bg::transform(mpoly, mpoly_rotated, rotate_deg(-rotation));
 
-            apertures_map[i] = *input;
-        }
+              if (polarity == 0) {
+                bg::difference(input, mpoly_rotated, output);
+              } else {
+                bg::union_(input, mpoly_rotated, output);
+              }
+              input = output;
+              simplified_amacro = simplified_amacro->next;
+            }
+          } else {
+            cerr << "Macro aperture " << i << " is not simplified: skipping" << endl;
+            continue;
+          }
+          break;
+        case GERBV_APTYPE_MACRO_CIRCLE:
+        case GERBV_APTYPE_MACRO_OUTLINE:
+        case GERBV_APTYPE_MACRO_POLYGON:
+        case GERBV_APTYPE_MACRO_MOIRE:
+        case GERBV_APTYPE_MACRO_THERMAL:
+        case GERBV_APTYPE_MACRO_LINE20:
+        case GERBV_APTYPE_MACRO_LINE21:
+        case GERBV_APTYPE_MACRO_LINE22:
+          cerr << "Macro aperture during non-macro drawing: skipping" << endl;
+          continue;
+        default:
+          cerr << "Unrecognized aperture: skipping" << endl;
+          continue;
+      }
+      apertures_map[i] = input;
     }
+  }
   return apertures_map;
 }
 
