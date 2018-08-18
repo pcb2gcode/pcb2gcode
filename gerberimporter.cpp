@@ -526,177 +526,154 @@ void GerberImporter::simplify_paths(multi_linestring_type &paths)
 }
 
 unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
-                                                                bool fill_rings, coordinate_type cfactor, unsigned int points_per_circle)
-{
-    unique_ptr<multi_polygon_type> output (new multi_polygon_type());
-    vector<ring_type> rings;
+                                                               bool fill_rings, coordinate_type cfactor, unsigned int points_per_circle) {
+  unique_ptr<multi_polygon_type> output (new multi_polygon_type());
+  vector<ring_type> rings;
 
-    for (auto layer = layers.begin(); layer != layers.end(); layer++)
-    {
-        unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
-        const gerbv_polarity_t polarity = layer->first->polarity;
-        const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-        map<coordinate_type, multi_linestring_type>& paths = layer->second.paths;
-        unique_ptr<multi_polygon_type>& draws = layer->second.draws;
+  for (auto layer = layers.begin(); layer != layers.end(); layer++) {
+    unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
+    const gerbv_polarity_t polarity = layer->first->polarity;
+    const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
+    map<coordinate_type, multi_linestring_type>& paths = layer->second.paths;
+    unique_ptr<multi_polygon_type>& draws = layer->second.draws;
 
-        const unsigned int layer_rings_offset = rings.size();
+    const unsigned int layer_rings_offset = rings.size();
 
-        for (auto i = paths.begin(); i != paths.end(); i++)
-        {
-            if (fill_rings)
-            {
-                for (auto ls = i->second.begin(); ls != i->second.end(); )
-                {
-                    if (ls->size() >= 4)
-                    {
-                        multi_point_type intersection_points;
-                        segment_type first_segment(ls->front(), ls->at(1));
-                        segment_type last_segment(ls->back(), ls->at(ls->size() - 2));
+    for (auto i = paths.begin(); i != paths.end(); i++) {
+      if (fill_rings) {
+        for (auto ls = i->second.begin(); ls != i->second.end(); ){
+          if (ls->size() >= 4) {
+            multi_point_type intersection_points;
+            segment_type first_segment(ls->front(), ls->at(1));
+            segment_type last_segment(ls->back(), ls->at(ls->size() - 2));
 
-                        bg::intersection(first_segment, last_segment, intersection_points);
+            bg::intersection(first_segment, last_segment, intersection_points);
 
-                        if (!intersection_points.empty())
-                        {
-                            bg::assign(ls->front(), intersection_points.front());
-                            bg::assign(ls->back(), intersection_points.front());
-                        }
-                    }
-
-                    if (bg::equals(ls->front(), ls->back()) && bg::is_valid(*ls))
-                    {
-                        rings.push_back(ring_type());
-                        rings.back().reserve(ls->size());
-
-                        for (auto point = ls->begin(); point != ls->end(); point++)
-                        {
-                            rings.back().push_back(*point);
-                        }
-                        bg::correct(rings.back());
-
-                        ls = i->second.erase(ls);
-                    }
-                    else
-                        ++ls;
-                }
+            if (!intersection_points.empty()) {
+              bg::assign(ls->front(), intersection_points.front());
+              bg::assign(ls->back(), intersection_points.front());
             }
+          }
 
-            if (i->second.size() != 0)
-            {
-                // Always convert to floating point before calling
-                // bg::buffer because it is buggy with fixed point.
-                multi_polygon_type buffered_mls;
-                bg_helpers::buffer(i->second, buffered_mls, i->first);
-                bg::union_(buffered_mls, *draws, *temp_mpoly);
-                temp_mpoly.swap(draws);
-                temp_mpoly->clear();
+          if (bg::equals(ls->front(), ls->back()) && bg::is_valid(*ls)) {
+            rings.push_back(ring_type());
+            rings.back().reserve(ls->size());
+
+            for (auto point = ls->begin(); point != ls->end(); point++){
+              rings.back().push_back(*point);
             }
+            bg::correct(rings.back());
+
+            ls = i->second.erase(ls);
+          } else {
+            ++ls;
+          }
         }
-        
-        paths.clear();
+      }
 
-        if (fill_rings)
-        {
-            unsigned int newrings = rings.size() - layer_rings_offset;
-            unsigned int translated_ring_offset = rings.size();
+      if (i->second.size() != 0) {
+        // Always convert to floating point before calling
+        // bg::buffer because it is buggy with fixed point.
+        multi_polygon_type buffered_mls;
+        bg_helpers::buffer(i->second, buffered_mls, i->first);
+        bg::union_(buffered_mls, *draws, *temp_mpoly);
+        temp_mpoly.swap(draws);
+        temp_mpoly->clear();
+      }
+    }
 
-            rings.resize(layer_rings_offset + newrings * stepAndRepeat.X * stepAndRepeat.Y);
+    paths.clear();
 
-            for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++)
-            {
-                for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++)
-                {
-                    if (sr_x != 0 || sr_y != 0)
-                    {
-                        translate translate_strategy(stepAndRepeat.dist_X * sr_x * cfactor,
-                                                     stepAndRepeat.dist_Y * sr_y * cfactor);
+    if (fill_rings) {
+      unsigned int newrings = rings.size() - layer_rings_offset;
+      unsigned int translated_ring_offset = rings.size();
 
-                        for (unsigned int i = 0; i < newrings; i++)
-                        {
-                            bg::transform(rings[layer_rings_offset + i], rings[translated_ring_offset], translate_strategy);
-                            ++translated_ring_offset;
-                        }
-                    }
-                }
+      rings.resize(layer_rings_offset + newrings * stepAndRepeat.X * stepAndRepeat.Y);
+
+      for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++) {
+        for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++) {
+          if (sr_x != 0 || sr_y != 0) {
+            translate translate_strategy(stepAndRepeat.dist_X * sr_x * cfactor,
+                                         stepAndRepeat.dist_Y * sr_y * cfactor);
+
+            for (unsigned int i = 0; i < newrings; i++) {
+              bg::transform(rings[layer_rings_offset + i], rings[translated_ring_offset], translate_strategy);
+              ++translated_ring_offset;
             }
+          }
         }
+      }
+    }
 
-        for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++)
-        {
-            multi_polygon_type translated_mpoly;
-            unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
+    for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
+      multi_polygon_type translated_mpoly;
+      unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
 
-            bg::transform(*draws, translated_mpoly,
-                            translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
+      bg::transform(*draws, translated_mpoly,
+                    translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
             
-            if (sr_x == 1)
-                bg::union_(translated_mpoly, *draws, *united_mpoly);
-            else
-                bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
-
-            united_mpoly.swap(temp_mpoly);
-        }
-
-        if (stepAndRepeat.X > 1)
-        {
-            temp_mpoly.swap(draws);
-            temp_mpoly->clear();
-        }
-
-        for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++)
-        {
-            multi_polygon_type translated_mpoly;
-            unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
-
-            bg::transform(*draws, translated_mpoly,
-                            translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
-
-            if (sr_y == 1)
-                bg::union_(translated_mpoly, *draws, *united_mpoly);
-            else
-                bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
-
-            united_mpoly.swap(temp_mpoly);
-        }
-        
-        if (stepAndRepeat.Y > 1)
-        {
-            temp_mpoly.swap(draws);
-            temp_mpoly->clear();
-        }
-        
-        if (layer != layers.begin())
-        {
-            if (polarity == GERBV_POLARITY_DARK)
-                bg::union_(*output, *draws, *temp_mpoly);
-            else if (polarity == GERBV_POLARITY_CLEAR)
-                bg::difference(*output, *draws, *temp_mpoly);
-            else
-                unsupported_polarity_throw_exception();
-
-            temp_mpoly.swap(output);
-        }
-        else
-        {
-            if (polarity == GERBV_POLARITY_DARK)
-                output.swap(draws);
-            else if (polarity != GERBV_POLARITY_CLEAR)
-                unsupported_polarity_throw_exception();
-        }
-        
-        draws->clear();
+      if (sr_x == 1) {
+        bg::union_(translated_mpoly, *draws, *united_mpoly);
+      } else {
+        bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
+      }
+      united_mpoly.swap(temp_mpoly);
     }
 
-    if (fill_rings)
-    {
-        multi_polygon_type filled_rings;
-        unique_ptr<multi_polygon_type> merged_mpoly (new multi_polygon_type());
-
-        rings_to_polygons(rings, filled_rings);
-        bg::union_(filled_rings, *output, *merged_mpoly);
-        output.swap(merged_mpoly);
+    if (stepAndRepeat.X > 1) {
+      temp_mpoly.swap(draws);
+      temp_mpoly->clear();
     }
 
-    return output;
+    for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
+      multi_polygon_type translated_mpoly;
+      unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
+
+      bg::transform(*draws, translated_mpoly,
+                    translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
+
+      if (sr_y == 1) {
+        bg::union_(translated_mpoly, *draws, *united_mpoly);
+      } else {
+        bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
+      }
+      united_mpoly.swap(temp_mpoly);
+    }
+
+    if (stepAndRepeat.Y > 1) {
+      temp_mpoly.swap(draws);
+      temp_mpoly->clear();
+    }
+
+    if (layer != layers.begin()) {
+      if (polarity == GERBV_POLARITY_DARK) {
+        bg::union_(*output, *draws, *temp_mpoly);
+      } else if (polarity == GERBV_POLARITY_CLEAR) {
+        bg::difference(*output, *draws, *temp_mpoly);
+      } else {
+        unsupported_polarity_throw_exception();
+      }
+      temp_mpoly.swap(output);
+    } else {
+      if (polarity == GERBV_POLARITY_DARK) {
+        output.swap(draws);
+      } else if (polarity != GERBV_POLARITY_CLEAR) {
+        unsupported_polarity_throw_exception();
+      }
+    }
+    draws->clear();
+  }
+
+  if (fill_rings) {
+    multi_polygon_type filled_rings;
+    unique_ptr<multi_polygon_type> merged_mpoly (new multi_polygon_type());
+
+    rings_to_polygons(rings, filled_rings);
+    bg::union_(filled_rings, *output, *merged_mpoly);
+    output.swap(merged_mpoly);
+  }
+
+  return output;
 }
 
 multi_polygon_type make_moire(const double * const parameters, unsigned int circle_points,
