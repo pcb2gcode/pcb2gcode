@@ -282,7 +282,10 @@ multi_polygon_type make_oval(point_type center, coordinate_type width, coordinat
   // TODO: Make sure this works when width==height.
 
   multi_polygon_type_fp oval;
-  bg::buffer(linestring_type_fp{start, end}, oval,
+  linestring_type_fp line;
+  line.push_back(start);
+  line.push_back(end);
+  bg::buffer(line, oval,
              bg::strategy::buffer::distance_symmetric<coordinate_type>(std::min(width, height)/2),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(circle_points),
