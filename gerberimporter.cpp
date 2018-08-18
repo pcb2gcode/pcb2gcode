@@ -315,7 +315,10 @@ multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point
 multi_polygon_type linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
                                                  coordinate_type radius, unsigned int circle_points) {
   multi_polygon_type oval;
-  bg::buffer(linestring_type{startpoint, endpoint}, oval,
+  linestring_type line;
+  line.push_back(startpoint);
+  line.push_back(endpoint);
+  bg::buffer(line, oval,
              bg::strategy::buffer::distance_symmetric<coordinate_type>(radius),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(circle_points),
