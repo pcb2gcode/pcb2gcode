@@ -999,8 +999,9 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
 
   gerbv_image_t *gerber = project->file[0]->image;
 
-  if (gerber->info->polarity != GERBV_POLARITY_POSITIVE)
+  if (gerber->info->polarity != GERBV_POLARITY_POSITIVE) {
     unsupported_polarity_throw_exception();
+  }
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     cfactor = scale / 25.4;
@@ -1012,207 +1013,168 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
   layers.front().first = gerber->netlist->layer;
 
 
-    for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next){
+  for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next){
 
-        const point_type start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
-        const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
-        const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
-        multi_polygon_type mpoly;
+    const point_type start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
+    const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
+    const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
+    multi_polygon_type mpoly;
 
-        if (!layers_equivalent(currentNet->layer, layers.back().first))
-        {
-            layers.resize(layers.size() + 1);
-            layers.back().first = currentNet->layer;
-        }
+    if (!layers_equivalent(currentNet->layer, layers.back().first)) {
+      layers.resize(layers.size() + 1);
+      layers.back().first = currentNet->layer;
+    }
 
-        map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
-        unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
+    map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
+    unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
 
-        auto merge_ring = [&](ring_type& ring)
-        {
-            if (ring.size() > 1)
-            {
-                polygon_type polygon;
-                bg::correct(ring);
-                
-                bg::union_(*draws, simplify_cutins(ring), *temp_mpoly);
-
-                ring.clear();
-                draws.swap(temp_mpoly);
-                temp_mpoly->clear();
-            }
-        };
-
-        auto merge_mpoly = [&](multi_polygon_type& mpoly)
-        {
-            bg::correct(mpoly);
-            bg::union_(*draws, mpoly, *temp_mpoly);
-            mpoly.clear();
-            draws.swap(temp_mpoly);
-            temp_mpoly->clear();
-        };
-
-        if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
-        
-            if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
-            
-                if (contour)
-                {
-                    if (region.empty())
-                        bg::append(region, start);
-
-                    bg::append(region, stop);
-                }
-                else
-                {
-                    if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
-                    {
-                        const double diameter = parameters[0] * cfactor;
-                        linestring_type new_segment;
-
-                        new_segment.push_back(start);
-                        new_segment.push_back(stop);
-
-                        merge_paths(paths[coordinate_type(diameter / 2)], new_segment, fill_closed_lines ? diameter : 0);
-                    }
-                    else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
-                      mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
-                                                               parameters[1] * cfactor);
-                      merge_ring(mpoly.back().outer());
-                    }
-                    else
-                        cerr << "Drawing with an aperture different from a circle "
-                                     "or a rectangle is forbidden by the Gerber standard; skipping."
-                                  << endl;
-                }
-            }
-            
-            else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
-
-                if (contour)
-                {
-                    cerr << "D03 during contour mode is forbidden by the Gerber "
-                                    "standard; skipping" << endl;
-                }
-                else
-                {
-                    const auto aperture_mpoly = apertures_map.find(currentNet->aperture);
-
-                    if (aperture_mpoly != apertures_map.end())
-                        bg::transform(aperture_mpoly->second, mpoly, translate(stop.x(), stop.y()));
-                    else
-                        cerr << "Macro aperture " << currentNet->aperture <<
-                                    " not found in macros list; skipping" << endl;
-
-                    merge_mpoly(mpoly);
-                }
-            }
-            else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF)
-            {
-                if (contour)
-                {
-                    if (!region.empty())
-                    {
-                        bg::append(region, stop);
-                        merge_ring(region);
-                    }
-                }
-            }
-            else
-            {
-                cerr << "Unrecognized aperture state: skipping" << endl;
-            }
-        }
-        else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_START)
-        {
-            contour = true;
-        }
-        else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END)
-        {
-            contour = false;
-            
-            if (!region.empty())
-                merge_ring(region);
-        }
-        else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
-                 currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR)
-        {
-            if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
-                const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
-                linestring_type path;
-
-                if (cirseg != NULL)
-                {
-                    double angle1;
-                    double angle2;
-
-                    if (currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR)
-                    {
-                        angle1 = cirseg->angle1;
-                        angle2 = cirseg->angle2;
-                    }
-                    else
-                    {
-                        angle1 = cirseg->angle2;
-                        angle2 = cirseg->angle1;
-                    }
-
-                    circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
-                                    cirseg->width * scale / 2,
-                                    angle1 * bg::math::pi<double>() / 180.0,
-                                    angle2 * bg::math::pi<double>() / 180.0,
-                                    points_per_circle,
-                                    path);
-
-                    if (contour)
-                    {
-                        if (region.empty())
-                            copy(path.begin(), path.end(), region.end());
-                        else
-                            copy(path.begin() + 1, path.end(), region.end());
-                    }
-                    else
-                    {
-                        if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE)
+    auto merge_ring = [&](ring_type& ring)
+                      {
+                        if (ring.size() > 1)
                         {
-                            const double diameter = parameters[0] * cfactor;
-                            merge_paths(paths[coordinate_type(diameter / 2)], path, fill_closed_lines ? diameter : 0);
+                          polygon_type polygon;
+                          bg::correct(ring);
+                
+                          bg::union_(*draws, simplify_cutins(ring), *temp_mpoly);
+
+                          ring.clear();
+                          draws.swap(temp_mpoly);
+                          temp_mpoly->clear();
                         }
-                        else
-                            cerr << "Drawing an arc with an aperture different from a circle "
-                                         "is forbidden by the Gerber standard; skipping."
-                                      << endl;
-                    }
-                }
-                else
-                    cerr << "Circular arc requested but cirseg == NULL" << endl;
-            }
-            else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
-                cerr << "D03 during circular arc mode is forbidden by the Gerber "
-                                "standard; skipping" << endl;
-            }
-        }
-        else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
-                 currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
-                 currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
-            cerr << "Linear zoomed interpolation modes are not supported "
-                         "(are them in the RS274X standard?)" << endl;
-        }
-        else //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
-        {
-            cerr << "Unrecognized interpolation mode" << endl;
-        }
-    }
+                      };
 
-    for (pair<const gerbv_layer_t *, gerberimporter_layer>& layer : layers)
-    {
-        for (pair<const coordinate_type, multi_linestring_type>& path : layer.second.paths)
-        {
-            simplify_paths(path.second);
-        }
-    }
+    auto merge_mpoly = [&](multi_polygon_type& mpoly)
+                       {
+                         bg::correct(mpoly);
+                         bg::union_(*draws, mpoly, *temp_mpoly);
+                         mpoly.clear();
+                         draws.swap(temp_mpoly);
+                         temp_mpoly->clear();
+                       };
 
-    return generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
+    if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
+      if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
+        if (contour) {
+          if (region.empty()) {
+            bg::append(region, start);
+          }
+          bg::append(region, stop);
+        } else {
+          if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
+            const double diameter = parameters[0] * cfactor;
+            linestring_type new_segment;
+
+            new_segment.push_back(start);
+            new_segment.push_back(stop);
+
+            merge_paths(paths[coordinate_type(diameter / 2)], new_segment, fill_closed_lines ? diameter : 0);
+          } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
+            mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
+                                                     parameters[1] * cfactor);
+            merge_ring(mpoly.back().outer());
+          } else {
+            cerr << ("Drawing with an aperture different from a circle "
+                     "or a rectangle is forbidden by the Gerber standard; skipping.")
+                 << endl;
+          }
+        }
+      } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
+        if (contour) {
+          cerr << ("D03 during contour mode is forbidden by the Gerber "
+                   "standard; skipping") << endl;
+        } else {
+          const auto aperture_mpoly = apertures_map.find(currentNet->aperture);
+
+          if (aperture_mpoly != apertures_map.end()) {
+            bg::transform(aperture_mpoly->second, mpoly, translate(stop.x(), stop.y()));
+          } else {
+            cerr << "Macro aperture " << currentNet->aperture <<
+                " not found in macros list; skipping" << endl;
+          }
+          merge_mpoly(mpoly);
+        }
+      } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
+        if (contour) {
+          if (!region.empty()) {
+            bg::append(region, stop);
+            merge_ring(region);
+          }
+        }
+      } else {
+        cerr << "Unrecognized aperture state: skipping" << endl;
+      }
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_START) {
+      contour = true;
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
+      contour = false;
+
+      if (!region.empty())
+        merge_ring(region);
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
+               currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
+      if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
+        const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
+        linestring_type path;
+
+        if (cirseg != NULL) {
+          double angle1;
+          double angle2;
+
+          if (currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
+            angle1 = cirseg->angle1;
+            angle2 = cirseg->angle2;
+          } else {
+            angle1 = cirseg->angle2;
+            angle2 = cirseg->angle1;
+          }
+
+          circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
+                       cirseg->width * scale / 2,
+                       angle1 * bg::math::pi<double>() / 180.0,
+                       angle2 * bg::math::pi<double>() / 180.0,
+                       points_per_circle,
+                       path);
+
+          if (contour) {
+            if (region.empty()) {
+              copy(path.begin(), path.end(), region.end());
+            } else {
+              copy(path.begin() + 1, path.end(), region.end());
+            }
+          } else {
+            if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
+              const double diameter = parameters[0] * cfactor;
+              merge_paths(paths[coordinate_type(diameter / 2)], path, fill_closed_lines ? diameter : 0);
+            } else {
+              cerr << "Drawing an arc with an aperture different from a circle "
+                  "is forbidden by the Gerber standard; skipping."
+                   << endl;
+            }
+          }
+        } else {
+          cerr << "Circular arc requested but cirseg == NULL" << endl;
+        }
+      } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_FLASH) {
+        cerr << "D03 during circular arc mode is forbidden by the Gerber "
+            "standard; skipping" << endl;
+      }
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
+               currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
+               currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
+      cerr << "Linear zoomed interpolation modes are not supported "
+          "(are them in the RS274X standard?)" << endl;
+    } else { //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
+      cerr << "Unrecognized interpolation mode" << endl;
+    }
+  }
+
+  for (pair<const gerbv_layer_t *, gerberimporter_layer>& layer : layers) {
+    for (pair<const coordinate_type, multi_linestring_type>& path : layer.second.paths) {
+      simplify_paths(path.second);
+    }
+  }
+
+  return generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
 }
 
 /******************************************************************************/
