@@ -534,143 +534,33 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
     unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    map<coordinate_type, multi_linestring_type>& paths = layer->second.paths;
     unique_ptr<multi_polygon_type>& draws = layer->second.draws;
 
-    const unsigned int layer_rings_offset = rings.size();
-
-    for (auto i = paths.begin(); i != paths.end(); i++) {
-      if (fill_rings) {
-        for (auto ls = i->second.begin(); ls != i->second.end(); ){
-          if (ls->size() >= 4) {
-            multi_point_type intersection_points;
-            segment_type first_segment(ls->front(), ls->at(1));
-            segment_type last_segment(ls->back(), ls->at(ls->size() - 2));
-
-            bg::intersection(first_segment, last_segment, intersection_points);
-
-            if (!intersection_points.empty()) {
-              bg::assign(ls->front(), intersection_points.front());
-              bg::assign(ls->back(), intersection_points.front());
-            }
-          }
-
-          if (bg::equals(ls->front(), ls->back()) && bg::is_valid(*ls)) {
-            rings.push_back(ring_type());
-            rings.back().reserve(ls->size());
-
-            for (auto point = ls->begin(); point != ls->end(); point++){
-              rings.back().push_back(*point);
-            }
-            bg::correct(rings.back());
-
-            ls = i->second.erase(ls);
-          } else {
-            ++ls;
-          }
-        }
-      }
-
-      if (i->second.size() != 0) {
-        // Always convert to floating point before calling
-        // bg::buffer because it is buggy with fixed point.
-        multi_polygon_type buffered_mls;
-        bg_helpers::buffer(i->second, buffered_mls, i->first);
-        bg::union_(buffered_mls, *draws, *temp_mpoly);
-        temp_mpoly.swap(draws);
-        temp_mpoly->clear();
-      }
-    }
-
-    paths.clear();
-
-    if (fill_rings) {
-      unsigned int newrings = rings.size() - layer_rings_offset;
-      unsigned int translated_ring_offset = rings.size();
-
-      rings.resize(layer_rings_offset + newrings * stepAndRepeat.X * stepAndRepeat.Y);
-
-      for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++) {
-        for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++) {
-          if (sr_x != 0 || sr_y != 0) {
-            translate translate_strategy(stepAndRepeat.dist_X * sr_x * cfactor,
-                                         stepAndRepeat.dist_Y * sr_y * cfactor);
-
-            for (unsigned int i = 0; i < newrings; i++) {
-              bg::transform(rings[layer_rings_offset + i], rings[translated_ring_offset], translate_strategy);
-              ++translated_ring_offset;
-            }
-          }
-        }
-      }
-    }
-
+    // First duplicate in the x direction.
+    auto original_draw = *draws;
     for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
-      multi_polygon_type translated_mpoly;
-      unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
-
-      bg::transform(*draws, translated_mpoly,
+      multi_polygon_type translated_draws;
+      bg::transform(original_draw, translated_draws,
                     translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
-            
-      if (sr_x == 1) {
-        bg::union_(translated_mpoly, *draws, *united_mpoly);
-      } else {
-        bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
-      }
-      united_mpoly.swap(temp_mpoly);
+      *draws = *draws + translated_draws;
     }
 
-    if (stepAndRepeat.X > 1) {
-      temp_mpoly.swap(draws);
-      temp_mpoly->clear();
-    }
-
+    // Now duplicate in the y direction, with all the x duplicates in there already.
+    original_draw = *draws;
     for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
-      multi_polygon_type translated_mpoly;
-      unique_ptr<multi_polygon_type> united_mpoly (new multi_polygon_type());
-
-      bg::transform(*draws, translated_mpoly,
+      multi_polygon_type translated_draws;
+      bg::transform(*draws, translated_draws,
                     translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
-
-      if (sr_y == 1) {
-        bg::union_(translated_mpoly, *draws, *united_mpoly);
-      } else {
-        bg::union_(translated_mpoly, *temp_mpoly, *united_mpoly);
-      }
-      united_mpoly.swap(temp_mpoly);
+      *draws = *draws + translated_draws;
     }
 
-    if (stepAndRepeat.Y > 1) {
-      temp_mpoly.swap(draws);
-      temp_mpoly->clear();
-    }
-
-    if (layer != layers.begin()) {
-      if (polarity == GERBV_POLARITY_DARK) {
-        bg::union_(*output, *draws, *temp_mpoly);
-      } else if (polarity == GERBV_POLARITY_CLEAR) {
-        bg::difference(*output, *draws, *temp_mpoly);
-      } else {
-        unsupported_polarity_throw_exception();
-      }
-      temp_mpoly.swap(output);
+    if (polarity == GERBV_POLARITY_DARK) {
+      *output = *output + *draws;
+    } else if (polarity == GERBV_POLARITY_CLEAR) {
+      *output = *output - *draws;
     } else {
-      if (polarity == GERBV_POLARITY_DARK) {
-        output.swap(draws);
-      } else if (polarity != GERBV_POLARITY_CLEAR) {
-        unsupported_polarity_throw_exception();
-      }
+      unsupported_polarity_throw_exception();
     }
-    draws->clear();
-  }
-
-  if (fill_rings) {
-    multi_polygon_type filled_rings;
-    unique_ptr<multi_polygon_type> merged_mpoly (new multi_polygon_type());
-
-    rings_to_polygons(rings, filled_rings);
-    bg::union_(filled_rings, *output, *merged_mpoly);
-    output.swap(merged_mpoly);
   }
 
   return output;
@@ -1001,7 +891,6 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       layers.back().first = currentNet->layer;
     }
 
-    map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
     unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
@@ -1014,12 +903,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
         } else {
           if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
             const double diameter = parameters[0] * cfactor;
-            linestring_type new_segment;
-
-            new_segment.push_back(start);
-            new_segment.push_back(stop);
-
-            merge_paths(paths[coordinate_type(diameter / 2)], new_segment, fill_closed_lines ? diameter : 0);
+            mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
+            *draws = *draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
                                                      parameters[1] * cfactor);
@@ -1093,8 +978,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
             }
           } else {
             if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
-              const double diameter = parameters[0] * cfactor;
-              merge_paths(paths[coordinate_type(diameter / 2)], path, fill_closed_lines ? diameter : 0);
+              //const double diameter = parameters[0] * cfactor;
+              // TODO: Support circular arcs.
             } else {
               cerr << ("Drawing an arc with an aperture different from a circle "
                        "is forbidden by the Gerber standard; skipping.")
@@ -1117,14 +1002,27 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       cerr << "Unrecognized interpolation mode" << endl;
     }
   }
-
-  for (pair<const gerbv_layer_t *, gerberimporter_layer>& layer : layers) {
-    for (pair<const coordinate_type, multi_linestring_type>& path : layer.second.paths) {
-      simplify_paths(path.second);
+  auto result =  generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
+  /*if (fill_closed_lines) {
+    for (auto& p : *result) {
+      p.inners().clear();
+    }
+    }*/
+  multi_polygon_type for_viewing = *result;
+  for (auto& p : for_viewing) {
+    for (auto& point : p.outer()) {
+      point.x(point.x()/10000);
+      point.y(point.y()/10000);
+    }
+    for (auto& i : p.inners()) {
+      for (auto& point : i) {
+        point.x(point.x()/10000);
+        point.y(point.y()/10000);
+      }
     }
   }
-
-  return generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
+  std::cout << bg::wkt(for_viewing) << std::endl;
+  return result;
 }
 
 /******************************************************************************/
