@@ -37,6 +37,7 @@ using std::forward_list;
 
 #include "gerberimporter.hpp"
 #include "bg_helpers.hpp"
+#include "eulerian_paths.hpp"
 
 namespace bg = boost::geometry;
 
@@ -632,6 +633,30 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
           sr1.dist_Y == sr2.dist_Y);
 }
 
+struct PointLessThan {
+  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+  }
+};
+
+
+multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, unsigned int points_per_circle) {
+  // This converts the many small line segments into the longest paths possible.
+  multi_linestring_type_fp euler_paths =
+      eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
+          paths);
+  multi_polygon_type_fp ovals;
+  // This converts the long paths into a shape with thickness equal to the specified diameter.
+  bg::buffer(euler_paths, ovals,
+             bg::strategy::buffer::distance_symmetric<coordinate_type>(diameter / 2),
+             bg::strategy::buffer::side_straight(),
+             bg::strategy::buffer::join_round(points_per_circle),
+                   bg::strategy::buffer::end_round(points_per_circle),
+             bg::strategy::buffer::point_circle(points_per_circle));
+  return ovals;
+}
+
+
 // Convert the gerber file into a multi_polygon_type_fp.  If fill_closed_lines is
 // true, return all closed shapes without holes in them.  points_per_circle is
 // the number of lines to use to appoximate circles.
@@ -659,6 +684,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   layers.front().first = gerber->netlist->layer;
 
 
+  map<coordinate_type_fp, multi_linestring_type_fp> linear_circular_paths;
   for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next) {
     const point_type_fp start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
     const point_type_fp stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
@@ -666,6 +692,11 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     multi_polygon_type_fp mpoly;
 
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
+      // About to start a new layer, render all the linear_circular_paths so far.
+      for (const auto& diameter_and_path : linear_circular_paths) {
+        layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+      }
+      linear_circular_paths.clear();
       layers.resize(layers.size() + 1);
       layers.back().first = currentNet->layer;
     }
@@ -681,9 +712,14 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
           bg::append(region, stop);
         } else {
           if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
-            // These are common and too slow to merge one by one so we put them all together and then do one big union.
+            // These are common and too slow to merge one by one so we put them
+            // all together and then do one big union at the end.
             const double diameter = parameters[0] * cfactor;
-            mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
+            linestring_type_fp segment;
+            segment.push_back(start);
+            segment.push_back(stop);
+            linear_circular_paths[diameter].push_back(segment);
+            //mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
             /*
               multi_polygon_type_fp for_viewing = mpoly;
               for (auto& p : for_viewing) {
@@ -798,6 +834,11 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
       cerr << "Unrecognized interpolation mode" << endl;
     }
   }
+  // If there are any unrendered circular paths, add them to the last layer.
+  for (const auto& diameter_and_path : linear_circular_paths) {
+    layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+  }
+  linear_circular_paths.clear();
   auto result = generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
   if (fill_closed_lines) {
     for (auto& p : result) {

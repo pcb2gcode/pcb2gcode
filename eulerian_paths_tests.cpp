@@ -8,12 +8,6 @@ using namespace eulerian_paths;
 
 BOOST_AUTO_TEST_SUITE(eulerian_paths_tests);
 
-struct PointLessThan {
-  bool operator()(const point_type& a, const point_type& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
-
 BOOST_AUTO_TEST_CASE(do_nothing_points) {
   linestring_type ls;
   ls.push_back(point_type(1,1));
