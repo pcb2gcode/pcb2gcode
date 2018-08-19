@@ -676,6 +676,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
           if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
             const double diameter = parameters[0] * cfactor;
             mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
+            /*
             multi_polygon_type_fp for_viewing = mpoly;
             for (auto& p : for_viewing) {
               for (auto& point : p.outer()) {
@@ -690,7 +691,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
               }
             }
             std::cout << bg::wkt(for_viewing) << std::endl;
-
+            */
             *draws = *draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
@@ -790,12 +791,12 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     }
   }
   auto result =  generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
-  /*if (fill_closed_lines) {
+  if (fill_closed_lines) {
     for (auto& p : *result) {
       p.inners().clear();
     }
-    }*/
-  multi_polygon_type_fp for_viewing = *result;
+  }
+  /*multi_polygon_type_fp for_viewing = *result;
   for (auto& p : for_viewing) {
     for (auto& point : p.outer()) {
       point.x(point.x()/10000);
@@ -808,7 +809,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       }
     }
   }
-  std::cout << bg::wkt(for_viewing) << std::endl;
+  std::cout << bg::wkt(for_viewing) << std::endl;*/
   unique_ptr<multi_polygon_type> result_integral(new multi_polygon_type());
   bg::convert(*result, *result_integral);
   return result_integral;
