@@ -1004,15 +1004,6 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
     unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
 
-    auto merge_mpoly = [&](multi_polygon_type& mpoly)
-                       {
-                         bg::correct(mpoly);
-                         bg::union_(*draws, mpoly, *temp_mpoly);
-                         mpoly.clear();
-                         draws.swap(temp_mpoly);
-                         temp_mpoly->clear();
-                       };
-
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
         if (contour) {
@@ -1052,7 +1043,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
             cerr << "Macro aperture " << currentNet->aperture <<
                 " not found in macros list; skipping" << endl;
           }
-          merge_mpoly(mpoly);
+          *draws = *draws + mpoly;
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
@@ -1105,8 +1096,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
               const double diameter = parameters[0] * cfactor;
               merge_paths(paths[coordinate_type(diameter / 2)], path, fill_closed_lines ? diameter : 0);
             } else {
-              cerr << "Drawing an arc with an aperture different from a circle "
-                  "is forbidden by the Gerber standard; skipping."
+              cerr << ("Drawing an arc with an aperture different from a circle "
+                       "is forbidden by the Gerber standard; skipping.")
                    << endl;
             }
           }
@@ -1120,8 +1111,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
-      cerr << "Linear zoomed interpolation modes are not supported "
-          "(are them in the RS274X standard?)" << endl;
+      cerr << ("Linear zoomed interpolation modes are not supported "
+               "(are them in the RS274X standard?)") << endl;
     } else { //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
       cerr << "Unrecognized interpolation mode" << endl;
     }
