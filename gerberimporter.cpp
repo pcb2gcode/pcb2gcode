@@ -1056,11 +1056,9 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
-          if (!region.empty()) {
-            bg::append(region, stop);
-            *draws = *draws + simplify_cutins(region);
-            region.clear();
-          }
+          bg::append(region, stop);
+          *draws = *draws + simplify_cutins(region);
+          region.clear();
         }
       } else {
         cerr << "Unrecognized aperture state: skipping" << endl;
@@ -1070,10 +1068,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
 
-      if (!region.empty()) {
-        *draws = *draws + simplify_cutins(region);
-        region.clear();
-      }
+      *draws = *draws + simplify_cutins(region);
+      region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
