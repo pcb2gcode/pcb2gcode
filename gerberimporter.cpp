@@ -1067,7 +1067,6 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
-
       *draws = *draws + simplify_cutins(region);
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
@@ -1088,8 +1087,8 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
             angle2 = cirseg->angle1;
           }
 
-          circular_arc(point_type(cirseg->cp_x * scale, cirseg->cp_y * scale),
-                       cirseg->width * scale / 2,
+          circular_arc(point_type(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
+                       cirseg->width * cfactor / 2,
                        angle1 * bg::math::pi<double>() / 180.0,
                        angle2 * bg::math::pi<double>() / 180.0,
                        points_per_circle,
