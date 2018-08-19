@@ -66,7 +66,7 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y);
 
-    virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30);
+    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30);
     virtual inline unsigned int vectorial_scale()
     {
         return scale;
@@ -77,38 +77,11 @@ public:
 protected:
     enum Side { FRONT = 0, BACK = 1 } side;
 
-    struct gerberimporter_layer
-    {
-        map<coordinate_type, multi_linestring_type> paths;
-        unique_ptr<multi_polygon_type_fp> draws;
-
-        gerberimporter_layer() : draws(new multi_polygon_type_fp()) { }
-    };
-
-    struct connected_linestring
-    {
-        multi_linestring_type::reverse_iterator ls;
-        Side side;
-        bool approximated;
-    };
-
     static const unsigned int scale;
 
     //Angles are in rad
     static void circular_arc(point_type_fp center, coordinate_type radius, double angle1,
                                 double angle2, unsigned int circle_points, linestring_type_fp& linestring);
-
-  static unique_ptr<multi_polygon_type_fp> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers, bool fill_rings,
-                                                           coordinate_type cfactor, unsigned int points_per_circle);
-
-    inline static void unsupported_polarity_throw_exception()
-    {
-        cerr << "Non-positive image polarity is deprecated by the Gerber "
-                "standard and unsupported; re-run pcb2gcode without the "
-                "--vectorial flag" << endl;
-        throw gerber_exception();
-    }
-
 private:
 
     gerbv_project_t* project;

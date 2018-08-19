@@ -297,39 +297,46 @@ void GerberImporter::circular_arc(point_type_fp center, coordinate_type radius,
                                      sin(angle2) * radius + center.y()));
 }
 
-unique_ptr<multi_polygon_type_fp> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
-                                                                  bool fill_rings, coordinate_type cfactor, unsigned int points_per_circle) {
-  unique_ptr<multi_polygon_type_fp> output (new multi_polygon_type_fp());
+inline static void unsupported_polarity_throw_exception() {
+  cerr << ("Non-positive image polarity is deprecated by the Gerber "
+           "standard and unsupported; re-run pcb2gcode without the "
+           "--vectorial flag") << endl;
+  throw gerber_exception();
+}
+
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>>& layers,
+                                      bool fill_rings, coordinate_type cfactor, unsigned int points_per_circle) {
+  multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
-  for (auto layer = layers.begin(); layer != layers.end(); layer++) {
+  for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    unique_ptr<multi_polygon_type_fp>& draws = layer->second.draws;
+    multi_polygon_type_fp draws = layer->second;
 
     // First duplicate in the x direction.
-    auto original_draw = *draws;
+    auto original_draw = draws;
     for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
       multi_polygon_type_fp translated_draws;
       bg::transform(original_draw, translated_draws,
                     translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
-      *draws = *draws + translated_draws;
+      draws = draws + translated_draws;
     }
 
     // Now duplicate in the y direction, with all the x duplicates in there already.
-    original_draw = *draws;
+    original_draw = draws;
     for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
       multi_polygon_type_fp translated_draws;
-      bg::transform(*draws, translated_draws,
+      bg::transform(draws, translated_draws,
                     translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
-      *draws = *draws + translated_draws;
+      draws = draws + translated_draws;
     }
 
     if (polarity == GERBV_POLARITY_DARK) {
-      *output = *output + *draws;
+      output = output + draws;
     } else if (polarity == GERBV_POLARITY_CLEAR) {
-      *output = *output - *draws;
+      output = output - draws;
     } else {
       unsupported_polarity_throw_exception();
     }
@@ -628,13 +635,13 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
 // Convert the gerber file into a multi_polygon_type_fp.  If fill_closed_lines is
 // true, return all closed shapes without holes in them.  points_per_circle is
 // the number of lines to use to appoximate circles.
-unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
+multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
   ring_type_fp region;
   coordinate_type cfactor;
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, gerberimporter_layer> >layers (1);
+  vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>> layers(1);
 
   gerbv_image_t *gerber = project->file[0]->image;
 
@@ -663,7 +670,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       layers.back().first = currentNet->layer;
     }
 
-    unique_ptr<multi_polygon_type_fp>& draws = layers.back().second.draws;
+    multi_polygon_type_fp& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -674,6 +681,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
           bg::append(region, stop);
         } else {
           if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
+            // These are common and too slow to merge one by one so we put them all together and then do one big union.
             const double diameter = parameters[0] * cfactor;
             mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
             /*
@@ -692,11 +700,11 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
               }
               std::cout << bg::wkt(for_viewing) << std::endl;
             */
-            *draws = *draws + mpoly;
+            draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
                                                      parameters[1] * cfactor);
-            *draws = *draws + mpoly;
+            draws = draws + mpoly;
           } else {
             cerr << ("Drawing with an aperture different from a circle "
                      "or a rectangle is forbidden by the Gerber standard; skipping.")
@@ -716,12 +724,12 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
             cerr << "Macro aperture " << currentNet->aperture <<
                 " not found in macros list; skipping" << endl;
           }
-          *draws = *draws + mpoly;
+          draws = draws + mpoly;
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
           bg::append(region, stop);
-          *draws = *draws + simplify_cutins(region);
+          draws = draws + simplify_cutins(region);
           region.clear();
         }
       } else {
@@ -731,7 +739,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
-      *draws = *draws + simplify_cutins(region);
+      draws = draws + simplify_cutins(region);
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
@@ -790,9 +798,9 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       cerr << "Unrecognized interpolation mode" << endl;
     }
   }
-  auto result =  generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
+  auto result = generate_layers(layers, fill_closed_lines, cfactor, points_per_circle);
   if (fill_closed_lines) {
-    for (auto& p : *result) {
+    for (auto& p : result) {
       p.inners().clear();
     }
   }
@@ -810,9 +818,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     }
     }
     std::cout << bg::wkt(for_viewing) << std::endl;*/
-  unique_ptr<multi_polygon_type> result_integral(new multi_polygon_type());
-  bg::convert(*result, *result_integral);
-  return result_integral;
+  return result;
 }
 
 GerberImporter::~GerberImporter() {
