@@ -80,9 +80,9 @@ protected:
     struct gerberimporter_layer
     {
         map<coordinate_type, multi_linestring_type> paths;
-        unique_ptr<multi_polygon_type> draws;
+        unique_ptr<multi_polygon_type_fp> draws;
 
-        gerberimporter_layer() : draws(new multi_polygon_type()) { }
+        gerberimporter_layer() : draws(new multi_polygon_type_fp()) { }
     };
 
     struct connected_linestring
@@ -95,17 +95,11 @@ protected:
     static const unsigned int scale;
 
     //Angles are in rad
-    static void circular_arc(point_type center, coordinate_type radius, double angle1,
-                                double angle2, unsigned int circle_points, linestring_type& linestring);
-    
-    static void merge_paths(multi_linestring_type& destination, const linestring_type& source, double tolerance);
+    static void circular_arc(point_type_fp center, coordinate_type radius, double angle1,
+                                double angle2, unsigned int circle_points, linestring_type_fp& linestring);
 
-    static void simplify_paths(multi_linestring_type& paths);
-
-    static unique_ptr<multi_polygon_type> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers, bool fill_rings,
-                                                            coordinate_type cfactor, unsigned int points_per_circle);
-
-    static void rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly);
+  static unique_ptr<multi_polygon_type_fp> generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers, bool fill_rings,
+                                                           coordinate_type cfactor, unsigned int points_per_circle);
 
     inline static void unsupported_polarity_throw_exception()
     {

@@ -124,75 +124,23 @@ void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const gu
   /// @todo check wheter importing was successful
 }
 
-void GerberImporter::rings_to_polygons(const vector<ring_type>& rings, multi_polygon_type& mpoly) {
-    list<const ring_type *> rings_ptr;
-    map<const ring_type *, coordinate_type> areas;
-
-    auto compare_areas = [&](const ring_type *a, const ring_type *b) { return areas.at(a) < areas.at(b); };
-
-    for (const ring_type& ring : rings)
-    {
-        rings_ptr.push_back(&ring);
-        areas[&ring] = coordinate_type(bg::area(ring));
-    }
-
-    while (!rings_ptr.empty())
-    {
-        mpoly.push_back(polygon_type());
-
-        forward_list<list<const ring_type *>::iterator> to_be_removed_rings;
-        auto biggest_ring = max_element(rings_ptr.begin(), rings_ptr.end(), compare_areas);
-        polygon_type& current_ring = mpoly.back();
-
-        bg::assign(current_ring.outer(), **biggest_ring);
-        rings_ptr.erase(biggest_ring);
-
-        for (auto i = rings_ptr.begin(); i != rings_ptr.end(); i++)
-        {
-            if (bg::within(**i, current_ring.outer()))
-            {
-                list<const ring_type *>::iterator j;
-
-                for (j = rings_ptr.begin(); j != rings_ptr.end(); j++)
-                    if (i != j && bg::within(**i, **j))
-                            break;
-
-                if (j == rings_ptr.end())
-                {
-                    current_ring.inners().push_back(ring_type());
-                    current_ring.inners().back().reserve((*i)->size());
-
-                    for (auto point = (*i)->rbegin(); point != (*i)->rend(); point++)
-                    {
-                        current_ring.inners().back().push_back(*point);
-                    }
-                    to_be_removed_rings.push_front(i);
-                }
-            }
-        }
-
-        for (auto i : to_be_removed_rings)
-            rings_ptr.erase(i);
-    }
-}
-
 // Draw a regular polygon with outer diameter as specified and center.  The
 // number of vertices is provided.  offset is an angle in degrees to the
 // starting vertex of the shape.
-multi_polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type diameter, unsigned int vertices,
                                         double offset) {
   double angle_step;
 
   angle_step = -2 * bg::math::pi<double>() / vertices;
   offset *= bg::math::pi<double>() / 180.0; // Convert to radians.
 
-  ring_type ring;
+  ring_type_fp ring;
   for (unsigned int i = 0; i < vertices; i++) {
-    ring.push_back(point_type(cos(angle_step * i + offset) * diameter / 2 + center.x(),
+    ring.push_back(point_type_fp(cos(angle_step * i + offset) * diameter / 2 + center.x(),
                               sin(angle_step * i + offset) * diameter / 2 + center.y()));
   }
   ring.push_back(ring.front()); // Don't forget to close the ring.
-  multi_polygon_type ret;
+  multi_polygon_type_fp ret;
   bg::convert(ring, ret);
   return ret;
 }
@@ -214,10 +162,10 @@ static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model
 }
 
 // Same as above but potentially puts a hole in the center.
-multi_polygon_type make_regular_polygon(point_type center, coordinate_type diameter, unsigned int vertices,
+multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type diameter, unsigned int vertices,
                                         coordinate_type offset, coordinate_type hole_diameter,
                                         unsigned int circle_points) {
-  multi_polygon_type ret;
+  multi_polygon_type_fp ret;
   ret = make_regular_polygon(center, diameter, vertices, offset);
 
   if (hole_diameter > 0) {
@@ -226,18 +174,18 @@ multi_polygon_type make_regular_polygon(point_type center, coordinate_type diame
   return ret;
 }
 
-multi_polygon_type make_rectangle(point_type center, double width, double height,
+multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
                                   coordinate_type hole_diameter, unsigned int circle_points) {
   const coordinate_type x = center.x();
   const coordinate_type y = center.y();
 
-  multi_polygon_type ret;
+  multi_polygon_type_fp ret;
   ret.resize(1);
   auto& polygon = ret.front();
-  polygon.outer().push_back(point_type(x - width / 2, y - height / 2));
-  polygon.outer().push_back(point_type(x - width / 2, y + height / 2));
-  polygon.outer().push_back(point_type(x + width / 2, y + height / 2));
-  polygon.outer().push_back(point_type(x + width / 2, y - height / 2));
+  polygon.outer().push_back(point_type_fp(x - width / 2, y - height / 2));
+  polygon.outer().push_back(point_type_fp(x - width / 2, y + height / 2));
+  polygon.outer().push_back(point_type_fp(x + width / 2, y + height / 2));
+  polygon.outer().push_back(point_type_fp(x + width / 2, y - height / 2));
   polygon.outer().push_back(polygon.outer().front());
 
   if (hole_diameter > 0) {
@@ -246,8 +194,8 @@ multi_polygon_type make_rectangle(point_type center, double width, double height
   return ret;
 }
 
-multi_polygon_type make_rectangle(point_type point1, point_type point2, double height) {
-  multi_polygon_type ret;
+multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2, double height) {
+  multi_polygon_type_fp ret;
   ret.resize(1);
   auto& polygon = ret.front();
   const double distance = bg::distance(point1, point2);
@@ -257,16 +205,16 @@ multi_polygon_type make_rectangle(point_type point1, point_type point2, double h
   const double dy = height / 2 * normalized_dx;
   const double dx = height / 2 * -normalized_dy;
 
-  polygon.outer().push_back(point_type(point1.x() - dx, point1.y() - dy));
-  polygon.outer().push_back(point_type(point1.x() + dx, point1.y() + dy));
-  polygon.outer().push_back(point_type(point2.x() + dx, point2.y() + dy));
-  polygon.outer().push_back(point_type(point2.x() - dx, point2.y() - dy));
+  polygon.outer().push_back(point_type_fp(point1.x() - dx, point1.y() - dy));
+  polygon.outer().push_back(point_type_fp(point1.x() + dx, point1.y() + dy));
+  polygon.outer().push_back(point_type_fp(point2.x() + dx, point2.y() + dy));
+  polygon.outer().push_back(point_type_fp(point2.x() - dx, point2.y() - dy));
   polygon.outer().push_back(polygon.outer().front());
 
   return ret;
 }
 
-multi_polygon_type make_oval(point_type center, coordinate_type width, coordinate_type height,
+multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type width, coordinate_type height,
                              coordinate_type hole_diameter, unsigned int circle_points) {
   point_type_fp start(center.x(), center.y());
   point_type_fp end(center.x(), center.y());
@@ -293,32 +241,32 @@ multi_polygon_type make_oval(point_type center, coordinate_type width, coordinat
              bg::strategy::buffer::point_circle(circle_points));
 
   if (hole_diameter > 0) {
-    multi_polygon_type hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
+    multi_polygon_type_fp hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
     multi_polygon_type_fp hole_fp;
     bg::convert(hole, hole_fp);
     oval = oval - hole_fp;
   }
-  multi_polygon_type ret;
+  multi_polygon_type_fp ret;
   bg::convert(oval, ret);
   return ret;
 }
 
-multi_polygon_type linear_draw_rectangular_aperture(point_type startpoint, point_type endpoint, coordinate_type width,
+multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint, point_type_fp endpoint, coordinate_type width,
                                                     coordinate_type height) {
   auto start_rect = make_rectangle(startpoint, width, height, 0, 0);
   auto end_rect = make_rectangle(endpoint, width, height, 0, 0);
-  multi_polygon_type both_rects;
+  multi_polygon_type_fp both_rects;
   both_rects = start_rect + end_rect;
-  multi_polygon_type hull;
+  multi_polygon_type_fp hull;
   hull.resize(1);
   bg::convex_hull(both_rects, hull[0]);
   return hull;
 }
 
-multi_polygon_type linear_draw_circular_aperture(point_type startpoint, point_type endpoint,
+multi_polygon_type_fp linear_draw_circular_aperture(point_type_fp startpoint, point_type_fp endpoint,
                                                  coordinate_type radius, unsigned int circle_points) {
-  multi_polygon_type oval;
-  linestring_type line;
+  multi_polygon_type_fp oval;
+  linestring_type_fp line;
   line.push_back(startpoint);
   line.push_back(endpoint);
   bg::buffer(line, oval,
@@ -330,9 +278,9 @@ multi_polygon_type linear_draw_circular_aperture(point_type startpoint, point_ty
   return oval;
 }
 
-void GerberImporter::circular_arc(point_type center, coordinate_type radius,
+void GerberImporter::circular_arc(point_type_fp center, coordinate_type radius,
                     double angle1, double angle2, unsigned int circle_points,
-                    linestring_type& linestring)
+                    linestring_type_fp& linestring)
 {
     const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
     const double angle_step = (angle2 - angle1) / steps;
@@ -341,205 +289,29 @@ void GerberImporter::circular_arc(point_type center, coordinate_type radius,
     {
         const double angle = angle1 + i * angle_step;
 
-        linestring.push_back(point_type(cos(angle) * radius + center.x(),
+        linestring.push_back(point_type_fp(cos(angle) * radius + center.x(),
                                         sin(angle) * radius + center.y()));
     }
     
-    linestring.push_back(point_type(cos(angle2) * radius + center.x(),
+    linestring.push_back(point_type_fp(cos(angle2) * radius + center.x(),
                                     sin(angle2) * radius + center.y()));
 }
-void GerberImporter::merge_paths(multi_linestring_type &destination, const linestring_type& source, double tolerance)
-{
-    const double comparable_tolerance = tolerance * tolerance;
 
-    if (!destination.empty())
-    {
-        auto check_connection = [&](const point_type &point, multi_linestring_type::reverse_iterator ls,
-                                    connected_linestring &conn_ls)
-        {
-            double comparable_distance = bg::comparable_distance(point, ls->back());
-            if (comparable_distance <= comparable_tolerance)
-            {
-                conn_ls.ls = ls;
-                conn_ls.side = BACK;
-                conn_ls.approximated = !(comparable_distance == 0);
-            }
-            else
-            {
-                comparable_distance = bg::comparable_distance(point, ls->front());
-                if (comparable_distance <= comparable_tolerance)
-                {
-                    conn_ls.ls = ls;
-                    conn_ls.side = FRONT;
-                    conn_ls.approximated = !(comparable_distance == 0);
-                }
-            }
-        };
-
-        auto merge_linestring = [](const linestring_type& source, Side source_side,
-                                   linestring_type& destination, Side destination_side, bool approximated)
-        {
-            if (destination_side == FRONT)
-                reverse(destination.begin(), destination.end());
-
-            if (source_side == FRONT)
-            {
-                if (approximated)
-                    destination.insert(destination.end(), source.begin(), source.end());
-                else
-                    destination.insert(destination.end(), source.begin() + 1, source.end());
-            }
-            else
-            {
-                if (approximated)
-                    destination.insert(destination.end(), source.rbegin(), source.rend());
-                else
-                    destination.insert(destination.end(), source.rbegin() + 1, source.rend());
-            }
-        };
-
-        auto close_if_necessary = [&](linestring_type& ls)
-        {
-            if (!bg::equals(ls.front(), ls.back()) &&
-                bg::comparable_distance(ls.front(), ls.back()) <= comparable_tolerance)
-                ls.push_back(ls.front());
-        };
-
-        const point_type *source_sides[2] = {&source.front(), &source.back()};
-        connected_linestring conn_lss[2];
-        multi_linestring_type::reverse_iterator ls;
-
-        conn_lss[FRONT].ls = destination.rend();
-        conn_lss[BACK].ls = destination.rend();
-
-        for (unsigned int i = 0; i < 2; i++)
-        {
-            for (ls = destination.rbegin(); ls != destination.rend() && conn_lss[i].ls == destination.rend(); ls++)
-            {
-                check_connection(*source_sides[i], ls, conn_lss[i]);
-            }
-        }
-
-        int case_num = (int(conn_lss[BACK].ls != destination.rend()) << 1) +
-                        int(conn_lss[FRONT].ls != destination.rend());
-
-        if (case_num == 3 && conn_lss[FRONT].ls == conn_lss[BACK].ls)
-        {
-            if (conn_lss[FRONT].side == BACK)
-                case_num = 1;
-            else
-                case_num = 2;
-        }
-
-        switch (case_num)
-        {
-        case 0: //No junctions
-            destination.push_back(source);
-            break;
-
-        case 1: //Front can be connected
-            merge_linestring(source, FRONT, *conn_lss[FRONT].ls, conn_lss[FRONT].side, conn_lss[FRONT].approximated);
-            close_if_necessary(*conn_lss[FRONT].ls);
-            break;
-
-        case 2: //Back can be connected
-            merge_linestring(source, BACK, *conn_lss[BACK].ls, conn_lss[BACK].side, conn_lss[BACK].approximated);
-            close_if_necessary(*conn_lss[BACK].ls);
-            break;
-
-        case 3: //Both front and back can be connected
-            merge_linestring(source, FRONT, *conn_lss[FRONT].ls, conn_lss[FRONT].side, conn_lss[FRONT].approximated);
-            merge_linestring(*conn_lss[BACK].ls, conn_lss[BACK].side, *conn_lss[FRONT].ls, BACK, conn_lss[BACK].approximated);
-            destination.erase(prev(conn_lss[BACK].ls.base()));
-            break;
-        }
-    }
-    else
-    {
-        destination.push_back(source);
-    }
-}
-
-void GerberImporter::simplify_paths(multi_linestring_type &paths)
-{
-    for (auto path1 = paths.begin(); path1 != paths.end(); path1++)
-    {
-        if (!path1->empty())
-        {
-            for (auto path2 = paths.begin(); path2 != paths.end(); path2++)
-            {
-                if (!path2->empty() && path1 != path2)
-                {
-                    if (bg::equals(path1->back(), path2->front()))
-                    {
-                        path1->insert(path1->end(),
-                                      make_move_iterator(next(path2->begin())),
-                                      make_move_iterator(path2->end()));
-
-                        path2->clear();
-                    }
-                    else if (bg::equals(path1->back(), path2->back()))
-                    {
-                        if (path1->size() < path2->size())
-                        {
-                            path2->insert(path2->end(),
-                                          make_move_iterator(next(path1->rbegin())),
-                                          make_move_iterator(path1->rend()));
-                            path1->swap(*path2);
-                        }
-                        else
-                            path1->insert(path1->end(),
-                                          make_move_iterator(next(path2->rbegin())),
-                                          make_move_iterator(path2->rend()));
-
-                        path2->clear();
-                    }
-                    else if (bg::equals(path1->front(), path2->back()))
-                    {
-                        path2->insert(path2->end(),
-                                      make_move_iterator(next(path1->begin())),
-                                      make_move_iterator(path1->end()));
-                        path1->swap(*path2);
-
-                        path2->clear();
-                    }
-                    else if (bg::equals(path1->front(), path2->front()))
-                    {
-                        std::reverse(path1->begin(), path1->end());
-                        path1->insert(path1->end(),
-                                      make_move_iterator(next(path2->begin())),
-                                      make_move_iterator(path2->end()));
-
-                        path2->clear();
-                    }
-                }
-            }
-        }
-    }
-
-    auto isEmpty = [&](const linestring_type& ls)
-    {
-        return ls.empty();
-    };
-
-    paths.erase(std::remove_if(paths.begin(), paths.end(), isEmpty), paths.end());
-}
-
-unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
+unique_ptr<multi_polygon_type_fp> GerberImporter::generate_layers(vector<pair<const gerbv_layer_t *, gerberimporter_layer> >& layers,
                                                                bool fill_rings, coordinate_type cfactor, unsigned int points_per_circle) {
-  unique_ptr<multi_polygon_type> output (new multi_polygon_type());
-  vector<ring_type> rings;
+  unique_ptr<multi_polygon_type_fp> output (new multi_polygon_type_fp());
+  vector<ring_type_fp> rings;
 
   for (auto layer = layers.begin(); layer != layers.end(); layer++) {
-    unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
+    unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    unique_ptr<multi_polygon_type>& draws = layer->second.draws;
+    unique_ptr<multi_polygon_type_fp>& draws = layer->second.draws;
 
     // First duplicate in the x direction.
     auto original_draw = *draws;
     for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
-      multi_polygon_type translated_draws;
+      multi_polygon_type_fp translated_draws;
       bg::transform(original_draw, translated_draws,
                     translate(stepAndRepeat.dist_X * sr_x * cfactor, 0));
       *draws = *draws + translated_draws;
@@ -548,7 +320,7 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
     // Now duplicate in the y direction, with all the x duplicates in there already.
     original_draw = *draws;
     for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
-      multi_polygon_type translated_draws;
+      multi_polygon_type_fp translated_draws;
       bg::transform(*draws, translated_draws,
                     translate(0, stepAndRepeat.dist_Y * sr_y * cfactor));
       *draws = *draws + translated_draws;
@@ -566,10 +338,10 @@ unique_ptr<multi_polygon_type> GerberImporter::generate_layers(vector<pair<const
   return output;
 }
 
-multi_polygon_type make_moire(const double * const parameters, unsigned int circle_points,
+multi_polygon_type_fp make_moire(const double * const parameters, unsigned int circle_points,
                               coordinate_type cfactor) {
-  const point_type center(parameters[0] * cfactor, parameters[1] * cfactor);
-  multi_polygon_type moire;
+  const point_type_fp center(parameters[0] * cfactor, parameters[1] * cfactor);
+  multi_polygon_type_fp moire;
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
@@ -592,55 +364,55 @@ multi_polygon_type make_moire(const double * const parameters, unsigned int circ
   return moire;
 }
 
-multi_polygon_type make_thermal(point_type center, coordinate_type external_diameter, coordinate_type internal_diameter,
+multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type external_diameter, coordinate_type internal_diameter,
                                 coordinate_type gap_width, unsigned int circle_points) {
-  multi_polygon_type ring = make_regular_polygon(center, external_diameter, circle_points,
+  multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, circle_points,
                                                  0, internal_diameter, circle_points);
 
-  multi_polygon_type rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
-  multi_polygon_type rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
+  multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
+  multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
   return ring - rect1 - rect2;
 }
 
 // Look through ring for crossing points and snip them out of the input so that
 // the return value is a series of rings such that no ring has the same point in
 // it twice.
-vector<ring_type> get_all_rings(const ring_type& ring) {
+vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
   for (auto start = ring.cbegin(); start != ring.cend(); start++) {
     for (auto end = std::next(start); end != ring.cend(); end++) {
       if (bg::equals(*start, *end)) {
         if (start == ring.cbegin() && end == std::prev(ring.cend())) {
           continue; // This is just the entire ring, no need to try to recurse here.
         }
-        ring_type inner_ring(start, end); // Build the ring that we've found.
+        ring_type_fp inner_ring(start, end); // Build the ring that we've found.
         inner_ring.push_back(inner_ring.front()); // Close the ring.
 
         // Make a ring from the rest of the points.
-        ring_type outer_ring(ring.cbegin(), start);
+        ring_type_fp outer_ring(ring.cbegin(), start);
         outer_ring.insert(outer_ring.end(), end, ring.cend());
         // Recurse on outer and inner and put together.
-        vector<ring_type> all_rings = get_all_rings(outer_ring);
-        vector<ring_type> all_inner_rings = get_all_rings(inner_ring);
+        vector<ring_type_fp> all_rings = get_all_rings(outer_ring);
+        vector<ring_type_fp> all_inner_rings = get_all_rings(inner_ring);
         all_rings.insert(all_rings.end(), all_inner_rings.cbegin(), all_inner_rings.cend());
         return all_rings;
       }
     }
   }
   // No points repeated so just return the original without recursion.
-  return vector<ring_type>{ring};
+  return vector<ring_type_fp>{ring};
 }
 
-multi_polygon_type simplify_cutins(const ring_type& ring) {
+multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
   const auto area = bg::area(ring); // Positive if the original ring is clockwise, otherwise negative.
-  vector<ring_type> all_rings = get_all_rings(ring);
-  multi_polygon_type ret;
+  vector<ring_type_fp> all_rings = get_all_rings(ring);
+  multi_polygon_type_fp ret;
   for (auto r : all_rings) {
     const auto this_area = bg::area(r);
     if (r.size() < 4 || this_area == 0) {
       continue; // No area so ignore it.
     }
     if (this_area * area > 0) {
-      multi_polygon_type temp_ret;
+      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
       bg::union_(ret, correct_r, temp_ret);
@@ -653,7 +425,7 @@ multi_polygon_type simplify_cutins(const ring_type& ring) {
       continue; // No area so ignore it.
     }
     if (this_area * area < 0) {
-      multi_polygon_type temp_ret;
+      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
       bg::difference(ret, correct_r, temp_ret);
@@ -663,16 +435,16 @@ multi_polygon_type simplify_cutins(const ring_type& ring) {
   return ret;
 }
 
-map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points, coordinate_type cfactor) {
-  const point_type origin (0, 0);
-  map<int, multi_polygon_type> apertures_map;
+map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points, coordinate_type cfactor) {
+  const point_type_fp origin (0, 0);
+  map<int, multi_polygon_type_fp> apertures_map;
   for (int i = 0; i < APERTURE_MAX; i++) {
     const gerbv_aperture_t * const aperture = apertures[i];
 
     if (aperture) {
       const double * const parameters = aperture->parameter;
-      multi_polygon_type input;
-      multi_polygon_type output;
+      multi_polygon_type_fp input;
+      multi_polygon_type_fp output;
 
       switch (aperture->type) {
         case GERBV_APTYPE_NONE:
@@ -717,8 +489,8 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
               const double * const parameters = simplified_amacro->parameter;
               double rotation;
               int polarity;
-              multi_polygon_type mpoly;
-              multi_polygon_type mpoly_rotated;
+              multi_polygon_type_fp mpoly;
+              multi_polygon_type_fp mpoly_rotated;
 
               switch (simplified_amacro->type) {
                 case GERBV_APTYPE_NONE:
@@ -734,7 +506,7 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   simplified_amacro = simplified_amacro->next;
                   continue;
                 case GERBV_APTYPE_MACRO_CIRCLE:
-                  mpoly = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                  mpoly = make_regular_polygon(point_type_fp(parameters[2] * cfactor, parameters[3] * cfactor),
                                                parameters[1] * cfactor,
                                                circle_points,
                                                0);
@@ -743,9 +515,9 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   break;
                 case GERBV_APTYPE_MACRO_OUTLINE:
                   {
-                    ring_type ring;
+                    ring_type_fp ring;
                     for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
-                      ring.push_back(point_type(parameters[i * 2 + 2] * cfactor,
+                      ring.push_back(point_type_fp(parameters[i * 2 + 2] * cfactor,
                                                 parameters [i * 2 + 3] * cfactor));
                     }
                     bg::correct(ring);
@@ -755,7 +527,7 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   rotation = parameters[(2 * int(round(parameters[1])) + 4)];
                   break;
                 case GERBV_APTYPE_MACRO_POLYGON: // 4.12.4.6 Polygon, Primitve Code 5
-                  mpoly = make_regular_polygon(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
+                  mpoly = make_regular_polygon(point_type_fp(parameters[2] * cfactor, parameters[3] * cfactor),
                                                parameters[4] * cfactor,
                                                parameters[1],
                                                0);
@@ -768,7 +540,7 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   rotation = parameters[8];
                   break;
                 case GERBV_APTYPE_MACRO_THERMAL: // 4.12.4.8 Thermal, Primitive Code 7
-                  mpoly = make_thermal(point_type(parameters[0] * cfactor, parameters[1] * cfactor),
+                  mpoly = make_thermal(point_type_fp(parameters[0] * cfactor, parameters[1] * cfactor),
                                        parameters[2] * cfactor,
                                        parameters[3] * cfactor,
                                        parameters[4] * cfactor,
@@ -777,14 +549,14 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_LINE20: // 4.12.4.3 Vector Line, Primitive Code 20
-                  mpoly = make_rectangle(point_type(parameters[2] * cfactor, parameters[3] * cfactor),
-                                         point_type(parameters[4] * cfactor, parameters[5] * cfactor),
+                  mpoly = make_rectangle(point_type_fp(parameters[2] * cfactor, parameters[3] * cfactor),
+                                         point_type_fp(parameters[4] * cfactor, parameters[5] * cfactor),
                                          parameters[1] * cfactor);
                   polarity = parameters[0];
                   rotation = parameters[6];
                   break;
                 case GERBV_APTYPE_MACRO_LINE21: // 4.12.4.4 Center Line, Primitive Code 21
-                  mpoly = make_rectangle(point_type(parameters[3] * cfactor, parameters[4] * cfactor),
+                  mpoly = make_rectangle(point_type_fp(parameters[3] * cfactor, parameters[4] * cfactor),
                                          parameters[1] * cfactor,
                                          parameters[2] * cfactor,
                                          0, 0);
@@ -792,7 +564,7 @@ map<int, multi_polygon_type> generate_apertures_map(const gerbv_aperture_t * con
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_LINE22:
-                  mpoly = make_rectangle(point_type((parameters[3] + parameters[1] / 2) * cfactor,
+                  mpoly = make_rectangle(point_type_fp((parameters[3] + parameters[1] / 2) * cfactor,
                                                     (parameters[4] + parameters[2] / 2) * cfactor),
                                          parameters[1] * cfactor,
                                          parameters[2] * cfactor,
@@ -853,13 +625,13 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
           sr1.dist_Y == sr2.dist_Y);
 }
 
-// Convert the gerber file into a multi_polygon_type.  If fill_closed_lines is
+// Convert the gerber file into a multi_polygon_type_fp.  If fill_closed_lines is
 // true, return all closed shapes without holes in them.  points_per_circle is
 // the number of lines to use to appoximate circles.
 unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
-  ring_type region;
+  ring_type_fp region;
   coordinate_type cfactor;
-  unique_ptr<multi_polygon_type> temp_mpoly (new multi_polygon_type());
+  unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
   vector<pair<const gerbv_layer_t *, gerberimporter_layer> >layers (1);
@@ -876,22 +648,22 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     cfactor = scale;
   }
 
-  const map<int, multi_polygon_type> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle, cfactor);
+  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle, cfactor);
   layers.front().first = gerber->netlist->layer;
 
 
   for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next) {
-    const point_type start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
-    const point_type stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
+    const point_type_fp start (currentNet->start_x * cfactor, currentNet->start_y * cfactor);
+    const point_type_fp stop (currentNet->stop_x * cfactor, currentNet->stop_y * cfactor);
     const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
-    multi_polygon_type mpoly;
+    multi_polygon_type_fp mpoly;
 
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
       layers.resize(layers.size() + 1);
       layers.back().first = currentNet->layer;
     }
 
-    unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
+    unique_ptr<multi_polygon_type_fp>& draws = layers.back().second.draws;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -904,6 +676,21 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
           if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
             const double diameter = parameters[0] * cfactor;
             mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
+            multi_polygon_type_fp for_viewing = mpoly;
+            for (auto& p : for_viewing) {
+              for (auto& point : p.outer()) {
+                point.x(point.x()/10000);
+                point.y(point.y()/10000);
+              }
+              for (auto& i : p.inners()) {
+                for (auto& point : i) {
+                  point.x(point.x()/10000);
+                  point.y(point.y()/10000);
+                }
+              }
+            }
+            std::cout << bg::wkt(for_viewing) << std::endl;
+
             *draws = *draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
@@ -949,7 +736,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
         const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
-        linestring_type path;
+        linestring_type_fp path;
 
         if (cirseg != NULL) {
           double angle1;
@@ -963,7 +750,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
             angle2 = cirseg->angle1;
           }
 
-          circular_arc(point_type(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
+          circular_arc(point_type_fp(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
                        cirseg->width * cfactor / 2,
                        angle1 * bg::math::pi<double>() / 180.0,
                        angle2 * bg::math::pi<double>() / 180.0,
@@ -1008,7 +795,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
       p.inners().clear();
     }
     }*/
-  multi_polygon_type for_viewing = *result;
+  multi_polygon_type_fp for_viewing = *result;
   for (auto& p : for_viewing) {
     for (auto& point : p.outer()) {
       point.x(point.x()/10000);
@@ -1022,7 +809,9 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     }
   }
   std::cout << bg::wkt(for_viewing) << std::endl;
-  return result;
+  unique_ptr<multi_polygon_type> result_integral(new multi_polygon_type());
+  bg::convert(*result, *result_integral);
+  return result_integral;
 }
 
 /******************************************************************************/
