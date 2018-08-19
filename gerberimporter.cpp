@@ -1004,21 +1004,6 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     map<coordinate_type, multi_linestring_type>& paths = layers.back().second.paths;
     unique_ptr<multi_polygon_type>& draws = layers.back().second.draws;
 
-    auto merge_ring = [&](ring_type& ring)
-                      {
-                        if (ring.size() > 1)
-                        {
-                          polygon_type polygon;
-                          bg::correct(ring);
-                
-                          bg::union_(*draws, simplify_cutins(ring), *temp_mpoly);
-
-                          ring.clear();
-                          draws.swap(temp_mpoly);
-                          temp_mpoly->clear();
-                        }
-                      };
-
     auto merge_mpoly = [&](multi_polygon_type& mpoly)
                        {
                          bg::correct(mpoly);
@@ -1074,6 +1059,7 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
           if (!region.empty()) {
             bg::append(region, stop);
             *draws = *draws + simplify_cutins(region);
+            region.clear();
           }
         }
       } else {
@@ -1084,8 +1070,10 @@ unique_ptr<multi_polygon_type> GerberImporter::render(bool fill_closed_lines, un
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
 
-      if (!region.empty())
-        merge_ring(region);
+      if (!region.empty()) {
+        *draws = *draws + simplify_cutins(region);
+        region.clear();
+      }
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
