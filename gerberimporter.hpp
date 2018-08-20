@@ -55,16 +55,16 @@ class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
 public:
     GerberImporter(const string path);
 
-    virtual gdouble get_width();
-    virtual gdouble get_height();
-    virtual gdouble get_min_x();
-    virtual gdouble get_max_x();
-    virtual gdouble get_min_y();
-    virtual gdouble get_max_y();
+    virtual gdouble get_width() const;
+    virtual gdouble get_height() const;
+    virtual gdouble get_min_x() const;
+    virtual gdouble get_max_x() const;
+    virtual gdouble get_min_y() const;
+    virtual gdouble get_max_y() const;
 
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double min_x,
-                        const double min_y);
+                        const double min_y) const;
 
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30);
     virtual inline unsigned int vectorial_scale()

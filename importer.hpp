@@ -49,19 +49,19 @@ typedef boost::error_info<struct tag_my_info, ustring> errorstring;
 class LayerImporter
 {
 public:
-    virtual gdouble get_width() = 0;
-    virtual gdouble get_height() = 0;
-    virtual gdouble get_min_x() = 0;
-    virtual gdouble get_max_x() = 0;
-    virtual gdouble get_min_y() = 0;
-    virtual gdouble get_max_y() = 0;
+    virtual gdouble get_width() const = 0;
+    virtual gdouble get_height() const = 0;
+    virtual gdouble get_min_x() const = 0;
+    virtual gdouble get_max_x() const = 0;
+    virtual gdouble get_min_y() const = 0;
+    virtual gdouble get_max_y() const = 0;
 };
 
 class RasterLayerImporter : virtual public LayerImporter
 {
 public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-                        const guint dpi, const double xoff, const double yoff) = 0;
+                        const guint dpi, const double xoff, const double yoff) const = 0;
 
 };
 

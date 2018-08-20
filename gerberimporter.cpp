@@ -61,49 +61,49 @@ GerberImporter::GerberImporter(const string path) {
     throw gerber_exception();
 }
 
-gdouble GerberImporter::get_width() {
+gdouble GerberImporter::get_width() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
 }
 
-gdouble GerberImporter::get_height() {
+gdouble GerberImporter::get_height() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
 }
 
-gdouble GerberImporter::get_min_x() {
+gdouble GerberImporter::get_min_x() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->min_x;
 }
 
-gdouble GerberImporter::get_max_x() {
+gdouble GerberImporter::get_max_x() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->max_x;
 }
 
-gdouble GerberImporter::get_min_y() {
+gdouble GerberImporter::get_min_y() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->min_y;
 }
 
-gdouble GerberImporter::get_max_y() {
+gdouble GerberImporter::get_max_y() const {
   if (!project || !project->file[0])
     throw gerber_exception();
 
   return project->file[0]->image->info->max_y;
 }
 
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) {
+void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y) const {
   gerbv_render_info_t render_info;
 
   render_info.scaleFactorX = dpi;
