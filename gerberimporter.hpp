@@ -66,7 +66,7 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y) const;
 
-    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30);
+    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const;
     virtual inline unsigned int vectorial_scale()
     {
         return scale;

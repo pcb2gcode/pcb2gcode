@@ -67,7 +67,7 @@ public:
 
 class VectorialLayerImporter : virtual public LayerImporter {
 public:
-    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) = 0;
+    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
     virtual unsigned int vectorial_scale() = 0;
 };
 

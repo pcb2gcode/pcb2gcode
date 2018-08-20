@@ -660,7 +660,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
 // Convert the gerber file into a multi_polygon_type_fp.  If fill_closed_lines is
 // true, return all closed shapes without holes in them.  points_per_circle is
 // the number of lines to use to appoximate circles.
-multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) {
+multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) const {
   ring_type_fp region;
   coordinate_type cfactor;
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());

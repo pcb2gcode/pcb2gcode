@@ -70,5 +70,6 @@ tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp
+gerberimporter_tests_LDADD = $(rsvg_LIBS)
 
 TESTS = $(check_PROGRAMS)
