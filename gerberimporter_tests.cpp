@@ -53,23 +53,15 @@ class Grid {
 
 // Make a surface of the right size for the input gerber.
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g) {
-  Glib::RefPtr<Gdk::Pixbuf> pixbuf =
-      Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
-                          true,
-                          8,
-                          g.get_width()*dpi+2*procmargin,
-                          g.get_height()*dpi+2*procmargin);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
-      Cairo::ImageSurface::create(pixbuf->get_pixels(),
-                                  Cairo::FORMAT_ARGB32,
+      Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
                                   g.get_width()  * dpi + 2 * procmargin,
-                                  g.get_height() * dpi + 2 * procmargin,
-                                  pixbuf->get_rowstride());
+                                  g.get_height() * dpi + 2 * procmargin);
   // Set it all black.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
-  for (int y = 0; y < pixbuf->get_height(); y++) {
-    for (int x = 0; x < pixbuf->get_width(); x++) {
+  for (int y = 0; y < cairo_surface->get_height(); y++) {
+    for (int x = 0; x < cairo_surface->get_width(); x++) {
       *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0xFF000000; // BLACK
     }
   }
@@ -123,25 +115,14 @@ vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
   int width = 100;
   int height = 100;
 
-  Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, true, 8, g.get_width()*dpi+2*procmargin, g.get_height()*dpi+2*procmargin);
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
-      Cairo::ImageSurface::create(pixbuf->get_pixels(),
-                                  Cairo::FORMAT_ARGB32,
-                                  g.get_width()  * dpi + 2 * procmargin,
-                                  g.get_height() * dpi + 2 * procmargin,
-                                  pixbuf->get_rowstride());
-  cairo_t *cr = cairo_create(cairo_surface->cobj());
-  guint8* pixels = cairo_surface->get_data();
-  int stride = cairo_surface->get_stride();
-  for (int y = 0; y < height; y++) {
-    for (int x = 0; x < width; x++) {
-      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0xFF000000; // BLACK
-    }
-  }
-  if(!rsvg_handle_render_cairo(rsvg_handle, cr)) {
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(g);
+  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
+  if(!rsvg_handle_render_cairo(rsvg_handle, cr->cobj())) {
     printf("to cairo failed\n");
     exit(2);
   }
+  guint8* pixels = cairo_surface->get_data();
+  int stride = cairo_surface->get_stride();
   vector<vector<bool>> grid;
   grid.resize(height);
   for (int y = 0; y < height; y++) {
@@ -154,7 +135,6 @@ vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
       }
     }
   }
-  cairo_destroy(cr);
   return grid;
 }
 
