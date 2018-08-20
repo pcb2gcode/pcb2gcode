@@ -47,6 +47,7 @@ PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 > 2.0])
+#PKG_CHECK_MODULES([magick], [Magick++ > 6.0])
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
 

@@ -62,6 +62,7 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
 
     vectorial_surface = make_shared<multi_polygon_type_fp>();
     vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
+    std::cout << bg::wkt(vectorial_surface_not_simplified) << std::endl;
 
     if (bg::intersects(vectorial_surface_not_simplified))
     {
@@ -532,6 +533,7 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
         bg::convert(bounding_box, new_bounding_box);
         bg::intersection(poly, new_bounding_box, mpoly);
 
+        std::cout << "just before writing svg: " << bg::wkt(mpoly) << std::endl;
         mapper->map(mpoly,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
