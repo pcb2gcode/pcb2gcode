@@ -73,3 +73,6 @@ testing/gerbv_example/*/*.svg
 
 #editor or browser files
 .directory
+
+#gerberimporter_tests outputs
+/*.xpm

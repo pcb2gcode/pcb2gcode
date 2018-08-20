@@ -77,6 +77,16 @@ class Grid {
   void remove_row() {
     grid.erase(grid.cbegin());
   }
+  map<char, unsigned int> get_counts() const {
+    map<char, unsigned int> counts;
+    for (unsigned int i = 0; i < grid.size(); i++) {
+      for (unsigned int j = 0; j < grid[i].size(); j++) {
+        counts[this->grid[i][j]]++;
+      }
+    }
+    return counts;
+  }
+
  private:
   vector<vector<char>> grid;
 };
@@ -151,36 +161,46 @@ Grid boost_bitmap_from_gerber(const GerberImporter& g) {
 
 const string gerber_directory = "testing/gerberimporter";
 
-void test_one(const string& gerber_file) {
+void test_one(const string& gerber_file, unsigned int expected_errors) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter(gerber_path);
   Grid grid = bitmap_from_gerber(g);
-  std::ofstream xpm_out;
-  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
   Grid grid2 = boost_bitmap_from_gerber(g);
+  // These seem to help a little with the alignment:
+  grid.remove_row();
+  grid.remove_row();
   grid |= grid2;
-  grid.write_xpm3(xpm_out,
-                  { ". c #000000",
-                    "~ c #FF0000",
-                    "_ c #003300",
-                    "o c #0000FF"
-                  });
-  xpm_out.close();
+  auto counts = grid.get_counts();
+  unsigned int errors = counts['~'] + counts['o'];
+  unsigned int total = errors + counts['.'] + counts['_'];
+  BOOST_CHECK_EQUAL(errors, expected_errors);
+  std::cout << gerber_file << " error rate: " << errors << "/" << total << "(" << double(errors)/total*100 << "%)" << std::endl;
+  if (errors != expected_errors) {
+    std::ofstream xpm_out;
+    xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+    grid.write_xpm3(xpm_out,
+                    { ". c #000000",
+                      "~ c #FF0000",
+                      "_ c #003300",
+                      "o c #0000FF"
+                    });
+    xpm_out.close();
+  }
+  if (errors < expected_errors) {
+    std::cout << "This test improved, updates the expectation for "
+              << gerber_file << " to " << errors << "." << std::endl;
+  }
+  if (errors > expected_errors) {
+    std::cout << "This test got worse.  Check the xpm file and, if it looks okay, then update the expectation for "
+              << gerber_file << " to " << errors << "." << std::endl;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  DIR *dirp = opendir(gerber_directory.c_str());
-  dirent *entry;
-  while ((entry = readdir(dirp)) != NULL) {
-    if (strcmp(entry->d_name, ".") == 0 ||
-        strcmp(entry->d_name, "..") == 0) {
-      continue;
-    }
-    test_one(string(entry->d_name));
-  }
-  closedir(dirp);
+  test_one("am-test.gbx", 63189);
+  test_one("multivibrator-B.Cu.gbr", 18595);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
