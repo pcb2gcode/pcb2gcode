@@ -23,7 +23,7 @@ struct Fixture {
 
 BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 
-const unsigned int dpi = 10;
+const unsigned int dpi = 1000;
 const unsigned int procmargin = 0;
 
 class Grid {
@@ -65,6 +65,17 @@ class Grid {
       os << "\"," << std::endl;
     }
     os << '}' << std::endl;
+  }
+  Grid& operator|=(const Grid& rhs) {
+    for (unsigned int i = 0; i < grid.size() && i < rhs.grid.size(); i++) {
+      for (unsigned int j = 0; j < grid[i].size() && j < rhs.grid[i].size(); j++) {
+        this->grid[i][j] |= rhs.grid[i][j];
+      }
+    }
+    return *this;
+  }
+  void remove_row() {
+    grid.erase(grid.cbegin());
   }
  private:
   vector<vector<char>> grid;
@@ -148,13 +159,14 @@ void test_one(const string& gerber_file) {
   Grid grid = bitmap_from_gerber(g);
   std::ofstream xpm_out;
   xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+  Grid grid2 = boost_bitmap_from_gerber(g);
+  grid |= grid2;
   grid.write_xpm3(xpm_out,
                   { ". c #000000",
-                    "O c #443399"});
-  Grid grid2 = boost_bitmap_from_gerber(g);
-  grid2.write_xpm3(xpm_out,
-                   { ". c #000000",
-                     "X c #FF3311"});
+                    "~ c #FF0000",
+                    "_ c #003300",
+                    "o c #0000FF"
+                  });
   xpm_out.close();
 }
 
