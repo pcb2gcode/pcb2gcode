@@ -14,14 +14,11 @@
 
 struct Fixture {
   Fixture() {
-    BOOST_TEST_MESSAGE( "setup fixture" );
     Glib::init();
     Gdk::wrap_init();
     //MagickCore::InitializeMagick(boost::unit_test::framework::master_test_suite().argv[0]);
   }
-  ~Fixture() {
-    BOOST_TEST_MESSAGE( "teardown fixture" );
-  }
+  ~Fixture() {}
 };
 
 BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
@@ -29,6 +26,32 @@ BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 const unsigned int dpi = 10;
 const unsigned int procmargin = 0;
 
+class Grid {
+ public:
+  Grid() {}
+  Grid(const Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, char background, char foreground) {
+    guint8* pixels = cairo_surface->get_data();
+    int stride = cairo_surface->get_stride();
+    grid.resize(cairo_surface->get_height());
+    for (int y = 0; y < cairo_surface->get_height(); y++) {
+      grid[y].resize(cairo_surface->get_width());
+      for (int x = 0; x < cairo_surface->get_width(); x++) {
+        if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
+          grid[y][x] = background;
+        } else {
+          grid[y][x] = foreground;
+        }
+      }
+    }
+  }
+  const vector<vector<char>> get_grid() {
+    return grid;
+  }
+ private:
+  vector<vector<char>> grid;
+};
+
+// Make a surface of the right size for the input gerber.
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g) {
   Glib::RefPtr<Gdk::Pixbuf> pixbuf =
       Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
@@ -53,10 +76,9 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g)
   return cairo_surface;
 }
 
-
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-vector<vector<bool>> bitmap_from_gerber(const GerberImporter& g) {
+Grid bitmap_from_gerber(const GerberImporter& g) {
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(g);
 
   //Render
@@ -65,21 +87,7 @@ vector<vector<bool>> bitmap_from_gerber(const GerberImporter& g) {
            g.get_min_y() - static_cast<double>(procmargin) / dpi);
 
   // Make the grid.
-  vector<vector<bool>> grid;
-  guint8* pixels = cairo_surface->get_data();
-  int stride = cairo_surface->get_stride();
-  grid.resize(cairo_surface->get_height());
-  for (int y = 0; y < cairo_surface->get_height(); y++) {
-    grid[y].resize(cairo_surface->get_width());
-    for (int x = 0; x < cairo_surface->get_width(); x++) {
-      if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
-        grid[y][x] = true;
-      } else {
-        grid[y][x] = false;
-      }
-    }
-  }
-  return grid;
+  return Grid(cairo_surface, 'x', 'O');
 }
 
 // Convert the gerber to a boost geometry and then conver that to SVG and then rasterize to a bitmap.
@@ -99,7 +107,7 @@ vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
                                       height,
                                       svg_dimensions);
     svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
-    svg.map(polys, "fill-opacity:1.0;fill:rgb(0,255,255);");
+    svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
   }
 
   //Now we have the svg, let's make a cairo surface like above.
@@ -159,10 +167,10 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     gerber_file += "/";
     gerber_file += entry->d_name;
     auto g = GerberImporter(gerber_file);
-    vector<vector<bool>> grid = bitmap_from_gerber(g);
+    vector<vector<char>> grid = bitmap_from_gerber(g).get_grid();
     for (const auto& y : grid) {
       for (const auto& x : y) {
-        printf("%d", x);
+        printf("%c", x);
       }
       printf("\n");
     }
