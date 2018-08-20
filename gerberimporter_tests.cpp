@@ -44,8 +44,27 @@ class Grid {
       }
     }
   }
-  const vector<vector<char>> get_grid() {
+  const vector<vector<char>> get_grid() const {
     return grid;
+  }
+  void write_xpm3(std::ostream& os, const vector<string>& colors) const {
+    os << "/* XPM */" << std::endl;
+    os << "static char * grid_xpm[] = {" << std::endl;
+    os << '"' << ((grid.size() > 0) ? grid[0].size()  : 0) << " "; // width
+    os << grid.size() << " "; //height
+    os << colors.size() << " "; // color count
+    os << "1\"," << std::endl; // One character per pixel
+    for (const auto& color : colors) {
+      os << '"' << color << "\"," << std::endl;
+    }
+    for (const auto& row : grid) {
+      os << '"';
+      for (const auto& c : row) {
+        os << c;
+      }
+      os << "\"," << std::endl;
+    }
+    os << '}' << std::endl;
   }
  private:
   vector<vector<char>> grid;
@@ -119,8 +138,27 @@ Grid boost_bitmap_from_gerber(const GerberImporter& g) {
   return Grid(cairo_surface, '.', 'X');
 }
 
+const string gerber_directory = "testing/gerberimporter";
+
+void test_one(const string& gerber_file) {
+  string gerber_path = gerber_directory;
+  gerber_path += "/";
+  gerber_path += gerber_file;
+  auto g = GerberImporter(gerber_path);
+  Grid grid = bitmap_from_gerber(g);
+  std::ofstream xpm_out;
+  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+  grid.write_xpm3(xpm_out,
+                  { ". c #000000",
+                    "O c #443399"});
+  Grid grid2 = boost_bitmap_from_gerber(g);
+  grid2.write_xpm3(xpm_out,
+                   { ". c #000000",
+                     "X c #FF3311"});
+  xpm_out.close();
+}
+
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  const string gerber_directory = "testing/gerberimporter";
   DIR *dirp = opendir(gerber_directory.c_str());
   dirent *entry;
   while ((entry = readdir(dirp)) != NULL) {
@@ -128,24 +166,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
         strcmp(entry->d_name, "..") == 0) {
       continue;
     }
-    string gerber_file = gerber_directory;
-    gerber_file += "/";
-    gerber_file += entry->d_name;
-    auto g = GerberImporter(gerber_file);
-    vector<vector<char>> grid = bitmap_from_gerber(g).get_grid();
-    for (const auto& y : grid) {
-      for (const auto& x : y) {
-        printf("%c", x);
-      }
-      printf("\n");
-    }
-    vector<vector<char>> grid2 = boost_bitmap_from_gerber(g).get_grid();
-    for (const auto& y : grid2) {
-      for (const auto& x : y) {
-        printf("%c", x);
-      }
-      printf("\n");
-    }
+    test_one(string(entry->d_name));
   }
   closedir(dirp);
 }
