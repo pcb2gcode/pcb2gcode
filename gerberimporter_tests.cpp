@@ -90,15 +90,13 @@ Grid bitmap_from_gerber(const GerberImporter& g) {
   return Grid(cairo_surface, 'x', 'O');
 }
 
-// Convert the gerber to a boost geometry and then conver that to SVG and then rasterize to a bitmap.
-vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
+string render_svg(const GerberImporter& g) {
   multi_polygon_type_fp polys = g.render(false, 30);
-  std::cout << bg::wkt(polys) << std::endl;
   std::stringstream svg_stream;
   box_type_fp svg_bounding_box;
   bg::envelope(polys, svg_bounding_box);
-  double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / 1000000;
-  double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / 1000000;
+  const double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / 1000000;
+  const double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / 1000000;
   {
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
@@ -109,15 +107,21 @@ vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
     svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
     svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
   }
+  return svg_stream.str();
+}
+
+// Convert the gerber to a boost geometry and then conver that to SVG and then rasterize to a bitmap.
+vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
+  string svg_string = render_svg(g);
 
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
-  RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_stream.str().c_str()),
-                                                      svg_stream.str().size(),
+  RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
+                                                      svg_string.size(),
                                                       &gerror);
   //rsvg_handle_set_dpi(rsvg_handle, dpi*1000);
-  width = 100;
-  height = 100;
+  int width = 100;
+  int height = 100;
 
   Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, true, 8, g.get_width()*dpi+2*procmargin, g.get_height()*dpi+2*procmargin);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
