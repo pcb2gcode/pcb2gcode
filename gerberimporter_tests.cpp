@@ -55,8 +55,8 @@ class Grid {
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g) {
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
       Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
-                                  g.get_width()  * dpi + 2 * procmargin,
-                                  g.get_height() * dpi + 2 * procmargin);
+                                  g.get_width()  * dpi + 1,
+                                  g.get_height() * dpi + 1);
   // Set it all black.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
@@ -74,22 +74,20 @@ Grid bitmap_from_gerber(const GerberImporter& g) {
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(g);
 
   //Render
-  g.render(cairo_surface, dpi,
-           g.get_min_x() - static_cast<double>(procmargin) / dpi,
-           g.get_min_y() - static_cast<double>(procmargin) / dpi);
+  g.render(cairo_surface, dpi, g.get_min_x(), g.get_min_y());
 
   // Make the grid.
-  return Grid(cairo_surface, 'x', 'O');
+  return Grid(cairo_surface, '.', 'O');
 }
 
 string render_svg(const GerberImporter& g) {
   multi_polygon_type_fp polys = g.render(false, 30);
   std::stringstream svg_stream;
-  box_type_fp svg_bounding_box;
-  bg::envelope(polys, svg_bounding_box);
-  const double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / 1000000;
-  const double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / 1000000;
   {
+    box_type_fp svg_bounding_box;
+    bg::envelope(polys, svg_bounding_box);
+    const double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / g.vectorial_scale();
+    const double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / g.vectorial_scale();
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
     bg::svg_mapper<point_type_fp> svg(svg_stream,
@@ -98,12 +96,12 @@ string render_svg(const GerberImporter& g) {
                                       svg_dimensions);
     svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
     svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
-  }
+  } // The svg file is complete when it goes out of scope.
   return svg_stream.str();
 }
 
 // Convert the gerber to a boost geometry and then conver that to SVG and then rasterize to a bitmap.
-vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
+Grid boost_bitmap_from_gerber(const GerberImporter& g) {
   string svg_string = render_svg(g);
 
   //Now we have the svg, let's make a cairo surface like above.
@@ -111,31 +109,14 @@ vector<vector<bool>> boost_bitmap_from_gerber(const GerberImporter& g) {
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
                                                       svg_string.size(),
                                                       &gerror);
-  //rsvg_handle_set_dpi(rsvg_handle, dpi*1000);
-  int width = 100;
-  int height = 100;
-
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(g);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
   if(!rsvg_handle_render_cairo(rsvg_handle, cr->cobj())) {
     printf("to cairo failed\n");
     exit(2);
   }
-  guint8* pixels = cairo_surface->get_data();
-  int stride = cairo_surface->get_stride();
-  vector<vector<bool>> grid;
-  grid.resize(height);
-  for (int y = 0; y < height; y++) {
-    grid[y].resize(width);
-    for (int x = 0; x < width; x++) {
-      if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
-        grid[y][x] = true;
-      } else {
-        grid[y][x] = false;
-      }
-    }
-  }
-  return grid;
+
+  return Grid(cairo_surface, '.', 'X');
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
@@ -158,10 +139,10 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
       }
       printf("\n");
     }
-    vector<vector<bool>> grid2 = boost_bitmap_from_gerber(g);
+    vector<vector<char>> grid2 = boost_bitmap_from_gerber(g).get_grid();
     for (const auto& y : grid2) {
       for (const auto& x : y) {
-        printf("%d", x);
+        printf("%c", x);
       }
       printf("\n");
     }
@@ -170,55 +151,3 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-
-
-
-  /*
-  auto pixbuf = rsvg_handle_get_pixbuf(rsvg_handle);
-  auto stride = gdk_pixbuf_get_rowstride(pixbuf);
-  vector<vector<bool>> grid;
-  auto height = gdk_pixbuf_get_height(pixbuf);
-  auto width = gdk_pixbuf_get_width(pixbuf);
-  auto pixels = gdk_pixbuf_read_pixels(pixbuf);
-  grid.resize(height);
-  for (int y = 0; y < height; y++) {
-    grid[y].resize(width);
-    for (int x = 0; x < width; x++) {
-      printf("%d\n", *(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)));
-      if (*(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
-        grid[y][x] = true;
-      } else {
-        grid[y][x] = false;
-        }
-    }
-  }
-  rsvg_handle_close(rsvg_handle, &gerror);
-  g_object_unref(rsvg_handle);
-  return grid;
-*/
-
-
-
-  /*  Magick::Image image;
-  printf("%s\n", svg_stream.str().c_str());
-  std::ofstream out("test.svg");
-  out << svg_stream.str();
-  out.close();
-  //Magick::Blob blob(svg_stream.str().c_str(), svg_stream.str().size());
-  //image.read(blob,
-  //           Magick::Geometry((boost::format("%dx%d+%d+%d") % width % height % procmargin % procmargin).str()),
-  //           8,
-  //           "SVG");
-  image.read("test.svg");
-  image.write("test.png");
-  char pixels[size_t(width*height*4)];
-  for (unsigned int i = 0; i < width*height*4; i++) {
-    pixels[i] = 0;
-  }
-  image.write(0,0,width,height,"ARGB",Magick::CharPixel,pixels);
-  for (unsigned int i = 0; i < width*height*4; i++) {
-    printf("%d\n", pixels[i]);
-  }
-  vector<vector<bool>> grid;
-  //grid.resize(height);
-  return grid;*/
