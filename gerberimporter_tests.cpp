@@ -29,31 +29,49 @@ BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 const unsigned int dpi = 10;
 const unsigned int procmargin = 0;
 
-// Given a gerber file, return a pixmap that is a rasterized version of that
-// gerber.  Uses gerbv's built-in utils.
-vector<vector<bool>> bitmap_from_gerber(const GerberImporter& g) {
-  Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB, true, 8, g.get_width()*dpi+2*procmargin, g.get_height()*dpi+2*procmargin);
+Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g) {
+  Glib::RefPtr<Gdk::Pixbuf> pixbuf =
+      Gdk::Pixbuf::create(Gdk::COLORSPACE_RGB,
+                          true,
+                          8,
+                          g.get_width()*dpi+2*procmargin,
+                          g.get_height()*dpi+2*procmargin);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
       Cairo::ImageSurface::create(pixbuf->get_pixels(),
                                   Cairo::FORMAT_ARGB32,
                                   g.get_width()  * dpi + 2 * procmargin,
                                   g.get_height() * dpi + 2 * procmargin,
                                   pixbuf->get_rowstride());
+  // Set it all black.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
   for (int y = 0; y < pixbuf->get_height(); y++) {
     for (int x = 0; x < pixbuf->get_width(); x++) {
-      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0xFF000000; // BlACK
+      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0xFF000000; // BLACK
     }
   }
+  return cairo_surface;
+}
+
+
+// Given a gerber file, return a pixmap that is a rasterized version of that
+// gerber.  Uses gerbv's built-in utils.
+vector<vector<bool>> bitmap_from_gerber(const GerberImporter& g) {
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(g);
+
+  //Render
   g.render(cairo_surface, dpi,
            g.get_min_x() - static_cast<double>(procmargin) / dpi,
            g.get_min_y() - static_cast<double>(procmargin) / dpi);
+
+  // Make the grid.
   vector<vector<bool>> grid;
-  grid.resize(pixbuf->get_height());
-  for (int y = 0; y < pixbuf->get_height(); y++) {
-    grid[y].resize(pixbuf->get_width());
-    for (int x = 0; x < pixbuf->get_width(); x++) {
+  guint8* pixels = cairo_surface->get_data();
+  int stride = cairo_surface->get_stride();
+  grid.resize(cairo_surface->get_height());
+  for (int y = 0; y < cairo_surface->get_height(); y++) {
+    grid[y].resize(cairo_surface->get_width());
+    for (int x = 0; x < cairo_surface->get_width(); x++) {
       if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
         grid[y][x] = true;
       } else {
