@@ -197,11 +197,13 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  test_one("wide_oval.gbr",   55440);
-  test_one("tall_oval.gbr",   37991);
-  test_one("circle_oval.gbr", 263377);
-  test_one("rectangle.gbr",   150168);
-  test_one("circle.gbr", 30319);
+  test_one("wide_oval.gbr",     55440);
+  test_one("tall_oval.gbr",     37991);
+  test_one("circle_oval.gbr",   263377);
+  test_one("rectangle.gbr",     150168);
+  test_one("circle.gbr",        30319);
+  test_one("code1_circle.gbr",  93228);
+  test_one("code20_vector_line.gbr",  69835);
   //test_one("am-test.gbx", 63189);
   //test_one("multivibrator-B.Cu.gbr", 18595);
 }
