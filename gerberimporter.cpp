@@ -246,15 +246,20 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type width, coo
   return ret;
 }
 
-multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint, point_type_fp endpoint, coordinate_type width,
-                                                       coordinate_type height) {
-  auto start_rect = make_rectangle(startpoint, width, height, 0, 0);
-  auto end_rect = make_rectangle(endpoint, width, height, 0, 0);
-  multi_polygon_type_fp both_rects;
-  both_rects = start_rect + end_rect;
+multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint, point_type_fp endpoint, coordinate_type_fp width,
+                                                       coordinate_type_fp height) {
+  // It's the convex hull of all the corners of all the points.
+  multi_point_type_fp all_points;
+  for (const auto& p : {startpoint, endpoint}) {
+    for (double w : {-1, 1}) {
+      for (double h : {-1, 1}) {
+        all_points.push_back(point_type_fp(p.x()+w*width/2, p.y()+h*height/2));
+      }
+    }
+  }
   multi_polygon_type_fp hull;
   hull.resize(1);
-  bg::convex_hull(both_rects, hull[0]);
+  bg::convex_hull(all_points, hull[0]);
   return hull;
 }
 
