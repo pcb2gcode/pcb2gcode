@@ -149,6 +149,9 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
 template <typename polygon_type_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const bg::model::multi_polygon<polygon_type_t>& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
   bg::model::multi_polygon<polygon_type_t> ret;
   bg::difference(lhs, rhs, ret);
   return ret;
@@ -157,6 +160,9 @@ static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model
 template <typename polygon_type_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const bg::model::multi_polygon<polygon_type_t>& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
   bg::model::multi_polygon<polygon_type_t> ret;
   bg::union_(lhs, rhs, ret);
   return ret;
