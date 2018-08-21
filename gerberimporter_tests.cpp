@@ -78,10 +78,19 @@ class Grid {
     grid.erase(grid.cbegin());
   }
   map<char, unsigned int> get_counts() const {
-    map<char, unsigned int> counts;
+    unsigned int all_values[256];
+    for (unsigned int i = 0; i < 256; i++) {
+      all_values[i] = 0;
+    }
     for (unsigned int i = 0; i < grid.size(); i++) {
       for (unsigned int j = 0; j < grid[i].size(); j++) {
-        counts[this->grid[i][j]]++;
+        ++all_values[size_t(this->grid[i][j])];
+      }
+    }
+    map<char, unsigned int> counts;
+    for (unsigned int i = 0; i < 256; i++) {
+      if (all_values[i] != 0) {
+        counts[char(i)] = all_values[i];
       }
     }
     return counts;
@@ -172,9 +181,9 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
   grid |= grid2;
   auto counts = grid.get_counts();
   unsigned int errors = counts['~'] + counts['o'];
-  unsigned int total = errors + counts['.'] + counts['_'];
+  unsigned int total = errors + counts['_'];
   BOOST_CHECK_EQUAL(errors, expected_errors);
-  std::cout << gerber_file << " error rate: " << errors << "/" << total << "(" << double(errors)/total*100 << "%)" << std::endl;
+  std::cout << gerber_file << " error rate: " << errors << "/" << total << " (" << double(errors)/total*100 << "%)" << std::endl;
   if (errors != expected_errors) {
     std::ofstream xpm_out;
     xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());

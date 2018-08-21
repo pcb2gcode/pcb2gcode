@@ -197,21 +197,15 @@ multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double 
 
 multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2, double height) {
   multi_polygon_type_fp ret;
-  ret.resize(1);
-  auto& polygon = ret.front();
-  const double distance = bg::distance(point1, point2);
-  const double normalized_dy = (point2.y() - point1.y()) / distance;
-  const double normalized_dx = (point2.x() - point1.x()) / distance;
-  // Rotate the normalized vectors by 90 degrees ccw.
-  const double dy = height / 2 * normalized_dx;
-  const double dx = height / 2 * -normalized_dy;
-
-  polygon.outer().push_back(point_type_fp(point1.x() - dx, point1.y() - dy));
-  polygon.outer().push_back(point_type_fp(point1.x() + dx, point1.y() + dy));
-  polygon.outer().push_back(point_type_fp(point2.x() + dx, point2.y() + dy));
-  polygon.outer().push_back(point_type_fp(point2.x() - dx, point2.y() - dy));
-  polygon.outer().push_back(polygon.outer().front());
-
+  linestring_type_fp line;
+  line.push_back(point1);
+  line.push_back(point2);
+  bg::buffer(line, ret,
+             bg::strategy::buffer::distance_symmetric<coordinate_type>(height/2),
+             bg::strategy::buffer::side_straight(),
+             bg::strategy::buffer::join_round(0),
+             bg::strategy::buffer::end_flat(),
+             bg::strategy::buffer::point_circle(0));
   return ret;
 }
 
@@ -262,21 +256,6 @@ multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint,
   hull.resize(1);
   bg::convex_hull(both_rects, hull[0]);
   return hull;
-}
-
-multi_polygon_type_fp linear_draw_circular_aperture(point_type_fp startpoint, point_type_fp endpoint,
-                                                    coordinate_type radius, unsigned int circle_points) {
-  multi_polygon_type_fp oval;
-  linestring_type_fp line;
-  line.push_back(startpoint);
-  line.push_back(endpoint);
-  bg::buffer(line, oval,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(radius),
-             bg::strategy::buffer::side_straight(),
-             bg::strategy::buffer::join_round(circle_points),
-             bg::strategy::buffer::end_round(circle_points),
-             bg::strategy::buffer::point_circle(circle_points));
-  return oval;
 }
 
 void GerberImporter::circular_arc(point_type_fp center, coordinate_type radius,
@@ -719,23 +698,6 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             segment.push_back(start);
             segment.push_back(stop);
             linear_circular_paths[diameter].push_back(segment);
-            //mpoly = linear_draw_circular_aperture(start, stop, diameter/2, points_per_circle);
-            /*
-              multi_polygon_type_fp for_viewing = mpoly;
-              for (auto& p : for_viewing) {
-              for (auto& point : p.outer()) {
-              point.x(point.x()/10000);
-              point.y(point.y()/10000);
-              }
-              for (auto& i : p.inners()) {
-              for (auto& point : i) {
-              point.x(point.x()/10000);
-              point.y(point.y()/10000);
-              }
-              }
-              }
-              std::cout << bg::wkt(for_viewing) << std::endl;
-            */
             draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0] * cfactor,
