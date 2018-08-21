@@ -95,8 +95,8 @@ class Grid {
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(const GerberImporter& g) {
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
       Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
-                                  g.get_width()  * dpi + 1,
-                                  g.get_height() * dpi + 1);
+                                  g.get_width()  * dpi,
+                                  g.get_height() * dpi);
   // Set it all black.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
@@ -169,8 +169,6 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
   Grid grid = bitmap_from_gerber(g);
   Grid grid2 = boost_bitmap_from_gerber(g);
   // These seem to help a little with the alignment:
-  grid.remove_row();
-  grid.remove_row();
   grid |= grid2;
   auto counts = grid.get_counts();
   unsigned int errors = counts['~'] + counts['o'];
@@ -199,8 +197,13 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  test_one("am-test.gbx", 63189);
-  test_one("multivibrator-B.Cu.gbr", 18595);
+  test_one("wide_oval.gbr",   55440);
+  test_one("tall_oval.gbr",   37991);
+  test_one("circle_oval.gbr", 263377);
+  test_one("rectangle.gbr",   150168);
+  test_one("circle.gbr", 30319);
+  //test_one("am-test.gbx", 63189);
+  //test_one("multivibrator-B.Cu.gbr", 18595);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
