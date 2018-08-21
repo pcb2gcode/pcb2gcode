@@ -74,9 +74,6 @@ class Grid {
     }
     return *this;
   }
-  void remove_row() {
-    grid.erase(grid.cbegin());
-  }
   map<char, unsigned int> get_counts() const {
     unsigned int all_values[256];
     for (unsigned int i = 0; i < 256; i++) {
