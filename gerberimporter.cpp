@@ -269,23 +269,20 @@ multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint,
   return hull;
 }
 
-void GerberImporter::circular_arc(point_type_fp center, coordinate_type radius,
-                                  double angle1, double angle2, unsigned int circle_points,
-                                  linestring_type_fp& linestring)
-{
+linestring_type_fp circular_arc(point_type_fp center, coordinate_type radius,
+                                double angle1, double angle2, unsigned int circle_points) {
   const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
   const double angle_step = (angle2 - angle1) / steps;
-    
-  for (unsigned int i = 0; i < steps; i++)
-  {
+  linestring_type_fp linestring;
+  for (unsigned int i = 0; i < steps; i++){
     const double angle = angle1 + i * angle_step;
 
     linestring.push_back(point_type_fp(cos(angle) * radius + center.x(),
                                        sin(angle) * radius + center.y()));
   }
-    
   linestring.push_back(point_type_fp(cos(angle2) * radius + center.x(),
                                      sin(angle2) * radius + center.y()));
+  return linestring;
 }
 
 inline static void unsupported_polarity_throw_exception() {
@@ -754,8 +751,6 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
         const gerbv_cirseg_t * const cirseg = currentNet->cirseg;
-        linestring_type_fp path;
-
         if (cirseg != NULL) {
           double angle1;
           double angle2;
@@ -768,12 +763,11 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             angle2 = cirseg->angle1;
           }
 
-          circular_arc(point_type_fp(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
-                       cirseg->width * cfactor / 2,
-                       angle1 * bg::math::pi<double>() / 180.0,
-                       angle2 * bg::math::pi<double>() / 180.0,
-                       points_per_circle,
-                       path);
+          linestring_type_fp path = circular_arc(point_type_fp(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
+                                                 cirseg->width * cfactor / 2,
+                                                 angle1 * bg::math::pi<double>() / 180.0,
+                                                 angle2 * bg::math::pi<double>() / 180.0,
+                                                 points_per_circle);
 
           if (contour) {
             if (region.empty()) {
@@ -783,8 +777,8 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             }
           } else {
             if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
-              //const double diameter = parameters[0] * cfactor;
-              // TODO: Support circular arcs.
+              const double diameter = parameters[0] * cfactor;
+              linear_circular_paths[diameter].push_back(path);
             } else {
               cerr << ("Drawing an arc with an aperture different from a circle "
                        "is forbidden by the Gerber standard; skipping.")

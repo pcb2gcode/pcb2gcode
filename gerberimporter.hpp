@@ -78,11 +78,7 @@ protected:
 
     static const unsigned int scale;
 
-    //Angles are in rad
-    static void circular_arc(point_type_fp center, coordinate_type radius, double angle1,
-                                double angle2, unsigned int circle_points, linestring_type_fp& linestring);
 private:
-
     gerbv_project_t* project;
 };
 
