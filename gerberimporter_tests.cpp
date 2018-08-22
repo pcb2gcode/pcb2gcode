@@ -167,7 +167,7 @@ Grid boost_bitmap_from_gerber(const GerberImporter& g) {
 
 const string gerber_directory = "testing/gerberimporter";
 
-void test_one(const string& gerber_file, unsigned int expected_errors) {
+void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
@@ -179,9 +179,14 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
   auto counts = grid.get_counts();
   unsigned int errors = counts['~'] + counts['o'];
   unsigned int total = errors + counts['_'];
-  BOOST_CHECK_EQUAL(errors, expected_errors);
-  std::cout << gerber_file << " error rate: " << errors << "/" << total << " (" << double(errors)/total*100 << "%)" << std::endl;
-  if (errors != expected_errors) {
+  double error_rate = double(errors)/total;
+  BOOST_CHECK_LE(error_rate, max_error_rate);
+  std::cout.precision(2);
+  std::cout << gerber_file
+            << "\t error rate: " << double(errors)/total*100 << "%"
+            << "\t expected less than: " << max_error_rate*100 << "%"
+            << std::endl;
+  if (error_rate > max_error_rate) {
     std::ofstream xpm_out;
     xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
     grid.write_xpm3(xpm_out,
@@ -192,25 +197,17 @@ void test_one(const string& gerber_file, unsigned int expected_errors) {
                     });
     xpm_out.close();
   }
-  if (errors < expected_errors) {
-    std::cout << "This test improved, updates the expectation for "
-              << gerber_file << " to " << errors << "." << std::endl;
-  }
-  if (errors > expected_errors) {
-    std::cout << "This test got worse.  Check the xpm file and, if it looks okay, then update the expectation for "
-              << gerber_file << " to " << errors << "." << std::endl;
-  }
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  test_one("wide_oval.gbr",           55440);
-  test_one("tall_oval.gbr",           37991);
-  test_one("circle_oval.gbr",         263377);
-  test_one("rectangle.gbr",           150168);
-  test_one("circle.gbr",              30319);
-  test_one("code1_circle.gbr",        93228);
-  test_one("code20_vector_line.gbr",  69835);
-  test_one("g01_rectangle.gbr",       19997);
+  test_one("wide_oval.gbr",           0.017);
+  test_one("tall_oval.gbr",           0.005);
+  test_one("circle_oval.gbr",         0.023);
+  test_one("rectangle.gbr",           0.01);
+  test_one("circle.gbr",              0.01);
+  test_one("code1_circle.gbr",        0.015);
+  test_one("code20_vector_line.gbr",  0.025);
+  test_one("g01_rectangle.gbr",       0.001);
   //test_one("am-test.gbx", 63189);
   //test_one("multivibrator-B.Cu.gbr", 18595);
 }
