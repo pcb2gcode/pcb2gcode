@@ -236,16 +236,14 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("wide_oval.gbr",           0.017);
-  test_one("tall_oval.gbr",           0.005);
+  test_one("tall_oval.gbr",           0.006);
   test_one("circle_oval.gbr",         0.023);
   test_one("rectangle.gbr",           0.01);
   test_one("circle.gbr",              0.01);
   test_one("code1_circle.gbr",        0.015);
   test_one("code20_vector_line.gbr",  0.025);
   test_one("g01_rectangle.gbr",       0.001);
-  test_visual("circular_arcs.gbr",    0,       0);
-  //test_one("am-test.gbx", 63189);
-  //test_one("multivibrator-B.Cu.gbr", 18595);
+  test_visual("circular_arcs.gbr",    0.0775,       0.078);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
