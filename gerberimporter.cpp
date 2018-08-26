@@ -269,19 +269,87 @@ multi_polygon_type_fp linear_draw_rectangular_aperture(point_type_fp startpoint,
   return hull;
 }
 
-linestring_type_fp circular_arc(point_type_fp center, coordinate_type radius,
-                                double angle1, double angle2, unsigned int circle_points) {
-  const unsigned int steps = ceil((angle2 - angle1) / (2 * bg::math::pi<double>()) * circle_points);
-  const double angle_step = (angle2 - angle1) / steps;
-  linestring_type_fp linestring;
-  for (unsigned int i = 0; i < steps; i++){
-    const double angle = angle1 + i * angle_step;
-
-    linestring.push_back(point_type_fp(cos(angle) * radius + center.x(),
-                                       sin(angle) * radius + center.y()));
+// delta_angle's input sign is ignored.  delta_angle is in radians.
+linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
+                                point_type_fp center, const coordinate_type& radius, const coordinate_type& radius2,
+                                double delta_angle, const bool& clockwise, const unsigned int& circle_points) {
+  std::cout << "new arc:" << std::endl
+            << bg::wkt(start) << std::endl
+            << bg::wkt(stop) << std::endl
+            << bg::wkt(center) << std::endl
+            << radius << std::endl
+            << radius2 << std::endl
+            << delta_angle << std::endl;
+  // We can't trust gerbv to calculate single-quadrant vs multi-quadrant
+  // correctly so we must so it ourselves.
+  bool definitely_sq = false;
+  if (radius != radius2) {
+    definitely_sq = true; // Definiltely single-quadrant.
   }
-  linestring.push_back(point_type_fp(cos(angle2) * radius + center.x(),
-                                     sin(angle2) * radius + center.y()));
+  if (start.x() == stop.x() && start.y() == stop.y()) {
+    // Either 0 or 360, depending on mq/sq.
+    if (definitely_sq) {
+      delta_angle = 0;
+    } else {
+      if (std::abs(delta_angle) < bg::math::pi<double>()) {
+        delta_angle = 0;
+      } else {
+        delta_angle = bg::math::pi<double>() * 2;
+        if (clockwise) {
+          delta_angle = -delta_angle;
+        }
+      }
+    }
+  } else {
+    const auto signs_to_try = definitely_sq ? vector<double>{-1, 1} : vector<double>{1};
+    const coordinate_type_fp i = center.x() - start.x();
+    const coordinate_type_fp j = center.y() - start.y();
+    const point_type start_to_stop(stop.x() - start.x(),
+                                   stop.y() - start.y());
+    point_type best_ij(0,0);
+    delta_angle = std::numeric_limits<double>::infinity();
+    for (const double& i_sign : signs_to_try) {
+      for (const double& j_sign : signs_to_try) {
+        const point_type current_ij = point_type(i*i_sign, j*j_sign);
+        const double dot = current_ij.x()*start_to_stop.x() + current_ij.y()*start_to_stop.y();
+        double det =       current_ij.x()*start_to_stop.y() - current_ij.y()*start_to_stop.x();
+        double angle = atan2(det, dot);  // atan2(sin, cos) positive is clockwise
+        std::cout << "the angle is now " << angle << std::endl;
+        if (angle < 0 && clockwise) {
+          angle += 2 * bg::math::pi<double>();
+        } else if (angle > 0 && !clockwise) {
+          angle -= 2 * bg::math::pi<double>();
+        }
+        if (angle < delta_angle) {
+          delta_angle = angle;
+          best_ij = current_ij;
+        }
+        std::cout << bg::wkt(current_ij) << " " << angle << std::endl;
+      }
+    }
+    center = point_type_fp(start.x() + best_ij.x(), start.y() + best_ij.y());
+  }
+
+  // Now delta_angle is 0-2pi and accurate and center is correct.
+  const double start_angle = atan2(start.y() - center.y(), start.x() - center.x());
+  const double stop_angle = atan2(stop.y() - center.y(), stop.x() - center.x());
+  const coordinate_type_fp start_radius = bg::distance(start, center);
+  const coordinate_type_fp stop_radius = bg::distance(stop, center);
+  const unsigned int steps = ceil(std::abs(start_angle-stop_angle) / (2 * bg::math::pi<double>()) * circle_points)
+                             + 1; // One more for the end point.
+  std::cout << "steps: " << steps << std::endl;
+  linestring_type_fp linestring;
+  // First place the start;
+  linestring.push_back(start);
+  for (unsigned int i = 1; i < steps - 1; i++) {
+    const double stop_weight = double(i) / (steps - 1);
+    const double start_weight = 1 - stop_weight;
+    const double current_angle = start_angle*start_weight + stop_angle*stop_weight;
+    const double current_radius = start_radius*start_weight + stop_radius*stop_weight;
+    linestring.push_back(point_type_fp(cos(current_angle) * current_radius + center.x(),
+                                       sin(current_angle) * current_radius + center.y()));
+  }
+  linestring.push_back(stop);
   return linestring;
 }
 
@@ -763,12 +831,13 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             angle2 = cirseg->angle1;
           }
 
-          linestring_type_fp path = circular_arc(point_type_fp(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
+          linestring_type_fp path = circular_arc(start, stop,
+                                                 point_type_fp(cirseg->cp_x * cfactor, cirseg->cp_y * cfactor),
                                                  cirseg->width * cfactor / 2,
-                                                 angle1 * bg::math::pi<double>() / 180.0,
-                                                 angle2 * bg::math::pi<double>() / 180.0,
+                                                 cirseg->height * cfactor / 2,
+                                                 (angle2 - angle1) * bg::math::pi<double>() / 180.0,
+                                                 currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR,
                                                  points_per_circle);
-
           if (contour) {
             if (region.empty()) {
               copy(path.begin(), path.end(), region.end());
@@ -778,7 +847,12 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
           } else {
             if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
               const double diameter = parameters[0] * cfactor;
-              linear_circular_paths[diameter].push_back(path);
+              for (size_t i = i; i < path.size(); i++) {
+                linestring_type_fp segment;
+                segment.push_back(path[i-1]);
+                segment.push_back(path[i]);
+                linear_circular_paths[diameter].push_back(segment);
+              }
             } else {
               cerr << ("Drawing an arc with an aperture different from a circle "
                        "is forbidden by the Gerber standard; skipping.")
@@ -796,7 +870,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
       cerr << ("Linear zoomed interpolation modes are not supported "
-               "(are them in the RS274X standard?)") << endl;
+               "(are they in the RS274X standard?)") << endl;
     } else { //if (currentNet->interpolation != GERBV_INTERPOLATION_DELETED)
       cerr << "Unrecognized interpolation mode" << endl;
     }

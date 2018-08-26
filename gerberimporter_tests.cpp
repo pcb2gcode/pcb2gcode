@@ -208,6 +208,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("code1_circle.gbr",        0.015);
   test_one("code20_vector_line.gbr",  0.025);
   test_one("g01_rectangle.gbr",       0.001);
+  test_one("circular_arcs.gbr",       0);
   //test_one("am-test.gbx", 63189);
   //test_one("multivibrator-B.Cu.gbr", 18595);
 }
