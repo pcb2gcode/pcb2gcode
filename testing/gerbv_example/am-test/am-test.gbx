@@ -65,7 +65,7 @@ X3000D03*
 G04 Draw line center *
 G54D13*
 X4000D03*
-G04 Draw line lower left * 
+G04 Draw line lower left *
 G54D14*
 X5000D03*
 G04 Draw outline *

@@ -143,6 +143,7 @@ string render_svg(const GerberImporter& g) {
     svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
     svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
   } // The svg file is complete when it goes out of scope.
+  //std::cout << svg_stream.str() << std::endl;
   return svg_stream.str();
 }
 
@@ -167,6 +168,7 @@ Grid boost_bitmap_from_gerber(const GerberImporter& g) {
 
 const string gerber_directory = "testing/gerberimporter";
 
+// Compare gerbv image against boost generated image.
 void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
@@ -181,11 +183,12 @@ void test_one(const string& gerber_file, double max_error_rate) {
   unsigned int total = errors + counts['_'];
   double error_rate = double(errors)/total;
   BOOST_CHECK_LE(error_rate, max_error_rate);
-  std::cout.precision(2);
+  auto old_precision = std::cout.precision(3);
   std::cout << gerber_file
             << "\t error rate: " << double(errors)/total*100 << "%"
             << "\t expected less than: " << max_error_rate*100 << "%"
             << std::endl;
+  std::cout.precision(old_precision);
   if (error_rate > max_error_rate) {
     std::ofstream xpm_out;
     xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
@@ -194,6 +197,38 @@ void test_one(const string& gerber_file, double max_error_rate) {
                       "~ c #FF0000",
                       "_ c #003300",
                       "o c #0000FF"
+                    });
+    xpm_out.close();
+  }
+}
+
+// For cases when even gerbv is wrong, just check that the number of pixels
+// marked is more or less correct.  Look at http://www.gerber-viewer.com/ to
+// test these.
+void test_visual(const string& gerber_file, double min_set_ratio, double max_set_ratio) {
+  string gerber_path = gerber_directory;
+  gerber_path += "/";
+  gerber_path += gerber_file;
+  auto g = GerberImporter(gerber_path);
+  Grid grid = boost_bitmap_from_gerber(g);
+  auto counts = grid.get_counts();
+  unsigned int marked = counts['X'];
+  unsigned int total = marked + counts['.'];
+  double marked_ratio = double(marked) / total;
+  BOOST_CHECK_GE(marked_ratio, min_set_ratio);
+  BOOST_CHECK_LE(marked_ratio, max_set_ratio);
+  auto old_precision = std::cout.precision(3);
+  std::cout << gerber_file
+            << "\t marked rate: " << marked_ratio*100 << "%"
+            << "\t expected marked rate: [" << min_set_ratio*100 << ":" << max_set_ratio*100 << "]"
+            << std::endl;
+  std::cout.precision(old_precision);
+  if (marked_ratio < min_set_ratio || marked_ratio > max_set_ratio) {
+    std::ofstream xpm_out;
+    xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+    grid.write_xpm3(xpm_out,
+                    { ". c #000000",
+                      "X c #0000FF"
                     });
     xpm_out.close();
   }
@@ -208,7 +243,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("code1_circle.gbr",        0.015);
   test_one("code20_vector_line.gbr",  0.025);
   test_one("g01_rectangle.gbr",       0.001);
-  test_one("circular_arcs.gbr",       0);
+  test_visual("circular_arcs.gbr",    0,       0);
   //test_one("am-test.gbx", 63189);
   //test_one("multivibrator-B.Cu.gbr", 18595);
 }
