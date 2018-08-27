@@ -1,0 +1,24 @@
+%MOIN*%
+%FSLAX23Y23*%
+%OFA0.0000B0.0000*%
+G90*
+G04 Rotation is not allowed if the center is not the origin.*
+
+%AMMOIRE*
+6,0,0,1.0,0.01,0.025,4,0.05,1.7,35.6*
+%
+%ADD10C,0.0650*%
+%ADD18MOIRE*%
+
+G04 Draw Moire *
+G54D18*
+X1000Y1000D03*
+
+X0Y0D02*
+G54D10*
+X0Y0D01*
+X3000D01*
+Y2000D01*
+X0D01*
+Y0D01*
+M02*

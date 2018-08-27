@@ -189,17 +189,15 @@ void test_one(const string& gerber_file, double max_error_rate) {
             << "\t expected less than: " << max_error_rate*100 << "%"
             << std::endl;
   std::cout.precision(old_precision);
-  if (error_rate > max_error_rate) {
-    std::ofstream xpm_out;
-    xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
-    grid.write_xpm3(xpm_out,
-                    { ". c #000000",
-                      "~ c #FF0000",
-                      "_ c #003300",
-                      "o c #0000FF"
-                    });
-    xpm_out.close();
-  }
+  std::ofstream xpm_out;
+  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+  grid.write_xpm3(xpm_out,
+                  { ". c #000000",
+                    "~ c #FF0000",
+                    "_ c #003300",
+                    "o c #0000FF"
+                  });
+  xpm_out.close();
 }
 
 // For cases when even gerbv is wrong, just check that the number of pixels
@@ -223,15 +221,13 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
             << "\t expected marked rate: [" << min_set_ratio*100 << ":" << max_set_ratio*100 << "]"
             << std::endl;
   std::cout.precision(old_precision);
-  if (marked_ratio < min_set_ratio || marked_ratio > max_set_ratio) {
-    std::ofstream xpm_out;
-    xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
-    grid.write_xpm3(xpm_out,
-                    { ". c #000000",
-                      "X c #0000FF"
-                    });
-    xpm_out.close();
-  }
+  std::ofstream xpm_out;
+  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
+  grid.write_xpm3(xpm_out,
+                  { ". c #000000",
+                    "X c #0000FF"
+                  });
+  xpm_out.close();
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
@@ -243,7 +239,9 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("code1_circle.gbr",        0.015);
   test_one("code20_vector_line.gbr",  0.025);
   test_one("g01_rectangle.gbr",       0.001);
-  test_visual("circular_arcs.gbr",    0.0775,       0.078);
+  test_one("moire.gbr",               0.04);
+
+  test_visual("circular_arcs.gbr",    0.075,       0.078);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
