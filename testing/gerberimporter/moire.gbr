@@ -5,7 +5,7 @@ G90*
 G04 Rotation is not allowed if the center is not the origin.*
 
 %AMMOIRE*
-6,0,0,1.0,0.01,0.025,4,0.05,1.7,35.6*
+6,0,0,1.0,0.02,0.025,4,0.05,1.7,35.6*
 %
 %ADD10C,0.0650*%
 %ADD18MOIRE*%
