@@ -514,7 +514,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
           input = make_regular_polygon(origin,
                                        parameters[0] * cfactor,
                                        circle_points,
-                                       parameters[1] * cfactor,
+                                       parameters[1],
                                        parameters[2] * cfactor,
                                        circle_points);
           break;
@@ -535,8 +535,8 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
         case GERBV_APTYPE_POLYGON:
           input = make_regular_polygon(origin,
                                        parameters[0] * cfactor,
-                                       parameters[1] * cfactor,
-                                       parameters[2] * cfactor,
+                                       parameters[1],
+                                       parameters[2],
                                        parameters[3] * cfactor,
                                        circle_points);
           break;

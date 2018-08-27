@@ -150,7 +150,6 @@ string render_svg(const GerberImporter& g) {
 // Convert the gerber to a boost geometry and then conver that to SVG and then rasterize to a bitmap.
 Grid boost_bitmap_from_gerber(const GerberImporter& g) {
   string svg_string = render_svg(g);
-
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
@@ -231,6 +230,8 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
+  test_one("code21_center_line.gbr",  0.1);
+  test_one("polygon.gbr",             0.02);
   test_one("wide_oval.gbr",           0.017);
   test_one("tall_oval.gbr",           0.006);
   test_one("circle_oval.gbr",         0.023);
@@ -241,7 +242,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("g01_rectangle.gbr",       0.001);
   test_one("moire.gbr",               0.04);
   test_one("thermal.gbr",             0.02);
-  test_one("cutins.gbr",             0);
+  test_one("cutins.gbr",              0);
 
   test_visual("circular_arcs.gbr",    0.075,       0.078);
 }
