@@ -241,6 +241,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("g01_rectangle.gbr",       0.001);
   test_one("moire.gbr",               0.05);
   test_one("thermal.gbr",             0.02);
+  test_one("cutins.gbr",             0);
 
   test_visual("circular_arcs.gbr",    0.075,       0.078);
 }
