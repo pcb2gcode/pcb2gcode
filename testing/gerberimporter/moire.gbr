@@ -5,14 +5,22 @@ G90*
 G04 Rotation is not allowed if the center is not the origin.*
 
 %AMMOIRE*
-6,0,0,1.0,0.02,0.025,4,0.05,1.7,35.6*
+6,0,0,1.0,0.05,0.06,4,0.05,1.7,35.6*
+%
+%AMMOIRE2*
+6,0.1,0,1.0,0.05,0.06,4,0.05,1.7,0*
 %
 %ADD10C,0.0650*%
 %ADD18MOIRE*%
+%ADD19MOIRE2*%
 
 G04 Draw Moire *
 G54D18*
 X1000Y1000D03*
+
+G04 Draw Moire2 *
+G54D19*
+X2000Y1000D03*
 
 X0Y0D02*
 G54D10*
