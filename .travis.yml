@@ -61,6 +61,7 @@ install:
       brew reinstall -s libtool &&
       brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
+      brew install librsvg &&
       export BOOST_DIR="/usr/local/opt/boost@1.60";
     fi
   - >
@@ -72,18 +73,19 @@ install:
       export BOOST_DIR="$PWD/boost"
     fi
   - >
+    mkdir .local &&
+    git clone git://git.geda-project.org/gerbv.git &&
+    pushd gerbv &&
+    sh autogen.sh &&
+    ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
+    make -j 2 &&
+    make install &&
+    popd &&
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs &&
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig;
+  - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      pip install --user cpp-coveralls colour_runner unittest2 termcolor &&
-      mkdir .local &&
-      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
-      git clone git://git.geda-project.org/gerbv.git &&
-      pushd gerbv &&
-      sh autogen.sh &&
-      ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
-      make -j 2 &&
-      make install &&
-      popd &&
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
+      pip install --user cpp-coveralls colour_runner unittest2 termcolor;
     fi
   - >
     for i in {1..5}; do
