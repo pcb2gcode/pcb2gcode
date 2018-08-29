@@ -11,7 +11,6 @@
 #include <librsvg-2.0/librsvg/rsvg.h>
 //#include <ImageMagick-6/Magick++.h>
 #include <boost/format.hpp>
-#include <cstdlib>
 
 struct Fixture {
   Fixture() {
@@ -230,10 +229,6 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
-  const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
-  if (skip_test != nullptr) {
-    return;
-  }
   test_one("code21_center_line.gbr",  0.1);
   test_one("polygon.gbr",             0.02);
   test_one("wide_oval.gbr",           0.017);

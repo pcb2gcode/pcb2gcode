@@ -223,12 +223,15 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type width, coo
     // The oval is more wide than tall.
     start.x(start.x() - (width - height)/2);
     end.x(end.x() + (width - height)/2);
-  } else {
+  } else if (width < height) {
     // The oval is more tall than wide.
     start.y(start.y() - (height - width)/2);
     end.y(end.y() + (height - width)/2);
+  } else {
+    // This is just a circle.  Older boost doesn't handle a line with no length
+    // though new boost does.
+    return make_regular_polygon(center, width, circle_points, 0, hole_diameter, circle_points);
   }
-  // TODO: Make sure this works when width==height.
 
   multi_polygon_type_fp oval;
   linestring_type_fp line;
