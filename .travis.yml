@@ -8,7 +8,7 @@ matrix:
       addons:
         apt:
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-4.8 BOOST=1_56_0
+      env: COMPILER=g++-4.8 BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
@@ -23,7 +23,7 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test']
           packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-7 BOOST=1_56_0
+      env: COMPILER=g++-7 BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
@@ -38,7 +38,7 @@ matrix:
       addons:
         apt:
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=clang++ BOOST=1_56_0
+      env: COMPILER=clang++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: clang
@@ -49,11 +49,11 @@ matrix:
 
     - os: osx
       compiler: gcc
-      env: COMPILER=g++ BOOST=1_56_0
+      env: COMPILER=g++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: osx
       compiler: clang
-      env: COMPILER=clang++ BOOST=1_56_0
+      env: COMPILER=clang++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
