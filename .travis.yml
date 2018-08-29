@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=g++-4.8 BOOST=1_56_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -22,7 +22,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=g++-7 BOOST=1_56_0
 
     - os: linux
@@ -37,14 +37,14 @@ matrix:
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=clang++ BOOST=1_56_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -62,6 +62,7 @@ install:
       brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
       brew install librsvg &&
+      brew install autopoint &&
       export BOOST_DIR="/usr/local/opt/boost@1.60";
     fi
   - >
@@ -74,6 +75,7 @@ install:
     fi
   - >
     mkdir .local &&
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
     git clone git://git.geda-project.org/gerbv.git &&
     pushd gerbv &&
     sh autogen.sh &&
@@ -81,8 +83,7 @@ install:
     make -j 2 &&
     make install &&
     popd &&
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs &&
-    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig;
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
       pip install --user cpp-coveralls colour_runner unittest2 termcolor;
