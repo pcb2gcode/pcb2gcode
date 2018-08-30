@@ -59,6 +59,9 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       brew update &&
       brew reinstall -s libtool &&
+      mkdir -p .local/bin &&
+      ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
+      export PATH=$HOME/.local/bin:$PATH &&
       brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
       brew install librsvg &&
