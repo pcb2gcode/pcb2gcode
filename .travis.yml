@@ -59,7 +59,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       brew update &&
       brew reinstall -s libtool &&
-      mkdir -p .local/bin &&
+      mkdir -p $HOME/.local/bin &&
       echo `which glibtoolize` &&
       ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
       export PATH=$HOME/.local/bin:$PATH &&
