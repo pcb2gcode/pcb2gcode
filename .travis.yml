@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
-      env: COMPILER=g++-4.8 BOOST=1_56_0
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-4.8 BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -22,8 +22,8 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils']
-      env: COMPILER=g++-7 BOOST=1_56_0
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-7 BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
@@ -37,30 +37,37 @@ matrix:
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
-      env: COMPILER=clang++ BOOST=1_56_0
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=clang++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
       compiler: gcc
-      env: COMPILER=g++ BOOST=1_56_0
+      env: COMPILER=g++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: osx
       compiler: clang
-      env: COMPILER=clang++ BOOST=1_56_0
+      env: COMPILER=clang++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       brew update &&
       brew reinstall -s libtool &&
+      mkdir -p $HOME/.local/bin &&
+      echo `which glibtoolize` &&
+      ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
+      export PATH=$HOME/.local/bin:$PATH &&
       brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
+      brew install librsvg &&
+      brew install gettext &&
+      export PATH=/usr/local/opt/gettext/bin:$PATH
       export BOOST_DIR="/usr/local/opt/boost@1.60";
     fi
   - >
@@ -72,8 +79,7 @@ install:
       export BOOST_DIR="$PWD/boost"
     fi
   - >
-    if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      pip install --user cpp-coveralls colour_runner unittest2 termcolor &&
+    if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
       mkdir .local &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
       git clone git://git.geda-project.org/gerbv.git &&
@@ -84,6 +90,10 @@ install:
       make install &&
       popd &&
       export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
+    fi
+  - >
+    if [ "${ENABLE_CODE_COVERAGE}" ]; then
+      pip install --user cpp-coveralls colour_runner unittest2 termcolor;
     fi
   - >
     for i in {1..5}; do

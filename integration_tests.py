@@ -26,6 +26,7 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "am-test",
                   "am-test-counterclockwise",
+                  "am-test-extended",
                   "am-test-voronoi",
                   "am-test-voronoi-front",
                   "example_board_al_custom",

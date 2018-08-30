@@ -56,28 +56,24 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t wi
     fill(false),
     mill_feed_direction(mill_feed_direction) {}
 
-void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer)
-{
-    unique_ptr<multi_polygon_type> vectorial_surface_not_simplified;
+void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
+  multi_polygon_type_fp vectorial_surface_not_simplified;
 
-    vectorial_surface = make_shared<multi_polygon_type_fp>();
-    vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
-    multi_polygon_type_fp vectorial_surface_not_simplified_fp;
-    bg::convert(*vectorial_surface_not_simplified, vectorial_surface_not_simplified_fp);
+  vectorial_surface = make_shared<multi_polygon_type_fp>();
+  vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
 
-    if (bg::intersects(vectorial_surface_not_simplified_fp))
-    {
-        cerr << "\nWarning: Geometry of layer '" << name << "' is"
-             << " self-intersecting. This can cause pcb2gcode to produce"
-             << " wildly incorrect toolpaths. You may want to check the"
-             << " g-code output and/or fix your gerber files!\n";
-    }
+  if (bg::intersects(vectorial_surface_not_simplified)) {
+    cerr << "\nWarning: Geometry of layer '" << name << "' is"
+         << " self-intersecting. This can cause pcb2gcode to produce"
+         << " wildly incorrect toolpaths. You may want to check the"
+         << " g-code output and/or fix your gerber files!\n";
+  }
 
-    scale = importer->vectorial_scale();
+  scale = importer->vectorial_scale();
 
-    //With a very small loss of precision we can reduce memory usage and processing time
-    bg::simplify(vectorial_surface_not_simplified_fp, *vectorial_surface, scale / 10000);
-    bg::envelope(*vectorial_surface, bounding_box);
+  //With a very small loss of precision we can reduce memory usage and processing time
+  bg::simplify(vectorial_surface_not_simplified, *vectorial_surface, scale / 10000);
+  bg::envelope(*vectorial_surface, bounding_box);
 }
 
 // If the direction is ccw, return cw and vice versa.  If any, return any.

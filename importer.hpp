@@ -49,27 +49,26 @@ typedef boost::error_info<struct tag_my_info, ustring> errorstring;
 class LayerImporter
 {
 public:
-    virtual gdouble get_width() = 0;
-    virtual gdouble get_height() = 0;
-    virtual gdouble get_min_x() = 0;
-    virtual gdouble get_max_x() = 0;
-    virtual gdouble get_min_y() = 0;
-    virtual gdouble get_max_y() = 0;
+    virtual gdouble get_width() const = 0;
+    virtual gdouble get_height() const = 0;
+    virtual gdouble get_min_x() const = 0;
+    virtual gdouble get_max_x() const = 0;
+    virtual gdouble get_min_y() const = 0;
+    virtual gdouble get_max_y() const = 0;
 };
 
 class RasterLayerImporter : virtual public LayerImporter
 {
 public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-                        const guint dpi, const double xoff, const double yoff) = 0;
+                        const guint dpi, const double xoff, const double yoff) const = 0;
 
 };
 
-class VectorialLayerImporter : virtual public LayerImporter
-{
+class VectorialLayerImporter : virtual public LayerImporter {
 public:
-    virtual unique_ptr<multi_polygon_type> render(bool fill_closed_lines, unsigned int points_per_circle = 30) = 0;
-    virtual unsigned int vectorial_scale() = 0;
+    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
+    virtual unsigned int vectorial_scale() const = 0;
 };
 
 #endif // IMPORTER_H
