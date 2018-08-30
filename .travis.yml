@@ -63,8 +63,10 @@ install:
       echo `which glibtoolize` &&
       ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
       export PATH=$HOME/.local/bin:$PATH &&
+      brew switch gtk+ 2.24.24 &&
+      brew pin gtk+ &&
       brew install boost@1.60 &&
-      brew install gtkmm gerbv moreutils &&
+      brew install gtkmm moreutils &&
       brew install librsvg &&
       brew install gettext &&
       export PATH=/usr/local/opt/gettext/bin:$PATH
