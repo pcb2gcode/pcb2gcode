@@ -879,20 +879,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
       p.inners().clear();
     }
   }
-  /*multi_polygon_type_fp for_viewing = *result;
-    for (auto& p : for_viewing) {
-    for (auto& point : p.outer()) {
-    point.x(point.x()/10000);
-    point.y(point.y()/10000);
-    }
-    for (auto& i : p.inners()) {
-    for (auto& point : i) {
-    point.x(point.x()/10000);
-    point.y(point.y()/10000);
-    }
-    }
-    }
-    std::cout << bg::wkt(for_viewing) << std::endl;*/
+
   return result;
 }
 
