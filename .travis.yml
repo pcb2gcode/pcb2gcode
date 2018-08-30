@@ -49,11 +49,11 @@ matrix:
 
     - os: osx
       compiler: gcc
-      env: COMPILER=g++ BOOST=1_56_0
+      env: COMPILER=g++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: osx
       compiler: clang
-      env: COMPILER=clang++ BOOST=1_56_0
+      env: COMPILER=clang++ BOOST=1_56_0 SKIP_GERBERIMPORTER_TESTS=1
 
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
@@ -63,10 +63,8 @@ install:
       echo `which glibtoolize` &&
       ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
       export PATH=$HOME/.local/bin:$PATH &&
-      brew switch gtk+ 2.24.24 &&
-      brew pin gtk+ &&
       brew install boost@1.60 &&
-      brew install gtkmm moreutils &&
+      brew install gtkmm gerbv moreutils &&
       brew install librsvg &&
       brew install gettext &&
       export PATH=/usr/local/opt/gettext/bin:$PATH
@@ -81,16 +79,18 @@ install:
       export BOOST_DIR="$PWD/boost"
     fi
   - >
-    mkdir .local &&
-    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
-    git clone git://git.geda-project.org/gerbv.git &&
-    pushd gerbv &&
-    sh autogen.sh &&
-    ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
-    make -j 2 &&
-    make install &&
-    popd &&
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
+    if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
+      mkdir .local &&
+      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
+      git clone git://git.geda-project.org/gerbv.git &&
+      pushd gerbv &&
+      sh autogen.sh &&
+      ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
+      make -j 2 &&
+      make install &&
+      popd &&
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
+    fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
       pip install --user cpp-coveralls colour_runner unittest2 termcolor;
