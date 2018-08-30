@@ -60,6 +60,7 @@ install:
       brew update &&
       brew reinstall -s libtool &&
       mkdir -p .local/bin &&
+      echo `which glibtoolize` &&
       ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
       export PATH=$HOME/.local/bin:$PATH &&
       brew install boost@1.60 &&
