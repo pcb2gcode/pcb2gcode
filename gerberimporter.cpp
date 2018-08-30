@@ -62,44 +62,26 @@ GerberImporter::GerberImporter(const string path) {
 }
 
 gdouble GerberImporter::get_width() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
 }
 
 gdouble GerberImporter::get_height() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
 }
 
 gdouble GerberImporter::get_min_x() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->min_x;
 }
 
 gdouble GerberImporter::get_max_x() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->max_x;
 }
 
 gdouble GerberImporter::get_min_y() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->min_y;
 }
 
 gdouble GerberImporter::get_max_y() const {
-  if (!project || !project->file[0])
-    throw gerber_exception();
-
   return project->file[0]->image->info->max_y;
 }
 

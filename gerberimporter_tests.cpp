@@ -254,4 +254,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_visual("circular_arcs.gbr",        0.075,    0.078);
 }
 
+BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
+  BOOST_CHECK_THROW(GerberImporter("foo.gbr"), gerber_exception);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
