@@ -234,6 +234,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   if (skip_test != nullptr) {
     return;
   }
+  test_one("code22_lower_left_line.gbr",  1);
   test_one("code4_outline.gbr",       0.025);
   test_one("code5_polygon.gbr",       0.04);
   test_one("code21_center_line.gbr",  0.1);
