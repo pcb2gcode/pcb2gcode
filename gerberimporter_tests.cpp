@@ -132,18 +132,15 @@ string render_svg(const GerberImporter& g) {
   {
     box_type_fp svg_bounding_box;
     bg::envelope(polys, svg_bounding_box);
-    const double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / g.vectorial_scale();
-    const double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / g.vectorial_scale();
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+        str(boost::format("viewBox=\"0 0 %1% %2%\"") % (g.get_width() * dpi) % (g.get_height() * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
-                                      width,
-                                      height,
+                                      g.get_width() * dpi,
+                                      g.get_height() * dpi,
                                       svg_dimensions);
-    svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
+    svg.add(polys); // This is needed for the next line to work, not sure why.
     svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
   } // The svg file is complete when it goes out of scope.
-  //std::cout << svg_stream.str() << std::endl;
   return svg_stream.str();
 }
 
@@ -234,6 +231,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   if (skip_test != nullptr) {
     return;
   }
+
+  test_one("levels.gbr",                  0);
   test_one("code22_lower_left_line.gbr",  0.011);
   test_one("code4_outline.gbr",           0.025);
   test_one("code5_polygon.gbr",           0.04);
