@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <utility>
 using std::reverse;
-using std::copy;
 using std::swap;
 
 #include <cstdint>
@@ -815,9 +814,9 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
                                                  points_per_circle);
           if (contour) {
             if (region.empty()) {
-              copy(path.begin(), path.end(), region.end());
+              region.insert(region.end(), path.begin(), path.end());
             } else {
-              copy(path.begin() + 1, path.end(), region.end());
+              region.insert(region.end(), path.begin() + 1, path.end());
             }
           } else {
             if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_CIRCLE) {
