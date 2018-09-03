@@ -36,10 +36,14 @@ class Grid {
     for (int y = 0; y < cairo_surface->get_height(); y++) {
       grid[y].resize(cairo_surface->get_width());
       for (int x = 0; x < cairo_surface->get_width(); x++) {
-        if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
-          grid[y][x] = background;
-        } else {
+        auto current_color = *(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride));
+        // 0x0 is polarity clear
+        // 0xff000000 is untouched, should be also clear
+        // 0xffffffff is polarity dark
+        if (current_color == 0xFFFFFFFF) {
           grid[y][x] = foreground;
+        } else {
+          grid[y][x] = background;
         }
       }
     }
