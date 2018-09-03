@@ -1,0 +1,23 @@
+%FSLAX25Y25*%
+%MOIN*%
+G01*
+%ADD10C,0,0*%
+G04 First level: big square - dark polarity*
+%LPD*%
+G36*
+X25000Y25000D02*
+X175000D01*
+Y175000D01*
+X25000D01*
+Y25000D01*
+G37*
+G04 Second level: big circle - clear polarity*
+%LPC*%
+G36*
+X25000Y25000D02*
+X105000D01*
+Y105000D01*
+X25000D01*
+Y25000D01*
+G37*
+M02*
