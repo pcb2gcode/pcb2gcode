@@ -134,8 +134,6 @@ string render_svg(const GerberImporter& g) {
   multi_polygon_type_fp polys = g.render(false, 30);
   std::stringstream svg_stream;
   {
-    box_type_fp svg_bounding_box;
-    bg::envelope(polys, svg_bounding_box);
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\"") % (g.get_width() * dpi) % (g.get_height() * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
