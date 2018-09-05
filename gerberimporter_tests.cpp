@@ -36,10 +36,14 @@ class Grid {
     for (int y = 0; y < cairo_surface->get_height(); y++) {
       grid[y].resize(cairo_surface->get_width());
       for (int x = 0; x < cairo_surface->get_width(); x++) {
-        if (*(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride)) == 0xFF000000) {
-          grid[y][x] = background;
-        } else {
+        auto current_color = *(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride));
+        // 0x0 is polarity clear
+        // 0xff000000 is untouched, should be also clear
+        // 0xffffffff is polarity dark
+        if (current_color == 0xFFFFFFFF) {
           grid[y][x] = foreground;
+        } else {
+          grid[y][x] = background;
         }
       }
     }
@@ -130,20 +134,15 @@ string render_svg(const GerberImporter& g) {
   multi_polygon_type_fp polys = g.render(false, 30);
   std::stringstream svg_stream;
   {
-    box_type_fp svg_bounding_box;
-    bg::envelope(polys, svg_bounding_box);
-    const double width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x()) * dpi / g.vectorial_scale();
-    const double height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y()) * dpi / g.vectorial_scale();
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+        str(boost::format("viewBox=\"0 0 %1% %2%\"") % (g.get_width() * dpi) % (g.get_height() * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
-                                      width,
-                                      height,
+                                      g.get_width() * dpi,
+                                      g.get_height() * dpi,
                                       svg_dimensions);
-    svg.add(svg_bounding_box); // This is needed for the next line to work, not sure why.
+    svg.add(polys); // This is needed for the next line to work, not sure why.
     svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
   } // The svg file is complete when it goes out of scope.
-  //std::cout << svg_stream.str() << std::endl;
   return svg_stream.str();
 }
 
@@ -234,22 +233,24 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   if (skip_test != nullptr) {
     return;
   }
-  test_one("code22_lower_left_line.gbr",  0.011);
+
+  test_one("levels.gbr",                  0.004);
+  test_one("code22_lower_left_line.gbr",  0.008);
   test_one("code4_outline.gbr",           0.025);
-  test_one("code5_polygon.gbr",           0.04);
-  test_one("code21_center_line.gbr",      0.1);
-  test_one("polygon.gbr",                 0.02);
-  test_one("wide_oval.gbr",               0.017);
-  test_one("tall_oval.gbr",               0.006);
-  test_one("circle_oval.gbr",             0.023);
-  test_one("rectangle.gbr",               0.01);
-  test_one("circle.gbr",                  0.01);
+  test_one("code5_polygon.gbr",           0.025);
+  test_one("code21_center_line.gbr",      0.010);
+  test_one("polygon.gbr",                 0.018);
+  test_one("wide_oval.gbr",               0.015);
+  test_one("tall_oval.gbr",               0.004);
+  test_one("circle_oval.gbr",             0.017);
+  test_one("rectangle.gbr",               0.008);
+  test_one("circle.gbr",                  0.008);
   test_one("code1_circle.gbr",            0.015);
-  test_one("code20_vector_line.gbr",      0.025);
+  test_one("code20_vector_line.gbr",      0.013);
   test_one("g01_rectangle.gbr",           0.001);
-  test_one("moire.gbr",                   0.04);
-  test_one("thermal.gbr",                 0.02);
-  test_one("cutins.gbr",                  0);
+  test_one("moire.gbr",                   0.040);
+  test_one("thermal.gbr",                 0.020);
+  test_one("cutins.gbr",                  0.000);
 
   test_visual("circular_arcs.gbr",        0.075,    0.078);
 }

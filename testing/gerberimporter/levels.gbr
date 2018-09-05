@@ -1,0 +1,39 @@
+G04 This file illustrates how to use levels to create holes*
+%FSLAX25Y25*%
+%MOMM*%
+G01*
+G04 First level: big square - dark polarity*
+%LPD*%
+G36*
+X2500000Y2500000D02*
+X17500000D01*
+Y17500000D01*
+X2500000D01*
+Y2500000D01*
+G37*
+G04 Second level: big circle - clear polarity*
+%LPC*%
+G36*
+G75*
+X5000000Y10000000D02*
+G03*
+X5000000Y10000000I5000000J0D01*
+G37*
+G04 Third level: small square - dark polarity*
+%LPD*%
+G36*
+X7500000Y7500000D02*
+X12500000D01*
+Y12500000D01*
+X7500000D01*
+Y7500000D01*
+G37*
+G04 Fourth level: small circle - clear polarity*
+%LPC*%
+G36*
+G75*
+X11500000Y10000000D02*
+G03*
+X11500000Y10000000I2500000J0D01*
+G37*
+M02*
