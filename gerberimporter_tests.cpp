@@ -236,23 +236,23 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("levels.gbr",                  0.005);
-  test_one("code22_lower_left_line.gbr",  0.011);
+  test_one("levels.gbr",                  0.004);
+  test_one("code22_lower_left_line.gbr",  0.008);
   test_one("code4_outline.gbr",           0.025);
-  test_one("code5_polygon.gbr",           0.04);
-  test_one("code21_center_line.gbr",      0.1);
-  test_one("polygon.gbr",                 0.02);
-  test_one("wide_oval.gbr",               0.017);
-  test_one("tall_oval.gbr",               0.006);
-  test_one("circle_oval.gbr",             0.023);
-  test_one("rectangle.gbr",               0.01);
-  test_one("circle.gbr",                  0.01);
+  test_one("code5_polygon.gbr",           0.025);
+  test_one("code21_center_line.gbr",      0.010);
+  test_one("polygon.gbr",                 0.018);
+  test_one("wide_oval.gbr",               0.015);
+  test_one("tall_oval.gbr",               0.004);
+  test_one("circle_oval.gbr",             0.017);
+  test_one("rectangle.gbr",               0.008);
+  test_one("circle.gbr",                  0.008);
   test_one("code1_circle.gbr",            0.015);
-  test_one("code20_vector_line.gbr",      0.025);
+  test_one("code20_vector_line.gbr",      0.013);
   test_one("g01_rectangle.gbr",           0.001);
-  test_one("moire.gbr",                   0.04);
-  test_one("thermal.gbr",                 0.02);
-  test_one("cutins.gbr",                  0);
+  test_one("moire.gbr",                   0.040);
+  test_one("thermal.gbr",                 0.020);
+  test_one("cutins.gbr",                  0.000);
 
   test_visual("circular_arcs.gbr",        0.075,    0.078);
 }
