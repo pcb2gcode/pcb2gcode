@@ -41,7 +41,7 @@ using std::forward_list;
 namespace bg = boost::geometry;
 
 typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
-typedef bg::strategy::transform::translate_transformer<coordinate_type, 2, 2> translate;
+typedef bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2> translate;
 
 //As suggested by the Gerber specification, we retain 6 decimals
 const unsigned int GerberImporter::scale = 1000000;
@@ -109,7 +109,7 @@ void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const gu
 // Draw a regular polygon with outer diameter as specified and center.  The
 // number of vertices is provided.  offset is an angle in degrees to the
 // starting vertex of the shape.
-multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type diameter, unsigned int vertices,
+multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
                                            double offset) {
   double angle_step;
 
@@ -150,8 +150,8 @@ static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model
 }
 
 // Same as above but potentially puts a hole in the center.
-multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type diameter, unsigned int vertices,
-                                           coordinate_type offset, coordinate_type hole_diameter,
+multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
+                                           coordinate_type_fp offset, coordinate_type_fp hole_diameter,
                                            unsigned int circle_points) {
   multi_polygon_type_fp ret;
   ret = make_regular_polygon(center, diameter, vertices, offset);
@@ -163,9 +163,9 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
 }
 
 multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
-                                     coordinate_type hole_diameter, unsigned int circle_points) {
-  const coordinate_type x = center.x();
-  const coordinate_type y = center.y();
+                                     coordinate_type_fp hole_diameter, unsigned int circle_points) {
+  const coordinate_type_fp x = center.x();
+  const coordinate_type_fp y = center.y();
 
   multi_polygon_type_fp ret;
   ret.resize(1);
@@ -188,7 +188,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2,
   line.push_back(point1);
   line.push_back(point2);
   bg::buffer(line, ret,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(height/2),
+             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(height/2),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(0),
              bg::strategy::buffer::end_flat(),
@@ -196,8 +196,8 @@ multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2,
   return ret;
 }
 
-multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type width, coordinate_type height,
-                                coordinate_type hole_diameter, unsigned int circle_points) {
+multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
+                                coordinate_type_fp hole_diameter, unsigned int circle_points) {
   point_type_fp start(center.x(), center.y());
   point_type_fp end(center.x(), center.y());
   if (width > height) {
@@ -219,7 +219,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type width, coo
   line.push_back(start);
   line.push_back(end);
   bg::buffer(line, oval,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(std::min(width, height)/2),
+             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(std::min(width, height)/2),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(circle_points),
              bg::strategy::buffer::end_round(circle_points),
@@ -268,7 +268,7 @@ double get_angle(point_type_fp start, point_type_fp center, point_type_fp stop, 
 
 // delta_angle is in radians.  Positive signed is counterclockwise, like math.
 linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
-                                point_type_fp center, const coordinate_type& radius, const coordinate_type& radius2,
+                                point_type_fp center, const coordinate_type_fp& radius, const coordinate_type_fp& radius2,
                                 double delta_angle, const bool& clockwise, const unsigned int& circle_points) {
   // We can't trust gerbv to calculate single-quadrant vs multi-quadrant
   // correctly so we must so it ourselves.
@@ -408,8 +408,8 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
   return moire;
 }
 
-multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type external_diameter, coordinate_type internal_diameter,
-                                   coordinate_type gap_width, unsigned int circle_points) {
+multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
+                                   coordinate_type_fp gap_width, unsigned int circle_points) {
   multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, circle_points,
                                                     0, internal_diameter, circle_points);
 
@@ -684,7 +684,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
   multi_polygon_type_fp ovals;
   // This converts the long paths into a shape with thickness equal to the specified diameter.
   bg::buffer(euler_paths, ovals,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(diameter / 2),
+             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(points_per_circle),
                    bg::strategy::buffer::end_round(points_per_circle),
