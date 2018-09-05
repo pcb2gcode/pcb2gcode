@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("levels.gbr",                  0);
+  test_one("levels.gbr",                  0.005);
   test_one("code22_lower_left_line.gbr",  0.011);
   test_one("code4_outline.gbr",           0.025);
   test_one("code5_polygon.gbr",           0.04);
