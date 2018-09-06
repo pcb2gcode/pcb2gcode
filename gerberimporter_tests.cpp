@@ -135,7 +135,7 @@ string render_svg(const GerberImporter& g) {
   std::stringstream svg_stream;
   {
     const string svg_dimensions =
-        str(boost::format("viewBox=\"0 0 %1% %2%\"") % (g.get_width() * dpi) % (g.get_height() * dpi));
+        str(boost::format("width=\"%1%\" height=\"%2%\"") % (g.get_width() * dpi) % (g.get_height() * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
                                       g.get_width() * dpi,
                                       g.get_height() * dpi,
