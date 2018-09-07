@@ -432,7 +432,7 @@ o2 call [-11.8973] [-3.17166]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
 o2 call [-11.8973] [-3.11882]
-o2 call [-11.9141] [-3.08523]
+o2 call [-11.9141] [-3.08522]
 o2 call [-11.9268] [-3.07251]
 o2 call [-11.9833] [-3.05366]
 o2 call [-12.1042] [-3.05366]
