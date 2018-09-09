@@ -183,7 +183,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter(gerber_path);
-  multi_polygon_type_fp polys = g.render(false, 30);
+  multi_polygon_type_fp polys = g.render(false, 360);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x() / g.vectorial_scale());
@@ -259,26 +259,26 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("levels.gbr",                  0.004);
-  test_one("levels_step_and_repeat.gbr",  0.0065);
+  test_one("levels.gbr",                  0.0006);
+  test_one("levels_step_and_repeat.gbr",  0.0067);
   test_one("code22_lower_left_line.gbr",  0.008);
-  test_one("code4_outline.gbr",           0.025);
-  test_one("code5_polygon.gbr",           0.0003);
-  test_one("code21_center_line.gbr",      0.015);
-  test_one("polygon.gbr",                 0.018);
-  test_one("wide_oval.gbr",               0.015);
-  test_one("tall_oval.gbr",               0.005);
-  test_one("circle_oval.gbr",             0.017);
-  test_one("rectangle.gbr",               0.008);
-  test_one("circle.gbr",                  0.009);
-  test_one("code1_circle.gbr",            0.015);
-  test_one("code20_vector_line.gbr",      0.014);
-  test_one("g01_rectangle.gbr",           0.001);
-  test_one("moire.gbr",                   0.035);
-  test_one("thermal.gbr",                 0.018);
+  test_one("code4_outline.gbr",           0.023);
+  test_one("code5_polygon.gbr",           0.00008);
+  test_one("code21_center_line.gbr",      0.013);
+  test_one("polygon.gbr",                 0.017);
+  test_one("wide_oval.gbr",               0.00008);
+  test_one("tall_oval.gbr",               0.00004);
+  test_one("circle_oval.gbr",             0.00012);
+  test_one("rectangle.gbr",               0.00007);
+  test_one("circle.gbr",                  0.00004);
+  test_one("code1_circle.gbr",            0.009);
+  test_one("code20_vector_line.gbr",      0.011);
+  test_one("g01_rectangle.gbr",           0.0008);
+  test_one("moire.gbr",                   0.020);
+  test_one("thermal.gbr",                 0.011);
   test_one("cutins.gbr",                  0.000);
 
-  test_visual("circular_arcs.gbr",        0.075,    0.078);
+  test_visual("circular_arcs.gbr",        0.075,    0.076);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {

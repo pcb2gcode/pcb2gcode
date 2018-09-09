@@ -93,7 +93,7 @@ void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const gu
   render_info.lowerLeftY = min_y;
   render_info.displayWidth = surface->get_width();
   render_info.displayHeight = surface->get_height();
-  render_info.renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL;
+  render_info.renderType = GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY;
 
   GdkColor color_saturated_white = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
   project->file[0]->color = color_saturated_white;
