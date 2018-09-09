@@ -55,8 +55,6 @@ class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
 public:
     GerberImporter(const string path);
 
-    virtual gdouble get_width() const;
-    virtual gdouble get_height() const;
     virtual gdouble get_min_x() const;
     virtual gdouble get_max_x() const;
     virtual gdouble get_min_y() const;

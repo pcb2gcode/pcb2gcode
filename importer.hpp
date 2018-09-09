@@ -49,8 +49,6 @@ typedef boost::error_info<struct tag_my_info, ustring> errorstring;
 class LayerImporter
 {
 public:
-    virtual gdouble get_width() const = 0;
-    virtual gdouble get_height() const = 0;
     virtual gdouble get_min_x() const = 0;
     virtual gdouble get_max_x() const = 0;
     virtual gdouble get_min_y() const = 0;
