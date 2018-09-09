@@ -347,7 +347,6 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_p
   vector<ring_type_fp> rings;
 
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
-    unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
     multi_polygon_type_fp draws = layer->second;
@@ -365,7 +364,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_p
     original_draw = draws;
     for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
       multi_polygon_type_fp translated_draws;
-      bg::transform(draws, translated_draws,
+      bg::transform(original_draw, translated_draws,
                     translate(0, stepAndRepeat.dist_Y * sr_y));
       draws = draws + translated_draws;
     }
