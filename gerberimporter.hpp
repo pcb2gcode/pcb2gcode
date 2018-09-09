@@ -60,9 +60,10 @@ public:
     virtual gdouble get_min_y() const;
     virtual gdouble get_max_y() const;
 
+  //static constexpr GdkColor SATURATED_WHITE = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double min_x,
-                        const double min_y) const;
+                        const double min_y, GdkColor color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF }) const;
 
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const;
   virtual inline unsigned int vectorial_scale() const {

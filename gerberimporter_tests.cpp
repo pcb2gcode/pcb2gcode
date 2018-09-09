@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <glibmm/init.h>
 #include <gdkmm/wrap_init.h>
-#include <gdkmm/pixbuf.h>
+//#include <gdkmm/pixbuf.h>
 #include <sstream>
 #include <librsvg-2.0/librsvg/rsvg.h>
 //#include <ImageMagick-6/Magick++.h>
@@ -120,11 +120,11 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
 
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-Grid bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height) {
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width * dpi, height * dpi);
-
+Grid bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
+                                                      Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
-  g.render(cairo_surface, dpi, min_x, min_y);
+  GdkColor blue = {0, 0, 0, 0xFFFF};
+  g.render(cairo_surface, dpi, min_x, min_y, blue);
 
   // Make the grid.
   return Grid(cairo_surface, '.', 'O');
@@ -152,26 +152,27 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
                                       svg_height * dpi / 1000000,
                                       svg_dimensions);
     svg.add(polys); // This is needed for the next line to work, not sure why.
-    svg.map(polys, "fill-opacity:1.0;fill:rgb(255,255,255);");
+    svg.map(polys, "fill-opacity:0.5;fill:rgb(255,0,0);");
   } // The svg file is complete when it goes out of scope.
   return svg_stream.str();
 }
 
 // Convert the gerber to a boost geometry and then convert that to SVG and then rasterize to a bitmap.
-Grid boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {
+Grid boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height,
+                              Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   string svg_string = render_svg(polys, min_x, min_y, width, height);
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
                                                       svg_string.size(),
                                                       &gerror);
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width * dpi, height * dpi);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
+  //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
   if(!rsvg_handle_render_cairo(rsvg_handle, cr->cobj())) {
     printf("to cairo failed\n");
     exit(2);
   }
-
+  cr->get_target()->write_to_png("foo.png");
   return Grid(cairo_surface, '.', 'X');
 }
 
@@ -190,8 +191,9 @@ void test_one(const string& gerber_file, double max_error_rate) {
   double min_y = std::min(g.get_min_y(), bounding_box.min_corner().y() / g.vectorial_scale());
   double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x() / g.vectorial_scale());
   double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y() / g.vectorial_scale());
-  Grid grid = bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y);
-  Grid grid2 = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y);
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
+  Grid grid = bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  Grid grid2 = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
   grid |= grid2;
   auto counts = grid.get_counts();
   unsigned int errors = counts['~'] + counts['o'];
@@ -230,7 +232,8 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   double min_y = bounding_box.min_corner().y() / g.vectorial_scale();
   double max_x = bounding_box.max_corner().x() / g.vectorial_scale();
   double max_y = bounding_box.max_corner().y() / g.vectorial_scale();
-  Grid grid = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y);
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
+  Grid grid = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
   auto counts = grid.get_counts();
   unsigned int marked = counts['X'];
   unsigned int total = marked + counts['.'];
@@ -259,6 +262,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
+  test_one("code20_vector_line.gbr",      0.014);
+  return;
   test_one("levels.gbr",                  0.004);
   test_one("levels_step_and_repeat.gbr",  0.0065);
   test_one("code22_lower_left_line.gbr",  0.008);
@@ -272,7 +277,6 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("rectangle.gbr",               0.008);
   test_one("circle.gbr",                  0.009);
   test_one("code1_circle.gbr",            0.015);
-  test_one("code20_vector_line.gbr",      0.014);
   test_one("g01_rectangle.gbr",           0.001);
   test_one("moire.gbr",                   0.035);
   test_one("thermal.gbr",                 0.018);
