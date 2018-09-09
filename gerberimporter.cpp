@@ -60,14 +60,6 @@ GerberImporter::GerberImporter(const string path) {
     throw gerber_exception();
 }
 
-gdouble GerberImporter::get_width() const {
-  return project->file[0]->image->info->max_x - project->file[0]->image->info->min_x;
-}
-
-gdouble GerberImporter::get_height() const {
-  return project->file[0]->image->info->max_y - project->file[0]->image->info->min_y;
-}
-
 gdouble GerberImporter::get_min_x() const {
   return project->file[0]->image->info->min_x;
 }
