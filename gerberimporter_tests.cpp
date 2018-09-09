@@ -26,81 +26,6 @@ BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 
 const unsigned int dpi = 1000;
 
-class Grid {
- public:
-  Grid() {}
-  Grid(const Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, char background, char foreground) {
-    guint8* pixels = cairo_surface->get_data();
-    int stride = cairo_surface->get_stride();
-    grid.resize(cairo_surface->get_height());
-    for (int y = 0; y < cairo_surface->get_height(); y++) {
-      grid[y].resize(cairo_surface->get_width());
-      for (int x = 0; x < cairo_surface->get_width(); x++) {
-        auto current_color = *(reinterpret_cast<const uint32_t *>(pixels + x*4 + y*stride));
-        // 0x0 is polarity clear
-        // 0xff000000 is untouched, should be also clear
-        // 0xffffffff is polarity dark
-        if (current_color == 0xFFFFFFFF) {
-          grid[y][x] = foreground;
-        } else {
-          grid[y][x] = background;
-        }
-      }
-    }
-  }
-  const vector<vector<char>> get_grid() const {
-    return grid;
-  }
-  void write_xpm3(std::ostream& os, const vector<string>& colors) const {
-    os << "/* XPM */" << std::endl;
-    os << "static char * grid_xpm[] = {" << std::endl;
-    os << '"' << ((grid.size() > 0) ? grid[0].size()  : 0) << " "; // width
-    os << grid.size() << " "; //height
-    os << colors.size() << " "; // color count
-    os << "1\"," << std::endl; // One character per pixel
-    for (const auto& color : colors) {
-      os << '"' << color << "\"," << std::endl;
-    }
-    for (const auto& row : grid) {
-      os << '"';
-      for (const auto& c : row) {
-        os << c;
-      }
-      os << "\"," << std::endl;
-    }
-    os << '}' << std::endl;
-  }
-  Grid& operator|=(const Grid& rhs) {
-    for (unsigned int i = 0; i < grid.size() && i < rhs.grid.size(); i++) {
-      for (unsigned int j = 0; j < grid[i].size() && j < rhs.grid[i].size(); j++) {
-        this->grid[i][j] |= rhs.grid[i][j];
-      }
-    }
-    return *this;
-  }
-  map<char, unsigned int> get_counts() const {
-    unsigned int all_values[256];
-    for (unsigned int i = 0; i < 256; i++) {
-      all_values[i] = 0;
-    }
-    for (unsigned int i = 0; i < grid.size(); i++) {
-      for (unsigned int j = 0; j < grid[i].size(); j++) {
-        ++all_values[size_t(this->grid[i][j])];
-      }
-    }
-    map<char, unsigned int> counts;
-    for (unsigned int i = 0; i < 256; i++) {
-      if (all_values[i] != 0) {
-        counts[char(i)] = all_values[i];
-      }
-    }
-    return counts;
-  }
-
- private:
-  vector<vector<char>> grid;
-};
-
 // Make a surface of the right size for the input gerber.
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double height) {
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
@@ -112,7 +37,7 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
   int stride = cairo_surface->get_stride();
   for (int y = 0; y < cairo_surface->get_height(); y++) {
     for (int x = 0; x < cairo_surface->get_width(); x++) {
-      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0xFF000000; // BLACK
+      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0x00000000; // CLEAR
     }
   }
   return cairo_surface;
@@ -120,14 +45,11 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
 
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-Grid bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
+void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
                                                       Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
   GdkColor blue = {0, 0, 0, 0xFFFF};
   g.render(cairo_surface, dpi, min_x, min_y, blue);
-
-  // Make the grid.
-  return Grid(cairo_surface, '.', 'O');
 }
 
 string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {
@@ -158,7 +80,7 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
 }
 
 // Convert the gerber to a boost geometry and then convert that to SVG and then rasterize to a bitmap.
-Grid boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height,
+void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height,
                               Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   string svg_string = render_svg(polys, min_x, min_y, width, height);
   //Now we have the svg, let's make a cairo surface like above.
@@ -172,11 +94,47 @@ Grid boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
     printf("to cairo failed\n");
     exit(2);
   }
-  cr->get_target()->write_to_png("foo.png");
-  return Grid(cairo_surface, '.', 'X');
 }
 
 const string gerber_directory = "testing/gerberimporter";
+
+map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
+  size_t background = 0, blue = 0, red = 0, both = 0, unknown = 0;
+  // We only care about a few colors: background, match, red, blue, and all the rest.
+  guint8* pixels = cairo_surface->get_data();
+  int stride = cairo_surface->get_stride();
+  for (int y = 0; y < cairo_surface->get_height(); y++) {
+    for (int x = 0; x < cairo_surface->get_width(); x++) {
+      auto *current_color = reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride);
+      switch (*current_color) {
+        case 0:
+          background++;
+          break;
+        case 0xff80007f:
+          both++;
+          // Make it stick out less so that we can better see errors.
+          *current_color = 0x2000ff00;
+          break;
+        case 0xff0000ff:
+          blue++;
+          break;
+        case 0x80800000:
+          red++;
+          break;
+        default:
+          unknown++;
+          break;
+      }
+    }
+  }
+  map<uint32_t, size_t> counts;
+  counts[0] = background;
+  counts[0x2000ff00] = both;
+  counts[0xff0000ff] = blue;
+  counts[0x80800000] = red;
+  counts[0x12345678] = unknown;
+  return counts;
+}
 
 // Compare gerbv image against boost generated image.
 void test_one(const string& gerber_file, double max_error_rate) {
@@ -192,29 +150,36 @@ void test_one(const string& gerber_file, double max_error_rate) {
   double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x() / g.vectorial_scale());
   double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y() / g.vectorial_scale());
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  Grid grid = bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
-  Grid grid2 = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
-  grid |= grid2;
-  auto counts = grid.get_counts();
-  unsigned int errors = counts['~'] + counts['o'];
-  unsigned int total = errors + counts['_'];
+  bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  map<uint32_t, size_t> counts = get_counts(cairo_surface);
+  size_t background = 0, errors = 0, both = 0;
+  for (const auto& kv : counts) {
+    //printf("%x %ld\n", kv.first, kv.second);
+    switch (kv.first) {
+      case 0:
+        background += kv.second;
+        break;
+      case 0x2000ff00:
+        both += kv.second;
+        break;
+      default:
+        errors += kv.second;
+        break;
+    }
+  }
+  unsigned int total = errors + both;
   double error_rate = double(errors)/total;
-  BOOST_CHECK_LE(error_rate, max_error_rate);
   auto old_precision = std::cout.precision(3);
-  std::cout << gerber_file
-            << "\t error rate: " << double(errors)/total*100 << "%"
+  auto old_width = std::cout.width(40);
+  std::cout << gerber_file;
+  std::cout.width(old_width);
+  std::cout << "\t error rate: " << double(errors)/total*100 << "%"
             << "\t expected less than: " << max_error_rate*100 << "%"
             << std::endl;
   std::cout.precision(old_precision);
-  std::ofstream xpm_out;
-  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
-  grid.write_xpm3(xpm_out,
-                  { ". c #000000",
-                    "~ c #FF0000",
-                    "_ c #003300",
-                    "o c #0000FF"
-                  });
-  xpm_out.close();
+  BOOST_CHECK_LE(error_rate, max_error_rate);
+  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
 }
 
 // For cases when even gerbv is wrong, just check that the number of pixels
@@ -233,26 +198,31 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   double max_x = bounding_box.max_corner().x() / g.vectorial_scale();
   double max_y = bounding_box.max_corner().y() / g.vectorial_scale();
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  Grid grid = boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
-  auto counts = grid.get_counts();
-  unsigned int marked = counts['X'];
-  unsigned int total = marked + counts['.'];
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  auto counts = get_counts(cairo_surface);
+  size_t total = 0, marked = 0l;
+  for (const auto& kv : counts) {
+    switch (kv.first) {
+      case 0:
+        total += kv.second;
+        break;
+      default:
+        marked += kv.second;
+        break;
+    }
+  }
   double marked_ratio = double(marked) / total;
-  BOOST_CHECK_GE(marked_ratio, min_set_ratio);
-  BOOST_CHECK_LE(marked_ratio, max_set_ratio);
   auto old_precision = std::cout.precision(3);
-  std::cout << gerber_file
-            << "\t marked rate: " << marked_ratio*100 << "%"
+  auto old_width = std::cout.width(40);
+  std::cout << gerber_file;
+  std::cout.width(old_width);
+  std::cout << "\t marked rate: " << marked_ratio*100 << "%"
             << "\t expected marked rate: [" << min_set_ratio*100 << ":" << max_set_ratio*100 << "]"
             << std::endl;
   std::cout.precision(old_precision);
-  std::ofstream xpm_out;
-  xpm_out.open(str(boost::format("%s.xpm") % gerber_file).c_str());
-  grid.write_xpm3(xpm_out,
-                  { ". c #000000",
-                    "X c #0000FF"
-                  });
-  xpm_out.close();
+  BOOST_CHECK_GE(marked_ratio, min_set_ratio);
+  BOOST_CHECK_LE(marked_ratio, max_set_ratio);
+  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
@@ -262,27 +232,26 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("code20_vector_line.gbr",      0.014);
-  return;
-  test_one("levels.gbr",                  0.004);
-  test_one("levels_step_and_repeat.gbr",  0.0065);
-  test_one("code22_lower_left_line.gbr",  0.008);
+  test_one("levels.gbr",                  0.005);
+  test_one("levels_step_and_repeat.gbr",  0.013);
+  test_one("code22_lower_left_line.gbr",  0.011);
   test_one("code4_outline.gbr",           0.025);
-  test_one("code5_polygon.gbr",           0.0003);
-  test_one("code21_center_line.gbr",      0.015);
-  test_one("polygon.gbr",                 0.018);
+  test_one("code5_polygon.gbr",           0.0007);
+  test_one("code21_center_line.gbr",      0.020);
+  test_one("polygon.gbr",                 0.022);
   test_one("wide_oval.gbr",               0.015);
   test_one("tall_oval.gbr",               0.005);
   test_one("circle_oval.gbr",             0.017);
-  test_one("rectangle.gbr",               0.008);
+  test_one("rectangle.gbr",               0.009);
   test_one("circle.gbr",                  0.009);
   test_one("code1_circle.gbr",            0.015);
-  test_one("g01_rectangle.gbr",           0.001);
-  test_one("moire.gbr",                   0.035);
-  test_one("thermal.gbr",                 0.018);
+  test_one("code20_vector_line.gbr",      0.018);
+  test_one("g01_rectangle.gbr",           0.002);
+  test_one("moire.gbr",                   0.05);
+  test_one("thermal.gbr",                 0.019);
   test_one("cutins.gbr",                  0.000);
 
-  test_visual("circular_arcs.gbr",        0.075,    0.078);
+  test_visual("circular_arcs.gbr",        0.083,    0.085);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
