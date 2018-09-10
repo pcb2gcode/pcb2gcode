@@ -60,7 +60,6 @@ public:
     virtual gdouble get_min_y() const;
     virtual gdouble get_max_y() const;
 
-  //static constexpr GdkColor SATURATED_WHITE = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF };
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double min_x,
                         const double min_y, GdkColor color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF }) const;

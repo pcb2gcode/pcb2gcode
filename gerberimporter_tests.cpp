@@ -179,6 +179,11 @@ void test_one(const string& gerber_file, double max_error_rate) {
             << std::endl;
   std::cout.precision(old_precision);
   BOOST_CHECK_LE(error_rate, max_error_rate);
+  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
+  if (skip_png != nullptr) {
+    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
+    return;
+  }
   cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
 }
 
@@ -222,6 +227,11 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   std::cout.precision(old_precision);
   BOOST_CHECK_GE(marked_ratio, min_set_ratio);
   BOOST_CHECK_LE(marked_ratio, max_set_ratio);
+  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
+  if (skip_png != nullptr) {
+    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
+    return;
+  }
   cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
 }
 
