@@ -116,7 +116,7 @@ script:
   - ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; ../../../pcb2gcode ${VECTORIAL} || exit ; popd" || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
-  - VERBOSE=1 make -j 2 check || travis_terminate 1
+  - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j 2 check || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
 
 after_success:
