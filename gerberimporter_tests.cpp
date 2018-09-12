@@ -135,7 +135,7 @@ map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surfac
   return counts;
 }
 
-void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
+void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, const string& gerber_file) {
   const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
   if (skip_png != nullptr) {
     std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
@@ -186,6 +186,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
             << std::endl;
   std::cout.precision(old_precision);
   BOOST_CHECK_LE(error_rate, max_error_rate);
+  write_to_png(cairo_surface, gerber_file);
 }
 
 // For cases when even gerbv is wrong, just check that the number of pixels
@@ -228,12 +229,7 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   std::cout.precision(old_precision);
   BOOST_CHECK_GE(marked_ratio, min_set_ratio);
   BOOST_CHECK_LE(marked_ratio, max_set_ratio);
-  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
-  if (skip_png != nullptr) {
-    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
-    return;
-  }
-  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
+  write_to_png(cairo_surface, gerber_file);
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
@@ -243,9 +239,9 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("levels.gbr",                  0.0006);
-  test_one("levels_step_and_repeat.gbr",  0.0067);
-  test_one("code22_lower_left_line.gbr",  0.011);
+  test_one("levels.gbr",                  0.0007);
+  test_one("levels_step_and_repeat.gbr",  0.006);
+  test_one("code22_lower_left_line.gbr",  0.008);
   test_one("code4_outline.gbr",           0.023);
   test_one("code5_polygon.gbr",           0.00008);
   test_one("code21_center_line.gbr",      0.013);
