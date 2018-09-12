@@ -246,11 +246,11 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("code5_polygon.gbr",           0.00008);
   test_one("code21_center_line.gbr",      0.013);
   test_one("polygon.gbr",                 0.017);
-  test_one("wide_oval.gbr",               0.0001);
+  test_one("wide_oval.gbr",               0.00011);
   test_one("tall_oval.gbr",               0.00006);
-  test_one("circle_oval.gbr",             0.00015);
+  test_one("circle_oval.gbr",             0.00016);
   test_one("rectangle.gbr",               0.00007);
-  test_one("circle.gbr",                  0.00007);
+  test_one("circle.gbr",                  0.00008);
   test_one("code1_circle.gbr",            0.009);
   test_one("code20_vector_line.gbr",      0.013);
   test_one("g01_rectangle.gbr",           0.0008);
