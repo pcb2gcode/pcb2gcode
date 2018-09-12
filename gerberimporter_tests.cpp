@@ -49,7 +49,7 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
 void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
-                                                      Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
+                        Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
   GdkColor blue = {0,
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
