@@ -62,7 +62,7 @@ public:
 
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double min_x,
-                        const double min_y, GdkColor color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF }) const;
+                        const double min_y, const GdkColor& color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF }) const;
 
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const;
   virtual inline unsigned int vectorial_scale() const {

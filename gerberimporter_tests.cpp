@@ -6,10 +6,8 @@
 #include <dirent.h>
 #include <glibmm/init.h>
 #include <gdkmm/wrap_init.h>
-//#include <gdkmm/pixbuf.h>
 #include <sstream>
 #include <librsvg-2.0/librsvg/rsvg.h>
-//#include <ImageMagick-6/Magick++.h>
 #include <boost/format.hpp>
 #include <cstdlib>
 
@@ -17,7 +15,6 @@ struct Fixture {
   Fixture() {
     Glib::init();
     Gdk::wrap_init();
-    //MagickCore::InitializeMagick(boost::unit_test::framework::master_test_suite().argv[0]);
   }
   ~Fixture() {}
 };
@@ -25,6 +22,13 @@ struct Fixture {
 BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 
 const unsigned int dpi = 1000;
+const uint32_t BACKGROUND_COLOR = 0x00000000; // empty canvas starting color: black
+const uint32_t NEW_BACKGROUND_COLOR = 0xff000000; // black
+const uint32_t CLEARED_COLOR = 0x00000000; // places where gerbv cleared the canvas: clear
+const uint32_t OLD_COLOR = 0xff0000ff; // blue
+const uint32_t NEW_COLOR = 0x40ff0000; // red
+const uint32_t BOTH_COLOR = 0xff4000bf; // blue and red above combined
+const uint32_t NEW_BOTH_COLOR = 0xff002000; // The color that the both color is changed to.
 
 // Make a surface of the right size for the input gerber.
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double height) {
@@ -32,12 +36,11 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
       Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
                                   width,
                                   height);
-  // Set it all black.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
   for (int y = 0; y < cairo_surface->get_height(); y++) {
     for (int x = 0; x < cairo_surface->get_width(); x++) {
-      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = 0x00000000; // CLEAR
+      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = BACKGROUND_COLOR;
     }
   }
   return cairo_surface;
@@ -48,7 +51,10 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
 void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
                                                       Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
-  GdkColor blue = {0, 0, 0, 0xFFFF};
+  GdkColor blue = {0,
+                   ((OLD_COLOR >> 16) & 0xff) * 0x101,
+                   ((OLD_COLOR >>  8) & 0xff) * 0x101,
+                   ((OLD_COLOR      ) & 0xff) * 0x101};
   g.render(cairo_surface, dpi, min_x, min_y, blue);
 }
 
@@ -74,7 +80,11 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
                                       svg_height * dpi / 1000000,
                                       svg_dimensions);
     svg.add(polys); // This is needed for the next line to work, not sure why.
-    svg.map(polys, "fill-opacity:0.5;fill:rgb(255,0,0);");
+    svg.map(polys, str(boost::format("opacity:%1%;fill:rgb(%2%,%3%,%4%);")
+                       % (((NEW_COLOR >> 24) & 0xff ) / double(0xff))
+                       % ((NEW_COLOR >> 16) & 0xff)
+                       % ((NEW_COLOR >>  8) & 0xff)
+                       % ((NEW_COLOR      ) & 0xff)));
   } // The svg file is complete when it goes out of scope.
   return svg_stream.str();
 }
@@ -90,16 +100,13 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
                                                       &gerror);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
   //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
-  if(!rsvg_handle_render_cairo(rsvg_handle, cr->cobj())) {
-    printf("to cairo failed\n");
-    exit(2);
-  }
+  BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
 }
 
 const string gerber_directory = "testing/gerberimporter";
 
 map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
-  size_t background = 0, blue = 0, red = 0, both = 0, unknown = 0;
+  size_t background = 0, both = 0, unknown = 0;
   // We only care about a few colors: background, match, red, blue, and all the rest.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
@@ -107,31 +114,33 @@ map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surfac
     for (int x = 0; x < cairo_surface->get_width(); x++) {
       auto *current_color = reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride);
       switch (*current_color) {
-        case 0:
+        case BACKGROUND_COLOR:
+          *current_color = NEW_BACKGROUND_COLOR;
           background++;
           break;
-        case 0xff80007f:
+        case BOTH_COLOR:
           both++;
           // Make it stick out less so that we can better see errors.
-          *current_color = 0x2000ff00;
-          break;
-        case 0xff0000ff:
-          blue++;
-          break;
-        case 0x80800000:
-          red++;
+          *current_color = NEW_BOTH_COLOR;
           break;
         default:
+          if ((*current_color & 0xff000000) != 0xff000000) {
+            *current_color |= 0xff000000;
+            if (*current_color & 0xff0000) {
+              *current_color |= 0xff0000;
+            }
+            if (*current_color & 0xff) {
+              *current_color |= 0xff;
+            }
+          }
           unknown++;
           break;
       }
     }
   }
   map<uint32_t, size_t> counts;
-  counts[0] = background;
-  counts[0x2000ff00] = both;
-  counts[0xff0000ff] = blue;
-  counts[0x80800000] = red;
+  counts[NEW_BACKGROUND_COLOR] = background;
+  counts[NEW_BOTH_COLOR] = both;
   counts[0x12345678] = unknown;
   return counts;
 }
@@ -155,12 +164,11 @@ void test_one(const string& gerber_file, double max_error_rate) {
   map<uint32_t, size_t> counts = get_counts(cairo_surface);
   size_t background = 0, errors = 0, both = 0;
   for (const auto& kv : counts) {
-    //printf("%x %ld\n", kv.first, kv.second);
     switch (kv.first) {
-      case 0:
+      case NEW_BACKGROUND_COLOR:
         background += kv.second;
         break;
-      case 0x2000ff00:
+      case NEW_BOTH_COLOR:
         both += kv.second;
         break;
       default:
@@ -208,7 +216,7 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   size_t total = 0, marked = 0l;
   for (const auto& kv : counts) {
     switch (kv.first) {
-      case 0:
+      case NEW_BACKGROUND_COLOR:
         total += kv.second;
         break;
       default:
