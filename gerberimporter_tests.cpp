@@ -80,7 +80,7 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
                                       svg_height * dpi / 1000000,
                                       svg_dimensions);
     svg.add(polys); // This is needed for the next line to work, not sure why.
-    svg.map(polys, str(boost::format("opacity:%1%;fill:rgb(%2%,%3%,%4%);")
+    svg.map(polys, str(boost::format("fill-opacity:%1%;fill:rgb(%2%,%3%,%4%);")
                        % (((NEW_COLOR >> 24) & 0xff ) / double(0xff))
                        % ((NEW_COLOR >> 16) & 0xff)
                        % ((NEW_COLOR >>  8) & 0xff)
