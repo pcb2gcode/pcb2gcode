@@ -79,7 +79,7 @@ install:
       git clone git://git.geda-project.org/gerbv.git &&
       pushd gerbv &&
       sh autogen.sh &&
-      ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
+      CFLAGS=-std=c99 ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
       make -j 2 &&
       make install &&
       popd &&
