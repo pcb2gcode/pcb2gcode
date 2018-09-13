@@ -53,7 +53,7 @@ void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, dou
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
                    ((OLD_COLOR >>  8) & 0xff) * 0x101,
                    ((OLD_COLOR      ) & 0xff) * 0x101};
-  g.render(cairo_surface, dpi, min_x, min_y, blue);
+  g.render(cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
 string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {

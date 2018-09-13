@@ -77,7 +77,7 @@ gdouble GerberImporter::get_max_y() const {
 }
 
 void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y,
-                            const GdkColor& color) const {
+                            const GdkColor& color, const gerbv_render_types_t& renderType) const {
   gerbv_render_info_t render_info;
 
   render_info.scaleFactorX = dpi;
@@ -86,7 +86,7 @@ void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const gu
   render_info.lowerLeftY = min_y;
   render_info.displayWidth = surface->get_width();
   render_info.displayHeight = surface->get_height();
-  render_info.renderType = GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY;
+  render_info.renderType = renderType;
 
   project->file[0]->color = color;
 
