@@ -77,7 +77,7 @@ install:
       mkdir .local &&
       git clone https://github.com/autotools-mirror/gettext.git &&
       pushd gettext &&
-      ./configure --prefix=$PWD/../.local &&
+      ./autogen.sh && ./configure --prefix=$PWD/../.local &&
       make && make check && make install &&
       popd &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
