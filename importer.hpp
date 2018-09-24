@@ -36,6 +36,10 @@ using Glib::ustring;
 #include "geometry.hpp"
 #include "geometry.hpp"
 
+extern "C" {
+#include <gerbv.h>
+}
+
 struct import_exception: virtual std::exception, virtual boost::exception
 {
 };
@@ -60,7 +64,8 @@ class RasterLayerImporter : virtual public LayerImporter
 public:
     virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
                         const guint dpi, const double xoff, const double yoff,
-                        const GdkColor& color =  { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF }) const = 0;
+                        const GdkColor& color =  { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
+                        const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const = 0;
 
 };
 

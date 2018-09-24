@@ -24,10 +24,8 @@ BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
 const unsigned int dpi = 1000;
 const uint32_t BACKGROUND_COLOR = 0x00000000; // empty canvas starting color: black
 const uint32_t NEW_BACKGROUND_COLOR = 0xff000000; // black
-const uint32_t CLEARED_COLOR = 0x00000000; // places where gerbv cleared the canvas: clear
 const uint32_t OLD_COLOR = 0xff0000ff; // blue
 const uint32_t NEW_COLOR = 0x40ff0000; // red
-const uint32_t BOTH_COLOR = 0xff4000bf; // blue and red above combined
 const uint32_t NEW_BOTH_COLOR = 0xff002000; // The color that the both color is changed to.
 
 // Make a surface of the right size for the input gerber.
@@ -55,7 +53,7 @@ void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, dou
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
                    ((OLD_COLOR >>  8) & 0xff) * 0x101,
                    ((OLD_COLOR      ) & 0xff) * 0x101};
-  g.render(cairo_surface, dpi, min_x, min_y, blue);
+  g.render(cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
 string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {
@@ -113,28 +111,20 @@ map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surfac
   for (int y = 0; y < cairo_surface->get_height(); y++) {
     for (int x = 0; x < cairo_surface->get_width(); x++) {
       auto *current_color = reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride);
-      switch (*current_color) {
-        case BACKGROUND_COLOR:
-          *current_color = NEW_BACKGROUND_COLOR;
-          background++;
-          break;
-        case BOTH_COLOR:
-          both++;
-          // Make it stick out less so that we can better see errors.
-          *current_color = NEW_BOTH_COLOR;
-          break;
-        default:
-          if ((*current_color & 0xff000000) != 0xff000000) {
-            *current_color |= 0xff000000;
-            if (*current_color & 0xff0000) {
-              *current_color |= 0xff0000;
-            }
-            if (*current_color & 0xff) {
-              *current_color |= 0xff;
-            }
-          }
-          unknown++;
-          break;
+      if (*current_color == BACKGROUND_COLOR) {
+        *current_color = NEW_BACKGROUND_COLOR;
+        background++;
+      } else if ((*current_color & 0xff) &&
+                 (*current_color & 0xff0000)) {
+        both++;
+        // Make it stick out less so that we can better see errors.
+        *current_color = NEW_BOTH_COLOR;
+      } else if (*current_color & 0xff) {
+        *current_color = 0xff0000ff;
+        unknown++;
+      } else if (*current_color & 0xff0000) {
+        *current_color = 0xffff0000;
+        unknown++;
       }
     }
   }
@@ -145,13 +135,22 @@ map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surfac
   return counts;
 }
 
+void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, const string& gerber_file) {
+  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
+  if (skip_png != nullptr) {
+    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
+    return;
+  }
+  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
+}
+
 // Compare gerbv image against boost generated image.
 void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter(gerber_path);
-  multi_polygon_type_fp polys = g.render(false, 30);
+  multi_polygon_type_fp polys = g.render(false, 360);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x() / g.vectorial_scale());
@@ -187,12 +186,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
             << std::endl;
   std::cout.precision(old_precision);
   BOOST_CHECK_LE(error_rate, max_error_rate);
-  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
-  if (skip_png != nullptr) {
-    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
-    return;
-  }
-  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
+  write_to_png(cairo_surface, gerber_file);
 }
 
 // For cases when even gerbv is wrong, just check that the number of pixels
@@ -235,12 +229,7 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   std::cout.precision(old_precision);
   BOOST_CHECK_GE(marked_ratio, min_set_ratio);
   BOOST_CHECK_LE(marked_ratio, max_set_ratio);
-  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
-  if (skip_png != nullptr) {
-    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
-    return;
-  }
-  cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
+  write_to_png(cairo_surface, gerber_file);
 }
 
 BOOST_AUTO_TEST_CASE(all_gerbers) {
@@ -250,26 +239,26 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
-  test_one("levels.gbr",                  0.005);
-  test_one("levels_step_and_repeat.gbr",  0.013);
-  test_one("code22_lower_left_line.gbr",  0.011);
-  test_one("code4_outline.gbr",           0.025);
-  test_one("code5_polygon.gbr",           0.0007);
-  test_one("code21_center_line.gbr",      0.020);
-  test_one("polygon.gbr",                 0.022);
-  test_one("wide_oval.gbr",               0.015);
-  test_one("tall_oval.gbr",               0.005);
-  test_one("circle_oval.gbr",             0.017);
-  test_one("rectangle.gbr",               0.009);
-  test_one("circle.gbr",                  0.009);
-  test_one("code1_circle.gbr",            0.015);
-  test_one("code20_vector_line.gbr",      0.018);
-  test_one("g01_rectangle.gbr",           0.002);
-  test_one("moire.gbr",                   0.05);
-  test_one("thermal.gbr",                 0.019);
+  test_one("levels.gbr",                  0.0007);
+  test_one("levels_step_and_repeat.gbr",  0.006);
+  test_one("code22_lower_left_line.gbr",  0.008);
+  test_one("code4_outline.gbr",           0.023);
+  test_one("code5_polygon.gbr",           0.00008);
+  test_one("code21_center_line.gbr",      0.013);
+  test_one("polygon.gbr",                 0.017);
+  test_one("wide_oval.gbr",               0.00011);
+  test_one("tall_oval.gbr",               0.00006);
+  test_one("circle_oval.gbr",             0.00016);
+  test_one("rectangle.gbr",               0.00007);
+  test_one("circle.gbr",                  0.00008);
+  test_one("code1_circle.gbr",            0.009);
+  test_one("code20_vector_line.gbr",      0.013);
+  test_one("g01_rectangle.gbr",           0.0008);
+  test_one("moire.gbr",                   0.020);
+  test_one("thermal.gbr",                 0.011);
   test_one("cutins.gbr",                  0.000);
 
-  test_visual("circular_arcs.gbr",        0.083,    0.085);
+  test_visual("circular_arcs.gbr",        0.084,    0.085);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
