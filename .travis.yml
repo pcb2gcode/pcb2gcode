@@ -75,6 +75,11 @@ install:
   - >
     if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
       mkdir .local &&
+      git clone https://github.com/autotools-mirror/gettext.git &&
+      pushd gettext &&
+      ./configure --prefix=$PWD/../.local &&
+      make && make check && make install &&
+      popd &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
       git clone git://git.geda-project.org/gerbv.git &&
       pushd gerbv &&
