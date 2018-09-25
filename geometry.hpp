@@ -28,7 +28,7 @@
 #include <boost/geometry/geometries/register/ring.hpp>
 #include <boost/polygon/polygon.hpp>
 
-#define SVG_PIX_PER_IN 2000
+#define SVG_PIX_PER_IN 96
 
 typedef int64_t coordinate_type;
 typedef double coordinate_type_fp;
