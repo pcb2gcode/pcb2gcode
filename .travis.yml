@@ -78,7 +78,7 @@ install:
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
       git clone git://git.geda-project.org/gerbv.git &&
       pushd gerbv &&
-      git chdckout 8ae933d &&
+      git checkout 8ae933d &&
       sh autogen.sh &&
       CFLAGS=-std=gnu99 ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
       make -j 2 &&
