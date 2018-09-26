@@ -148,8 +148,8 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         bg::convert(bounding_box, svg_bounding_box);
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), SVG_PIX_PER_IN, scale, svg_bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), SVG_PIX_PER_IN, scale, svg_bounding_box);
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
 
     srand(1);
     debug_image.add(voronoi, 0.3, false);
@@ -217,7 +217,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
 void Surface_vectorial::save_debug_image(string message)
 {
     const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
-    svg_writer debug_image(build_filename(outputdir, filename), SVG_PIX_PER_IN, scale, bounding_box);
+    svg_writer debug_image(build_filename(outputdir, filename), scale, bounding_box);
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);
@@ -483,7 +483,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
             if (empty_hole) {
                 thermal_reliefs_found++;
                 if (!image) {
-                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), SVG_PIX_PER_IN, scale, bounding_box);
+                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
                 }
                 image->add(shrunk_thermal_hole, 1, true);
                 for (const auto& p : shrunk_thermal_hole) {
@@ -496,21 +496,25 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
     return thermal_reliefs_found;
 }
 
-svg_writer::svg_writer(string filename, unsigned int pixel_per_in, coordinate_type_fp scale, box_type_fp bounding_box) :
+svg_writer::svg_writer(string filename, coordinate_type_fp scale, box_type_fp bounding_box) :
     output_file(filename),
     bounding_box(bounding_box)
 {
     const coordinate_type_fp width =
-        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * pixel_per_in / scale;
+        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * SVG_PIX_PER_IN / scale;
     const coordinate_type_fp height =
-        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * pixel_per_in / scale;
+        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * SVG_PIX_PER_IN / scale;
+    const coordinate_type_fp viewBox_width =
+        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * SVG_DOTS_PER_IN / scale;
+    const coordinate_type_fp viewBox_height =
+        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * SVG_DOTS_PER_IN / scale;
 
     //Some SVG readers does not behave well when viewBox is not specified
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
     mapper = unique_ptr<bg::svg_mapper<point_type_fp> >
-        (new bg::svg_mapper<point_type_fp>(output_file, width, height, svg_dimensions));
+        (new bg::svg_mapper<point_type_fp>(output_file, viewBox_width, viewBox_height, svg_dimensions));
     mapper->add(bounding_box);
 }
 

@@ -28,7 +28,10 @@
 #include <boost/geometry/geometries/register/ring.hpp>
 #include <boost/polygon/polygon.hpp>
 
-#define SVG_PIX_PER_IN 2000
+// This one chooses the actual size of the output (width and height).
+#define SVG_PIX_PER_IN 96
+// This one chooses the resolution of the output (viewBox).
+#define SVG_DOTS_PER_IN 2000
 
 typedef int64_t coordinate_type;
 typedef double coordinate_type_fp;

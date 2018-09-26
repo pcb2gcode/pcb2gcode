@@ -130,7 +130,7 @@ protected:
 class svg_writer
 {
 public:
-    svg_writer(string filename, unsigned int pixel_per_in, coordinate_type_fp scale, box_type_fp bounding_box);
+    svg_writer(string filename, coordinate_type_fp scale, box_type_fp bounding_box);
     template <typename multi_polygon_type_t>
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
     void add(const vector<polygon_type_fp>& geometries, double opacity,
