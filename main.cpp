@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
         if (!in.good())
         {
             cerr << "Cannot read preamble-text file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+            options::maybe_exit(EXIT_FAILURE);
         }
 
         string line;
@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
         if (!in.good())
         {
             cerr << "Cannot read preamble file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+            options::maybe_exit(EXIT_FAILURE);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
         if (!in.good())
         {
             cerr << "Cannot read postamble file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+            options::maybe_exit(EXIT_FAILURE);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -293,7 +293,7 @@ int main(int argc, char* argv[])
             catch (import_exception& i)
             {
                 cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
+                options::maybe_exit(EXIT_FAILURE);
             }
         } else {
             cout << "not specified.\n";
@@ -314,7 +314,7 @@ int main(int argc, char* argv[])
             catch (import_exception& i)
             {
                 cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
+                options::maybe_exit(EXIT_FAILURE);
             }
         } else {
             cout << "not specified.\n";
@@ -334,7 +334,7 @@ int main(int argc, char* argv[])
             catch (import_exception& i)
             {
                 cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
+                options::maybe_exit(EXIT_FAILURE);
             }
         } else {
             cout << "not specified.\n";
@@ -458,7 +458,7 @@ int main(int argc, char* argv[])
         catch (const drill_exception& e)
         {
             cout << "ERROR: drill_exception.\n";
-            exit(EXIT_FAILURE);
+            options::maybe_exit(EXIT_FAILURE);
         }
     } else {
         cout << "not specified.\n";

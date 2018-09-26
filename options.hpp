@@ -113,6 +113,7 @@ public:
     ;
     static string help();
 
+  static void maybe_exit(int error_code);
 private:
     options();
     po::variables_map vm;
