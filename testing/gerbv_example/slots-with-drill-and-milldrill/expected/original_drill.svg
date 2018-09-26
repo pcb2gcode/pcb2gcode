@@ -1,17 +1,17 @@
 <?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
 "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="142.983" height="81.4469" viewBox="0 0 142.983 81.4469" version="1.1"
+<svg width="142.983" height="81.4469" viewBox="0 0 2978.82 1696.81" version="1.1"
 xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
-<circle cx="16.2917" cy="34.732" r="0.755906" style=""/>
-<circle cx="25.7405" cy="34.732" r="0.755906" style=""/>
-<circle cx="16.2917" cy="65.5729" r="0.755906" style=""/>
-<circle cx="16.2917" cy="73.132" r="0.755906" style=""/>
-<circle cx="16.2917" cy="80.691" r="0.755906" style=""/>
-<circle cx="117.243" cy="34.732" r="0.755906" style=""/>
-<circle cx="126.692" cy="34.732" r="0.755906" style=""/>
-<circle cx="121.892" cy="65.5729" r="0.755906" style=""/>
-<circle cx="121.892" cy="73.132" r="0.755906" style=""/>
-<circle cx="121.892" cy="80.691" r="0.755906" style=""/>
+<circle cx="339.409" cy="723.583" r="15.748" style=""/>
+<circle cx="536.26" cy="723.583" r="15.748" style=""/>
+<circle cx="339.409" cy="1366.1" r="15.748" style=""/>
+<circle cx="339.409" cy="1523.58" r="15.748" style=""/>
+<circle cx="339.409" cy="1681.06" r="15.748" style=""/>
+<circle cx="2442.56" cy="723.583" r="15.748" style=""/>
+<circle cx="2639.41" cy="723.583" r="15.748" style=""/>
+<circle cx="2539.41" cy="1366.1" r="15.748" style=""/>
+<circle cx="2539.41" cy="1523.58" r="15.748" style=""/>
+<circle cx="2539.41" cy="1681.06" r="15.748" style=""/>
 </svg>

@@ -609,13 +609,15 @@ void ExcellonProcessor::save_svg(
     }
     const coordinate_type_fp width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_PIX_PER_IN;
     const coordinate_type_fp height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_PIX_PER_IN;
+    const coordinate_type_fp viewBox_width = (board_dimensions.max_corner().x() - board_dimensions.min_corner().x()) * SVG_DOTS_PER_IN;
+    const coordinate_type_fp viewBox_height = (board_dimensions.max_corner().y() - board_dimensions.min_corner().y()) * SVG_DOTS_PER_IN;
 
     //Some SVG readers does not behave well when viewBox is not specified
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %1% %2%\"") % width % height);
+        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
     ofstream svg_out (build_filename(of_dir, of_name));
-    bg::svg_mapper<point_type_fp> mapper (svg_out, width, height, svg_dimensions);
+    bg::svg_mapper<point_type_fp> mapper (svg_out, viewBox_width, viewBox_height, svg_dimensions);
 
     mapper.add(board_dimensions);
 
@@ -625,7 +627,7 @@ void ExcellonProcessor::save_svg(
 
         for (const ilinesegment& line : hole.second) {
             for (auto& hole : line_to_holes(line, radius*2)) {
-                mapper.map(hole, "", radius * SVG_PIX_PER_IN);
+                mapper.map(hole, "", radius * SVG_DOTS_PER_IN);
             }
         }
     }
