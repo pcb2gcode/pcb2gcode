@@ -77,7 +77,7 @@ void options::parse(int argc, char** argv)
     {
         cerr << "Error: You've supplied an invalid parameter.\n"
              << "Details: " << e.what() << endl;
-        maybe_exit(ERR_UNKNOWNPARAMETER);
+        exit(ERR_UNKNOWNPARAMETER);
     }
 
     po::notify(instance().vm);
