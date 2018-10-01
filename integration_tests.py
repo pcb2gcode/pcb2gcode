@@ -67,6 +67,10 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--tsp-2opt", "--mill-feed-direction=climb"],
                         100)] +
+              [TestCase(clean("ignore warnings"),
+                        os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
+                        ["--ignore-warnings"],
+                        0)] +
               [TestCase(clean("invalid_millfeedirection"),
                         os.path.join(EXAMPLES_PATH),
                         ["--mill-feed-direction=invalid_value"],

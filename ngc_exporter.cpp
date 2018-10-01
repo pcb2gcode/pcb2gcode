@@ -21,6 +21,7 @@
  */
 
 #include "ngc_exporter.hpp"
+#include "options.hpp"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 using std::cerr;
@@ -205,7 +206,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
             std::cerr << "Required number of probe points (" << leveller->requiredProbePoints() <<
                       ") exceeds the maximum number (" << leveller->maxProbePoints() << "). "
                       "Reduce either al-x or al-y." << std::endl;
-            exit(EXIT_FAILURE);
+            options::maybe_exit(EXIT_FAILURE);
         }
 
         leveller->header( of );
