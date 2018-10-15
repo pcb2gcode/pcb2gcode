@@ -383,9 +383,9 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     // Find the largest z_step that divides 0 through z_work into
     // evenly sized passes such that each pass is at most
     // cutter->stepsize in depth.
-    unsigned int stepcount = 1;
+    int stepcount = 1;
     if (cutter->do_steps) {
-        stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
+        stepcount = (int) ceil(abs(cutter->zwork / cutter->stepsize));
     }
 
     if (cutdiameter * 1.001 >= holediameter) { //In order to avoid a "zero radius arc" error
@@ -393,7 +393,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
         if (slot)
         {
-            for (unsigned int current_step = 0; true;)
+            for (int current_step = 0; true;)
             {
                 double z = double(current_step+1)/(stepcount) * cutter->zwork;
                 of << "G1 Z" << z * cfactor << '\n';
@@ -455,18 +455,30 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
+        double z;
+        int current_step = 0;
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
-        for (unsigned int current_step = 0; current_step < stepcount; current_step++) {
-          double z = double(current_step+1)/(stepcount) * cutter->zwork;
-          of << "G1 Z" << z * cfactor << '\n';
+        if(!slot) {
+          // Start one step above Z0 for helix
+          of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor << '\n';
+          current_step = -1;
+        }
+
+        for (; current_step <= stepcount; current_step++) {
+          // current_step == stepcount is for the bottom circle for helix, so z needs to stay the same
+          z = double(std::min(stepcount, current_step+1))/(stepcount) * cutter->zwork;
           if (!slot) {
             // Just drill a full-circle.
-            of << arc_gcode << " "
-               << " X" << start_targetx * cfactor
-               << " Y" << start_targety * cfactor
+            of << arc_gcode
+               << " Z" << z * cfactor
                << " I" << (start_x-start_targetx) * cfactor
                << " J" << (start_y-start_targety) * cfactor << "\n";
           } else {
+            // (Non-helix) slots don't need a final bottom pass
+            if(current_step == stepcount) {
+              continue;
+            }
+            of << "G1 Z" << z * cfactor << '\n';
             // Draw the first half circle
             of << arc_gcode << " X" << start2_targetx * cfactor
                << " Y" << start2_targety * cfactor
