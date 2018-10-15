@@ -470,6 +470,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           if (!slot) {
             // Just drill a full-circle.
             of << arc_gcode
+               << " X" << start_targetx * cfactor
+               << " Y" << start_targety * cfactor
                << " Z" << z * cfactor
                << " I" << (start_x-start_targetx) * cfactor
                << " J" << (start_y-start_targety) * cfactor << "\n";
