@@ -471,9 +471,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             // Just drill a full-circle.
             of << arc_gcode
                << " X" << start_targetx * cfactor
-               << " Y" << start_targety * cfactor
-               << " Z" << z * cfactor
-               << " I" << (start_x-start_targetx) * cfactor
+               << " Y" << start_targety * cfactor;
+            if(stepcount != current_step) {
+               // Drop superfluous Z from the bottom hole to indicate that this line is not there by accident
+               of << " Z" << z * cfactor;
+            }
+            of << " I" << (start_x-start_targetx) * cfactor
                << " J" << (start_y-start_targety) * cfactor << "\n";
           } else {
             // (Non-helix) slots don't need a final bottom pass
