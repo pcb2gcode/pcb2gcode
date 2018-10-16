@@ -455,18 +455,19 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
-        double z;
         int current_step = 0;
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
         if(!slot) {
           // Start one step above Z0 for helix
-          of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor << '\n';
+          of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
+            << " F" << cutter->vertfeed * cfactor << '\n'
+            << "G1 F" << cutter->feed * cfactor << '\n';
           current_step = -1;
         }
 
         for (; current_step <= stepcount; current_step++) {
           // current_step == stepcount is for the bottom circle for helix, so z needs to stay the same
-          z = double(std::min(stepcount, current_step+1))/(stepcount) * cutter->zwork;
+          double z = double(std::min(stepcount, current_step+1))/(stepcount) * cutter->zwork;
           if (!slot) {
             // Just drill a full-circle.
             of << arc_gcode
