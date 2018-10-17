@@ -12,14 +12,14 @@ G01 F360.00000 ( Feedrate. )
 o7 sub ( G01 with Z-correction subroutine )
     #3 = [ #5211 - #118 ] ( x-tile offset [minus the initial offset] )
     #4 = [ #5212 - #119 ] ( y-tile offset [minus the initial offset] )
-    #5 = [ FIX[ [ #1 - 4.68308 + #3 ] / 0.37783 ] ] ( Lower left point X index )
-    #6 = [ FIX[ [ #2 - -3.35689 + #4 ] / 0.34385 ] ] ( Lower left point Y index )
+    #5 = [ FIX[ [ #1 - 4.68308 + #3 ] / 0.37812 ] ] ( Lower left point X index )
+    #6 = [ FIX[ [ #2 - -3.35689 + #4 ] / 0.34424 ] ] ( Lower left point Y index )
     #7 = [ #5 * 7 + [ #6 + 1 ] + 500 ] ( Upper left point parameter number )
     #8 = [ [ #5 + 1 ] *7 + [ #6 + 1 ] + 500 ] ( Upper right point parameter number )
     #9 = [ #5 * 7 + #6 + 500 ] ( Lower left point parameter number )
     #10 = [ [ #5 + 1 ] * 7 + #6 + 500 ] ( Lower right point parameter number )
-    #11 = [ [ #2 + #4 - -3.35689 - #6 * 0.34385 ] / 0.34385 ] ( Distance between the point and the left border of the rectangle, normalized to 1 )
-    #12 = [ [ #1 + #3 - 4.68308 - #5 * 0.37783 ] / 0.37783 ] ( Distance between the point and the bottom border of the rectangle, normalized to 1 ) 
+    #11 = [ [ #2 + #4 - -3.35689 - #6 * 0.34424 ] / 0.34424 ] ( Distance between the point and the left border of the rectangle, normalized to 1 )
+    #12 = [ [ #1 + #3 - 4.68308 - #5 * 0.37812 ] / 0.37812 ] ( Distance between the point and the bottom border of the rectangle, normalized to 1 ) 
     #13 = [ ##9 + [ ##7 - ##9 ] * #11 ] ( Linear interpolation of the x-min elements )
     #14 = [ ##10 + [ ##8 - ##10 ] * #11 ] ( Linear interpolation of the x-max elements )
     #15 = [ #13 + [ #14 - #13 ] * #12 ] ( Linear interpolation of previously interpolated points )
@@ -28,7 +28,7 @@ o7 endsub
 
 o8 sub ( Y probe subroutine )
     G0 Z0.080 ( Move to probe height )
-    X[#112 * 0.37783 + 4.68308] Y[#113 * 0.34385 + -3.35689] ( Move to the current probe point )
+    X[#112 * 0.37812 + 4.68308] Y[#113 * 0.34424 + -3.35689] ( Move to the current probe point )
     G38.2 Z-0.1 F2.362205 ( Probe it )
     #[#112 * 7 + #113 + 500] = #5063 ( Save the probe in the correct parameter )
     #113 = [#113 + #114] ( Increment/decrement by 1 the Y counter )
@@ -468,17 +468,17 @@ o7 call [6.4951] [-3.30051]
 o1 endsub
 
 o1 call
-G92 X[#5420-[2.060693]]
+G92 X[#5420-[2.063055]]
 o1 call
-G92 X[#5420-[2.060693]]
+G92 X[#5420-[2.063055]]
 o1 call
-G92 Y[#5421-[1.160693]]
+G92 Y[#5421-[1.163055]]
 o1 call
-G92 X[#5420-[-2.060693]]
+G92 X[#5420-[-2.063055]]
 o1 call
-G92 X[#5420-[-2.060693]]
+G92 X[#5420-[-2.063055]]
 o1 call
-G92 Y[#5421-[-1.160693]]
+G92 Y[#5421-[-1.163055]]
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z1.000 ( retract )
