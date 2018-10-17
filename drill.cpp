@@ -397,10 +397,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         if (slot) {
             double zhalfstep = cutter->zwork / stepcount / 2;
             double feedrate;
-            if (abs(cutter->feed / distance) < abs(cutter->vertfeed / zhalfstep)) {
-                feedrate = cutter->feed;
-            } else {
+            if (distance * 2 < 1.1 * cutdiameter * M_PI) {
+                // This is mostly a plunge.
                 feedrate = cutter->vertfeed;
+            } else {
+                // This is mostly a zig-zag.
+                feedrate = cutter->feed;
             }
             // Start one step above Z0 for optimal entry
             of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
@@ -484,10 +486,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           zdiff_hcircle2 = zstep_line;
         }
         double feedrate;
-        if (abs(cutter->feed / (distance + dist_hcircle)) < abs(cutter->vertfeed / zdiff_line1)) {
-            feedrate = cutter->feed;
-        } else {
+        if ((distance + dist_hcircle) * 2 < 1.1 * cutdiameter * M_PI) {
+            // This is mostly a plunge.
             feedrate = cutter->vertfeed;
+        } else {
+            // This is mostly an oval.
+            feedrate = cutter->feed;
         }
         // Start one step above Z0 for optimal entry
         of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
