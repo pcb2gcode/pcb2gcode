@@ -383,32 +383,48 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     // Find the largest z_step that divides 0 through z_work into
     // evenly sized passes such that each pass is at most
     // cutter->stepsize in depth.
-    unsigned int stepcount = 1;
+    int stepcount = 1;
     if (cutter->do_steps) {
-        stepcount = (unsigned int) ceil(abs(cutter->zwork / cutter->stepsize));
+        stepcount = (int) ceil(abs(cutter->zwork / cutter->stepsize));
     }
 
+    double delta_x = stop_x - start_x;
+    double delta_y = stop_y - start_y;
+    double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
     if (cutdiameter * 1.001 >= holediameter) { //In order to avoid a "zero radius arc" error
         // Hole is smaller than cutdiameter so just drill/zig-zag.
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
-        if (slot)
-        {
-            for (unsigned int current_step = 0; true;)
-            {
-                double z = double(current_step+1)/(stepcount) * cutter->zwork;
-                of << "G1 Z" << z * cfactor << '\n';
-                of << "G1 X" << stop_x * cfactor << " Y" << stop_y * cfactor << '\n';
-                current_step++;
+        if (slot) {
+            double zhalfstep = cutter->zwork / stepcount / 2;
+            double feedrate;
+            if (holediameter + distance < 1.3 * cutdiameter) {
+                // This is mostly a plunge.
+                feedrate = cutter->vertfeed;
+            } else {
+                // This is mostly a zig-zag.
+                feedrate = cutter->feed;
+            }
+            // Start one step above Z0 for optimal entry
+            of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
+              << " F" << feedrate * cfactor << '\n';
+            for (int current_step = -1; true; current_step++) {
+                // current_step == stepcount is for the bottom pass, so z needs to stay the same
+                double z = double(std::min(stepcount, current_step+1))/stepcount * cutter->zwork;
+                of << "G1 X" << stop_x * cfactor
+                   << " Y" << stop_y * cfactor;
+                if(stepcount != current_step) {
+                   // Drop superfluous Z from the bottom pass to indicate that this line is not there by accident
+                   of << " Z" << (z - zhalfstep) * cfactor;
+                }
+                of << '\n';
+                // We don't need a second "zag" on the bottom pass
                 if (current_step >= stepcount) {
                     break;
                 }
-                z = double(current_step+1)/(stepcount) * cutter->zwork;
-                of << "G1 Z" << z * cfactor << '\n';
-                of << "G1 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
-                current_step++;
-                if (current_step >= stepcount) {
-                    break;
-                }
+                of << "G1 X" << start_x * cfactor
+                   << " Y" << start_y * cfactor
+                   << " Z" << z * cfactor
+                   << '\n';
             }
         } else {
             of << "G1 Z" << cutter->zwork * cfactor << '\n';
@@ -422,9 +438,6 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double mill_x;
         double mill_y;
         if (slot) {
-          double delta_x = stop_x - start_x;
-          double delta_y = stop_y - start_y;
-          double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
           mill_x = delta_x*millr/distance;
           mill_y = delta_y*millr/distance;
         } else {
@@ -455,34 +468,80 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
 
+        // Distribute z step depth on half circles and straight lines for slots
+        double zdiff_hcircle1 = 0;
+        double zdiff_line1 = 0;
+        double zdiff_hcircle2 = 0;
+        // Distance traveled by one half circle
+        double dist_hcircle = M_PI * millr;
+        if (slot) {
+          // How much to step down per pass
+          double zstep = cutter->zwork / stepcount;
+          double zstep_hcircle = zstep * dist_hcircle / (dist_hcircle + distance) / 2;
+          double zstep_line    = zstep / 2 - zstep_hcircle;
+          // How much to substract from the final z depth of each pass
+          zdiff_hcircle1 = zstep - zstep_hcircle;
+          zdiff_line1    = zstep / 2;
+          zdiff_hcircle2 = zstep_line;
+        }
+        double feedrate;
+        if (holediameter + distance < 1.1 * cutdiameter) {
+            // This is mostly a plunge.
+            feedrate = cutter->vertfeed;
+        } else {
+            // This is mostly an oval.
+            feedrate = cutter->feed;
+        }
+        // Start one step above Z0 for optimal entry
+        of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
+           << " F" << feedrate * cfactor << '\n';
+
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
-        for (unsigned int current_step = 0; current_step < stepcount; current_step++) {
-          double z = double(current_step+1)/(stepcount) * cutter->zwork;
-          of << "G1 Z" << z * cfactor << '\n';
+        for (int current_step = -1; current_step <= stepcount; current_step++) {
+          // current_step == stepcount is for the bottom circle for helix, so z needs to stay the same
+          double z = double(std::min(stepcount, current_step+1))/stepcount * cutter->zwork;
           if (!slot) {
             // Just drill a full-circle.
-            of << arc_gcode << " "
+            of << arc_gcode
                << " X" << start_targetx * cfactor
-               << " Y" << start_targety * cfactor
-               << " I" << (start_x-start_targetx) * cfactor
+               << " Y" << start_targety * cfactor;
+            if(stepcount != current_step) {
+               // Drop superfluous Z from the bottom hole to indicate that this line is not there by accident
+               of << " Z" << z * cfactor;
+            }
+            of << " I" << (start_x-start_targetx) * cfactor
                << " J" << (start_y-start_targety) * cfactor << "\n";
           } else {
             // Draw the first half circle
             of << arc_gcode << " X" << start2_targetx * cfactor
-               << " Y" << start2_targety * cfactor
-               << " I" << (start_x-start_targetx) * cfactor
+               << " Y" << start2_targety * cfactor;
+            if(stepcount != current_step) {
+              of << " Z" << (z - zdiff_hcircle1) * cfactor;
+            }
+            of << " I" << (start_x-start_targetx) * cfactor
                << " J" << (start_y-start_targety) * cfactor << "\n";
             // Now across to the second half circle
             of << "G1 X" << stop_targetx * cfactor
-               << " Y" << stop_targety * cfactor << "\n";
+               << " Y" << stop_targety * cfactor;
+            if(stepcount != current_step) {
+              of << " Z" << (z - zdiff_line1) * cfactor;
+            }
+            of << "\n";
             // Draw the second half circle
             of << arc_gcode << " X" << stop2_targetx * cfactor
-               << " Y" << stop2_targety * cfactor
-               << " I" << (stop_x-stop_targetx) * cfactor
+               << " Y" << stop2_targety * cfactor;
+            if(stepcount != current_step) {
+              of << " Z" << (z - zdiff_hcircle2) * cfactor;
+            }
+            of << " I" << (stop_x-stop_targetx) * cfactor
                << " J" << (stop_y-stop_targety) * cfactor << "\n";
             // Now back to the start of the first half circle
             of << "G1 X" << start_targetx * cfactor
-               << " Y" << start_targety << "\n";
+               << " Y" << start_targety;
+            if(stepcount != current_step) {
+              of << " Z" << z * cfactor;
+            }
+            of << "\n";
           }
         }
 
