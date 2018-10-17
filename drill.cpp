@@ -397,7 +397,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         if (slot) {
             double zhalfstep = cutter->zwork / stepcount / 2;
             double feedrate;
-            if (holediameter + distance < 1.3 * cutdiameter) {
+            // Is there enough room for material evacuation?
+            if (distance < 0.3 * cutdiameter) {
                 // This is mostly a plunge.
                 feedrate = cutter->vertfeed;
             } else {
