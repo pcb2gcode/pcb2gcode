@@ -395,19 +395,16 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         // Hole is smaller than cutdiameter so just drill/zig-zag.
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
         if (slot) {
-            double zhalfstep = cutter->zwork / stepcount / 2;
-            double feedrate;
-            // Is there enough room for material evacuation?
-            if (distance < 0.3 * cutdiameter) {
-                // This is mostly a plunge.
-                feedrate = cutter->vertfeed;
-            } else {
-                // This is mostly a zig-zag.
-                feedrate = cutter->feed;
-            }
             // Start one step above Z0 for optimal entry
             of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
-              << " F" << feedrate * cfactor << '\n';
+              << " F" << cutter->vertfeed * cfactor << '\n';
+
+            // Is there enough room for material evacuation?
+            if (distance > 0.3 * cutdiameter) {
+                of  << "F" << cutter->feed * cfactor << '\n';
+            }
+
+            double zhalfstep = cutter->zwork / stepcount / 2;
             for (int current_step = -1; true; current_step++) {
                 // current_step == stepcount is for the bottom pass, so z needs to stay the same
                 double z = double(std::min(stepcount, current_step+1))/stepcount * cutter->zwork;
@@ -485,17 +482,15 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           zdiff_line1    = zstep / 2;
           zdiff_hcircle2 = zstep_line;
         }
-        double feedrate;
-        if (holediameter + distance < 1.1 * cutdiameter) {
-            // This is mostly a plunge.
-            feedrate = cutter->vertfeed;
-        } else {
-            // This is mostly an oval.
-            feedrate = cutter->feed;
-        }
+
         // Start one step above Z0 for optimal entry
         of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
-           << " F" << feedrate * cfactor << '\n';
+           << " F" << cutter->vertfeed * cfactor << '\n';
+
+        // Is hole is big enough for horizontal speed?
+        if (holediameter + distance > 1.1 * cutdiameter) {
+            of  << "F" << cutter->feed * cfactor << '\n';
+        }
 
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
         for (int current_step = -1; current_step <= stepcount; current_step++) {
