@@ -485,7 +485,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           zdiff_hcircle2 = zstep_line;
         }
         double feedrate;
-        if (holediameter < 1.1 * cutdiameter) {
+        if (holediameter + distance < 1.1 * cutdiameter) {
             // This is mostly a plunge.
             feedrate = cutter->vertfeed;
         } else {
