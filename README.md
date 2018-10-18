@@ -77,7 +77,7 @@ Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can in
 #### Debian Testing or newer, Ubuntu Wily or newer<a name="debianlike"></a>
 
     $ sudo apt-get update
-    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git
+    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git librsvg2-dev
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode
 
