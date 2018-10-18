@@ -425,7 +425,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                    << '\n';
             }
         } else {
-            of << "G1 Z" << cutter->zwork * cfactor << '\n';
+            of << "G1 Z" << cutter->zwork * cfactor
+               << " F" << cutter->vertfeed * cfactor << '\n';
         }
         of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
 
