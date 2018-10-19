@@ -564,7 +564,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "\nM9      (Coolant off.)\n"
                          "M2      (Program end.)\n\n");
 
-    map<int, drillbit> bits = optimize_bits(false);
+    map<int, drillbit> bits = parsed_bits;
     const map<int, ilinesegments> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
 
     // open output file
@@ -591,9 +591,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
     of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
        << (bMetricOutput ? "mm" : "inch") << " to drill the " << holes.size()
-       << " bit sizes. )" << "\n";
+       << " hole sizes. )" << "\n";
 
-    of << "( Bit sizes:";
+    of << "( Hole sizes:";
     for (const auto& hole : holes) {
         const auto& bit = bits.at(hole.first);
         of << " [" << drill_to_string(bit) << "]";
