@@ -17,6 +17,11 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+ #include <iostream>
+ using std::cerr;
+ using std::cout;
+ using std::endl;
+
 #include "voronoi.hpp"
 #include "voronoi_visual_utils.hpp"
 #include <list>
@@ -31,6 +36,7 @@ multi_polygon_type_fp Voronoi::build_voronoi(
     if (input.empty()) {
         return multi_polygon_type_fp();
     }
+
     // Bounding_box is a box that is big enough to hold all milling.
     box_type_fp bounding_box = bg::return_envelope<box_type_fp>(input);
     // Expand that bounding box by the provided bounding_box.
@@ -54,6 +60,7 @@ multi_polygon_type_fp Voronoi::build_voronoi(
         }
         segments_to_poly.push_back(segments.size());
     }
+
     // Add the bounding box but without putting it in segments_to_poly
     // so that we won't put voronoi cells from it into the output.
     ring_type bounding_box_ring;
@@ -87,15 +94,21 @@ multi_polygon_type_fp Voronoi::build_voronoi(
         if ((edge.color() & VISITED) == VISITED) {
             continue;  // Used already.
         }
+
         const edge_type* current_edge = &edge;
         const edge_type* const start_edge = current_edge;
         ring_type_fp ring;
         do {
             linestring_type_fp discrete_edge = edge_to_linestring(*current_edge, segments, bounding_box, max_dist);
             // Don't push the last one because we'll put it at the end.
-            ring.insert(ring.end(), discrete_edge.cbegin(), discrete_edge.cend()-1);
+            for(std::size_t i=0; i<discrete_edge.size()-1; ++i)
+            {
+              bg::append(ring, discrete_edge.at(i));
+            }
+
             current_edge->color(current_edge->color() | 1);  // Mark used
             current_edge = current_edge->next();
+
             // Check that we are still circling the same polygon for
             // our ring, and that we are on edge that is between
             // different traces, and that it's a primary edge.
@@ -106,16 +119,21 @@ multi_polygon_type_fp Voronoi::build_voronoi(
                 current_edge = current_edge->rot_next();
             }
         } while (current_edge != start_edge);
-        ring.push_back(ring.front());  // Close the ring.
-        size_t poly_index = std::distance(segments_to_poly.cbegin(), std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()));
-        if (bg::area(ring) > 0) {
-            // This is the outer ring of the poly.
-            output[poly_index].outer().swap(ring);
-        } else {
-            // This has negative area, it must be a hole in the outer.
-            output[poly_index].inners().push_back(ring);
+
+        if(!ring.empty())
+        {
+          ring.push_back(ring.front());  // Close the ring.
+          size_t poly_index = std::distance(segments_to_poly.cbegin(), std::upper_bound(segments_to_poly.cbegin(), segments_to_poly.cend(), edge.twin()->cell()->source_index()));
+          if (bg::area(ring) > 0) {
+              // This is the outer ring of the poly.
+              output[poly_index].outer().swap(ring);
+          } else {
+              // This has negative area, it must be a hole in the outer.
+              output[poly_index].inners().push_back(ring);
+          }
         }
     }
+
     return output;
 }
 
