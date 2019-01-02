@@ -256,12 +256,12 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   vector<multi_polygon_type_fp> polygons;
 
   // Mask the polygon that we need to mill.
-  polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : input;  // Milling voronoi or trace?
+  polygon_type_fp milling_poly = do_voronoi ? voronoi_polygon : input;  // Milling voronoi or trace?
   multi_polygon_type_fp masked_milling_polys;
   if (mask) {
-    bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
+    bg::intersection(milling_poly, *(mask->vectorial_surface), masked_milling_polys);
   } else {
-    bg::intersection(masked_milling_poly, bounding_box, masked_milling_polys);
+    bg::intersection(milling_poly, bounding_box, masked_milling_polys);
   }
 
   // Convert the input shape into a bunch of rings that need to be milled.
@@ -280,9 +280,10 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       expand_by = offset * factor;
     }
 
+    multi_polygon_type_fp expanded_milling_poly;
     if (expand_by == 0) {
       // We simply need to mill every ring in the shape.
-      polygons.push_back(masked_milling_polys);
+      expanded_milling_poly = masked_milling_polys;
     } else {
       multi_polygon_type_fp mpoly_temp;
       // Buffer should be done on floating point polygons.
@@ -290,15 +291,21 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
 
       multi_polygon_type_fp mpoly;
       if (!do_voronoi) {
-        bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
+        bg::intersection(mpoly_temp, voronoi_polygon, expanded_milling_poly);
       } else {
-        bg::union_(mpoly_temp, input, mpoly);
+        bg::union_(mpoly_temp, input, expanded_milling_poly);
       }
-      polygons.push_back(mpoly);
       if (!bg::equals(mpoly_temp, mpoly)) {
         contentions = true;
       }
     }
+    multi_polygon_type_fp masked_expanded_milling_polys;
+    if (mask) {
+      bg::intersection(expanded_milling_poly, *(mask->vectorial_surface), masked_expanded_milling_polys);
+    } else {
+      bg::intersection(expanded_milling_poly, bounding_box, masked_expanded_milling_polys);
+    }
+    polygons.push_back(masked_expanded_milling_polys);
   }
 
   return polygons;
