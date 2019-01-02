@@ -303,7 +303,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     if (mask) {
       bg::intersection(expanded_milling_poly, *(mask->vectorial_surface), masked_expanded_milling_polys);
     } else {
-      bg::intersection(expanded_milling_poly, bounding_box, masked_expanded_milling_polys);
+      masked_expanded_milling_polys = expanded_milling_poly;
     }
     polygons.push_back(masked_expanded_milling_polys);
   }
