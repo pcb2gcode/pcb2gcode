@@ -65,13 +65,14 @@ typedef voronoi_diagram_type::const_edge_iterator const_edge_iterator;
 class Voronoi
 {
 public:
-    /* The returned polygon are voronoi regaions around the input
-     * polygons that follow the voronoi diagram.  The loops might
-     * extend outside the bounding_box provided.  The loops don't
-     * overlap and will together cover at least the entire
-     * bounding_box.  The order and number of outputs is the same as
-     * the order and number of inputs but the number of inner rings on
-     * each output might not match those of the corresponding input.
+    /* The returned polygon are voronoi regaions around the input polygons that
+     * follow the voronoi diagram.  The loops might extend outside the
+     * bounding_box provided.  The loops don't overlap and will together cover
+     * at least the entire bounding_box.  The order and number of outputs is the
+     * same as the order and number of inputs but the number of inner rings on
+     * each output might not match those of the corresponding input.  max_dist
+     * is the maximum error for interpolating parabolic curves into discrete
+     * linestrings.  Smaller means more accurate and more points.
      */
     static multi_polygon_type_fp build_voronoi(
         const multi_polygon_type& input,
