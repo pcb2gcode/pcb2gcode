@@ -58,6 +58,19 @@ G01 X4.57223 Y-3.46674
 G01 X4.56936 Y-3.46077
 G01 X4.56803 Y-3.45553
 G01 X4.56752 Y-3.45000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X4.63248 Y-3.41752 ( rapid move to begin. )
+G01 Z-0.00512 F50.00000 ( plunge. )
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F100.00000
+G01 X4.63248 Y-3.41752
+G01 X4.63248 Y-2.33248
+G01 X6.48655 Y-2.33248
+G01 X6.61752 Y-2.46345
+G01 X6.61752 Y-3.41752
+G01 X4.63248 Y-3.41752
 
 o1 endsub
 
