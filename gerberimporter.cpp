@@ -705,7 +705,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
       }
     }
   }
-  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const multi_linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
+  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
   if (fill_closed_lines && euler_paths.size() > 0) {
     cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
          << endl;
