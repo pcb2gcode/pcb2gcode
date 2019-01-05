@@ -246,7 +246,7 @@ if __name__ == '__main__':
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(concurrent_suite)
     else:
-      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
+      test_result = unittest2.TextTestRunner(verbosity=2).run(concurrent_suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +
