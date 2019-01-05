@@ -693,14 +693,12 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
           paths);
   multi_polygon_type_fp ovals;
   if (fill_closed_lines) {
-    for (auto euler_path : euler_paths) {
+    for (auto& euler_path : euler_paths) {
       if (bg::equals(euler_path.front(), euler_path.back())) {
         // This is a loop.
         polygon_type_fp loop_poly;
         loop_poly.outer().swap(euler_path);
-        bg::clear(euler_path);
         bg::correct(loop_poly);
-        std::cout << bg::wkt(loop_poly);
         multi_polygon_type_fp loop_mpoly;
         loop_mpoly.push_back(loop_poly);
         ovals = ovals ^ loop_mpoly;
@@ -708,18 +706,21 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
     }
   }
   euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const auto& l) { return l.size() == 0; }), euler_paths.end());
-  if (euler_paths.size() > 0) {
+  if (fill_closed_lines && euler_paths.size() > 0) {
     cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
-         << endl;;
+         << endl;
   }
-
-  // This converts the long paths into a shape with thickness equal to the specified diameter.
-  bg::buffer(euler_paths, ovals,
-             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
-             bg::strategy::buffer::side_straight(),
-             bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
-             bg::strategy::buffer::point_circle(points_per_circle));
+  if (euler_paths.size() > 0) {
+    // This converts the long paths into a shape with thickness equal to the specified diameter.
+    multi_polygon_type_fp new_ovals;
+    bg::buffer(euler_paths, new_ovals,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    ovals = ovals + new_ovals;
+  }
   return ovals;
 }
 
