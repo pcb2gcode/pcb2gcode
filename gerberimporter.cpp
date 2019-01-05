@@ -705,7 +705,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
       }
     }
   }
-  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const auto& l) { return l.size() == 0; }), euler_paths.end());
+  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const multi_linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
   if (fill_closed_lines && euler_paths.size() > 0) {
     cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
          << endl;
@@ -780,7 +780,6 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             segment.push_back(start);
             segment.push_back(stop);
             linear_circular_paths[diameter].push_back(segment);
-            draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
                                                      parameters[1]);
