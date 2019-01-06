@@ -35,7 +35,6 @@ using std::forward_list;
 #include <boost/format.hpp>
 
 #include "gerberimporter.hpp"
-#include "bg_helpers.hpp"
 #include "eulerian_paths.hpp"
 
 namespace bg = boost::geometry;
@@ -675,7 +674,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
              bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
+             bg::strategy::buffer::end_round(points_per_circle),
              bg::strategy::buffer::point_circle(points_per_circle));
   return ovals;
 }
