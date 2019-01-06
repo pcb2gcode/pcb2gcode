@@ -35,7 +35,6 @@ using std::forward_list;
 #include <boost/format.hpp>
 
 #include "gerberimporter.hpp"
-#include "bg_helpers.hpp"
 #include "eulerian_paths.hpp"
 
 namespace bg = boost::geometry;
