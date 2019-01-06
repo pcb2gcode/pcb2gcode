@@ -29,6 +29,8 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "am-test-extended",
                   "am-test-voronoi",
                   "am-test-voronoi-front",
+                  "edge-cuts-inside-cuts",
+                  "edge-cuts-broken-loop",
                   "example_board_al_custom",
                   "example_board_al_linuxcnc",
                   "KNoT-Gateway Mini Starter Board",

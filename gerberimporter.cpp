@@ -139,6 +139,20 @@ static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model
   return ret;
 }
 
+template <typename polygon_type_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  if (bg::area(lhs) <= 0) {
+    return rhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::sym_difference(lhs, rhs, ret);
+  return ret;
+}
+
 // Same as above but potentially puts a hole in the center.
 multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
                                            coordinate_type_fp offset, coordinate_type_fp hole_diameter,
@@ -332,7 +346,7 @@ inline static void unsupported_polarity_throw_exception() {
 }
 
 multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>>& layers,
-                                      bool fill_rings, unsigned int points_per_circle) {
+                                      unsigned int points_per_circle) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
@@ -664,19 +678,49 @@ struct PointLessThan {
 };
 
 
-multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, unsigned int points_per_circle) {
+/* Convert paths that all need to be drawn with the same diameter into shapes.
+ *
+ * If fill_closed_lines is true, we'll try to find closed loops among the paths
+ * and treat those loops as a polygons with a filled surface.  We'll ignore the
+ * direction of the paths.  Where loops overlap, we'll xor with the other loops.
+ * If there are non-loops when fill_closed_lines is true, we'll report an
+ * error.
+ */
+multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines, unsigned int points_per_circle) {
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths =
       eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
           paths);
   multi_polygon_type_fp ovals;
-  // This converts the long paths into a shape with thickness equal to the specified diameter.
-  bg::buffer(euler_paths, ovals,
-             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
-             bg::strategy::buffer::side_straight(),
-             bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
-             bg::strategy::buffer::point_circle(points_per_circle));
+  if (fill_closed_lines) {
+    for (auto& euler_path : euler_paths) {
+      if (bg::equals(euler_path.front(), euler_path.back())) {
+        // This is a loop.
+        polygon_type_fp loop_poly;
+        loop_poly.outer().swap(euler_path);
+        bg::correct(loop_poly);
+        multi_polygon_type_fp loop_mpoly;
+        loop_mpoly.push_back(loop_poly);
+        ovals = ovals ^ loop_mpoly;
+      }
+    }
+  }
+  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
+  if (fill_closed_lines && euler_paths.size() > 0) {
+    cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
+         << endl;
+  }
+  if (euler_paths.size() > 0) {
+    // This converts the long paths into a shape with thickness equal to the specified diameter.
+    multi_polygon_type_fp new_ovals;
+    bg::buffer(euler_paths, new_ovals,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    ovals = ovals + new_ovals;
+  }
   return ovals;
 }
 
@@ -711,7 +755,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
       // About to start a new layer, render all the linear_circular_paths so far.
       for (const auto& diameter_and_path : linear_circular_paths) {
-        layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+        layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle);
       }
       linear_circular_paths.clear();
       layers.resize(layers.size() + 1);
@@ -736,7 +780,6 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             segment.push_back(start);
             segment.push_back(stop);
             linear_circular_paths[diameter].push_back(segment);
-            draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
                                                      parameters[1]);
@@ -832,15 +875,10 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   }
   // If there are any unrendered circular paths, add them to the last layer.
   for (const auto& diameter_and_path : linear_circular_paths) {
-    layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+    layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle);
   }
   linear_circular_paths.clear();
-  auto result = generate_layers(layers, fill_closed_lines, points_per_circle);
-  if (fill_closed_lines) {
-    for (auto& p : result) {
-      p.inners().clear();
-    }
-  }
+  auto result = generate_layers(layers, points_per_circle);
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
