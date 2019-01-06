@@ -736,7 +736,6 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             segment.push_back(start);
             segment.push_back(stop);
             linear_circular_paths[diameter].push_back(segment);
-            draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
                                                      parameters[1]);
