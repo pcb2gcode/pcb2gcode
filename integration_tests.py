@@ -15,6 +15,8 @@ import collections
 import termcolor
 import colour_runner.runner
 
+from concurrencytest import ConcurrentTestSuite, fork_for_tests
+
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
 # Sanitize a string to be a python identifier
@@ -243,10 +245,11 @@ if __name__ == '__main__':
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
+    concurrent_suite = ConcurrentTestSuite(suite, fork_for_tests(3))
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
-      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
+      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(concurrent_suite)
     else:
-      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
+      test_result = unittest2.TextTestRunner(verbosity=2).run(concurrent_suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +
