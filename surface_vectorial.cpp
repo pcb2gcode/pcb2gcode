@@ -142,10 +142,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
 
     box_type_fp svg_bounding_box;
 
-    if (grow > 0)
-        bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
-    else
-        bg::convert(bounding_box, svg_bounding_box);
+    bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
