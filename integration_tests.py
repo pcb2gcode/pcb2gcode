@@ -118,6 +118,7 @@ class IntegrationTests(unittest2.TestCase):
 
       Only rotate is the first and last element match.
       """
+      self.assertEqual(path[0], path[-1])
       index_of_smallest = min(enumerate(path),
                               key=lambda x: (float(x[1][0]), float(x[1][1]), x[0]))[0]
       rotated_points = path[index_of_smallest:-1] + path[:index_of_smallest+1]
