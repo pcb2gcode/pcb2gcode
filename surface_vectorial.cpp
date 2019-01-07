@@ -301,9 +301,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
     multi_polygon_type_fp masked_expanded_milling_polys;
     if (mask) {
+      // Don't mill outside the mask because that's a waste.
       multi_polygon_type_fp first_masked;
       bg::intersection(mpoly, *(mask->vectorial_surface), first_masked);
-      bg::union_(first_masked, path_minimum, masked_expanded_milling_polys);
+      // But don't mill into the trace itself.
+      multi_polygon_type_fp second_masked;
+      bg::union_(first_masked, path_minimum, second_masked);
+      // And don't mill into other traces.
+      bg::intersection(second_masked, voronoi_polygon, masked_expanded_milling_polys);
     } else {
       masked_expanded_milling_polys = mpoly;
     }
