@@ -88,7 +88,7 @@ install:
     fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      pip install --user cpp-coveralls colour_runner unittest2 termcolor concurrencytest;
+      pip install --user cpp-coveralls colour_runner unittest2 termcolor concurrencytest in_place;
     fi
   - >
     for i in {1..5}; do
