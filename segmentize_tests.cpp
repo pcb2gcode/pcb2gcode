@@ -15,7 +15,7 @@ struct PointLessThan {
 
 void print_result(const vector<segment_type_p>& result) {
   for (const auto& s : result) {
-    printf("%ld %ld %ld %ld\n", s.low().x(), s.low().y(), s.high().x(), s.high().y());
+    printf("%lld %lld %lld %lld\n", s.low().x(), s.low().y(), s.high().x(), s.high().y());
   }
 }
 
