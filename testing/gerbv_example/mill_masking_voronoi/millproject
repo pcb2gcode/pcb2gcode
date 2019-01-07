@@ -1,10 +1,10 @@
 front=mill_masking-F.Cu.gbr
 outline=mill_masking-Edge.Cuts.gbr
 
-offset=0.3mm
+offset=0.5mm
 mill-feed=360 in/min
 mill-speed=200rotations/second
-voronoi=false
+voronoi=true
 zwork=-0.04inch
 drill-feed=30
 drill-side=auto
@@ -17,7 +17,7 @@ cut-infeed=0.19mm
 cut-side=auto
 cut-speed=10000
 cutter-diameter=0
-extra-passes=3
+extra-passes=4
 milldrill-diameter=0.8mm
 zbridges=-0.6000
 zcut=-0.13mm

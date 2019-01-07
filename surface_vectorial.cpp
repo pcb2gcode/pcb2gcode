@@ -255,6 +255,10 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // Mask the polygon that we need to mill.
   polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : input;  // Milling voronoi or trace?
   multi_polygon_type_fp masked_milling_polys;
+  // This is the area that the milling must not cross so that it doesn't dig
+  // into the trace.
+  multi_polygon_type_fp path_minimum;
+  bg_helpers::buffer(input, path_minimum, offset);
   if (mask) {
     bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
   } else {
@@ -289,7 +293,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       if (!do_voronoi) {
         bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
       } else {
-        bg::union_(mpoly_temp, input, mpoly);
+        bg::union_(mpoly_temp, path_minimum, mpoly);
       }
       polygons.push_back(mpoly);
       if (!bg::equals(mpoly_temp, mpoly)) {
