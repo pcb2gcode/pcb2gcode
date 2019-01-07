@@ -15,6 +15,7 @@ import collections
 import termcolor
 import colour_runner.runner
 import in_place
+import xml.etree.ElementTree
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -92,8 +93,53 @@ def colored(text, **color):
     return text
 
 class IntegrationTests(unittest2.TestCase):
+  def rotate_pathstring(self, pathstring):
+    """Parse a string representing an SVG path.
+
+    Parse it into an array of array of points.  Each array is a series of line
+    segments.  They are drawn in order and the evenodd rule determines which is
+    the hole and which is the solid part.
+
+    It's intentionally not very flexible in what it supports, in case we
+    accidentally parse something that we've never seen before and do it
+    incorrectly.
+    """
+    def string_to_paths(pathstring):
+      """Returns an array of paths where each path starts with an absolute move
+      (M) and the rest are absolute lineTo (L) until the next moveTo (M).
+      """
+      pathstring = pathstring[2:-3] # Remove the first M and the final z
+      paths = [[tuple(point.split(",")) for point in p.strip().split(" L ")] for p in pathstring.split("M ")]
+      # Now paths is a list.  Each element is an array of points.  Each point is a pair of strings, x,y.
+      return paths
+
+    def rotate_path(path):
+      """Rotate the path so that the least element is first.
+
+      Only rotate is the first and last element match.
+      """
+      index_of_smallest = min(enumerate(path),
+                              key=lambda x: (float(x[1][0]), float(x[1][1]), x[0]))[0]
+      rotated_points = path[index_of_smallest:-1] + path[:index_of_smallest+1]
+      return rotated_points
+
+    def paths_to_string(paths):
+      """Return the path string that represents these paths."""
+      return "M " + "M ".join(" L ".join(','.join(point) for point in path) for path in paths) + " z "
+    self.assertEqual(pathstring, paths_to_string(string_to_paths(pathstring)))
+    return paths_to_string(rotate_path(p) for p in string_to_paths(pathstring))
+
   def fix_up_expected(self, path):
-    """Fix up any files made in the output directory"""
+    """Fix up any files made in the output directory
+
+    This will enlarge all SVG by a factor of 10 in each direction until they are
+    at least 1000 in each dimension.  This makes them easier to view on github.
+
+    Also adjust the order of all SVG paths that start and end at the same place
+    to start on the smallest element.  This will make github diffs smaller in
+    some cases where a no-effect union or intersection of polygons chnaged the
+    order of points.
+    """
     def bigger(matchobj):
       width = float(matchobj.group('width'))
       height = float(matchobj.group('height'))
@@ -112,6 +158,10 @@ class IntegrationTests(unittest2.TestCase):
                       re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
                              bigger,
                              line))
+            elif line.startswith('<g fill-rule="evenodd"><path d="M '):
+              etree = xml.etree.ElementTree.fromstring(line)
+              pathstring = etree[0].attrib['d']
+              f.write(line.replace(pathstring, self.rotate_pathstring(pathstring)))
             else:
               f.write(line)
 
