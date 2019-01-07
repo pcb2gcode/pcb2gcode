@@ -93,6 +93,13 @@ def colored(text, **color):
 class IntegrationTests(unittest2.TestCase):
   def fix_up_expected(self, path):
     """Fix up any files made in the output directory"""
+    def bigger(matchobj):
+      width = float(matchobj.group('width'))
+      height = float(matchobj.group('height'))
+      while width < 1000 or height < 1000:
+        width *= 10
+        height *= 10
+      return 'width="' + str(width) + '" height="' + str(height) + '" '
     for root, subdirs, files in os.walk(path):
       for current_file in files:
         with in_place.InPlace(os.path.join(root, current_file)) as f:
@@ -101,7 +108,9 @@ class IntegrationTests(unittest2.TestCase):
               f.write("<!-- original:\n" +
                       line +
                       "-->\n" +
-                      re.sub('width="[^"]*" height="[^"]*" ', "", line))
+                      re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
+                             bigger,
+                             line))
             else:
               f.write(line)
 
