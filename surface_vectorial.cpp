@@ -177,7 +177,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
             dir = invert(dir);
           }
           attach_polygons(*polygon, toolpath, grow*2, dir);
-          debug_image.add(*polygon, 0.6, r, g, b);
+          debug_image.add(*polygon, 0, r, g, b);
           traced_debug_image.add(*polygon, 1, r, g, b);
         }
     }
@@ -551,28 +551,23 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
 
 void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, int r, int g, int b)
 {
-    if (r < 0 || g < 0 || b < 0)
-    {
-        r = rand() % 256;
-        g = rand() % 256;
-        b = rand() % 256;
+  for (unsigned int i = geometries.size(); i != 0; i--) {
+    multi_polygon_type_fp mpoly;
+
+    bg::intersection(geometries[i - 1], bounding_box, mpoly);
+
+    if (opacity > 0) {
+      mapper->map(mpoly,
+                  str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
+                      opacity % r % g % b));
+    } else {
+      // Just strokes.
+      mapper->map(mpoly,
+                  str(boost::format("fill-opacity:%f;stroke:rgb(%u,%u,%u);stroke-width:4") %
+                      opacity % r % g % b));
+      mapper->map(mpoly,
+                  str(boost::format("fill-opacity:%f;stroke:rgb(0,0,0);stroke-width:2") %
+                      opacity));
     }
-
-    for (unsigned int i = geometries.size(); i != 0; i--)
-    {
-        multi_polygon_type_fp mpoly;
-
-        bg::intersection(geometries[i - 1], bounding_box, mpoly);
-
-        if (i == geometries.size())
-        {
-            mapper->map(mpoly,
-                str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
-                opacity % r % g % b));
-        }
-        else
-        {
-            mapper->map(mpoly, "fill:none;stroke:rgb(0,0,0);stroke-width:1");
-        }
-    }
+  }
 }

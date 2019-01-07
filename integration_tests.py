@@ -14,6 +14,7 @@ import re
 import collections
 import termcolor
 import colour_runner.runner
+import in_place
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -92,6 +93,29 @@ def colored(text, **color):
     return text
 
 class IntegrationTests(unittest2.TestCase):
+  def fix_up_expected(self, path):
+    """Fix up any files made in the output directory"""
+    def bigger(matchobj):
+      width = float(matchobj.group('width'))
+      height = float(matchobj.group('height'))
+      while width < 1000 or height < 1000:
+        width *= 10
+        height *= 10
+      return 'width="' + str(width) + '" height="' + str(height) + '" '
+    for root, subdirs, files in os.walk(path):
+      for current_file in files:
+        with in_place.InPlace(os.path.join(root, current_file)) as f:
+          for line in f:
+            if line.startswith("<svg"):
+              f.write("<!-- original:\n" +
+                      line +
+                      "-->\n" +
+                      re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
+                             bigger,
+                             line))
+            else:
+              f.write(line)
+
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
@@ -110,6 +134,7 @@ class IntegrationTests(unittest2.TestCase):
       p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = p.communicate()
       self.assertEqual(p.returncode, exit_code)
+      self.fix_up_expected(actual_output_path)
     finally:
       print(result[0], file=sys.stderr)
       os.chdir(cwd)
