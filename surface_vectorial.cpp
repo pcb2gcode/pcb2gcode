@@ -281,25 +281,33 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       expand_by = offset * factor;
     }
 
+    multi_polygon_type_fp mpoly;
     if (expand_by == 0) {
       // We simply need to mill every ring in the shape.
-      polygons.push_back(masked_milling_polys);
+      mpoly = masked_milling_polys;
     } else {
       multi_polygon_type_fp mpoly_temp;
       // Buffer should be done on floating point polygons.
       bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
 
-      multi_polygon_type_fp mpoly;
       if (!do_voronoi) {
         bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
       } else {
         bg::union_(mpoly_temp, path_minimum, mpoly);
       }
-      polygons.push_back(mpoly);
       if (!bg::equals(mpoly_temp, mpoly)) {
         contentions = true;
       }
     }
+    multi_polygon_type_fp masked_expanded_milling_polys;
+    if (mask) {
+      multi_polygon_type_fp first_masked;
+      bg::intersection(mpoly, *(mask->vectorial_surface), first_masked);
+      bg::union_(first_masked, path_minimum, masked_expanded_milling_polys);
+    } else {
+      masked_expanded_milling_polys = mpoly;
+    }
+    polygons.push_back(masked_expanded_milling_polys);
   }
 
   return polygons;
