@@ -233,10 +233,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 
     if (mask)
     {
-        auto masked_surface = make_shared<multi_polygon_type_fp>();
-
-        bg::intersection(*vectorial_surface, *(mask->vectorial_surface), *masked_surface);
-        vectorial_surface = masked_surface;
+        *vectorial_surface = *vectorial_surface & *(mask->vectorial_surface);
 
         bg::envelope(*(mask->vectorial_surface), bounding_box);
     }
@@ -260,9 +257,9 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   multi_polygon_type_fp path_minimum;
   bg_helpers::buffer(input, path_minimum, offset);
   if (mask) {
-    bg::intersection(masked_milling_poly, *(mask->vectorial_surface), masked_milling_polys);
+    masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
   } else {
-    bg::intersection(masked_milling_poly, bounding_box, masked_milling_polys);
+    masked_milling_polys = masked_milling_poly & bounding_box;
   }
 
   // Convert the input shape into a bunch of rings that need to be milled.
@@ -291,9 +288,9 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
 
       if (!do_voronoi) {
-        bg::intersection(mpoly_temp, voronoi_polygon, mpoly);
+        mpoly = mpoly_temp & voronoi_polygon;
       } else {
-        bg::union_(mpoly_temp, path_minimum, mpoly);
+        mpoly = mpoly_temp + path_minimum;
       }
       if (!bg::equals(mpoly_temp, mpoly)) {
         contentions = true;
@@ -302,13 +299,9 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     multi_polygon_type_fp masked_expanded_milling_polys;
     if (mask) {
       // Don't mill outside the mask because that's a waste.
-      multi_polygon_type_fp first_masked;
-      bg::intersection(mpoly, *(mask->vectorial_surface), first_masked);
       // But don't mill into the trace itself.
-      multi_polygon_type_fp second_masked;
-      bg::union_(first_masked, path_minimum, second_masked);
       // And don't mill into other traces.
-      bg::intersection(second_masked, voronoi_polygon, masked_expanded_milling_polys);
+      masked_expanded_milling_polys = ((mpoly & *(mask->vectorial_surface)) + path_minimum) & voronoi_polygon;
     } else {
       masked_expanded_milling_polys = mpoly;
     }
@@ -542,13 +535,11 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        multi_polygon_type_t mpoly;
 
         multi_polygon_type_t new_bounding_box;
         bg::convert(bounding_box, new_bounding_box);
-        bg::intersection(poly, new_bounding_box, mpoly);
 
-        mapper->map(mpoly,
+        mapper->map(poly & new_bounding_box,
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
     }
@@ -557,9 +548,7 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
 void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, int r, int g, int b)
 {
   for (unsigned int i = geometries.size(); i != 0; i--) {
-    multi_polygon_type_fp mpoly;
-
-    bg::intersection(geometries[i - 1], bounding_box, mpoly);
+    multi_polygon_type_fp mpoly = geometries[i - 1] & bounding_box;
 
     if (opacity > 0) {
       mapper->map(mpoly,

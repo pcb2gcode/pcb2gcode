@@ -36,6 +36,7 @@ using std::forward_list;
 
 #include "gerberimporter.hpp"
 #include "eulerian_paths.hpp"
+#include "bg_helpers.hpp"
 
 namespace bg = boost::geometry;
 
@@ -113,42 +114,6 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
   ring.push_back(ring.front()); // Don't forget to close the ring.
   multi_polygon_type_fp ret;
   bg::convert(ring, ret);
-  return ret;
-}
-
-template <typename polygon_type_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::difference(lhs, rhs, ret);
-  return ret;
-}
-
-template <typename polygon_type_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::union_(lhs, rhs, ret);
-  return ret;
-}
-
-template <typename polygon_type_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  if (bg::area(lhs) <= 0) {
-    return rhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::sym_difference(lhs, rhs, ret);
   return ret;
 }
 
@@ -457,11 +422,9 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
       continue; // No area so ignore it.
     }
     if (this_area * area > 0) {
-      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
-      bg::union_(ret, correct_r, temp_ret);
-      ret = temp_ret;
+      ret = ret + correct_r;
     }
   }
   for (auto r : all_rings) {
@@ -470,11 +433,9 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
       continue; // No area so ignore it.
     }
     if (this_area * area < 0) {
-      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
-      bg::difference(ret, correct_r, temp_ret);
-      ret = temp_ret;
+      ret = ret - correct_r;
     }
   }
   return ret;
@@ -489,7 +450,6 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
     if (aperture) {
       const double * const parameters = aperture->parameter;
       multi_polygon_type_fp input;
-      multi_polygon_type_fp output;
 
       switch (aperture->type) {
         case GERBV_APTYPE_NONE:
@@ -627,11 +587,10 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
               bg::transform(mpoly, mpoly_rotated, rotate_deg(-rotation));
 
               if (polarity == 0) {
-                bg::difference(input, mpoly_rotated, output);
+                input = input - mpoly_rotated;
               } else {
-                bg::union_(input, mpoly_rotated, output);
+                input = input + mpoly_rotated;
               }
-              input = output;
               simplified_amacro = simplified_amacro->next;
             }
           } else {

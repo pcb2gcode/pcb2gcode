@@ -1,8 +1,71 @@
 #ifndef BG_HELPERS_H
 #define BG_HELPERS_H
 
-namespace bg_helpers {
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
 
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::union_(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  if (bg::area(lhs) <= 0) {
+    return rhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::sym_difference(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator&(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  bg::model::multi_polygon<polygon_type_t> ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::area(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename point_type_t, typename rhs_t>
+static inline multi_polygon_type_fp operator&(const bg::model::polygon<point_type_t>& lhs,
+                                              const rhs_t& rhs) {
+  multi_polygon_type_fp ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::area(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+namespace bg_helpers {
 
 // The below implementations of buffer are similar to bg::buffer but
 // always convert to floating-point before doing work, if needed, and
