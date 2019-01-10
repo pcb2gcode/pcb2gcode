@@ -49,7 +49,7 @@ struct comparison_exception : public std::exception {
 // words, etc from it.
 class Lexer {
  public:
-  Lexer(const std::string& s) : input(s), pos(0) {}
+  Lexer(const std::string& s) : pos(0), input(s) {}
   std::string get_whitespace() {
     return get_string<int>(std::isspace);
   }
@@ -77,6 +77,7 @@ class Lexer {
   bool at_end() {
     return pos == input.size();
   }
+  size_t pos;
  private:
   // Gets all characters from current position until the first that
   // doesn't pass test_fn or end of input.
@@ -98,7 +99,6 @@ class Lexer {
     return 0;
   }
   std::string input;
-  size_t pos;
 };
 
 template <typename dimension_t>
@@ -160,12 +160,36 @@ const boost::units::quantity<boost::units::si::length> inch(1*boost::units::impe
 const boost::units::quantity<boost::units::si::length> thou(1*boost::units::imperial::thou_base_unit::unit_type());
 const boost::units::quantity<boost::units::si::time> minute(1*boost::units::metric::minute_base_unit::unit_type());
 
+struct revolution_base_dimension :
+    boost::units::base_dimension<revolution_base_dimension, 1> {};
+typedef revolution_base_dimension::dimension_type revolution_type;
+
+struct revolution_base_unit :
+    boost::units::base_unit<revolution_base_unit, revolution_type, 1> {
+  static std::string name() {return "revolution";}
+  static std::string symbol() {return "rev";}
+};
+typedef revolution_base_unit::unit_type revolution_unit;
+const boost::units::quantity<revolution_unit> revolution(1*revolution_base_unit::unit_type());
+
+struct rpm_base_dimension :
+    boost::units::base_dimension<rpm_base_dimension, 2> {};
+typedef rpm_base_dimension::dimension_type rpm_type;
+
+struct rpm_base_unit :
+    boost::units::base_unit<rpm_base_unit, rpm_type, 2> {
+  static std::string name() {return "rpm";}
+  static std::string symbol() {return "rpm";}
+};
+typedef rpm_base_unit::unit_type rpm_unit;
+const boost::units::quantity<rpm_unit> rpm(1*rpm_base_unit::unit_type());
+
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::time> Time;
-typedef Unit<boost::units::si::dimensionless> Dimensionless;
+typedef Unit<revolution_unit> Revolution;
 typedef Unit<boost::units::si::velocity> Velocity;
-typedef Unit<boost::units::si::frequency> Frequency;
+typedef Unit<rpm_unit> Rpm;
 
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
@@ -238,22 +262,25 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
 };
 
 template<>
-class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
+class Unit<revolution_unit> : public UnitBase<revolution_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  using UnitBase::as;
-  double as(double factor) const {
-    return as(factor, 1.0*boost::units::si::si_dimensionless);
+  double asRevolution(double factor) const {
+    return as(factor, 1.0*revolution);
   }
   static quantity get_unit(Lexer& lex) {
     std::string unit = lex.get_word();
     if (unit == "rotation" ||
         unit == "rotations" ||
+        unit == "revolutions" ||
+        unit == "revolution" ||
+        unit == "rev" ||
+        unit == "revs" ||
         unit == "cycle" ||
         unit == "cycles") {
-      return 1.0*boost::units::si::si_dimensionless;
+      return 1.0*revolution;
     }
-    throw parse_exception("dimensionless units", unit);
+    throw parse_exception("revolution units", unit);
   }
 };
 
@@ -275,18 +302,35 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
   }
 };
 
+
+static inline boost::units::quantity<rpm_unit>
+operator/(const boost::units::quantity<revolution_unit>& lhs,
+          const boost::units::quantity<boost::units::si::time>& rhs) {
+  return (lhs/revolution)/(rhs/minute) * rpm;
+}
+
 template<>
-class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
+class Unit<rpm_unit> : public UnitBase<rpm_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  double asPerMinute(double factor) const {
-    return as(factor, 1.0/minute);
+  using UnitBase::as;
+  double asRpm(double factor) const {
+    return as(factor, 1.0 * rpm);
   }
   static quantity get_unit(Lexer& lex) {
-    // It's either "dimensionless/time" or "dimensionless per time".
-    Dimensionless::quantity numerator;
+    // It's either "revolution/time" or "revolution per time" or "rpm".
+    auto old_pos = lex.pos;
+    std::string unit = lex.get_word();
+    printf("unit name is %s\n", unit.c_str());
+    if (unit == "rpm" ||
+        unit == "RPM") {
+      return 1.0*rpm;
+    }
+    lex.pos = old_pos;
+
+    Revolution::quantity numerator;
     Time::quantity denominator;
-    numerator = Dimensionless::get_unit(lex);
+    numerator = Revolution::get_unit(lex);
     lex.get_division();
     denominator = Time::get_unit(lex);
     return numerator/denominator;

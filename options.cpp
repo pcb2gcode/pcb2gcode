@@ -207,7 +207,7 @@ options::options()
        ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
        ("x-offset", po::value<Length>()->default_value(0), "offset the origin in the x-axis by this length")
        ("y-offset", po::value<Length>()->default_value(0), "offset the origin in the y-axis by this length")
-       ("mill-speed", po::value<Frequency>(), "spindle rpm when milling")
+       ("mill-speed", po::value<Rpm>(), "spindle rpm when milling")
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
        ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
@@ -221,7 +221,7 @@ options::options()
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
        ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
        ("cut-vertfeed", po::value<Velocity>(), "PCB vertical cutting feed in [i/m] or [mm/m]")
-       ("cut-speed", po::value<Frequency>(), "spindle rpm when cutting")
+       ("cut-speed", po::value<Rpm>(), "spindle rpm when cutting")
        ("cut-infeed", po::value<Length>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
        ("cut-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "cut side; valid choices are front, back or auto (default)")
@@ -230,7 +230,7 @@ options::options()
        ("zchange", po::value<Length>(), "tool changing height")
        ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
        ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
-       ("drill-speed", po::value<Frequency>(), "spindle rpm when drilling")
+       ("drill-speed", po::value<Rpm>(), "spindle rpm when drilling")
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
        ("drills-available", po::value<std::vector<AvailableDrills>>()
@@ -535,7 +535,7 @@ static void check_milling_parameters(po::variables_map const& vm)
             options::maybe_exit(ERR_NEGATIVEMILLVERTFEED);
         }
 
-        if (vm["mill-speed"].as<Frequency>().asDouble() < 0)
+        if (vm["mill-speed"].as<Rpm>().asDouble() < 0)
         {
             cerr << "Error: --mill-speed < 0.\n";
             options::maybe_exit(ERR_NEGATIVEMILLSPEED);
@@ -599,7 +599,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
             cerr << "Error: Drilling spindle RPM (--drill-speed) not specified.\n";
             options::maybe_exit(ERR_NODRILLSPEED);
         }
-        else if (vm["drill-speed"].as<Frequency>().asPerMinute(1) < 0)         //no need to support both directions?
+        else if (vm["drill-speed"].as<Rpm>().asRpm(1) < 0)         //no need to support both directions?
         {
             cerr << "Error: --drill-speed < 0.\n";
             options::maybe_exit(ERR_NEGATIVEDRILLSPEED);
@@ -718,7 +718,7 @@ static void check_cutting_parameters(po::variables_map const& vm)
             options::maybe_exit(ERR_NEGATIVECUTVERTFEED);
         }
 
-        if (vm["cut-speed"].as<Frequency>().asPerMinute(1) < 0)        //no need to support both directions?
+        if (vm["cut-speed"].as<Rpm>().asRpm(1) < 0)        //no need to support both directions?
         {
             cerr << "Error: The cutting spindle speed --cut-speed is lower than 0.\n";
             options::maybe_exit(ERR_NEGATIVESPINDLESPEED);
