@@ -27,6 +27,7 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/variant.hpp>
 #include "units.hpp"
 #include "available_drills.hpp"
 
@@ -196,7 +197,12 @@ options::options()
        ("svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")
        ("zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")
        ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
-       ("offset", po::value<Length>()->default_value(Length(0)), "distance between the PCB traces and the end mill path in inches; usually half the isolation width")
+       ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
+        "  Distance between the PCB traces and the end mill path in inches; usually half the isolation width")
+       ("mill-diameters", po::value<std::vector<Length>>()->default_value(std::vector<Length>{Length(0)}),
+        "Diameters of mill bits, used in the order that they are provided.")
+       ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),
+        "How much to overlap milling passes, from 0% to 100%")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")

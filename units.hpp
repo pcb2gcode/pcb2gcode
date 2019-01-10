@@ -13,6 +13,7 @@
 #include <boost/units/base_units/imperial/thou.hpp>
 #include <boost/units/io.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/variant.hpp>
 
 #include "common.hpp"
 
@@ -71,7 +72,13 @@ class Lexer {
   void get_division() {
     get_whitespace();
     if (!get_exact("/") && !get_exact("per")) {
-      throw parse_exception("double", input.substr(pos));
+      throw parse_exception("division", input.substr(pos));
+    }
+  }
+  void get_percent() {
+    get_whitespace();
+    if (!get_exact("%")) {
+      throw parse_exception("percent", input.substr(pos));
     }
   }
   bool at_end() {
@@ -184,12 +191,25 @@ struct rpm_base_unit :
 typedef rpm_base_unit::unit_type rpm_unit;
 const boost::units::quantity<rpm_unit> rpm(1*rpm_base_unit::unit_type());
 
+struct percent_base_dimension :
+    boost::units::base_dimension<percent_base_dimension, 3> {};
+typedef percent_base_dimension::dimension_type percent_type;
+
+struct percent_base_unit :
+    boost::units::base_unit<percent_base_unit, percent_type, 3> {
+  static std::string name() {return "percent";}
+  static std::string symbol() {return "%";}
+};
+typedef percent_base_unit::unit_type percent_unit;
+const boost::units::quantity<percent_unit> percent(1*percent_base_unit::unit_type());
+
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::time> Time;
 typedef Unit<revolution_unit> Revolution;
 typedef Unit<boost::units::si::velocity> Velocity;
 typedef Unit<rpm_unit> Rpm;
+typedef Unit<percent_unit> Percent;
 
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
@@ -337,6 +357,23 @@ class Unit<rpm_unit> : public UnitBase<rpm_unit> {
   }
 };
 
+template<>
+class Unit<percent_unit> : public UnitBase<percent_unit> {
+ public:
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
+  using UnitBase::as;
+  double asPercent(double factor) const {
+    return as(factor, 1.0 * percent);
+  }
+  double asFraction(double factor) const {
+    return as(factor, 1.0/100 * percent);
+  }
+  static quantity get_unit(Lexer& lex) {
+    lex.get_percent();
+    return 1.0*percent;
+  }
+};
+
 template <typename unit_t>
 unit_t parse_unit(const std::string& s) {
   Lexer lex(s);
@@ -365,6 +402,35 @@ inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& unit) {
   std::string s(std::istreambuf_iterator<char>(in), {});
   unit = parse_unit<Unit<dimension_t>>(s);
   return in;
+}
+
+// Support variants as units.
+template <typename dimension1_t, typename dimension2_t>
+inline std::istream& operator>>(std::istream& in, boost::variant<Unit<dimension1_t>, Unit<dimension2_t>>& unit) {
+  std::vector<boost::program_options::invalid_option_value> exceptions;
+  std::string s(std::istreambuf_iterator<char>(in), {});
+  try {
+    Unit<dimension1_t> unit1;
+    unit1 = parse_unit<Unit<dimension1_t>>(s);
+    return in;
+  } catch (boost::program_options::invalid_option_value e) { }
+  Unit<dimension1_t> unit2;
+  unit = parse_unit<Unit<dimension2_t>>(s);
+  return in;
+}
+
+// Support vectors of units.
+template <typename dimension_t>
+inline std::ostream& operator<<(std::ostream& out, const std::vector<Unit<dimension_t>>& units) {
+  if (units.size() < 1) {
+    return out;
+  }
+  out << units[0];
+  for (auto u = std::next(units.cbegin()); u != units.cend(); u++) {
+    out << ',';
+    out << *u;
+  }
+  return out;
 }
 
 namespace BoardSide {
