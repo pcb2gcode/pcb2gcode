@@ -198,7 +198,7 @@ options::options()
        ("zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")
        ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
        ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
-        "  Distance between the PCB traces and the end mill path in inches; usually half the isolation width")
+        "  Distance between the PCB traces and the end mill path; usually half the isolation width")
        ("mill-diameters", po::value<std::vector<Length>>()->default_value(std::vector<Length>{Length(0)}),
         "Diameters of mill bits, used in the order that they are provided.")
        ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),
