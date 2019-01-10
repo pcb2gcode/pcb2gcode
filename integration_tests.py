@@ -21,12 +21,9 @@ from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
-# Sanitize a string to be a python identifier
-clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
-
 EXAMPLES_PATH = "testing/gerbv_example"
 BROKEN_EXAMPLES_PATH = "testing/broken_examples"
-TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
+TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "am-test",
                   "am-test-counterclockwise",
@@ -62,29 +59,33 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "slots-with-drills-available",
               ]] +
-              [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+              [TestCase("multivibrator_bad_" + x, os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
                for x in ("front", "back", "outline", "drill")] +
-              [TestCase(clean("broken_" + x),
+              [TestCase("broken_" + x,
                         os.path.join(BROKEN_EXAMPLES_PATH, x),
                         [], 1)
                for x in ("invalid-config",)
               ] +
-              [TestCase(clean("version"),
-                        os.path.join(EXAMPLES_PATH),
-                        ["--version"],
-                        0)] +
-              [TestCase(clean("tsp_2opt_with_millfeedirection"),
+              [TestCase("tsp_2opt_with_millfeedirection",
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--tsp-2opt", "--mill-feed-direction=climb"],
                         100)] +
-              [TestCase(clean("ignore warnings"),
+              [TestCase("ignore warnings",
                         os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
                         ["--ignore-warnings"],
                         0)] +
-              [TestCase(clean("invalid_millfeedirection"),
+              [TestCase(" ".join(args),
                         os.path.join(EXAMPLES_PATH),
-                        ["--mill-feed-direction=invalid_value"],
-                        101)]
+                        args,
+                        expected) for (args, expected) in
+               [
+                   (["--mill-feed-direction=invalid_value"], 101),
+                   (["--version"], 0),
+                   (["--mill-speed=-2rpm"], 3),
+                   (["--drill-speed=-2rpm"], 3),
+                   (["--cut-speed=-2rpm"], 3),
+               ]]
+
 )
 
 def colored(text, **color):
