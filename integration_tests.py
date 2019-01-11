@@ -284,6 +284,18 @@ class IntegrationTests(unittest2.TestCase):
     self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
+  parser.add_argument('--fix', action='store_true', default=False,
+                      help='Generate expected outputs automatically')
+  parser.add_argument('--add', action='store_true', default=False,
+                      help='git add new expected outputs automatically')
+  parser.add_argument('-j', type=int, default=3,
+                      help='number of threads for running tests concurrently')
+  parser.add_argument('--tests', type=str, default="",
+                      help='regex of tests to run')
+  args = parser.parse_args()
+  if args.tests:
+    TEST_CASES = [t for t in TEST_CASES if re.match(args.tests, t.name)]
   def add_test_case(t):
     def test_method(self):
       self.do_test_one(t)
@@ -292,15 +304,6 @@ if __name__ == '__main__':
     test_method.__doc__ = str(test_case)
   for test_case in TEST_CASES:
     add_test_case(test_case)
-  parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
-  parser.add_argument('--fix', action='store_true', default=False,
-                      help='Generate expected outputs automatically')
-  parser.add_argument('--add', action='store_true', default=False,
-                      help='git add new expected outputs automatically')
-  parser.add_argument('-j', type=int, default=3,
-                      help='number of threads for running tests concurrently')
-  args = parser.parse_args()
-  print(args)
   if args.fix:
     print("Generating expected outputs...")
     output = None
