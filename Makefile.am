@@ -62,7 +62,7 @@ LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) 
 EXTRA_DIST = millproject
 
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
-                 available_drills_tests gerberimporter_tests
+                 available_drills_tests gerberimporter_tests options_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp
@@ -71,5 +71,6 @@ units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp
 gerberimporter_tests_LDFLAGS = $(rsvg_LIBS)
+options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
 
 TESTS = $(check_PROGRAMS)

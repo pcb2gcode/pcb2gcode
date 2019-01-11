@@ -62,16 +62,22 @@ TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "slots-with-drills-available",
               ]] +
-              [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+              [TestCase(clean("multivibrator_bad_" + x),
+                        os.path.join(EXAMPLES_PATH, "multivibrator"),
+                        ["--" + x + "=non_existant_file"], 100)
                for x in ("front", "back", "outline", "drill")] +
               [TestCase(clean("broken_" + x),
                         os.path.join(BROKEN_EXAMPLES_PATH, x),
-                        [], 1)
+                        [], 100)
                for x in ("invalid-config",)
               ] +
               [TestCase(clean("version"),
                         os.path.join(EXAMPLES_PATH),
                         ["--version"],
+                        0)] +
+              [TestCase(clean("help"),
+                        os.path.join(EXAMPLES_PATH),
+                        ["--help"],
                         0)] +
               [TestCase(clean("tsp_2opt_with_millfeedirection"),
                         os.path.join(EXAMPLES_PATH, "am-test"),
