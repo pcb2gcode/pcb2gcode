@@ -36,6 +36,24 @@ namespace po = boost::program_options;
 using std::string;
 using std::to_string;
 
+class pcb2gcode_parse_exception : public std::exception {
+ public:
+  pcb2gcode_parse_exception(const std::string& what, int error_code) {
+    what_string = what;
+    this->error_code = error_code;
+  }
+  virtual const char* what() const throw() {
+    return what_string.c_str();
+  }
+  virtual int code() const throw() {
+    return error_code;
+  }
+
+ private:
+  std::string what_string;
+  int error_code;
+};
+
 enum ErrorCodes
 {
     ERR_NOZWORK = 1,
@@ -113,7 +131,7 @@ public:
     ;
     static string help();
 
-  static void maybe_exit(int error_code);
+    static void maybe_throw(const std::string& what, int error_code);
 private:
     options();
     po::variables_map vm;

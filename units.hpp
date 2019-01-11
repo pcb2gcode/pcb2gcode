@@ -16,11 +16,11 @@
 
 #include "common.hpp"
 
-struct parse_exception : public std::exception {
-  parse_exception(const std::string& get_what, const std::string& from_what) {
+struct units_parse_exception : public std::exception {
+  units_parse_exception(const std::string& get_what, const std::string& from_what) {
     what_string = "Can't get " + get_what + " from: " + from_what;
   }
-  parse_exception(const std::string& what) {
+  units_parse_exception(const std::string& what) {
     what_string = what;
   }
 
@@ -65,13 +65,13 @@ class Lexer {
     try {
       return boost::lexical_cast<double>(text);
     } catch (boost::bad_lexical_cast e) {
-      throw parse_exception("double", text);
+      throw units_parse_exception("double", text);
     }
   }
   void get_division() {
     get_whitespace();
     if (!get_exact("/") && !get_exact("per")) {
-      throw parse_exception("double", input.substr(pos));
+      throw units_parse_exception("double", input.substr(pos));
     }
   }
   bool at_end() {
@@ -197,7 +197,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "mils") {
       return thou;
     }
-    throw parse_exception("length units", unit);
+    throw units_parse_exception("length units", unit);
   }
   Length operator-() const {
     return Length(-value, one);
@@ -233,7 +233,7 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
         unit == "minutes") {
       return minute;
     }
-    throw parse_exception("time units", unit);
+    throw units_parse_exception("time units", unit);
   }
 };
 
@@ -253,7 +253,7 @@ class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::
         unit == "cycles") {
       return 1.0*boost::units::si::si_dimensionless;
     }
-    throw parse_exception("dimensionless units", unit);
+    throw units_parse_exception("dimensionless units", unit);
   }
 };
 
@@ -304,7 +304,7 @@ unit_t parse_unit(const std::string& s) {
     if (!lex.at_end()) {
       one = unit_t::get_unit(lex);
     }
-  } catch (parse_exception& e) {
+  } catch (units_parse_exception& e) {
     std::cerr << e.what() << std::endl;
     throw boost::program_options::invalid_option_value(s);
   }

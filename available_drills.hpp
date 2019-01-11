@@ -43,7 +43,7 @@ class AvailableDrill {
         diameter_ = parse_unit<Length>(drill_parts[0]);
         break;
       default:
-        throw parse_exception("Too many parts in " + input_string);
+        throw units_parse_exception("Too many parts in " + input_string);
     }
     if (drill_parts.size() == 2) {
       positive_tolerance = -negative_tolerance;
@@ -52,7 +52,7 @@ class AvailableDrill {
       std::swap(positive_tolerance, negative_tolerance);
     }
     if (positive_tolerance.asInch(1) < 0 || negative_tolerance.asInch(1) > 0) {
-      throw parse_exception("One tolerance must be negative and "
+      throw units_parse_exception("One tolerance must be negative and "
                             "one must be positive");
     }
   }
@@ -80,7 +80,7 @@ inline std::istream& operator>>(std::istream& in, AvailableDrill& available_dril
   std::string input_string(std::istreambuf_iterator<char>(in), {});
   try {
     available_drill.read(input_string);
-  } catch (parse_exception& e) {
+  } catch (units_parse_exception& e) {
     std::cerr << e.what() << std::endl;
     throw boost::program_options::invalid_option_value(input_string);
   }
