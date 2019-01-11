@@ -297,7 +297,10 @@ if __name__ == '__main__':
                       help='Generate expected outputs automatically')
   parser.add_argument('--add', action='store_true', default=False,
                       help='git add new expected outputs automatically')
+  parser.add_argument('-j', type=int, default=3,
+                      help='number of threads for running tests concurrently')
   args = parser.parse_args()
+  print(args)
   if args.fix:
     print("Generating expected outputs...")
     output = None
@@ -329,11 +332,12 @@ if __name__ == '__main__':
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
-    concurrent_suite = ConcurrentTestSuite(suite, fork_for_tests(3))
+    if args.j > 1:
+      suite = ConcurrentTestSuite(suite, fork_for_tests(args.j))
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
-      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(concurrent_suite)
+      test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
-      test_result = unittest2.TextTestRunner(verbosity=2).run(concurrent_suite)
+      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +
