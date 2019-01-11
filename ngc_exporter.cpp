@@ -204,7 +204,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       if(!leveller->prepareWorkarea(toolpaths)) {
         options::maybe_throw(std::string("Required number of probe points (") + std::to_string(leveller->requiredProbePoints()) +
                              ") exceeds the maximum number (" + std::to_string(leveller->maxProbePoints()) + "). "
-                             "Reduce either al-x or al-y.", EXIT_FAILURE);
+                             "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
       }
 
       leveller->header(of);

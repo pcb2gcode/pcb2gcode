@@ -52,7 +52,7 @@ using Glib::build_filename;
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
 
-void do_pcb2gcode(int argc, char* argv[]) {
+void do_pcb2gcode(int argc, const char* argv[]) {
     Glib::init();
     Gdk::wrap_init();
 
@@ -179,7 +179,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
         fstream in(name.c_str(), fstream::in);
 
         if (!in.good()) {
-          options::maybe_throw("Cannot read preamble-text file \"" + name + "\"", EXIT_FAILURE);
+          options::maybe_throw("Cannot read preamble-text file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string line;
@@ -211,7 +211,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
         fstream in(name.c_str(), fstream::in);
 
         if (!in.good()) {
-          options::maybe_throw("Cannot read preamble file \"" + name + "\"", EXIT_FAILURE);
+          options::maybe_throw("Cannot read preamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -230,7 +230,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
         fstream in(name.c_str(), fstream::in);
 
         if (!in.good()) {
-          options::maybe_throw("Cannot read postamble file \"" + name + "\"", EXIT_FAILURE);
+          options::maybe_throw("Cannot read postamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -276,7 +276,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
                 board->prepareLayer("front", importer, isolator, false);
                 cout << "DONE.\n";
             } catch (import_exception& i) {
-              options::maybe_throw("ERROR.", EXIT_FAILURE);
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -295,7 +295,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
                 cout << "DONE.\n";
             }
             catch (import_exception& i) {
-              options::maybe_throw("ERROR.", EXIT_FAILURE);
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -312,7 +312,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
                 board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
                 cout << "DONE.\n";
             } catch (import_exception& i) {
-              options::maybe_throw("ERROR.", EXIT_FAILURE);
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -434,7 +434,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
 
         }
         catch (const drill_exception& e) {
-          options::maybe_throw("ERROR: drill_exception", EXIT_FAILURE);
+          options::maybe_throw("ERROR: drill_exception", ERR_INVALIDPARAMETER);
         }
     } else {
         cout << "not specified.\n";
@@ -444,7 +444,7 @@ void do_pcb2gcode(int argc, char* argv[]) {
 
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
   try {
     do_pcb2gcode(argc, argv);
   } catch (pcb2gcode_parse_exception e) {

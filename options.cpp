@@ -45,7 +45,7 @@ options::instance()
     return singleton;
 }
 
-void options::maybe_throw(const std::string& what, int error_code) {
+void options::maybe_throw(const std::string& what, ErrorCodes error_code) {
   if (instance().vm["ignore-warnings"].as<bool>()) {
     cerr << "Ignoring error code " << error_code << ": " << what << endl;
   } else {
@@ -56,7 +56,7 @@ void options::maybe_throw(const std::string& what, int error_code) {
 /* parse options, both command line and from the millproject file if it exists.
  * Throws on error.
  */
-void options::parse(int argc, char** argv) {
+void options::parse(int argc, const char** argv) {
     // guessing causes problems when one option is the start of another
     // (--drill, --drill-diameter); see bug 3089930
     int style = po::command_line_style::default_style
@@ -158,7 +158,7 @@ void options::parse_files()
                   instance().vm);
     } catch (std::exception& e) {
       maybe_throw("Error parsing configuration file \"" + file + "\": " +
-                  e.what(), EXIT_FAILURE);
+                  e.what(), ERR_INVALIDPARAMETER);
     }
 
     po::notify(instance().vm);
