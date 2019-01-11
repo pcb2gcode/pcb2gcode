@@ -52,13 +52,7 @@ using Glib::build_filename;
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-int main(int argc, char* argv[])
-{
-
+void do_pcb2gcode(int argc, const char* argv[]) {
     Glib::init();
     Gdk::wrap_init();
 
@@ -66,19 +60,17 @@ int main(int argc, char* argv[])
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
 
-    if (vm.count("version"))        //return version and quit
-    {
-        cout << PACKAGE_VERSION << endl;
-        cout << "Git commit: " << GIT_VERSION << endl;
-        cout << "Boost: " << BOOST_VERSION << endl;
-        cout << "Gerbv: " << GERBV_VERSION << endl;
-        exit(EXIT_SUCCESS);
+    if (vm.count("version")) {       //return version and quit
+      cout << PACKAGE_VERSION << endl;
+      cout << "Git commit: " << GIT_VERSION << endl;
+      cout << "Boost: " << BOOST_VERSION << endl;
+      cout << "Gerbv: " << GERBV_VERSION << endl;
+      return;
     }
 
-    if (vm.count("help"))        //return help and quit
-    {
-        cout << options::help();
-        exit(EXIT_SUCCESS);
+    if (vm.count("help")) {       //return help and quit
+      cout << options::help();
+      return;
     }
 
     options::check_parameters();      //check the cli parameters
@@ -186,10 +178,8 @@ int main(int argc, char* argv[])
         string name = vm["preamble-text"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read preamble-text file \"" << name << "\"" << endl;
-            options::maybe_exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read preamble-text file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string line;
@@ -220,10 +210,8 @@ int main(int argc, char* argv[])
         string name = vm["preamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read preamble file \"" << name << "\"" << endl;
-            options::maybe_exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read preamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -241,10 +229,8 @@ int main(int argc, char* argv[])
         string name = vm["postamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read postamble file \"" << name << "\"" << endl;
-            options::maybe_exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read postamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -289,11 +275,8 @@ int main(int argc, char* argv[])
                 shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
                 board->prepareLayer("front", importer, isolator, false);
                 cout << "DONE.\n";
-            }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                options::maybe_exit(EXIT_FAILURE);
+            } catch (import_exception& i) {
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -311,10 +294,8 @@ int main(int argc, char* argv[])
                 board->prepareLayer("back", importer, isolator, true);
                 cout << "DONE.\n";
             }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                options::maybe_exit(EXIT_FAILURE);
+            catch (import_exception& i) {
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -330,11 +311,8 @@ int main(int argc, char* argv[])
                 shared_ptr<LayerImporter> importer(new GerberImporter(outline));
                 board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
                 cout << "DONE.\n";
-            }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                options::maybe_exit(EXIT_FAILURE);
+            } catch (import_exception& i) {
+              options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
             }
         } else {
             cout << "not specified.\n";
@@ -455,10 +433,8 @@ int main(int argc, char* argv[])
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 
         }
-        catch (const drill_exception& e)
-        {
-            cout << "ERROR: drill_exception.\n";
-            options::maybe_exit(EXIT_FAILURE);
+        catch (const drill_exception& e) {
+          options::maybe_throw("ERROR: drill_exception", ERR_INVALIDPARAMETER);
         }
     } else {
         cout << "not specified.\n";
@@ -466,4 +442,14 @@ int main(int argc, char* argv[])
 
     cout << "END." << endl;
 
+}
+
+int main(int argc, const char* argv[]) {
+  try {
+    do_pcb2gcode(argc, argv);
+  } catch (pcb2gcode_parse_exception e) {
+    cerr << e.what();
+    return e.code();
+  }
+  return 0;
 }
