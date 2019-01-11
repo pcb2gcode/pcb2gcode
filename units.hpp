@@ -72,7 +72,7 @@ class Lexer {
   void get_division() {
     get_whitespace();
     if (!get_exact("/") && !get_exact("per")) {
-      throw units_parse_exception("double", input.substr(pos));
+      throw units_parse_exception("division", input.substr(pos));
     }
   }
   void get_percent() {

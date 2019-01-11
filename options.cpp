@@ -129,7 +129,6 @@ void options::parse(int argc, const char** argv) {
       instance().vm.at("min-milldrill-hole-diameter").value() = Length(0);
     }
     // Deal with deprecated offset option.
-    printf("count is %d\n", instance().vm.at("mill-diameters"));
     if (instance().vm.count("offset") && instance().vm.at("mill-diameters").defaulted()) {
       instance().vm.at("mill-diameters").value() = instance().vm.count("offset")*2;
     }
@@ -233,7 +232,7 @@ options::options()
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
        ("drills-available", po::value<std::vector<AvailableDrills>>()
-        ->default_value(std::vector<AvailableDrills>{}, "")
+        ->default_value(std::vector<AvailableDrills>{})
         ->multitoken(), "list of drills available")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
        ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
@@ -266,7 +265,7 @@ options::options()
        ("mirror-absolute", po::value<bool>()->default_value(true)->implicit_value(true), "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")
        ("mirror-axis", po::value<Length>()->default_value(Length(0)), "For two-sided boards, the PCB needs to be flipped along the axis x=VALUE")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
-       ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY, "any"),
+       ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY),
         "In which direction should all milling occur")
        ("output-dir", po::value<string>()->default_value(""), "output directory")
        ("basename", po::value<string>(), "prefix for default output file names")
