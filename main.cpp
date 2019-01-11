@@ -60,19 +60,17 @@ void do_pcb2gcode(int argc, char* argv[]) {
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
 
-    if (vm.count("version"))        //return version and quit
-    {
-        cout << PACKAGE_VERSION << endl;
-        cout << "Git commit: " << GIT_VERSION << endl;
-        cout << "Boost: " << BOOST_VERSION << endl;
-        cout << "Gerbv: " << GERBV_VERSION << endl;
-        exit(EXIT_SUCCESS);
+    if (vm.count("version")) {       //return version and quit
+      cout << PACKAGE_VERSION << endl;
+      cout << "Git commit: " << GIT_VERSION << endl;
+      cout << "Boost: " << BOOST_VERSION << endl;
+      cout << "Gerbv: " << GERBV_VERSION << endl;
+      return;
     }
 
-    if (vm.count("help"))        //return help and quit
-    {
-        cout << options::help();
-        exit(EXIT_SUCCESS);
+    if (vm.count("help")) {       //return help and quit
+      cout << options::help();
+      return;
     }
 
     options::check_parameters();      //check the cli parameters
