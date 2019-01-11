@@ -104,7 +104,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             isolator->vertfeed = vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             isolator->vertfeed = isolator->feed / 2;
-        isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
+        isolator->speed = vm["mill-speed"].as<Rpm>().asRpm(1);
         isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->optimise = vm["optimise"].as<bool>();
@@ -133,7 +133,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
       else
         cutter->vertfeed = cutter->feed / 2;
-      cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
+      cutter->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
       cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
       cutter->do_steps = true;
       cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
@@ -159,7 +159,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
-        driller->speed = vm["drill-speed"].as<Frequency>().asPerMinute(1);
+        driller->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
         driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
