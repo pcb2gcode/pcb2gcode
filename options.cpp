@@ -62,11 +62,8 @@ void fix_variables_map(po::variables_map& vm) {
   }
   // Deal with deprecated offset option.
   if (vm.count("offset") && vm.at("mill-diameters").defaulted()) {
-    printf("dealing1!\n");
     vm.at("mill-diameters").as<std::vector<Length>>().clear();
-    printf("dealing2!\n");
-    vm.at("mill-diameters").as<std::vector<Length>>().push_back(parse_unit<Length>("0")*2);// vm["offset"].as<Length>()*double(2.0));
-    printf("dealing3!\n");
+    vm.at("mill-diameters").as<std::vector<Length>>().push_back(vm["offset"].as<Length>()*2.0);
   }
   vm.erase("offset");
 }
