@@ -146,6 +146,9 @@ class UnitBase {
   bool operator==(const UnitBase<dimension_t>& other) const {
     return (*this >= other && other >= *this);
   }
+  UnitBase<dimension_t> operator*(double rhs) const {
+    return UnitBase<dimension_t>(value*rhs, one);
+  }
 
  protected:
   double as(double factor, quantity wanted_unit) const {

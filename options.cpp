@@ -39,9 +39,7 @@ using std::endl;
 /*
  */
 /******************************************************************************/
-options&
-options::instance()
-{
+options& options::instance() {
     static options singleton;
     return singleton;
 }
@@ -52,6 +50,25 @@ void options::maybe_throw(const std::string& what, ErrorCodes error_code) {
   } else {
     throw pcb2gcode_parse_exception(what, error_code);
   }
+}
+
+/* Adjusts the processed varibles map in place to fix for deprecated variables,
+ * etc.
+ */
+void fix_variables_map(po::variables_map& vm) {
+  // Deal with the deprecated milldrill option.
+  if (vm["min-milldrill-hole-diameter"].defaulted() && vm["milldrill"].as<bool>()) {
+    vm.at("min-milldrill-hole-diameter").value() = Length(0);
+  }
+  // Deal with deprecated offset option.
+  if (vm.count("offset") && vm.at("mill-diameters").defaulted()) {
+    printf("dealing1!\n");
+    vm.at("mill-diameters").as<std::vector<Length>>().clear();
+    printf("dealing2!\n");
+    vm.at("mill-diameters").as<std::vector<Length>>().push_back(parse_unit<Length>("0")*2);// vm["offset"].as<Length>()*double(2.0));
+    printf("dealing3!\n");
+  }
+  vm.erase("offset");
 }
 
 /* parse options, both command line and from the millproject file if it exists.
@@ -123,15 +140,7 @@ void options::parse(int argc, const char** argv) {
                         (char**) fake_tolerance_command_line,
                         generic, style), instance().vm);
     }
-
-    // Deal with the deprecated milldrill option.
-    if (instance().vm["min-milldrill-hole-diameter"].defaulted() && instance().vm["milldrill"].as<bool>()) {
-      instance().vm.at("min-milldrill-hole-diameter").value() = Length(0);
-    }
-    // Deal with deprecated offset option.
-    if (instance().vm.count("offset") && instance().vm.at("mill-diameters").defaulted()) {
-      instance().vm.at("mill-diameters").value() = instance().vm.count("offset")*2;
-    }
+    fix_variables_map(instance().vm);
 
     po::notify(instance().vm);
 }
@@ -191,8 +200,8 @@ options::options()
        ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
        ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
         "  Distance between the PCB traces and the end mill path; usually half the isolation width")
-       ("mill-diameters", po::value<std::vector<Length>>()->default_value(std::vector<Length>{Length(0)}),
-        "Diameters of mill bits, used in the order that they are provided.")
+       ("mill-diameters", po::value<std::vector<Length>>()->default_value(std::vector<Length>{Length(0)})
+        ->multitoken(), "Diameters of mill bits, used in the order that they are provided.")
        ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),
         "How much to overlap milling passes, from 0% to 100%")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")

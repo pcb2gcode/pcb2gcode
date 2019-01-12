@@ -95,7 +95,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-
+        isolator->tool_diameter = vm["mill-diameters"].as<std::vector<Length>>()[0].asInch(unit);
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
