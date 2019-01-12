@@ -110,6 +110,14 @@ class Lexer {
 };
 
 template <typename dimension_t>
+class UnitBase;
+
+// dimension_t is "length" or "velocity", for example.
+template <typename dimension_t>
+class Unit : public UnitBase<dimension_t> {
+};
+
+template <typename dimension_t>
 class UnitBase {
  public:
   typedef boost::units::quantity<dimension_t> quantity;
@@ -146,9 +154,10 @@ class UnitBase {
   bool operator==(const UnitBase<dimension_t>& other) const {
     return (*this >= other && other >= *this);
   }
-  UnitBase<dimension_t> operator*(double rhs) const {
-    return UnitBase<dimension_t>(value*rhs, one);
-  }
+  template<typename dim_t>
+  friend Unit<dim_t>
+  operator*(const Unit<dim_t>& lhs,
+            const double rhs);
 
  protected:
   double as(double factor, quantity wanted_unit) const {
@@ -162,9 +171,12 @@ class UnitBase {
   boost::optional<quantity> one;
 };
 
-// dimension_t is "length" or "velocity", for example.
-template<typename dimension_t>
-class Unit : public UnitBase<dimension_t> {};
+template <typename dimension_t>
+static inline Unit<dimension_t>
+operator*(const Unit<dimension_t>& lhs,
+          const double rhs) {
+  return Unit<dimension_t>(lhs.value * rhs, lhs.one);
+}
 
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch(1*boost::units::imperial::inch_base_unit::unit_type());
