@@ -21,9 +21,6 @@ from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
-# Sanitize a string to be a python identifier
-clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
-
 EXAMPLES_PATH = "testing/gerbv_example"
 BROKEN_EXAMPLES_PATH = "testing/broken_examples"
 TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
@@ -75,7 +72,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(EXAMPLES_PATH),
                         ["--version"],
                         0)] +
-              [TestCase(clean("help"),
+              [TestCase("help",
                         os.path.join(EXAMPLES_PATH),
                         ["--help"],
                         0)] +
