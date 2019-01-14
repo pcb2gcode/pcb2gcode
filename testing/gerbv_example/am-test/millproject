@@ -2,7 +2,7 @@ dpi=400
 
 back=am-test.gbx
 
-offset=0.1
+mill-diameters=0.2
 zwork=-0.008
 zsafe=0.08
 mill-feed=6
