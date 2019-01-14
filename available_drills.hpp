@@ -138,7 +138,7 @@ inline std::ostream& operator<<(std::ostream& out, const AvailableDrills& availa
 inline std::ostream& operator<<(std::ostream& out, const std::vector<AvailableDrills>& available_drills) {
   for (auto d = available_drills.cbegin(); d != available_drills.cend(); d++) {
     if (d != available_drills.cbegin()) {
-      out << ",";
+      out << ", ";
     }
     d->write(out);
   }

@@ -401,13 +401,11 @@ unit_t parse_unit(const std::string& s) {
       one = unit_t::get_unit(lex);
     }
   } catch (units_parse_exception& e) {
-    std::cerr << e.what() << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": " + e.what());
   }
   lex.get_whitespace();
   if (!lex.at_end()) {
-    std::cerr << "Extra characters at end of option" << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": Extra characters at end of option");
   }
   return unit_t(value, one);
 }
@@ -425,8 +423,7 @@ inline std::istream& operator>>(std::istream& in, boost::variant<Unit<dimension1
   std::vector<boost::program_options::invalid_option_value> exceptions;
   std::string s(std::istreambuf_iterator<char>(in), {});
   try {
-    Unit<dimension1_t> unit1;
-    unit1 = parse_unit<Unit<dimension1_t>>(s);
+    unit = parse_unit<Unit<dimension1_t>>(s);
     return in;
   } catch (boost::program_options::invalid_option_value e) { }
   Unit<dimension1_t> unit2;

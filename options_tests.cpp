@@ -6,6 +6,7 @@ namespace po = boost::program_options;
 
 #include "options.hpp"
 #include "units.hpp"
+#include "available_drills.hpp"
 
 using namespace std;
 
@@ -50,6 +51,15 @@ BOOST_AUTO_TEST_CASE(foo) {
   BOOST_CHECK_EQUAL(get_error_code("pcb2gcode --foo"), 101);
 }
 
+BOOST_AUTO_TEST_CASE(available_drills) {
+  std::stringstream drills_text;
+  auto drills = get_value<std::vector<AvailableDrills>>(
+      "pcb2gcode --drills-available 5mm --drills-available 15mm",
+      "drills-available");
+  drills_text << drills;
+  BOOST_CHECK_EQUAL(drills_text.str(), "0.005 m, 0.015 m");
+}
+
 BOOST_AUTO_TEST_CASE(offset) {
   BOOST_CHECK_EQUAL(get_count("pcb2gcode --offset 5mm", "offset"), 0);
   BOOST_CHECK_EQUAL(get_value<std::vector<Length>>("pcb2gcode --offset 5mm", "mill-diameters"),
@@ -58,8 +68,14 @@ BOOST_AUTO_TEST_CASE(offset) {
 
 BOOST_AUTO_TEST_CASE(milling_overlap) {
   BOOST_CHECK_EQUAL(
-      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 5mm", "milling-overlap")),
-      (boost::variant<Length, Percent>(parse_unit<Length>("5mm"))));
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Percent>("50%"))));
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 10%", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Percent>("10%"))));
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 1mm", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Length>("1mm"))));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
