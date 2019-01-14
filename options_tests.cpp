@@ -46,10 +46,20 @@ int get_count(const std::string& args, const std::string& variable) {
   return options::get_vm().count(variable);
 }
 
-BOOST_AUTO_TEST_CASE(options) {
+BOOST_AUTO_TEST_CASE(foo) {
   BOOST_CHECK_EQUAL(get_error_code("pcb2gcode --foo"), 101);
+}
+
+BOOST_AUTO_TEST_CASE(offset) {
   BOOST_CHECK_EQUAL(get_count("pcb2gcode --offset 5mm", "offset"), 0);
-  BOOST_CHECK_EQUAL(get_value<std::vector<Length>>("pcb2gcode --offset 5mm", "mill-diameters"), std::vector<Length>{parse_unit<Length>("10mm")});
+  BOOST_CHECK_EQUAL(get_value<std::vector<Length>>("pcb2gcode --offset 5mm", "mill-diameters"),
+                    std::vector<Length>{parse_unit<Length>("10mm")});
+}
+
+BOOST_AUTO_TEST_CASE(milling_overlap) {
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 5mm", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Length>("5mm"))));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
