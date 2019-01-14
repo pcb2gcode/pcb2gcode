@@ -135,4 +135,14 @@ inline std::ostream& operator<<(std::ostream& out, const AvailableDrills& availa
   return available_drills.write(out);
 }
 
+inline std::ostream& operator<<(std::ostream& out, const std::vector<AvailableDrills>& available_drills) {
+  for (auto d = available_drills.cbegin(); d != available_drills.cend(); d++) {
+    if (d != available_drills.cbegin()) {
+      out << ", ";
+    }
+    d->write(out);
+  }
+  return out;
+}
+
 #endif // AVAILABLE_DRILLS_HPP
