@@ -445,6 +445,67 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<Unit<dimens
   return out;
 }
 
+// Represents a few of the base unit, which can be input or output as a
+// comma-separated list.
+template <typename base_unit>
+class CommaSeparated {
+ public:
+  CommaSeparated(const std::vector<base_unit>& units) :
+      units(units) {}
+  CommaSeparated() {}
+  template <typename b>
+  friend inline std::istream& operator>>(std::istream& in, CommaSeparated<b>& units);
+  bool operator==(const CommaSeparated<base_unit>& other) const {
+    return units == other.units;
+  }
+  const std::vector<base_unit>& get() const {
+    return units;
+  }
+  std::ostream& write(std::ostream& out) const {
+      for (auto it = units.begin(); it != units.end(); it++) {
+      if (it != units.begin()) {
+        out << ", ";
+      }
+      out << *it;
+    }
+    return out;
+  }
+  std::istream& read(std::istream& in) {
+    std::vector<string> unit_strings;
+    std::string input_string(std::istreambuf_iterator<char>(in), {});
+    boost::split(unit_strings, input_string, boost::is_any_of(","));
+    for (const auto& unit_string : unit_strings) {
+      base_unit unit;
+      std::stringstream(unit_string) >> unit;
+      units.push_back(unit);
+    }
+    return in;
+  }
+ private:
+  std::vector<base_unit> units;
+};
+
+template <typename unit_base>
+inline std::istream& operator>>(std::istream& in, CommaSeparated<unit_base>& units) {
+  return units.read(in);
+}
+
+template <typename unit_base>
+inline std::ostream& operator<<(std::ostream& out, const CommaSeparated<unit_base>& units) {
+  return units.write(out);
+}
+
+template <typename unit_base>
+inline std::ostream& operator<<(std::ostream& out, const std::vector<CommaSeparated<unit_base>>& units) {
+  for (auto d = units.cbegin(); d != units.cend(); d++) {
+    if (d != units.cbegin()) {
+      out << ", ";
+    }
+    d->write(out);
+  }
+  return out;
+}
+
 namespace BoardSide {
 enum BoardSide {
   AUTO,
