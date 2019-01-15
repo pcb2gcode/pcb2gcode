@@ -60,4 +60,10 @@ BOOST_AUTO_TEST_CASE(available_drills) {
   BOOST_CHECK_EQUAL(drills_text.str(), "0.005 m, 0.015 m");
 }
 
+BOOST_AUTO_TEST_CASE(offset) {
+  BOOST_CHECK_EQUAL(get_count("pcb2gcode --offset 5mm", "offset"), 0);
+  BOOST_CHECK_EQUAL(get_value<std::vector<Length>>("pcb2gcode --offset 5mm", "mill-diameters"),
+                    std::vector<Length>{parse_unit<Length>("10mm")});
+}
+
 BOOST_AUTO_TEST_SUITE_END()

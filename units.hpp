@@ -71,7 +71,7 @@ class Lexer {
   void get_division() {
     get_whitespace();
     if (!get_exact("/") && !get_exact("per")) {
-      throw units_parse_exception("double", input.substr(pos));
+      throw units_parse_exception("division", input.substr(pos));
     }
   }
   bool at_end() {
@@ -99,6 +99,14 @@ class Lexer {
     return 0;
   }
   std::string input;
+};
+
+template <typename dimension_t>
+class UnitBase;
+
+// dimension_t is "length" or "velocity", for example.
+template <typename dimension_t>
+class Unit : public UnitBase<dimension_t> {
 };
 
 template <typename dimension_t>
@@ -138,6 +146,10 @@ class UnitBase {
   bool operator==(const UnitBase<dimension_t>& other) const {
     return (*this >= other && other >= *this);
   }
+  template<typename dim_t>
+  friend Unit<dim_t>
+  operator*(const Unit<dim_t>& lhs,
+            const double rhs);
 
  protected:
   double as(double factor, quantity wanted_unit) const {
@@ -151,9 +163,12 @@ class UnitBase {
   boost::optional<quantity> one;
 };
 
-// dimension_t is "length" or "velocity", for example.
-template<typename dimension_t>
-class Unit : public UnitBase<dimension_t> {};
+template <typename dimension_t>
+static inline Unit<dimension_t>
+operator*(const Unit<dimension_t>& lhs,
+          const double rhs) {
+  return Unit<dimension_t>(lhs.value * rhs, lhs.one);
+}
 
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch(1*boost::units::imperial::inch_base_unit::unit_type());
@@ -321,7 +336,6 @@ class Unit<rpm_unit> : public UnitBase<rpm_unit> {
     // It's either "revolution/time" or "revolution per time" or "rpm".
     auto old_pos = lex.pos;
     std::string unit = lex.get_word();
-    printf("unit name is %s\n", unit.c_str());
     if (unit == "rpm" ||
         unit == "RPM") {
       return 1.0*rpm;
@@ -349,13 +363,11 @@ unit_t parse_unit(const std::string& s) {
       one = unit_t::get_unit(lex);
     }
   } catch (units_parse_exception& e) {
-    std::cerr << e.what() << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": " + e.what());
   }
   lex.get_whitespace();
   if (!lex.at_end()) {
-    std::cerr << "Extra characters at end of option" << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": Extra characters at end of option");
   }
   return unit_t(value, one);
 }
@@ -373,6 +385,8 @@ template <typename base_unit>
 class CommaSeparated {
  public:
   CommaSeparated(const std::vector<base_unit>& units) :
+      units(units) {}
+  CommaSeparated(std::initializer_list<base_unit> units) :
       units(units) {}
   CommaSeparated() {}
   template <typename b>
