@@ -53,7 +53,7 @@ class AvailableDrill {
     }
     if (positive_tolerance.asInch(1) < 0 || negative_tolerance.asInch(1) > 0) {
       throw units_parse_exception("One tolerance must be negative and "
-                            "one must be positive");
+                                  "one must be positive");
     }
   }
   // Returns the difference in inches.
@@ -91,58 +91,6 @@ inline std::ostream& operator<<(std::ostream& out, const AvailableDrill& availab
   return available_drill.write(out);
 }
 
-class AvailableDrills {
- public:
-  AvailableDrills(const std::vector<AvailableDrill>& available_drills) :
-      available_drills(available_drills) {}
-  AvailableDrills() {}
-  friend inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills);
-  bool operator==(const AvailableDrills& other) const {
-    return available_drills == other.available_drills;
-  }
-  const std::vector<AvailableDrill>& get_available_drills() const {
-    return available_drills;
-  }
-  std::ostream& write(std::ostream& out) const {
-    for (auto it = available_drills.begin(); it != available_drills.end(); it++) {
-      if (it != available_drills.begin()) {
-        out << ", ";
-      }
-      out << *it;
-    }
-    return out;
-  }
-  std::istream& read(std::istream& in) {
-    std::vector<string> available_drill_strings;
-    std::string input_string(std::istreambuf_iterator<char>(in), {});
-    boost::split(available_drill_strings, input_string, boost::is_any_of(","));
-    for (const auto& available_drill_string : available_drill_strings) {
-      AvailableDrill available_drill;
-      std::stringstream(available_drill_string) >> available_drill;
-      available_drills.push_back(available_drill);
-    }
-    return in;
-  }
- private:
-  std::vector<AvailableDrill> available_drills;
-};
-
-inline std::istream& operator>>(std::istream& in, AvailableDrills& available_drills) {
-  return available_drills.read(in);
-}
-
-inline std::ostream& operator<<(std::ostream& out, const AvailableDrills& available_drills) {
-  return available_drills.write(out);
-}
-
-inline std::ostream& operator<<(std::ostream& out, const std::vector<AvailableDrills>& available_drills) {
-  for (auto d = available_drills.cbegin(); d != available_drills.cend(); d++) {
-    if (d != available_drills.cbegin()) {
-      out << ", ";
-    }
-    d->write(out);
-  }
-  return out;
-}
+typedef CommaSeparated<AvailableDrill> AvailableDrills;
 
 #endif // AVAILABLE_DRILLS_HPP

@@ -18,7 +18,7 @@ AvailableDrills string_to_available_drills(const string& text) {
 
 string available_drills_to_string(const AvailableDrills& available_drills) {
   stringstream ss;
-  ss << available_drills;;
+  ss << available_drills;
   return ss.str();
 }
 
@@ -42,6 +42,10 @@ BOOST_AUTO_TEST_CASE(parse_available_drills) {
       available_drills_to_string(
           string_to_available_drills("1inch:0.1inches")),
       "0.0254 m:-0.00254 m:+0.00254 m");
+  BOOST_CHECK_EQUAL(
+      available_drills_to_string(
+          string_to_available_drills("1inch,0.1inches")),
+      "0.0254 m, 0.00254 m");
 
   BOOST_CHECK_THROW(string_to_available_drills(""), po::validation_error);
   BOOST_CHECK_THROW(string_to_available_drills("50.8seconds"), po::validation_error);
