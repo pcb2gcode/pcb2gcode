@@ -64,6 +64,7 @@ BOOST_AUTO_TEST_CASE(offset) {
   BOOST_CHECK_EQUAL(get_count("pcb2gcode --offset 5mm", "offset"), 0);
   BOOST_CHECK_EQUAL(get_value<std::vector<CommaSeparated<Length>>>("pcb2gcode --offset 5mm", "mill-diameters"),
                     std::vector<CommaSeparated<Length>>{{parse_unit<Length>("10mm")}});
+  BOOST_CHECK_THROW(parse("pcb2gcode --offset 5mm --mill-diameters 5mm"), pcb2gcode_parse_exception);
 }
 
 BOOST_AUTO_TEST_CASE(mill_diameters) {
