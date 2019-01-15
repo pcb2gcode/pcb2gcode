@@ -92,8 +92,8 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
           [](std::vector<AvailableDrill> drills,
              AvailableDrills available_drills) {
             drills.insert(drills.end(),
-                          available_drills.get_available_drills().begin(),
-                          available_drills.get_available_drills().end());
+                          available_drills.get().begin(),
+                          available_drills.get().end());
             return drills;
           })),
       ocodes(1),
