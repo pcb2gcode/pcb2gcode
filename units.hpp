@@ -391,11 +391,11 @@ class CommaSeparated {
   CommaSeparated() {}
   template <typename b>
   friend inline std::istream& operator>>(std::istream& in, CommaSeparated<b>& units);
+  template <typename T>
+  friend std::vector<T> flatten(const std::vector<CommaSeparated<T>>& all);
+
   bool operator==(const CommaSeparated<base_unit>& other) const {
     return units == other.units;
-  }
-  const std::vector<base_unit>& get() const {
-    return units;
   }
   std::ostream& write(std::ostream& out) const {
       for (auto it = units.begin(); it != units.end(); it++) {
@@ -440,6 +440,16 @@ inline std::ostream& operator<<(std::ostream& out, const std::vector<CommaSepara
     d->write(out);
   }
   return out;
+}
+
+/* Concatenate all the CommaSeparated into a vector. */
+template <typename T>
+std::vector<T> flatten(const std::vector<CommaSeparated<T>>& all) {
+  std::vector<T> ret;
+  for (const auto& sub : all) {
+    ret.insert(ret.end(), sub.units.begin(), sub.units.end());
+  }
+  return ret;
 }
 
 namespace BoardSide {
