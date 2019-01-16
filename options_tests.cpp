@@ -76,4 +76,19 @@ BOOST_AUTO_TEST_CASE(mill_diameters) {
                     }));
 }
 
+BOOST_AUTO_TEST_CASE(milling_overlap) {
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Percent>("50%"))));
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 10%", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Percent>("10%"))));
+  BOOST_CHECK_EQUAL(
+      (get_value<boost::variant<Length, Percent>>("pcb2gcode --milling-overlap 1mm", "milling-overlap")),
+      (boost::variant<Length, Percent>(parse_unit<Length>("1mm"))));
+  BOOST_CHECK_THROW(
+      (parse("pcb2gcode --milling-overlap 1rpm")),
+      pcb2gcode_parse_exception);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
