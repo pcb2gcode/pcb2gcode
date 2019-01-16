@@ -292,7 +292,7 @@ if __name__ == '__main__':
                       help='regex of tests to run')
   args = parser.parse_args()
   if args.tests:
-    TEST_CASES = [t for t in TEST_CASES if re.match(args.tests, t.name)]
+    TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
   def add_test_case(t):
     def test_method(self):
       self.do_test_one(t)

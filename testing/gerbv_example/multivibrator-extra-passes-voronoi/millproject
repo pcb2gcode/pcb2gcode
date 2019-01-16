@@ -2,8 +2,9 @@ back=multivibrator-B.Cu.gbr
 drill=multivibrator.drl
 outline=multivibrator-Edge.Cuts.gbr
 
-offset=0.1mm
+mill-diameters=0.2mm
 extra-passes=2
+milling-overlap=0.1mm
 vectorial=true
 mill-feed=360 in/min
 mill-speed=200rotations/second

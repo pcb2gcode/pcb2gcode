@@ -398,7 +398,7 @@ class percent_visitor : public boost::static_visitor<Length> {
     return ret;
   }
   Length operator()(const Length& l) const {
-    return base;
+    return l;
   }
  private:
   Length base;
