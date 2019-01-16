@@ -95,7 +95,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        // TODO: support more than one mill-diameter.
+        isolator->tool_diameter = flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())[0].asInch(unit);
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
@@ -448,7 +449,7 @@ int main(int argc, const char* argv[]) {
   try {
     do_pcb2gcode(argc, argv);
   } catch (pcb2gcode_parse_exception e) {
-    cerr << e.what();
+    cerr << e.what() << endl;
     return e.code();
   }
   return 0;

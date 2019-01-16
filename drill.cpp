@@ -85,17 +85,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       mirror_axis(options["mirror-axis"].as<Length>()),
       min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
       mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
-      available_drills(std::accumulate(
-          options["drills-available"].as<std::vector<AvailableDrills>>().begin(),
-          options["drills-available"].as<std::vector<AvailableDrills>>().end(),
-          std::vector<AvailableDrill>(),
-          [](std::vector<AvailableDrill> drills,
-             AvailableDrills available_drills) {
-            drills.insert(drills.end(),
-                          available_drills.get().begin(),
-                          available_drills.get().end());
-            return drills;
-          })),
+      available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
       ocodes(1),
       globalVars(100),
       tileInfo(Tiling::generateTileInfo(options, ocodes, max.second - min.second, max.first - min.first)) {
