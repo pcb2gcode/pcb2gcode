@@ -204,7 +204,7 @@ options::options()
        ("mill-diameters", po::value<std::vector<CommaSeparated<Length>>>()->default_value({{Length(0)}})
         ->multitoken(), "Diameters of mill bits, used in the order that they are provided.")
        ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),
-        "How much to overlap milling passes, from 0% to 100%")
+        "How much to overlap milling passes, from 0% to 100% or an absolute length")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")
