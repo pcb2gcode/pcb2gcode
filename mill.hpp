@@ -55,12 +55,12 @@ public:
 /*
  */
 /******************************************************************************/
-class RoutingMill: public Mill
-{
-public:
-    double tool_diameter;
-    bool optimise;
-    bool eulerian_paths;
+class RoutingMill: public Mill {
+ public:
+  double tool_diameter;
+  bool optimise;
+  bool eulerian_paths;
+  double overlap_width; // How much to overlap the extra passes.
 };
 
 /******************************************************************************/

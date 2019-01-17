@@ -116,10 +116,10 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
 
 vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
         bool mirror) {
-    multi_polygon_type_fp voronoi;
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
-    coordinate_type_fp grow = mill->tool_diameter / 2 * scale;
+    coordinate_type_fp scaled_diameter = mill->tool_diameter * scale;
+    coordinate_type_fp scaled_overlap = mill->overlap_width * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     // Extra passes are done on each trace if requested, each offset by half the tool diameter.
@@ -130,7 +130,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         tolerance = 0.0001 * scale;
 
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-        preserve_thermal_reliefs(*vectorial_surface, std::max(grow, tolerance));
+        preserve_thermal_reliefs(*vectorial_surface, std::max(scaled_diameter/2, tolerance));
     }
 
     bg::unique(*vectorial_surface);
@@ -138,11 +138,11 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
     bg::convert(bounding_box, voronoi_bounding_box);
     multi_polygon_type voronoi_vectorial_surface;
     bg::convert(*vectorial_surface, voronoi_vectorial_surface);
-    voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, tolerance);
+    multi_polygon_type_fp voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, tolerance);
 
     box_type_fp svg_bounding_box;
 
-    bg::buffer(bounding_box, svg_bounding_box, grow * (extra_passes + 1));
+    bg::buffer(bounding_box, svg_bounding_box, scaled_diameter / 2 + (scaled_diameter-scaled_overlap) * extra_passes);
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
@@ -164,7 +164,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
 
         vector<multi_polygon_type_fp> polygons;
         polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
-                                  grow, extra_passes + 1, do_voronoi);
+                                  scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
         for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
           MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
           if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
@@ -176,7 +176,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
             // This is on the back so all loops are reversed.
             dir = invert(dir);
           }
-          attach_polygons(*polygon, toolpath, grow*2, dir);
+          attach_polygons(*polygon, toolpath, scaled_diameter, dir);
           debug_image.add(*polygon, 0, r, g, b);
           traced_debug_image.add(*polygon, 1, r, g, b);
         }
@@ -244,7 +244,8 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const polygon_type_fp& input,
     const polygon_type_fp& voronoi_polygon,
-    bool& contentions, coordinate_type_fp offset,
+    bool& contentions, coordinate_type_fp scaled_diameter,
+    coordinate_type_fp scaled_overlap,
     unsigned int steps, bool do_voronoi) {
   // The polygons to add to the PNG debuging output files.
   vector<multi_polygon_type_fp> polygons;
@@ -255,7 +256,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // This is the area that the milling must not cross so that it doesn't dig
   // into the trace.
   multi_polygon_type_fp path_minimum;
-  bg_helpers::buffer(input, path_minimum, offset);
+  bg_helpers::buffer(input, path_minimum, scaled_diameter/2);
   if (mask) {
     masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
   } else {
@@ -267,7 +268,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     coordinate_type_fp expand_by;
     if (!do_voronoi) {
       // Number of rings is the same as the number of steps.
-      expand_by = offset * (i+1);
+      expand_by = scaled_diameter / 2 + (scaled_diameter - scaled_overlap) * i;
     } else {
       // Voronoi lines are on the boundary and shared between
       // multi_polygons so we only need half as many of them.
@@ -275,7 +276,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       if (factor > 0) {
         continue; // Don't need this step.
       }
-      expand_by = offset * factor;
+      expand_by = (scaled_diameter - scaled_overlap) * factor;
     }
 
     multi_polygon_type_fp mpoly;

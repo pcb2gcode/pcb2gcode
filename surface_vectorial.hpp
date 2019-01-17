@@ -108,7 +108,8 @@ protected:
   vector<multi_polygon_type_fp> offset_polygon(
       const polygon_type_fp& input,
       const polygon_type_fp& voronoi,
-      bool& contentions, coordinate_type_fp offset,
+      bool& contentions, coordinate_type_fp scaled_diameter,
+      coordinate_type_fp scaled_overlap,
       unsigned int steps, bool do_voronoi);
   // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
   // there is a point on the ring that is close enough to the toolpath endpoint.
