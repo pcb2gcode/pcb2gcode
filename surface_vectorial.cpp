@@ -114,13 +114,20 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
   return result;
 }
 
-vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirror) {
+vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(
+    shared_ptr<RoutingMill> mill, bool mirror) {
+  // TODO: Use all the tools.
+  double tool_diameter = mill->tool_diameters_and_overlaps[0].first;
+  double overlap_width = mill->tool_diameters_and_overlaps[0].second;
+  return get_single_toolpath(mill, mirror, tool_diameter, overlap_width);
+}
+
+vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
+    shared_ptr<RoutingMill> mill, bool mirror, double tool_diameter, double overlap_width) {
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
-    // TODO: Support multiple tools.
-    coordinate_type_fp scaled_diameter = mill->tool_diameter() * scale;
-    coordinate_type_fp scaled_overlap = mill->overlap_width() * scale;
+    coordinate_type_fp scaled_diameter = tool_diameter * scale;
+    coordinate_type_fp scaled_overlap = overlap_width * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     // Extra passes are done on each trace if requested, each offset by half the tool diameter.

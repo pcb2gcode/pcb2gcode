@@ -76,6 +76,8 @@ public:
   }
 
 protected:
+  vector<shared_ptr<icoords> > get_single_toolpath(
+      shared_ptr<RoutingMill> mill, bool mirror, double tool_diameter, double overlap_width);
   const unsigned int points_per_circle;
   const ivalue_t width_in;
   const ivalue_t height_in;
