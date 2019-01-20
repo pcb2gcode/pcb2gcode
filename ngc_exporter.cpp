@@ -145,8 +145,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
-    vector<unsigned int> bridges;
-    vector<unsigned int>::const_iterator currentBridge;
 
     Tiling tiling( tileInfo, cfactor );
     tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
@@ -214,6 +212,17 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     
     tiling.header( of );
 
+    shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
+
+    // One list of bridges for each path.
+    vector<vector<unsigned int>> all_bridges;
+    if (bBridges && cutter) {
+      for (const auto& path : toolpaths) {
+        vector<unsigned int> bridges = layer->get_bridges(path);
+        all_bridges.push_back(bridges);
+      }
+    }
+
     for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
         double yoffsetTot = yoffset - i * tileInfo.boardHeight;
         for( unsigned int j = 0; j < tileInfo.forXNum; j++ ) {
@@ -223,8 +232,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
-            for ( shared_ptr<icoords> path : toolpaths )
-            {
+            for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
+                shared_ptr<icoords> path = toolpaths[path_index];
+
                 // retract, move to the starting point of the next contour
                 of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
                 of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
@@ -234,8 +244,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
                  * i know this is partially repetitive, but this way it's easier to read
                  */
-                shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
-
                 if (cutter)
                 {
 
@@ -243,10 +251,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                     //cutting (outline)
 
                     const unsigned int steps_num = ceil(-mill->zwork / cutter->stepsize);
-
-                    if( bBridges )
-                        if( i == 0 && j == 0 )  //Compute the bridges only the 1st time
-                            bridges = layer->get_bridges( path );
 
                     for (unsigned int i = 0; i < steps_num; i++)
                     {
@@ -259,8 +263,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                         icoords::iterator iter = path->begin();
                         icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
 
+                        vector<unsigned int>::const_iterator currentBridge;
                         if (bBridges)
-                            currentBridge = bridges.begin();
+                          currentBridge = all_bridges[path_index].cbegin();
 
                         while (iter != path->end())
                         {
@@ -268,7 +273,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                             of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
                                << ( iter->second - yoffsetTot ) * cfactor << '\n';
 
-                            if (bBridges && currentBridge != bridges.end())
+                            if (bBridges && currentBridge != all_bridges[path_index].cend())
                             {
                                 if (z < cutter->bridges_height)
                                 {
