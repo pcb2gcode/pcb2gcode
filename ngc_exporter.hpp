@@ -67,6 +67,7 @@ public:
 
 protected:
   void export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller);
+  void export_layer_helper(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller, const vector<shared_ptr<icoords>>& toolpaths);
 
     shared_ptr<Board> board;
     vector<string> header;

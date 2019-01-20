@@ -137,14 +137,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     }
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
-    string layername = layer->get_name();
+void NGC_Exporter::export_layer_helper(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller, const vector<shared_ptr<icoords>>& toolpaths) {
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
 
@@ -349,6 +343,15 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     }
 
     of.close();
+}
+
+void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
+  vector<vector<shared_ptr<icoords>>> multi_toolpaths = layer->get_toolpaths();
+  if (multi_toolpaths.size() <= 1) {
+    export_layer_helper(layer, of_name, leveller, multi_toolpaths[0]);
+  } else {
+    // TODO: Support multiple mill bits.
+  }
 }
 
 /******************************************************************************/

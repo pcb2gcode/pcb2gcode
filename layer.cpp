@@ -35,13 +35,8 @@ Layer::Layer(const string& name, shared_ptr<Core> surface,
 
 #include <iostream>
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<shared_ptr<icoords> > Layer::get_toolpaths()
-{
-    return surface->get_toolpath(manufacturer, mirrored);
+vector<vector<shared_ptr<icoords>>> Layer::get_toolpaths() {
+  return surface->get_toolpath(manufacturer, mirrored);
 }
 
 /******************************************************************************/

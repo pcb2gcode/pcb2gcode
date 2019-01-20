@@ -60,8 +60,8 @@ public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
                     string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
-  vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-                                            bool mirror);
+  vector<vector<shared_ptr<icoords>>> get_toolpath(shared_ptr<RoutingMill> mill,
+                                                   bool mirror);
   void save_debug_image(string message);
   void enable_filling();
   void add_mask(shared_ptr<Core> surface);

@@ -114,12 +114,12 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
   return result;
 }
 
-vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(
+vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   // TODO: Use all the tools.
   double tool_diameter = mill->tool_diameters_and_overlaps[0].first;
   double overlap_width = mill->tool_diameters_and_overlaps[0].second;
-  return get_single_toolpath(mill, mirror, tool_diameter, overlap_width);
+  return {get_single_toolpath(mill, mirror, tool_diameter, overlap_width)};
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(

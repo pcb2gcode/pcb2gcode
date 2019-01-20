@@ -57,7 +57,7 @@ public:
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
     // All the arguments must be in inches
-    bool prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    bool prepareWorkarea(const vector<shared_ptr<icoords>>& toolpaths);
 
     // header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
     // only the probe calls for the other softwares)
@@ -166,7 +166,7 @@ protected:
     icoordpair lastPoint;
 
     //computeWorkarea computes the occupied rectangule of toolpaths
-    box_type_fp computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    box_type_fp computeWorkarea(const vector<shared_ptr<icoords>>& toolpaths);
 
     // footerNoIf prints the footer, regardless of the software
     void footerNoIf( std::ofstream &of );

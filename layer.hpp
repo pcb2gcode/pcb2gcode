@@ -42,7 +42,7 @@ public:
     Layer(const string& name, shared_ptr<Core> surface,
           shared_ptr<RoutingMill> manufacturer, bool backside);
 
-    vector<shared_ptr<icoords> > get_toolpaths();
+    vector<vector<shared_ptr<icoords>>> get_toolpaths();
     shared_ptr<RoutingMill> get_manufacturer();
     vector<unsigned int> get_bridges( shared_ptr<icoords> toolpath );
     string get_name()

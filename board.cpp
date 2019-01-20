@@ -224,8 +224,7 @@ void Board::createLayers()
 /*
  */
 /******************************************************************************/
-vector<shared_ptr<icoords> > Board::get_toolpath(string layername)
-{
+vector<vector<shared_ptr<icoords>>> Board::get_toolpath(string layername) {
     vector<shared_ptr<icoords> > toolpath;
 
     try

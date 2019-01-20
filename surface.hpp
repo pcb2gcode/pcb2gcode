@@ -61,8 +61,8 @@ public:
 
     void save_debug_image(string);
 
-    vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror);
+    vector<vector<shared_ptr<icoords>>> get_toolpath(shared_ptr<RoutingMill> mill,
+                                                     bool mirror);
     ivalue_t get_width_in()
     {
         return max_x - min_x;

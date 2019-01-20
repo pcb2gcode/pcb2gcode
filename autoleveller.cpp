@@ -93,8 +93,7 @@ string autoleveller::getVarName( int i, int j )
     return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
-{
+bool autoleveller::prepareWorkarea(const vector<shared_ptr<icoords>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
@@ -132,8 +131,7 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
         return true;
 }
 
-box_type_fp autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths )
-{
+box_type_fp autoleveller::computeWorkarea(const vector<shared_ptr<icoords>>& toolpaths ) {
     box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
 
     for (const shared_ptr<icoords>& toolpath : toolpaths)
