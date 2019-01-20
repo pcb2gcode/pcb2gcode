@@ -148,8 +148,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     vector<unsigned int> bridges;
     vector<unsigned int>::const_iterator currentBridge;
 
-    double xoffsetTot;
-    double yoffsetTot;
     Tiling tiling( tileInfo, cfactor );
     tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
@@ -216,13 +214,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     
     tiling.header( of );
 
-    for( unsigned int i = 0; i < tileInfo.forYNum; i++ )
-    {
-        yoffsetTot = yoffset - i * tileInfo.boardHeight;
-        
-        for( unsigned int j = 0; j < tileInfo.forXNum; j++ )
-        {
-            xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
+    for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
+        double yoffsetTot = yoffset - i * tileInfo.boardHeight;
+        for( unsigned int j = 0; j < tileInfo.forXNum; j++ ) {
+            double xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
             if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
