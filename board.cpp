@@ -95,56 +95,52 @@ void Board::createLayers()
     min_y = INFINITY;
     max_y = -INFINITY;
 
-    // calculate room needed by the PCB traces
-    for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
-    {
-        shared_ptr<LayerImporter> importer = get<0>(it->second);
-        float t;
-        t = importer->get_min_x();
-        if(min_x > t) min_x = t;
-        t = importer->get_max_x();
-        if(max_x < t) max_x = t;
-        t = importer->get_min_y();
-        if(min_y > t) min_y = t;
-        t = importer->get_max_y();
-        if(max_y < t) max_y = t;
+    // Calculate the maximum possible room needed by the PCB traces, for tiling later.
+    for (map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++) {
+      shared_ptr<LayerImporter> importer = get<0>(it->second);
+      float t;
+      t = importer->get_min_x();
+      if(min_x > t) min_x = t;
+      t = importer->get_max_x();
+      if(max_x < t) max_x = t;
+      t = importer->get_min_y();
+      if(min_y > t) min_y = t;
+      t = importer->get_max_y();
+      if(max_y < t) max_y = t;
     }
 
-    // if there's no pcb outline, add the specified margins
-    try
-    {
-        shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
-        ivalue_t radius = outline_mill->tool_diameter / 2;
-        min_x -= radius;
-        max_x += radius;
-        min_y -= radius;
-        max_y += radius;
-    }
-    catch( std::logic_error& e )
-    {
-        try
-        {
-            shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at("front")));
-            ivalue_t radius = trace_mill->tool_diameter / 2;
-            int passes = trace_mill->extra_passes + 1;
-            min_x -= radius * passes;
-            max_x += radius * passes;
-            min_y -= radius * passes;
-            max_y += radius * passes;
+    // Calculate the maximum possible margin needed.
+    double margin = quantization_error;
+    try {
+      shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
+      ivalue_t tool_diameter = outline_mill->tool_diameter;
+      if (tool_diameter > margin) {
+        margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
+      }
+    } catch (std::logic_error& e) {}
+    for (const auto& layer_name : std::vector<std::string>{"front"}) {
+      try {
+        shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at(layer_name)));
+        ivalue_t tool_diameter = trace_mill->tool_diameter;
+        // Figure out how much margin the extra passes might make.
+        double extra_passes_margin = tool_diameter + (tool_diameter - trace_mill->overlap_width) * trace_mill->extra_passes;
+        if (extra_passes_margin > margin) {
+          margin = extra_passes_margin;
         }
-        catch( std::logic_error& e )
-        {
-            min_x -= margin;
-            max_x += margin;
-            min_y -= margin;
-            max_y += margin;
+        double isolation_margin = tool_diameter;
+        while (isolation_margin < trace_mill->isolation_width) {
+          // Add passes until we reach the isolation_width.
+          isolation_margin += tool_diameter - trace_mill->overlap_width;
         }
+        if (isolation_margin > margin) {
+          margin = isolation_margin;
+        }
+      } catch (std::logic_error& e) {}
     }
-
-    min_x -= quantization_error;
-    max_x += quantization_error;
-    min_y -= quantization_error;
-    max_y += quantization_error;
+    min_x -= margin;
+    max_x += margin;
+    min_y -= margin;
+    max_y += margin;
 
     // board size calculated. create layers
     for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
