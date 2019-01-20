@@ -70,6 +70,10 @@ void fix_variables_map(po::variables_map& vm) {
     }
   }
   vm.erase("offset");
+
+  if (vm["bridgesnum"].as<unsigned int>() > 0 && vm["bridges"].as<Length>().asInch(1) <= 0) {
+    vm.at("bridgesnum").value() = (unsigned int) 0;
+  }
 }
 
 /* parse options, both command line and from the millproject file if it exists.

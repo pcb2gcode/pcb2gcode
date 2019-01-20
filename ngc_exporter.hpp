@@ -67,6 +67,8 @@ public:
 
 protected:
   void export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller);
+  void cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
+                      const vector<unsigned int>& bridges, double xoffsetTot, double yoffsetTot);
 
     shared_ptr<Board> board;
     vector<string> header;
@@ -76,7 +78,6 @@ protected:
     double cfactor;         //imperial/metric conversion factor for output file
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
-    bool bBridges;
     bool bZchangeG53;
     const unsigned int dpi;
     const double quantization_error;

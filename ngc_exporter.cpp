@@ -93,11 +93,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 
     tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
 
-    if (options["bridges"].as<Length>().asInch(1) > 0 && options["bridgesnum"].as<unsigned int>() > 0)
-        bBridges = true;
-    else
-        bBridges = false;
-
     for ( string layername : board->list_layers() )
     {
         if (options["zero-start"].as<bool>()) {
@@ -137,10 +132,48 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     }
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
+void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
+                                  const vector<unsigned int>& bridges, double xoffsetTot, double yoffsetTot) {
+  const unsigned int steps_num = ceil(-cutter->zwork / cutter->stepsize);
+
+  for (unsigned int i = 0; i < steps_num; i++) {
+    const double z = cutter->zwork / steps_num * (i + 1);
+
+    of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << " ( plunge. )\n";
+    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+    of << "G01 F" << cutter->feed * cfactor << "\n";
+
+    icoords::iterator iter = path->begin();
+    icoords::iterator prev = path->end();      // initializing to quick & dirty sentinel value
+
+    vector<unsigned int>::const_iterator currentBridge;
+    currentBridge = bridges.cbegin();
+
+    while (iter != path->end()) {
+      of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
+         << ( iter->second - yoffsetTot ) * cfactor << '\n';
+
+      if (currentBridge != bridges.cend()) {
+        if (z < cutter->bridges_height) {
+          if (*currentBridge == iter - path->begin()) {
+            of << "G01 Z" << cutter->bridges_height * cfactor << '\n';
+          } else if (*currentBridge == prev - path->begin()) {
+            of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+            of << "G01 F" << cutter->feed * cfactor << '\n';
+          }
+        }
+
+        if (*currentBridge == prev - path->begin()) {
+          ++currentBridge;
+        }
+      }
+
+      prev = iter;
+      ++iter;
+    }
+  }
+}
+
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
@@ -216,7 +249,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     // One list of bridges for each path.
     vector<vector<unsigned int>> all_bridges;
-    if (bBridges && cutter) {
+    if (cutter) {
       for (const auto& path : toolpaths) {
         vector<unsigned int> bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
@@ -244,59 +277,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
                  * i know this is partially repetitive, but this way it's easier to read
                  */
-                if (cutter)
-                {
-
-                    //--------------------------------------------------------------------
-                    //cutting (outline)
-
-                    const unsigned int steps_num = ceil(-mill->zwork / cutter->stepsize);
-
-                    for (unsigned int i = 0; i < steps_num; i++)
-                    {
-                        const double z = mill->zwork / steps_num * (i + 1);
-
-                        of << "G01 Z" << z * cfactor << " F" << mill->vertfeed * cfactor << " ( plunge. )\n";
-                        of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                        of << "G01 F" << mill->feed * cfactor << "\n";
-
-                        icoords::iterator iter = path->begin();
-                        icoords::iterator last = path->end();      // initializing to quick & dirty sentinel value
-
-                        vector<unsigned int>::const_iterator currentBridge;
-                        if (bBridges)
-                          currentBridge = all_bridges[path_index].cbegin();
-
-                        while (iter != path->end())
-                        {
-
-                            of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
-
-                            if (bBridges && currentBridge != all_bridges[path_index].cend())
-                            {
-                                if (z < cutter->bridges_height)
-                                {
-                                    if (*currentBridge == iter - path->begin())
-                                        of << "G01 Z" << cutter->bridges_height * cfactor << '\n';
-                                    else if (*currentBridge == last - path->begin())
-                                    {
-                                        of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-                                        of << "G01 F" << cutter->feed * cfactor << '\n';
-                                    }
-                                }
-
-                                if (*currentBridge == last - path->begin())
-                                    ++currentBridge;
-                            }
-
-                            last = iter;
-                            ++iter;
-                        }
-                    }
-                }
-                else
-                {
+                if (cutter) {
+                  cutter_milling(of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
+                } else {
                     //--------------------------------------------------------------------
                     // isolating (front/backside)
                     of << "G01 F" << mill->vertfeed * cfactor << '\n';
