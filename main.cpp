@@ -110,6 +110,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         isolator->speed = vm["mill-speed"].as<Rpm>().asRpm(1);
         isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
+        isolator->isolation_width = vm["isolation-width"].as<Length>().asInch(unit);
         isolator->optimise = vm["optimise"].as<bool>();
         isolator->preserve_thermal_reliefs = vm["preserve-thermal-reliefs"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
