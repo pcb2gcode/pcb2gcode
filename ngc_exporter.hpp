@@ -68,7 +68,9 @@ public:
 protected:
   void export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller);
   void cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
-                      const vector<unsigned int>& bridges, double xoffsetTot, double yoffsetTot);
+                      const vector<unsigned int>& bridges, const double xoffsetTot, const double yoffsetTot);
+  void isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, shared_ptr<icoords> path,
+                         boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot);
 
     shared_ptr<Board> board;
     vector<string> header;

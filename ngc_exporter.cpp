@@ -133,7 +133,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 }
 
 void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
-                                  const vector<unsigned int>& bridges, double xoffsetTot, double yoffsetTot) {
+                                  const vector<unsigned int>& bridges, const double xoffsetTot, const double yoffsetTot) {
   const unsigned int steps_num = ceil(-cutter->zwork / cutter->stepsize);
 
   for (unsigned int i = 0; i < steps_num; i++) {
@@ -174,6 +174,47 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
   }
 }
 
+void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, shared_ptr<icoords> path,
+                                     boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot) {
+  of << "G01 F" << mill->vertfeed * cfactor << '\n';
+
+  if (leveller) {
+    leveller->setLastChainPoint(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
+                                           (path->begin()->second - yoffsetTot) * cfactor));
+    of << leveller->g01Corrected(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
+                                            (path->begin()->second - yoffsetTot) * cfactor));
+  } else {
+    if (!mill->pre_milling_gcode.empty()) {
+      of << "( begin pre-milling-gcode )\n";
+      of << mill->pre_milling_gcode << "\n";
+      of << "( end pre-milling-gcode )\n";
+    }
+    of << "G01 Z" << mill->zwork * cfactor << "\n";
+  }
+
+  of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+  of << "G01 F" << mill->feed * cfactor << '\n';
+
+  icoords::iterator iter = path->begin();
+
+  while (iter != path->end()) {
+    if (leveller) {
+      of << leveller->addChainPoint(icoordpair((iter->first - xoffsetTot) * cfactor,
+                                               (iter->second - yoffsetTot) * cfactor));
+    } else {
+      of << "G01 X" << (iter->first - xoffsetTot) * cfactor << " Y"
+         << (iter->second - yoffsetTot) * cfactor << '\n';
+    }
+    ++iter;
+  }
+  if (!mill->post_milling_gcode.empty()) {
+    of << "( begin post-milling-gcode )\n";
+    of << mill->post_milling_gcode << "\n";
+    of << "( end post-milling-gcode )\n";
+  }
+}
+
+
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
@@ -210,22 +251,20 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     of << "\n" << preamble;       //insert external preamble
 
-    if (bMetricoutput)
-    {
-        of << "G94 ( Millimeters per minute feed rate. )\n"
-           << "G21 ( Units == Millimeters. )\n\n";
-    }
-    else
-    {
-        of << "G94 ( Inches per minute feed rate. )\n"
-           << "G20 ( Units == INCHES. )\n\n";
+    if (bMetricoutput) {
+      of << "G94 ( Millimeters per minute feed rate. )\n"
+         << "G21 ( Units == Millimeters. )\n\n";
+    } else {
+      of << "G94 ( Inches per minute feed rate. )\n"
+         << "G20 ( Units == INCHES. )\n\n";
     }
 
     of << "G90 ( Absolute coordinates. )\n"
        << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
 
-    if (mill->explicit_tolerance)
-        of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
+    if (mill->explicit_tolerance) {
+      of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
+    }
 
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
@@ -242,7 +281,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n"
        << "M3 ( Spindle on clockwise. )\n"
        << "G04 P" << mill->spinup_time << "\n";
-    
+
     tiling.header( of );
 
     shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
@@ -280,51 +319,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 if (cutter) {
                   cutter_milling(of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
                 } else {
-                    //--------------------------------------------------------------------
-                    // isolating (front/backside)
-                    of << "G01 F" << mill->vertfeed * cfactor << '\n';
-
-                    if (leveller) {
-                        leveller->setLastChainPoint( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
-                                                     ( path->begin()->second - yoffsetTot ) * cfactor ) );
-                        of << leveller->g01Corrected( icoordpair( ( path->begin()->first - xoffsetTot ) * cfactor,
-                                                      ( path->begin()->second - yoffsetTot ) * cfactor ) );
-                    }
-                    else {
-                        if (!mill->pre_milling_gcode.empty()) {
-                            of << "( begin pre-milling-gcode )\n";
-                            of << mill->pre_milling_gcode << "\n";
-                            of << "( end pre-milling-gcode )\n";
-                        }
-                        of << "G01 Z" << mill->zwork * cfactor << "\n";
-                    }
-
-                    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                    of << "G01 F" << mill->feed * cfactor << '\n';
-
-                    icoords::iterator iter = path->begin();
-
-                    while (iter != path->end())
-                    {
-                        if (leveller) {
-                          of << leveller->addChainPoint( icoordpair((iter->first - xoffsetTot) * cfactor,
-                                                                    (iter->second - yoffsetTot) * cfactor));
-                        } else {
-                            of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-                               << ( iter->second - yoffsetTot ) * cfactor << '\n';
-                        }
-                        ++iter;
-                    }
-                    if (!mill->post_milling_gcode.empty()) {
-                        of << "( begin post-milling-gcode )\n";
-                        of << mill->post_milling_gcode << "\n";
-                        of << "( end post-milling-gcode )\n";
-                    }
+                  isolation_milling(of, mill, path, leveller, xoffsetTot, yoffsetTot);
                 }
             }
         }
     }
-    
+
     tiling.footer( of );
 
     if (leveller) {
