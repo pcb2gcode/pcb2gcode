@@ -33,9 +33,9 @@ vector<unsigned int> Core::get_bridges( shared_ptr<Cutter> cutter, shared_ptr<ic
     {
         try
         {
-            bridges = outline_bridges::makeBridges( toolpath, 
+            bridges = outline_bridges::makeBridges( toolpath,
                                                     cutter->bridges_num,
-                                                    cutter->bridges_width + cutter->tool_diameter );
+                                                    cutter->bridges_width + cutter->tool_diameter());
 
             if ( bridges.size() != cutter->bridges_num )
                 cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "

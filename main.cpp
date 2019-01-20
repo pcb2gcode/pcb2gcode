@@ -95,10 +95,11 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        // TODO: support more than one mill-diameter.
-        Length tool_diameter = flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())[0];
-        isolator->tool_diameter = tool_diameter.asInch(unit);
-        isolator->overlap_width = boost::apply_visitor(percent_visitor(tool_diameter), vm["milling-overlap"].as<boost::variant<Length, Percent>>()).asInch(unit);
+        for (const auto& tool : flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())) {
+          auto tool_diameter = tool.asInch(unit);
+          auto overlap_width = boost::apply_visitor(percent_visitor(tool_diameter), vm["milling-overlap"].as<boost::variant<Length, Percent>>()).asInch(unit);
+          isolator->tool_diameters_and_overlaps.push_back(std::pair<double, double>(tool_diameter, overlap_width));
+        }
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
@@ -129,7 +130,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("outline") ||
         (vm.count("drill") &&
          vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity()))) {
-      cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+      // There is never an extra_pass so we can ignore the overlap_width.
+      cutter->tool_diameters_and_overlaps.push_back(std::pair<double, double>(vm["cutter-diameter"].as<Length>().asInch(unit), 0));
       cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
       cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
       cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
@@ -421,7 +423,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             }
             // We can modify the cutter because we're not going to use it again.
             if (vm.count("milldrill-diameter")) {
-              cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+              auto new_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+              if (cutter->tool_diameters_and_overlaps.size() < 1) {
+                cutter->tool_diameters_and_overlaps.push_back(std::pair<double, double>(new_diameter, 0));
+              } else {
+                cutter->tool_diameters_and_overlaps[0].first = new_diameter;
+              }
             }
             if (vm.count("zmilldrill")) {
               cutter->zwork = vm["zmilldrill"].as<Length>().asInch(unit);

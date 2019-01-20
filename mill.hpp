@@ -57,10 +57,18 @@ public:
 /******************************************************************************/
 class RoutingMill: public Mill {
  public:
-  double tool_diameter;
+  // For cutters, there is only one element and the overlap doesn't matter.
+  std::vector<std::pair<double, double>> tool_diameters_and_overlaps;
   bool optimise;
   bool eulerian_paths;
-  double overlap_width; // How much to overlap the extra passes.
+  // A fallback for algorithms that don't support extra-passes and overlap.
+  double& tool_diameter() {
+    return tool_diameters_and_overlaps[0].first;
+  }
+  // A fallback for algorithms that don't support extra-passes and overlap.
+  double overlap_width() const {
+    return tool_diameters_and_overlaps[0].second;
+  }
 };
 
 /******************************************************************************/

@@ -366,7 +366,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 {
 
     g_assert(cutter);
-    double cutdiameter = cutter->tool_diameter;
+    double cutdiameter = cutter->tool_diameter();
     bool slot = (start_x != stop_x ||
                  start_y != stop_y);
 
@@ -579,7 +579,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
     of.precision(5);              //Set floating-point decimal precision
 
-    of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
+    of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter() * 25.4) : target->tool_diameter())
        << (bMetricOutput ? "mm" : "inch") << " to drill the " << holes.size()
        << " hole sizes. )" << "\n";
 

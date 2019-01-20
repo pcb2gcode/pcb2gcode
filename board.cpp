@@ -113,7 +113,7 @@ void Board::createLayers()
     double margin = quantization_error;
     try {
       shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
-      ivalue_t tool_diameter = outline_mill->tool_diameter;
+      ivalue_t tool_diameter = outline_mill->tool_diameter();
       if (tool_diameter > margin) {
         margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
       }
@@ -121,19 +121,22 @@ void Board::createLayers()
     for (const auto& layer_name : std::vector<std::string>{"front"}) {
       try {
         shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at(layer_name)));
-        ivalue_t tool_diameter = trace_mill->tool_diameter;
-        // Figure out how much margin the extra passes might make.
-        double extra_passes_margin = tool_diameter + (tool_diameter - trace_mill->overlap_width) * trace_mill->extra_passes;
-        if (extra_passes_margin > margin) {
-          margin = extra_passes_margin;
-        }
-        double isolation_margin = tool_diameter;
-        while (isolation_margin < trace_mill->isolation_width) {
-          // Add passes until we reach the isolation_width.
-          isolation_margin += tool_diameter - trace_mill->overlap_width;
-        }
-        if (isolation_margin > margin) {
-          margin = isolation_margin;
+        for (const auto& diameter_and_overlap : trace_mill->tool_diameters_and_overlaps) {
+          ivalue_t tool_diameter = diameter_and_overlap.first;
+          ivalue_t overlap_width = diameter_and_overlap.second;
+          // Figure out how much margin the extra passes might make.
+          double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * trace_mill->extra_passes;
+          if (extra_passes_margin > margin) {
+            margin = extra_passes_margin;
+          }
+          double isolation_margin = tool_diameter;
+          while (isolation_margin < trace_mill->isolation_width) {
+            // Add passes until we reach the isolation_width.
+            isolation_margin += tool_diameter - overlap_width;
+          }
+          if (isolation_margin > margin) {
+            margin = isolation_margin;
+          }
         }
       } catch (std::logic_error& e) {}
     }

@@ -118,8 +118,9 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         bool mirror) {
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
-    coordinate_type_fp scaled_diameter = mill->tool_diameter * scale;
-    coordinate_type_fp scaled_overlap = mill->overlap_width * scale;
+    // TODO: Support multiple tools.
+    coordinate_type_fp scaled_diameter = mill->tool_diameter() * scale;
+    coordinate_type_fp scaled_overlap = mill->overlap_width() * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     // Extra passes are done on each trace if requested, each offset by half the tool diameter.
