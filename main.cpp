@@ -138,7 +138,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         cutter->vertfeed = cutter->feed / 2;
       cutter->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
       cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
-      cutter->do_steps = true;
       cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
       cutter->optimise = vm["optimise"].as<bool>();
       cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();

@@ -236,7 +236,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                  */
                 shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
 
-                if (cutter && cutter->do_steps)
+                if (cutter)
                 {
 
                     //--------------------------------------------------------------------
