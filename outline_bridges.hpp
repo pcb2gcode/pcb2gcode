@@ -30,10 +30,6 @@ using std::shared_ptr;
 #include "geometry.hpp"
 #include "mill.hpp"
 
-class outline_bridges_exception: virtual std::exception, virtual boost::exception
-{
-};
-
 class outline_bridges
 {
 public:

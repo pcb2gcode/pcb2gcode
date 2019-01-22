@@ -27,8 +27,11 @@ vector<unsigned int> outline_bridges::makeBridges (shared_ptr<icoords> &path, un
   return insertBridges( path, findLongestSegments(path, number, length), length);
 }
 
-//This function finds the longest segments and returns a vector of pair containing the index of path where the segment
-//starts and its length. If no segments longer than "length" can be found, it throws outline_bridges_exception
+/* This function finds the longest segments and returns a vector of pair
+ * containing the index of path where the segment starts and its length. It may
+ * return fewer than the "number" requested if not enough place can be found to
+ * place bridges.
+ */
 vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( const shared_ptr<icoords> path, unsigned int number, double length ) {
   if (number == 0) {
     return {}; // Saves time in the case of 0.
@@ -46,10 +49,7 @@ vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( co
     element = std::max_element( distances.begin(), distances.end(), compare_2nd );  //Find the longest segment
     if( element->second < length || element == distances.end() )  //If it isn't long enough, or if there aren't segments
     {
-      if( output.empty() )
-        throw outline_bridges_exception();  //Throw an exception if no bridges can be created
-      else
-        break;  //Stop looking for bridges and use the ones that can be used
+      break;  //Stop looking for bridges and use the ones that can be used
     }
     output.push_back( *element );    //"save" the iterator
     distances.erase( element );      //Remove the element from the vector
