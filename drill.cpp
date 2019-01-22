@@ -375,7 +375,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     // cutter->stepsize in depth.
     int stepcount = 1;
     if (cutter->do_steps) {
-        stepcount = (int) ceil(abs(cutter->zwork / cutter->stepsize));
+        stepcount = (int) ceil(std::abs(cutter->zwork / cutter->stepsize));
     }
 
     double delta_x = stop_x - start_x;
