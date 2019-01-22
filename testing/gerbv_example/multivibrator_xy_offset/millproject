@@ -17,11 +17,12 @@ cut-infeed=0.19mm
 cut-speed=10000
 cutter-diameter=1.5mm
 milldrill-diameter=0.8mm
-zbridges=-0.6000
-zcut=-0.13mm
+zcut=-1.3mm
 fill-outline=true
 zsafe=0.08
 zchange=1.0
+bridges=5mm
+bridgesnum=4
 
 tile-x=2
 tile-y=3

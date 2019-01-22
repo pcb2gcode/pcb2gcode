@@ -373,10 +373,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     // Find the largest z_step that divides 0 through z_work into
     // evenly sized passes such that each pass is at most
     // cutter->stepsize in depth.
-    int stepcount = 1;
-    if (cutter->do_steps) {
-        stepcount = (int) ceil(std::abs(cutter->zwork / cutter->stepsize));
-    }
+    int stepcount = (int) ceil(std::abs(cutter->zwork / cutter->stepsize));
 
     double delta_x = stop_x - start_x;
     double delta_y = stop_y - start_y;
