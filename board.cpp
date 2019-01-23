@@ -118,8 +118,9 @@ void Board::createLayers()
       }
     }
     for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
-      try {
-        shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at(layer_name)));
+      const auto current_layer = prepared_layers.find(layer_name);
+      if (current_layer != prepared_layers.cend()) {
+        shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
         ivalue_t tool_diameter = trace_mill->tool_diameter;
         // Figure out how much margin the extra passes might make.
         double extra_passes_margin = tool_diameter + (tool_diameter - trace_mill->overlap_width) * trace_mill->extra_passes;
@@ -134,7 +135,7 @@ void Board::createLayers()
         if (isolation_margin > margin) {
           margin = isolation_margin;
         }
-      } catch (std::logic_error& e) {}
+      }
     }
     min_x -= margin;
     max_x += margin;
