@@ -99,7 +99,7 @@ void Board::createLayers()
     for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
     {
         shared_ptr<LayerImporter> importer = get<0>(it->second);
-        float t;
+        double t;
         t = importer->get_min_x();
         if(min_x > t) min_x = t;
         t = importer->get_max_x();
