@@ -132,8 +132,13 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     }
 }
 
+/* Assume that we start at a safe height above the first point in path.  Cut
+ * around the path, handling bridges where needed.  The bridges are identified
+ * by where the bridges begins.  So the bridges is from points with indecies x
+ * to x+1 for each element in the bridges vector.  We can always assume that the
+ * bridge segment and the segments on either side form a straight line. */
 void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
-                                  const vector<unsigned int>& bridges, const double xoffsetTot, const double yoffsetTot) {
+                                  const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot) {
   const unsigned int steps_num = ceil(-cutter->zwork / cutter->stepsize);
 
   for (unsigned int i = 0; i < steps_num; i++) {
@@ -143,33 +148,34 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
     of << "G01 F" << cutter->feed * cfactor << "\n";
 
-    icoords::iterator iter = path->begin();
-    icoords::iterator prev = path->end();      // initializing to quick & dirty sentinel value
+    auto current_bridge = bridges.cbegin();
 
-    vector<unsigned int>::const_iterator currentBridge;
-    currentBridge = bridges.cbegin();
-
-    while (iter != path->end()) {
-      of << "G01 X" << ( iter->first - xoffsetTot ) * cfactor << " Y"
-         << ( iter->second - yoffsetTot ) * cfactor << '\n';
-
-      if (currentBridge != bridges.cend()) {
-        if (z < cutter->bridges_height) {
-          if (*currentBridge == iter - path->begin()) {
-            of << "G01 Z" << cutter->bridges_height * cfactor << '\n';
-          } else if (*currentBridge == prev - path->begin()) {
-            of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-            of << "G01 F" << cutter->feed * cfactor << '\n';
-          }
-        }
-
-        if (*currentBridge == prev - path->begin()) {
-          ++currentBridge;
-        }
+    for (size_t current = 1; current < path->size(); current++) {
+      if (current_bridge != bridges.cend() && *current_bridge == current && z >= cutter->bridges_height) {
+        // We're about to cut to the start of a bridge but there is no need to
+        // stop there so let's just mill right across it.
+        current += 2;
+        current_bridge++;
+      }
+      // We are now cutting to current.
+      // Is this a bridge cut?
+      auto is_bridge_cut = current_bridge != bridges.cend() && *current_bridge == current-1;
+      if (is_bridge_cut) {
+        // We're about to make a bridge cut so we need to go up.  (If we didn't
+        // need to, we would have skipped over it earlier.)
+        of << "G00 Z" << cutter->bridges_height * cfactor << '\n';
       }
 
-      prev = iter;
-      ++iter;
+      // Now cut horizontally.
+      of << "G01 X" << (path->at(current).first - xoffsetTot) * cfactor
+         << " Y"    << (path->at(current).second - yoffsetTot) * cfactor << '\n';
+
+      // Now plunge back down if needed.
+      if (is_bridge_cut) {
+        of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+        of << "G01 F" << cutter->feed * cfactor << '\n';
+        current_bridge++; // We're done with this bridge.
+      }
     }
   }
 }
@@ -287,10 +293,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
 
     // One list of bridges for each path.
-    vector<vector<unsigned int>> all_bridges;
+    vector<vector<size_t>> all_bridges;
     if (cutter) {
       for (const auto& path : toolpaths) {
-        vector<unsigned int> bridges = layer->get_bridges(path);
+        auto bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
       }
     }
