@@ -109,13 +109,14 @@ void Board::createLayers()
 
     // Calculate the maximum possible margin needed.
     double margin = quantization_error;
-    try {
-      shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
+    const auto outline = prepared_layers.find("outline");
+    if (outline != prepared_layers.cend()) {
+      shared_ptr<RoutingMill> outline_mill = get<1>(outline->second);
       ivalue_t tool_diameter = outline_mill->tool_diameter;
       if (tool_diameter > margin) {
         margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
       }
-    } catch (std::logic_error& e) {}
+    }
     for (const auto& layer_name : std::vector<std::string>{"front"}) {
       try {
         shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at(layer_name)));
