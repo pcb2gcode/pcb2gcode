@@ -117,7 +117,7 @@ void Board::createLayers()
         margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
       }
     }
-    for (const auto& layer_name : std::vector<std::string>{"front"}) {
+    for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
       try {
         shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at(layer_name)));
         ivalue_t tool_diameter = trace_mill->tool_diameter;
