@@ -64,9 +64,9 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
 
   if (bg::intersects(vectorial_surface_not_simplified)) {
     cerr << "\nWarning: Geometry of layer '" << name << "' is"
-         << " self-intersecting. This can cause pcb2gcode to produce"
-         << " wildly incorrect toolpaths. You may want to check the"
-         << " g-code output and/or fix your gerber files!\n";
+        " self-intersecting. This can cause pcb2gcode to produce"
+        " wildly incorrect toolpaths. You may want to check the"
+        " g-code output and/or fix your gerber files!\n";
   }
 
   scale = importer->vectorial_scale();
