@@ -217,25 +217,8 @@ void Board::createLayers()
     }
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<shared_ptr<icoords> > Board::get_toolpath(string layername)
-{
-    vector<shared_ptr<icoords> > toolpath;
-
-    try
-    {
-        return layers[layername]->get_toolpaths();
-    }
-    catch (std::logic_error& e)
-    {
-        std::stringstream msg;
-        msg << "class Board: get_toolpath(): layer not available: ";
-        msg << layername << std::endl;
-        throw std::logic_error(msg.str());
-    }
+vector<shared_ptr<icoords> > Board::get_toolpath(string layername) {
+  return layers[layername]->get_toolpaths();
 }
 
 /******************************************************************************/
