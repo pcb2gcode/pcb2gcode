@@ -28,20 +28,11 @@ const uint32_t OLD_COLOR = 0xff0000ff; // blue
 const uint32_t NEW_COLOR = 0x40ff0000; // red
 const uint32_t NEW_BOTH_COLOR = 0xff002000; // The color that the both color is changed to.
 
-// Make a surface of the right size for the input gerber.
+// Make a surface of the right size for the input gerber.  Cairo already sets all the pixels to BACKGROUND_COLOR (0).
 Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double height) {
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface =
-      Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
-                                  width,
-                                  height);
-  guint8* pixels = cairo_surface->get_data();
-  int stride = cairo_surface->get_stride();
-  for (int y = 0; y < cairo_surface->get_height(); y++) {
-    for (int x = 0; x < cairo_surface->get_width(); x++) {
-      *(reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride)) = BACKGROUND_COLOR;
-    }
-  }
-  return cairo_surface;
+  return Cairo::ImageSurface::create(Cairo::FORMAT_ARGB32,
+                                     width,
+                                     height);
 }
 
 // Given a gerber file, return a pixmap that is a rasterized version of that
@@ -103,13 +94,15 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
 
 const string gerber_directory = "testing/gerberimporter";
 
-map<uint32_t, size_t> get_counts(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
+map<uint32_t, size_t> get_counts(const Cairo::RefPtr<Cairo::ImageSurface>& cairo_surface) {
   size_t background = 0, both = 0, unknown = 0;
   // We only care about a few colors: background, match, red, blue, and all the rest.
   guint8* pixels = cairo_surface->get_data();
   int stride = cairo_surface->get_stride();
-  for (int y = 0; y < cairo_surface->get_height(); y++) {
-    for (int x = 0; x < cairo_surface->get_width(); x++) {
+  auto height = cairo_surface->get_height();
+  auto width = cairo_surface->get_width();
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
       auto *current_color = reinterpret_cast<uint32_t *>(pixels + x*4 + y*stride);
       if (*current_color == BACKGROUND_COLOR) {
         *current_color = NEW_BACKGROUND_COLOR;
