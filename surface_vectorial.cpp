@@ -120,20 +120,24 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   auto isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator) {
     vector<vector<shared_ptr<icoords>>> results;
-    for (const auto& tool : isolator->tool_diameters_and_overlap_widths) {
-      results.push_back(get_single_toolpath(isolator, mirror, tool.first, tool.second));
+    const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
+    for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
+      const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
+      results.push_back(
+          get_single_toolpath(isolator, mirror, tool.first, tool.second,
+                              tool_count > 1 ? "_" + std::to_string(tool_index) : ""));
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    return {get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0)};
+    return {get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "")};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
 vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
-    shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width) {
+    shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix) {
     coordinate_type_fp tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp scaled_diameter = tool_diameter * scale;
@@ -163,7 +167,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
     bg::buffer(bounding_box, svg_bounding_box, scaled_diameter / 2 + (scaled_diameter-scaled_overlap) * extra_passes);
 
     const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), scale, svg_bounding_box);
     svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
 
     srand(1);
