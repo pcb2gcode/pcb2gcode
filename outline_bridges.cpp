@@ -24,6 +24,10 @@
 #include <cmath>
 #include <queue>
 
+using std::vector;
+using std::pair;
+using std::shared_ptr;
+
 //This function returns the intermediate point between p0 and p1.
 //With position=0 it returns p0, with position=1 it returns p1,
 //with values between 0 and 1 it returns the relative position between p0 and p1

@@ -21,11 +21,8 @@
 #define OUTLINE_BRIDGES_HPP
 
 #include <vector>
-using std::vector;
-using std::pair;
 
 #include <memory>
-using std::shared_ptr;
 
 #include "geometry.hpp"
 #include "mill.hpp"
@@ -38,7 +35,7 @@ namespace outline_bridges {
  * into the path of the new bridge locations, sorted from smallest to largest
  * index.
  */
-vector<size_t> makeBridges(shared_ptr<icoords> &path, size_t number, double length);
+std::vector<size_t> makeBridges(std::shared_ptr<icoords> &path, size_t number, double length);
 
 }; // namespace outline_bridges
 
