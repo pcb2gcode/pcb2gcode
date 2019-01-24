@@ -306,40 +306,26 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     Tiling::TileInfo *tileInfo = NULL;
 
-    try
-    {
-        cout << "Processing input files... " << flush;
-        board->createLayers();      // throws std::logic_error
-        cout << "DONE.\n";
+    cout << "Processing input files... " << flush;
+    board->createLayers();
+    cout << "DONE.\n";
 
-        if (!vm["no-export"].as<bool>())
-        {
-            shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
-            exporter->add_header(PACKAGE_STRING);
+    if (!vm["no-export"].as<bool>()) {
+      shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
+      exporter->add_header(PACKAGE_STRING);
 
-            if (vm.count("preamble") || vm.count("preamble-text"))
-            {
-                exporter->set_preamble(preamble);
-            }
+      if (vm.count("preamble") || vm.count("preamble-text")) {
+        exporter->set_preamble(preamble);
+      }
 
-            if (vm.count("postamble"))
-            {
-                exporter->set_postamble(postamble);
-            }
+      if (vm.count("postamble")) {
+        exporter->set_postamble(postamble);
+      }
 
-            exporter->export_all(vm);
+      exporter->export_all(vm);
 
-            tileInfo = new Tiling::TileInfo;
-            *tileInfo = exporter->getTileInfo();
-        }
-    }
-    catch (std::logic_error& le)
-    {
-        cout << "Internal Error: " << le.what() << endl;
-    }
-    catch (std::runtime_error& re)
-    {
-        cout << "Runtime Error: " << re.what() << endl;
+      tileInfo = new Tiling::TileInfo;
+      *tileInfo = exporter->getTileInfo();
     }
 
     //---------------------------------------------------------------------------

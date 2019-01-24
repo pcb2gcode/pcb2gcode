@@ -43,41 +43,27 @@ Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir,
 
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double Board::get_width()
-{
-    return layers.begin()->second->surface->get_width_in();
+double Board::get_width() {
+  if (layers.size() < 1) {
+    return 0;
+  }
+  return layers.begin()->second->surface->get_width_in();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double Board::get_height()
-{
-    return layers.begin()->second->surface->get_height_in();
+double Board::get_height() {
+  if (layers.size() < 1) {
+    return 0;
+  }
+  return layers.begin()->second->surface->get_height_in();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-unsigned int Board::get_dpi()
-{
-    return dpi;
+unsigned int Board::get_dpi() {
+  return dpi;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside)
-{
-    // see comment for prep_t in board.hpp
-    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {
+  // see comment for prep_t in board.hpp
+  prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
 }
 
 /******************************************************************************/
@@ -89,7 +75,7 @@ void Board::createLayers()
     const double quantization_error = 2.0 / dpi;
 
     if (!prepared_layers.size())
-        throw std::logic_error("No layers prepared.");
+      return; // Nothing to do.
 
     // start calculating the minimal board size
 
