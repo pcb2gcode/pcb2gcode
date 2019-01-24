@@ -40,11 +40,6 @@ extern "C" {
 #include <gerbv.h>
 }
 
-struct import_exception: virtual std::exception, virtual boost::exception
-{
-};
-typedef boost::error_info<struct tag_my_info, ustring> errorstring;
-
 /******************************************************************************/
 /*
  Pure virtual base class for importers.

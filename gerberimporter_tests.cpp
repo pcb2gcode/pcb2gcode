@@ -142,7 +142,8 @@ void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter(gerber_path);
+  auto g = GerberImporter();
+  BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(false, 360);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
@@ -189,7 +190,8 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter(gerber_path);
+  auto g = GerberImporter();
+  BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(false, 30);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
@@ -255,7 +257,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
-  BOOST_CHECK_THROW(GerberImporter("foo.gbr"), gerber_exception);
+  auto g = GerberImporter();
+  BOOST_CHECK(!g.load_file("foo.gbr"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

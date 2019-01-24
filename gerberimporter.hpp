@@ -38,9 +38,7 @@ extern "C" {
 #include <gerbv.h>
 }
 
-struct gerber_exception: virtual import_exception
-{
-};
+class gerber_exception: public std::exception {};
 
 /******************************************************************************/
 /*
@@ -50,10 +48,11 @@ struct gerber_exception: virtual import_exception
  different file formats and gerber dialects.
  */
 /******************************************************************************/
-class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
-{
+class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter {
 public:
-    GerberImporter(const string path);
+    GerberImporter();
+    bool load_file(const string& path);
+    virtual ~GerberImporter();
 
     virtual gdouble get_min_x() const;
     virtual gdouble get_max_x() const;
@@ -70,7 +69,6 @@ public:
     return scale;
   }
 
-    virtual ~GerberImporter();
 
 protected:
     enum Side { FRONT = 0, BACK = 1 } side;
