@@ -25,17 +25,16 @@ using std::endl;
 
 #include "outline_bridges.hpp"
 
-vector<unsigned int> Core::get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath ) {
-  vector<unsigned int> bridges;
-
-  bridges = outline_bridges::makeBridges(
+vector<size_t> Core::get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath) {
+  auto bridges = outline_bridges::makeBridges(
       toolpath,
       cutter->bridges_num,
       cutter->bridges_width + cutter->tool_diameter );
 
-  if ( bridges.size() != cutter->bridges_num )
+  if (bridges.size() != cutter->bridges_num) {
     cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
         "only " << bridges.size() << " will be created." << endl;
+  }
 
   return bridges;
 }

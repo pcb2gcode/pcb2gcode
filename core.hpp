@@ -47,7 +47,7 @@ public:
     virtual ivalue_t get_height_in() = 0;
     virtual void add_mask(shared_ptr<Core>) = 0;
     
-    virtual vector<unsigned int> get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath);
+    virtual vector<size_t> get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath);
 };
 
 #endif // IMPORTER_H

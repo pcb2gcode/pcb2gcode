@@ -20,6 +20,7 @@ zsafe=0.08
 zchange=1.0
 bridges=5mm
 bridgesnum=4
+zbridges=-0.6mm
 
 tile-x=2
 tile-y=3

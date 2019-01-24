@@ -22,9 +22,46 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/geometry/algorithms/distance.hpp>
 #include <cmath>
+#include <queue>
 
-vector<unsigned int> outline_bridges::makeBridges (shared_ptr<icoords> &path, unsigned int number, double length) {
-  return insertBridges( path, findLongestSegments(path, number, length), length);
+using std::vector;
+using std::pair;
+using std::shared_ptr;
+
+//This function returns the intermediate point between p0 and p1.
+//With position=0 it returns p0, with position=1 it returns p1,
+//with values between 0 and 1 it returns the relative position between p0 and p1
+icoordpair intermediatePoint(icoordpair p0, icoordpair p1, double position) {
+    return icoordpair(p0.first + (p1.first - p0.first) * position,
+                      p0.second + (p1.second - p0.second) * position);
+}
+
+/* This function takes the segments where the bridges must be built (in the form
+ * of vector<pair<uint,double>>, see findLongestSegments), inserts them in the
+ * path and returns an array containing the indexes of each bridge's start.
+ */
+vector<size_t> insertBridges(shared_ptr<icoords> path, vector<pair<size_t, double>> chosenSegments, double length) {
+  path->reserve(path->size() + chosenSegments.size() * 2);  //Just to avoid unnecessary reallocations
+  std::sort(chosenSegments.begin(), chosenSegments.end()); //Sort it (lower index -> higher index)
+
+  vector<size_t> output;
+  for(size_t i = 0; i < chosenSegments.size(); i++) {
+    //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
+    chosenSegments[i].first += 2 * i;
+    icoords temp{
+      intermediatePoint(path->at(chosenSegments[i].first),
+                        path->at(chosenSegments[i].first + 1),
+                        0.5 - (length / chosenSegments[i].second) / 2),
+      intermediatePoint(path->at(chosenSegments[i].first),
+                        path->at(chosenSegments[i].first + 1),
+                        0.5 + (length / chosenSegments[i].second) / 2)
+    };
+    //Insert the bridges in the path
+    path->insert(path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end());
+    output.push_back(chosenSegments[i].first + 1);    //Add the bridges indexes to output
+  }
+
+  return output;
 }
 
 /* This function finds the longest segments and returns a vector of pair
@@ -32,64 +69,42 @@ vector<unsigned int> outline_bridges::makeBridges (shared_ptr<icoords> &path, un
  * return fewer than the "number" requested if not enough place can be found to
  * place bridges.
  */
-vector< pair< unsigned int, double > > outline_bridges::findLongestSegments ( const shared_ptr<icoords> path, unsigned int number, double length ) {
-  if (number == 0) {
-    return {}; // Saves time in the case of 0.
+vector<pair<size_t, double>> findLongestSegments(const shared_ptr<icoords> path, size_t number, double length) {
+  if (number < 1) {
+    return {};
   }
-  vector< pair< unsigned int, double > >::iterator element;
-  vector< pair< unsigned int, double > > distances;
-  vector< pair< unsigned int, double > > output;
-  auto compare_2nd = [](pair<unsigned int, double> a, pair<unsigned int, double> b) { return a.second < b.second; };
-
-  for( unsigned int i = 0; i < path->size() - 1; i++ )
-    distances.push_back( std::make_pair( i, boost::geometry::distance( path->at(i), path->at(i+1) ) ) );
-
-  for( unsigned int i = 0; i < number; i++ )
-  {
-    element = std::max_element( distances.begin(), distances.end(), compare_2nd );  //Find the longest segment
-    if( element->second < length || element == distances.end() )  //If it isn't long enough, or if there aren't segments
-    {
-      break;  //Stop looking for bridges and use the ones that can be used
+  struct greater_2nd {
+    bool operator()(const pair<size_t, double>& a, const pair<size_t, double>& b) {
+      return a.second > b.second;
     }
-    output.push_back( *element );    //"save" the iterator
-    distances.erase( element );      //Remove the element from the vector
+  };
+  // distances.top() will be the smallest element in the list when sorted by
+  // second element of the pair.
+  std::priority_queue<pair<size_t, double>,
+                      vector<pair<size_t, double>>,
+                      greater_2nd> distances;
+
+  for (size_t i = 0; i < path->size() - 1; i++) {
+    auto current_distance = boost::geometry::distance(path->at(i), path->at(i+1));
+    if (current_distance < length) {
+      continue;
+    }
+    if (distances.size() < number || current_distance > distances.top().second) {
+      distances.push(std::make_pair(i, current_distance));
+    }
+    if (distances.size() > number) {
+      distances.pop();
+    }
   }
 
+  vector<pair<size_t, double>> output;
+  while (!distances.empty()) {
+    output.push_back(distances.top());
+    distances.pop();
+  }
   return output;
 }
 
-//This function takes the segments where the bridges must be built (in the form of vector<pair<uint,double>>, see findLongestSegments),
-//inserts them in the path and returns an array containing the indexes of each bridge's start
-vector<unsigned int> outline_bridges::insertBridges ( shared_ptr<icoords> path, vector< pair< unsigned int, double > > chosenSegments, double length )
-{
-    vector<unsigned int> output;
-    icoords temp (2);
-
-    path->reserve( path->size() + chosenSegments.size() * 2 );  //Just to avoid unnecessary reallocations
-    std::sort( chosenSegments.begin(), chosenSegments.end()); //Sort it (lower index -> higher index)
-
-    for( unsigned int i = 0; i < chosenSegments.size(); i++ )
-    {
-        //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
-        chosenSegments[i].first += 2 * i;
-        temp.at(0) = intermediatePoint( path->at( chosenSegments[i].first ),
-                                        path->at( chosenSegments[i].first + 1 ),
-                                        0.5 - ( length / chosenSegments[i].second ) / 2 );
-        temp.at(1) = intermediatePoint( path->at( chosenSegments[i].first ),
-                                        path->at( chosenSegments[i].first + 1 ),
-                                        0.5 + ( length / chosenSegments[i].second ) / 2 );
-        //Insert the bridges in the path
-        path->insert( path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end() );
-        output.push_back( chosenSegments[i].first + 1 );    //Add the bridges indexes to output
-    }
-
-    return output;
-}
-
-//This function returns the intermediate point between p0 and p1.
-//With position=0 it returns p0, with position=1 it returns p1,
-//with values between 0 and 1 it returns the relative position between p0 and p1
-icoordpair outline_bridges::intermediatePoint( icoordpair p0, icoordpair p1, double position )
-{
-    return icoordpair( p0.first + ( p1.first - p0.first ) * position, p0.second + ( p1.second - p0.second ) * position );
+vector<size_t> outline_bridges::makeBridges(shared_ptr<icoords> &path, size_t number, double length) {
+  return insertBridges(path, findLongestSegments(path, number, length), length);
 }
