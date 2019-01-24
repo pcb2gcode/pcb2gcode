@@ -23,6 +23,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <vector>
 
 /******************************************************************************/
 /*
@@ -63,8 +64,9 @@ class RoutingMill: public Mill {
 /******************************************************************************/
 class Isolator: public RoutingMill {
  public:
-  double tool_diameter;
-  double overlap_width; // How much to overlap the extra passes.
+  // Each element is the tool diameter and the overlap width for that tool, both
+  // in inches.
+  std::vector<std::pair<double, double>> tool_diameters_and_overlap_widths;
   int extra_passes;
   bool voronoi;
   bool preserve_thermal_reliefs;

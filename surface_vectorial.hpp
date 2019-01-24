@@ -47,12 +47,12 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable {
   Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
                     string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
-  vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
+  std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::shared_ptr<RoutingMill> mill,
                                             bool mirror);
   void save_debug_image(string message);
   void enable_filling();
-  void add_mask(shared_ptr<Core> surface);
-  void render(shared_ptr<VectorialLayerImporter> importer);
+  void add_mask(std::shared_ptr<Core> surface);
+  void render(std::shared_ptr<VectorialLayerImporter> importer);
 
   inline ivalue_t get_width_in() {
     return width_in;
@@ -74,14 +74,14 @@ protected:
   bool fill;
   const MillFeedDirection::MillFeedDirection mill_feed_direction;
 
-  shared_ptr<multi_polygon_type_fp> vectorial_surface;
+  std::shared_ptr<multi_polygon_type_fp> vectorial_surface;
   coordinate_type_fp scale;
   box_type_fp bounding_box;
 
-  shared_ptr<Surface_vectorial> mask;
+  std::shared_ptr<Surface_vectorial> mask;
 
-  vector<shared_ptr<icoords>> get_single_toolpath(
-      shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width);
+  std::vector<std::shared_ptr<icoords>> get_single_toolpath(
+      std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width);
   // Points that are very close to each other, probably because of a
   // rounding error, are merged together to a single location.
   static size_t merge_near_points(multi_linestring_type_fp& mls);
@@ -94,7 +94,7 @@ protected:
   // is larger than the half the thickness of the thermal relief.
   // Returns the number of thermal reliefs found and filled.
   size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
-  vector<multi_polygon_type_fp> offset_polygon(
+  std::vector<multi_polygon_type_fp> offset_polygon(
       const polygon_type_fp& input,
       const polygon_type_fp& voronoi,
       bool& contentions, coordinate_type_fp scaled_diameter,
@@ -123,7 +123,7 @@ public:
     svg_writer(string filename, coordinate_type_fp scale, box_type_fp bounding_box);
     template <typename multi_polygon_type_t>
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
-    void add(const vector<polygon_type_fp>& geometries, double opacity,
+    void add(const std::vector<polygon_type_fp>& geometries, double opacity,
         int r = -1, int g = -1, int b = -1);
 
 protected:

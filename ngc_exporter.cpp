@@ -225,7 +225,7 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    vector<shared_ptr<icoords> > toolpaths = layer->get_toolpaths();
+    vector<vector<shared_ptr<icoords>>> all_toolpaths = layer->get_toolpaths();
 
     Tiling tiling( tileInfo, cfactor );
     tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
@@ -276,7 +276,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if (leveller) {
-      if(!leveller->prepareWorkarea(toolpaths)) {
+      if(!leveller->prepareWorkarea(all_toolpaths)) {
         options::maybe_throw(std::string("Required number of probe points (") + std::to_string(leveller->requiredProbePoints()) +
                              ") exceeds the maximum number (" + std::to_string(leveller->maxProbePoints()) + "). "
                              "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
@@ -296,7 +296,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;
     if (cutter) {
-      for (const auto& path : toolpaths) {
+      for (const auto& path : all_toolpaths[0]) {  // Cutter layer can only have one tool_diameter.
         auto bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
       }
@@ -311,7 +311,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
             // contours
-            for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
+            for (const auto& toolpaths : all_toolpaths) {
+              for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
                 shared_ptr<icoords> path = toolpaths[path_index];
 
                 // retract, move to the starting point of the next contour
@@ -328,6 +329,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                 } else {
                   isolation_milling(of, mill, path, leveller, xoffsetTot, yoffsetTot);
                 }
+              }
             }
         }
     }

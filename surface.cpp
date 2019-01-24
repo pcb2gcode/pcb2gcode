@@ -130,9 +130,8 @@ double distancePointLine(const icoordpair &x, const icoordpair &la,
 /*
  */
 /******************************************************************************/
-vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirrored)
-{
+vector<vector<shared_ptr<icoords>>> Surface::get_toolpath(
+    shared_ptr<RoutingMill> mill, bool mirrored) {
     shared_ptr<Isolator> iso = dynamic_pointer_cast<Isolator>(mill);
     int extra_passes = iso ? iso->extra_passes : 0;
 
@@ -142,7 +141,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     int contentions = 0;
     int grow;
     if (iso) {
-      grow = iso->tool_diameter / 2 * dpi;
+      grow = iso->tool_diameters_and_overlap_widths[0].first / 2 * dpi;
     } else {
       shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
       if (cutter) {
@@ -217,7 +216,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
     save_debug_image("traced_" + name);
 
-    return toolpath;
+    return {toolpath};
 }
 
 /******************************************************************************/

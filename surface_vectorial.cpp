@@ -115,16 +115,19 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
   return result;
 }
 
-vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(
+vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   auto isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator) {
-    // TODO: Support multiple tools and overlaps widths.
-    return get_single_toolpath(isolator, mirror, isolator->tool_diameter, isolator->overlap_width);
+    vector<vector<shared_ptr<icoords>>> results;
+    for (const auto& tool : isolator->tool_diameters_and_overlap_widths) {
+      results.push_back(get_single_toolpath(isolator, mirror, tool.first, tool.second));
+    }
+    return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    return get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0);
+    return {get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0)};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }

@@ -96,9 +96,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     {
         isolator = shared_ptr<Isolator>(new Isolator());
         // TODO: support more than one mill-diameter.
-        Length tool_diameter = flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())[0];
-        isolator->tool_diameter = tool_diameter.asInch(unit);
-        isolator->overlap_width = boost::apply_visitor(percent_visitor(tool_diameter), vm["milling-overlap"].as<boost::variant<Length, Percent>>()).asInch(unit);
+        for (const auto& tool_diameter : flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())) {
+          isolator->tool_diameters_and_overlap_widths.push_back(
+              std::make_pair(
+                  tool_diameter.asInch(unit),
+                  boost::apply_visitor(percent_visitor(tool_diameter), vm["milling-overlap"].as<boost::variant<Length, Percent>>()).asInch(unit)));
+        }
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
