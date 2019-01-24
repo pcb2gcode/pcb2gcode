@@ -26,7 +26,6 @@ G00 X-3.02047 Y-3.60000 ( rapid move to begin. )
 G01 Z-0.00512 F50.00000 ( plunge. )
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F100.00000
-G01 X-3.02047 Y-3.60000
 G01 X-3.02047 Y-2.35000
 G01 X-3.02104 Y-2.34424
 G01 X-3.02272 Y-2.33870
