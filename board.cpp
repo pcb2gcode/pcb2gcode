@@ -19,6 +19,7 @@
  */
 
 #include "board.hpp"
+#include <memory>
 
 using std::get;
 using std::static_pointer_cast;
@@ -97,7 +98,7 @@ void Board::createLayers()
     double margin = quantization_error;
     const auto outline = prepared_layers.find("outline");
     if (outline != prepared_layers.cend()) {
-      shared_ptr<RoutingMill> outline_mill = get<1>(outline->second);
+      shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
       ivalue_t tool_diameter = outline_mill->tool_diameter;
       if (tool_diameter > margin) {
         margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
@@ -161,7 +162,7 @@ void Board::createLayers()
                                                 prepared_layer.first, outputdir, tsp_2opt));
         if (fill)
           surface->enable_filling(outline_width);
-        surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
+        surface->render(raster_layer_importer);
         shared_ptr<Layer> layer(new Layer(prepared_layer.first,
                                           surface,
                                           get<1>(prepared_layer.second),
