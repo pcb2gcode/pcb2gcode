@@ -20,7 +20,7 @@ M0      (Temporary machine stop.)
 M3 ( Spindle on clockwise. )
 G04 P1.00000 (Wait for spindle to get up to speed)
 
-o1 sub ( Main subroutine )
+o200 sub ( Main subroutine )
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
@@ -67,19 +67,19 @@ G01 X4.57272 Y-3.46130
 G01 X4.57104 Y-3.45576
 G01 X4.57047 Y-3.45000
 
-o1 endsub
+o200 endsub
 
-o1 call
+o200 call
 G92 X[#5420-[2.174016]]
-o1 call
+o200 call
 G92 X[#5420-[2.174016]]
-o1 call
+o200 call
 G92 Y[#5421-[1.274016]]
-o1 call
+o200 call
 G92 X[#5420-[-2.174016]]
-o1 call
+o200 call
 G92 X[#5420-[-2.174016]]
-o1 call
+o200 call
 G92 Y[#5421-[-1.274016]]
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )

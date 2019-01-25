@@ -115,7 +115,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 
     preamble += "G90       (Absolute coordinates.)\n";
 
-    tiling = new Tiling( tileInfo, cfactor );
+    tiling = new Tiling( tileInfo, cfactor, ocodes.getUniqueCode() );
 }
 
 /******************************************************************************/
