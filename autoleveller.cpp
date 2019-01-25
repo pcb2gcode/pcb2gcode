@@ -26,7 +26,14 @@
 #include <boost/geometry/algorithms/distance.hpp>
 
 #include <boost/format.hpp>
+#include <memory>
+#include <vector>
 using boost::format;
+using std::shared_ptr;
+using std::vector;
+using std::endl;
+using std::to_string;
+using std::string;
 
 #include "units.hpp"
 

@@ -25,22 +25,10 @@
 #include <forward_list>
 #include <map>
 #include <algorithm>
-using std::vector;
-using std::list;
-using std::forward_list;
-using std::map;
-using std::pair;
-using std::copy;
-using std::swap;
 
 #include <fstream>
-using std::ofstream;
 
 #include <memory>
-using std::shared_ptr;
-using std::dynamic_pointer_cast;
-using std::make_shared;
-using std::make_pair;
 
 #include <boost/noncopyable.hpp>
 
@@ -54,9 +42,8 @@ using std::make_pair;
 /*
  */
 /******************************************************************************/
-class Surface_vectorial: public Core, virtual public boost::noncopyable
-{
-public:
+class Surface_vectorial: public Core, virtual public boost::noncopyable {
+ public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
                     string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
@@ -138,7 +125,7 @@ public:
         int r = -1, int g = -1, int b = -1);
 
 protected:
-    ofstream output_file;
+    std::ofstream output_file;
     box_type_fp bounding_box;
     unique_ptr<bg::svg_mapper<point_type_fp> > mapper;
 };

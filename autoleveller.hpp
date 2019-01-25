@@ -27,18 +27,9 @@
 #define FIXED_FAIL_DEPTH_MM "-3"
 
 #include <string>
-using std::string;
-using std::to_string;
-
 #include <fstream>
-using std::endl;
-
 #include <vector>
-using std::vector;
-
 #include <memory>
-using std::shared_ptr;
-
 #include <boost/program_options.hpp>
 
 #include "geometry.hpp"
@@ -57,7 +48,7 @@ public:
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
     // All the arguments must be in inches
-    bool prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    bool prepareWorkarea( std::vector<std::shared_ptr<icoords> > &toolpaths );
 
     // header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
     // only the probe calls for the other softwares)
@@ -71,11 +62,11 @@ public:
     // required number of points between the previous and the current point and it interpolates them too.
     // This function adds a new chain point. Always call setLastChainPoint before starting a new chain
     // (call it also for the 1st chain)
-    string addChainPoint ( icoordpair point );
+    std::string addChainPoint ( icoordpair point );
 
     // g01Corrected interpolates only one point (without adding it to the chain), and it prints a G01 to that
     // position
-    string g01Corrected ( icoordpair point );
+    std::string g01Corrected ( icoordpair point );
 
     // Set lastPoint as the last chain point. You can use this function when you want to start a new chain
     inline void setLastChainPoint ( icoordpair lastPoint )
@@ -109,18 +100,18 @@ public:
     const double input_unitconv;
     const double output_unitconv;
     const double cfactor;
-    const string probeCodeCustom;
-    const string zProbeResultVarCustom;
-    const string setZZeroCustom;
+    const std::string probeCodeCustom;
+    const std::string zProbeResultVarCustom;
+    const std::string setZZeroCustom;
     const double XProbeDistRequired;
     const double YProbeDistRequired;
-    const string zwork;
-    const string zprobe;
-    const string zsafe;
-    const string zfail;
-    const string feedrate;
-    const string probeOn;
-    const string probeOff;
+    const std::string zwork;
+    const std::string zprobe;
+    const std::string zsafe;
+    const std::string zfail;
+    const std::string feedrate;
+    const std::string probeOn;
+    const std::string probeOff;
     const Software::Software software;
     const double quantization_error;
     const double xoffset;
@@ -134,22 +125,22 @@ public:
     const unsigned int xProbeNum;
     
     // Global variables
-    const string returnVar;
-    const string globalVar0;
-    const string globalVar1;
-    const string globalVar2;
-    const string globalVar3;
-    const string globalVar4;
-    const string globalVar5;
+    const std::string returnVar;
+    const std::string globalVar0;
+    const std::string globalVar1;
+    const std::string globalVar2;
+    const std::string globalVar3;
+    const std::string globalVar4;
+    const std::string globalVar5;
     
     const struct Tiling::TileInfo tileInfo;
     const unsigned int initialXOffsetVar;
     const unsigned int initialYOffsetVar;
 
-    static const string callSubRepeat[];
-    static const string probeCode[];
-    static const string zProbeResultVar[];
-    static const string setZZero[];
+    static const std::string callSubRepeat[];
+    static const std::string probeCode[];
+    static const std::string zProbeResultVar[];
+    static const std::string setZZero[];
 
 protected:
     double startPointX;
@@ -161,30 +152,30 @@ protected:
     double averageProbeDist;
     uniqueCodes *ocodes;
 
-    string callSub2[3];
+    std::string callSub2[3];
 
     icoordpair lastPoint;
 
     //computeWorkarea computes the occupied rectangule of toolpaths
-    box_type_fp computeWorkarea( vector<shared_ptr<icoords> > &toolpaths );
+    box_type_fp computeWorkarea( std::vector<std::shared_ptr<icoords> > &toolpaths );
 
     // footerNoIf prints the footer, regardless of the software
     void footerNoIf( std::ofstream &of );
 
     // getVarName returns the string containing the variable name associated with the probe point with
     // the indexes i and j
-    string getVarName( int i, int j );
+    std::string getVarName( int i, int j );
 
     // interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
     // The result of the interpolation is saved in the parameter number RESULT_VAR
-    string interpolatePoint ( icoordpair point );
+    std::string interpolatePoint ( icoordpair point );
 
     // numOfSubsegments returns the right number of subsegments in order to approximate the line in the
     // best way possible
     unsigned int numOfSubsegments ( icoordpair point );
 
     // splitSegment splits the segment between lastPoint and point in n subsegments, and returns the
-    // icoords (aka vector<icoordpair>) containing them
+    // icoords (aka std::vector<icoordpair>) containing them
     icoords splitSegment ( const icoordpair point, const unsigned int n );
 };
 

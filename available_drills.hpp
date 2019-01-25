@@ -29,8 +29,8 @@ class AvailableDrill {
     out << ":" << negative_tolerance << ":+" << positive_tolerance;
     return out;
   }
-  void read(const string& input_string) {
-    std::vector<string> drill_parts;
+  void read(const std::string& input_string) {
+    std::vector<std::string> drill_parts;
     boost::split(drill_parts, input_string, boost::is_any_of(":"));
     switch (drill_parts.size()) {
       case 3:

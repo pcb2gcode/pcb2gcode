@@ -474,7 +474,7 @@ class CommaSeparated {
     return out;
   }
   std::istream& read(std::istream& in) {
-    std::vector<string> unit_strings;
+    std::vector<std::string> unit_strings;
     std::string input_string(std::istreambuf_iterator<char>(in), {});
     boost::split(unit_strings, input_string, boost::is_any_of(","));
     for (const auto& unit_string : unit_strings) {
