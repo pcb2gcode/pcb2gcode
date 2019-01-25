@@ -29,6 +29,7 @@ using std::flush;
 using std::ios_base;
 using std::left;
 using std::to_string;
+using std::cout;
 
 #include <cmath>
 using std::ceil;

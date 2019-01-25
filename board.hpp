@@ -27,25 +27,10 @@
 #include <sstream>
 
 #include <iostream>
-using std::cout;
-using std::endl;
-
 #include <map>
-using std::map;
 #include <vector>
-using std::vector;
-using std::pair;
-
 #include <memory>
-using std::shared_ptr;
-using std::dynamic_pointer_cast;
-using std::static_pointer_cast;
-
 #include <tuple>
-using std::tuple;
-using std::make_tuple;
-using std::get;
-
 #include "geometry.hpp"
 #include "surface.hpp"
 #include "surface_vectorial.hpp"
@@ -109,7 +94,7 @@ private:
      * prep_t tuples, whose signature must basically match the construction
      * signature of Layer.
      */
-    typedef tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
+    typedef std::tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
     map<string, prep_t> prepared_layers;
     map<string, shared_ptr<Layer> > layers;
 };

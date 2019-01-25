@@ -20,6 +20,9 @@
 
 #include "board.hpp"
 
+using std::get;
+using std::static_pointer_cast;
+
 typedef pair<string, shared_ptr<Layer> > layer_t;
 
 /******************************************************************************/
