@@ -41,6 +41,7 @@ using Glib::build_filename;
 using std::max;
 using std::max_element;
 using std::next;
+using std::dynamic_pointer_cast;
 
 unsigned int Surface_vectorial::debug_image_index = 0;
 
