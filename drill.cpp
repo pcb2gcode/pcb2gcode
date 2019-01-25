@@ -44,6 +44,12 @@ using boost::format;
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
 
+#include <string>
+using std::string;
+
+#include <map>
+using std::map;
+
 #include "drill.hpp"
 #include "tsp_solver.hpp"
 #include "common.hpp"
