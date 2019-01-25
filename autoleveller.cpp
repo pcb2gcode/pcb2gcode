@@ -33,6 +33,7 @@ using std::shared_ptr;
 using std::vector;
 using std::endl;
 using std::to_string;
+using std::string;
 
 #include "units.hpp"
 
