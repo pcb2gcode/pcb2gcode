@@ -22,6 +22,8 @@
 #include <iostream>
 using std::cerr;
 using std::endl;
+using std::vector;
+using std::shared_ptr;
 
 #include "outline_bridges.hpp"
 
