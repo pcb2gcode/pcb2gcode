@@ -227,14 +227,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     vector<vector<shared_ptr<icoords>>> all_toolpaths = layer->get_toolpaths();
 
-    Tiling tiling( tileInfo, cfactor );
-    tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
-        + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
-        " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
-        to_string(mill->spindown_time) +
-        "\nM9 ( Coolant off. )\n"
-        "M2 ( Program end. )\n\n" );
-
     globalVars.getUniqueCode();
     globalVars.getUniqueCode();
 
@@ -285,13 +277,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       leveller->header(of);
     }
 
-    of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n"
-       << "M3 ( Spindle on clockwise. )\n"
-       << "G04 P" << mill->spinup_time << "\n";
-
-    tiling.header( of );
-
     shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
+    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
 
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;
@@ -302,40 +289,78 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       }
     }
 
-    for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
+    for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
+      Tiling tiling( tileInfo, cfactor );
+      tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
+                         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) + 
+                         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
+                         to_string(mill->spindown_time) +
+                         "\nM9 ( Coolant off. )\n"
+                         "M2 ( Program end. )\n\n" );
+
+      // Start the new tool.
+      of << endl
+         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
+         << "T" << toolpaths_index << endl
+         << "M5      (Spindle stop.)" << endl
+         << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;
+      if (cutter) {
+        of << "(MSG, Change tool bit to cutter diameter ";
+        if (bMetricoutput) {
+          of << (cutter->tool_diameter * 25.4) << "mm)" << endl;
+        } else {
+          of << cutter->tool_diameter << "in)" << endl;
+        }
+      } else if (isolator) {
+        of << "(MSG, Change tool bit to mill diameter ";
+        if (bMetricoutput) {
+          of << (isolator->tool_diameters_and_overlap_widths[toolpaths_index].first * 25.4) << "mm)" << endl;
+        } else {
+          of << isolator->tool_diameters_and_overlap_widths[toolpaths_index].first << "in)" << endl;
+        }
+      } else {
+        throw std::logic_error("Can't cast to Cutter nor Isolator.");
+      }
+      of << "M6      (Tool change.)" << endl
+         << "M0      (Temporary machine stop.)" << endl
+         << "M3 ( Spindle on clockwise. )" << endl
+         << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << endl;
+
+      tiling.header( of );
+
+      for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
         double yoffsetTot = yoffset - i * tileInfo.boardHeight;
         for( unsigned int j = 0; j < tileInfo.forXNum; j++ ) {
-            double xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
+          double xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
-            if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
-                of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
+          if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
+            of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
-            // contours
-            for (const auto& toolpaths : all_toolpaths) {
-              for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
-                shared_ptr<icoords> path = toolpaths[path_index];
+          // contours
+          const auto& toolpaths = all_toolpaths[toolpaths_index];
+          for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
+            shared_ptr<icoords> path = toolpaths[path_index];
 
-                // retract, move to the starting point of the next contour
-                of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-                of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n\n";
-                of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
-                   << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
+            // retract, move to the starting point of the next contour
+            of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+            of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << endl << endl;
+            of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
+               << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
-                /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
-                 * i know this is partially repetitive, but this way it's easier to read
-                 */
-                if (cutter) {
-                  cutter_milling(of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
-                } else {
-                  isolation_milling(of, mill, path, leveller, xoffsetTot, yoffsetTot);
-                }
-              }
+            /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
+             * i know this is partially repetitive, but this way it's easier to read
+             */
+            if (cutter) {
+              cutter_milling(of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
+            } else {
+              isolation_milling(of, mill, path, leveller, xoffsetTot, yoffsetTot);
             }
+          }
         }
+      }
+
+      tiling.footer( of );
     }
-
-    tiling.footer( of );
-
     if (leveller) {
       leveller->footer(of);
     }

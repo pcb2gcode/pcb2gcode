@@ -8,9 +8,16 @@ G90 ( Absolute coordinates. )
 G00 S10000 ( RPM spindle speed. )
 G01 F360.00000 ( Feedrate. )
 
-G01 F360.00000 ( Feedrate. )
+
+G00 Z50.00000 (Retract to tool change height)
+T0
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to mill diameter 0.00000mm)
+M6      (Tool change.)
+M0      (Temporary machine stop.)
 M3 ( Spindle on clockwise. )
-G04 P1.00000
+G04 P1.00000 (Wait for spindle to get up to speed)
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z10.00000 ( retract )
 

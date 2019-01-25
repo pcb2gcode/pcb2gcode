@@ -76,9 +76,16 @@ G0 Z0.080 ( Move Z to safe height )
 (MSG, Detach the probe tool)
 M0 ( Temporary machine stop. )
 
-G01 F360.00000 ( Feedrate. )
+
+G00 Z1.00000 (Retract to tool change height)
+T0
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to mill diameter 0.00000in)
+M6      (Tool change.)
+M0      (Temporary machine stop.)
 M3 ( Spindle on clockwise. )
-G04 P1.00000
+G04 P1.00000 (Wait for spindle to get up to speed)
 
 o1 sub ( Main subroutine )
 
