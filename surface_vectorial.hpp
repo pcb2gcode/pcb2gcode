@@ -80,7 +80,7 @@ protected:
 
   std::shared_ptr<Surface_vectorial> mask;
 
-  std::vector<std::shared_ptr<icoords>> get_single_toolpath(
+  multi_linestring_type_fp get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix);
   // Points that are very close to each other, probably because of a
   // rounding error, are merged together to a single location.

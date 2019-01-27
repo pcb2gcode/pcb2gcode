@@ -12,6 +12,17 @@ static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model
   return ret;
 }
 
+template <typename linestring_type_t, typename rhs_t>
+static inline bg::model::multi_linestring<linestring_type_t> operator-(const bg::model::multi_linestring<linestring_type_t>& lhs,
+                                                                       const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  bg::model::multi_linestring<linestring_type_t> ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
+
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {
@@ -112,17 +123,13 @@ void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_o
 }
 
 template<typename CoordinateType>
-void buffer(multi_linestring_type const & geometry_in, multi_polygon_type & geometry_out, CoordinateType expand_by) {
-  multi_linestring_type_fp geometry_in_fp;
-  bg::convert(geometry_in, geometry_in_fp);
-  multi_polygon_type_fp geometry_out_fp;
-  bg::buffer(geometry_in_fp, geometry_out_fp,
+void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+  bg::buffer(geometry_in, geometry_out,
              bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(points_per_circle),
              bg::strategy::buffer::end_round(points_per_circle),
              bg::strategy::buffer::point_circle(points_per_circle));
-  bg::convert(geometry_out_fp, geometry_out);
 }
 
 template<typename CoordinateType>

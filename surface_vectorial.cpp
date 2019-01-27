@@ -104,7 +104,7 @@ multi_linestring_type_fp scale_and_mirror_toolpath(
   return result;
 }
 
-vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp mls) {
+vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp& mls) {
   vector<shared_ptr<icoords>> result;
   for (const auto& ls : mls) {
     result.push_back(make_shared<icoords>());
@@ -120,25 +120,39 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   auto isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator) {
     vector<vector<shared_ptr<icoords>>> results;
+    // Area that was already milled.
+    multi_polygon_type_fp already_milled;
     const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
-      results.push_back(
-          get_single_toolpath(isolator, mirror, tool.first, tool.second,
-                              tool_count > 1 ? "_" + std::to_string(tool_index) : ""));
+      const auto tool_diameter = tool.first;
+      const auto overlap_width = tool.second;
+      auto new_toolpath = get_single_toolpath(isolator, mirror, tool_diameter, overlap_width,
+                                              tool_count > 1 ? "_" + std::to_string(tool_index) : "");
+      multi_polygon_type_fp already_milled_shrunk;
+      bg_helpers::buffer(already_milled, already_milled_shrunk, -tool_diameter/2 + mill->tolerance);
+      new_toolpath = new_toolpath - already_milled_shrunk;
+      results.push_back(mls_to_icoords(new_toolpath));
+      if (tool_index + 1 == tool_count) {
+        // No point in updating the already_milled.
+        break;
+      }
+      multi_polygon_type_fp new_toolpath_bufferred;
+      bg_helpers::buffer(new_toolpath, new_toolpath_bufferred, tool_diameter/2);
+      already_milled = already_milled + new_toolpath_bufferred;
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    return {get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "")};
+    return {mls_to_icoords(get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, ""))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
-vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
+multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix) {
-    coordinate_type_fp tolerance = mill->tolerance * scale;
+    coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp scaled_diameter = tool_diameter * scale;
     coordinate_type_fp scaled_overlap = overlap_width * scale;
@@ -148,11 +162,11 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
     const int extra_passes = isolator ? isolator->extra_passes : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
-    if (tolerance <= 0)
-        tolerance = 0.0001 * scale;
+    if (scaled_tolerance <= 0)
+        scaled_tolerance = 0.0001 * scale;
 
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-      preserve_thermal_reliefs(*vectorial_surface, std::max(scaled_diameter + (scaled_diameter-scaled_overlap) * extra_passes + tolerance, tolerance));
+      preserve_thermal_reliefs(*vectorial_surface, scaled_diameter + (scaled_diameter-scaled_overlap) * extra_passes + scaled_tolerance);
     }
 
     bg::unique(*vectorial_surface);
@@ -160,7 +174,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
     bg::convert(bounding_box, voronoi_bounding_box);
     multi_polygon_type voronoi_vectorial_surface;
     bg::convert(*vectorial_surface, voronoi_vectorial_surface);
-    multi_polygon_type_fp voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, tolerance);
+    multi_polygon_type_fp voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, scaled_tolerance);
 
     box_type_fp svg_bounding_box;
 
@@ -230,7 +244,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_single_toolpath(
       bg::simplify(scaled_toolpath, temp_mls, mill->tolerance);
       scaled_toolpath = temp_mls;
     }
-    return mls_to_icoords(scaled_toolpath);
+    return scaled_toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
