@@ -78,7 +78,7 @@ void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & g
     bg::convert(geometry_in, geometry_out);
   } else {
     bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(points_per_circle),
                bg::strategy::buffer::end_round(points_per_circle),
@@ -92,7 +92,7 @@ void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometr
     bg::convert(geometry_in, geometry_out);
   } else {
     bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(points_per_circle),
                bg::strategy::buffer::end_round(points_per_circle),
@@ -117,7 +117,7 @@ void buffer(multi_linestring_type const & geometry_in, multi_polygon_type & geom
   bg::convert(geometry_in, geometry_in_fp);
   multi_polygon_type_fp geometry_out_fp;
   bg::buffer(geometry_in_fp, geometry_out_fp,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+             bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(points_per_circle),
              bg::strategy::buffer::end_round(points_per_circle),
@@ -134,7 +134,7 @@ void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_o
     bg::convert(geometry_in, geometry_in_fp);
     multi_polygon_type_fp geometry_out_fp;
     bg::buffer(geometry_in_fp, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(),
                bg::strategy::buffer::end_round(),
