@@ -21,7 +21,9 @@
 #include <limits>
 using std::numeric_limits;
 
+#include <algorithm>
 #include <iostream>
+#include <cmath>
 using std::cerr;
 using std::endl;
 
@@ -158,8 +160,15 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     coordinate_type_fp scaled_overlap = overlap_width * scale;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
-    // Extra passes are done on each trace if requested, each offset by half the tool diameter.
-    const int extra_passes = isolator ? isolator->extra_passes : 0;
+    // Extra passes are done on each trace if requested,
+    // each offset by the tool diameter less the overlap requested.
+    const int extra_passes =
+        isolator
+        ? std::max(
+            isolator->extra_passes,
+            int(std::ceil((isolator->isolation_width - tool_diameter) /
+                          (tool_diameter - overlap_width))))
+        : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
     if (scaled_tolerance <= 0)
