@@ -166,8 +166,10 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
         isolator
         ? std::max(
             isolator->extra_passes,
-            int(std::ceil((isolator->isolation_width - tool_diameter) /
-                          (tool_diameter - overlap_width))))
+            int(std::ceil(
+                (isolator->isolation_width - tool_diameter) /
+                (tool_diameter - overlap_width)
+                - isolator->tolerance))) // In case it divides evenly, do fewer passes.
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 

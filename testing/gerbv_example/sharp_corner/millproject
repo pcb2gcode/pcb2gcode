@@ -1,7 +1,7 @@
 back=sharp_corner-B.Cu.gbr
 
 mill-diameters=1mm,0.1mm
-extra-passes=1
+isolation-width=1.5mm
 vectorial=true
 mill-feed=360 in/min
 mill-speed=200rotations/second
