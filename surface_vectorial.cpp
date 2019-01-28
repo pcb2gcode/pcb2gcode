@@ -123,39 +123,45 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   if (isolator) {
     vector<vector<shared_ptr<icoords>>> results;
     // Area that was already milled.
-    multi_polygon_type_fp already_milled;
+    multi_polygon_type_fp scaled_already_milled;
     const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
-      const auto tool_diameter = tool.first;
-      const auto overlap_width = tool.second;
-      auto new_toolpath = get_single_toolpath(isolator, mirror, tool_diameter, overlap_width,
-                                              tool_count > 1 ? "_" + std::to_string(tool_index) : "");
-      multi_polygon_type_fp already_milled_shrunk;
-      bg_helpers::buffer(already_milled, already_milled_shrunk, -tool_diameter/2 + mill->tolerance);
-      new_toolpath = new_toolpath - already_milled_shrunk;
-      results.push_back(mls_to_icoords(new_toolpath));
+      const auto scaled_tool_diameter = tool.first * scale;
+      const auto scaled_tolerance = mill->tolerance * scale;
+      multi_polygon_type_fp scaled_already_milled_shrunk;
+      bg_helpers::buffer(scaled_already_milled, scaled_already_milled_shrunk, -scaled_tool_diameter/2 + scaled_tolerance);
+      auto new_toolpath = get_single_toolpath(isolator, mirror, tool.first, tool.second,
+                                              tool_count > 1 ? "_" + std::to_string(tool_index) : "",
+                                              scaled_already_milled_shrunk);
+      results.push_back(mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale)));
       if (tool_index + 1 == tool_count) {
         // No point in updating the already_milled.
         break;
       }
       multi_polygon_type_fp new_toolpath_bufferred;
-      bg_helpers::buffer(new_toolpath, new_toolpath_bufferred, tool_diameter/2);
-      already_milled = already_milled + new_toolpath_bufferred;
+      bg_helpers::buffer(new_toolpath, new_toolpath_bufferred, scaled_tool_diameter/2);
+      scaled_already_milled = scaled_already_milled + new_toolpath_bufferred;
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    return {mls_to_icoords(get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, ""))};
+    return {
+      mls_to_icoords(
+          scale_and_mirror_toolpath(
+              get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp()),
+              mirror,
+              scale))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
-// Given a ring, attach it to one of the ends of the toolpath.  Only attach if
-// there is a point on the ring that is close enough to the toolpath endpoint.
-// toolpath must not be empty.
-bool attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
+// Given a linestring which has the same front and back (so it's actually a
+// ring), attach it to one of the ends of the toolpath.  Only attach if there is
+// a point on the ring that is close enough to the toolpath endpoint.  toolpath
+// must not be empty.
+bool attach_ring(const linestring_type_fp& ring, linestring_type_fp& toolpath,
                  const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
@@ -196,31 +202,82 @@ bool attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
   return true;
 }
 
-// Given a ring, attach it to one of the toolpaths.  Only attach if there is a
-// point on the ring that is close enough to one of the toolpaths' endpoints.
-// If none of the toolpaths have a close enough endpint, a new toolpath is added
-// to the list of toolpaths.
-void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+bool attach_ls(const linestring_type_fp& ls, linestring_type_fp& toolpath,
+               const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+  if (dir == MillFeedDirection::CONVENTIONAL) {
+    // We need to attach the reversed list, either:
+    // toolpath.front() ... toolpath.back() ls.back() ... ls.front()
+    // ls.back() ... ls.front() toolpath.front() ... toolpath.back()
+    // Whichever one obeys max_distance.
+    if (bg::distance(toolpath.back(), ls.back()) < max_distance * 10) { // TODO remove 10
+      toolpath.insert(toolpath.end(), ls.crbegin(), ls.crend());
+      return true;
+    } else if (bg::distance(ls.front(), toolpath.front()) < max_distance) {
+      toolpath.insert(toolpath.begin(), ls.crbegin(), ls.crend());
+      return true;
+    }
+  } else {
+    // Attach the list in the forward direction, either:
+    // toolpath.front() ... toolpath.back() ls.front() ... ls.back()
+    // ls.front() ... ls.back() toolpath.front() ... toolpath.back()
+    // Whichever one obeys max_distance.
+    if (bg::distance(toolpath.back(), ls.front()) < max_distance * 10) { // TODO remove 10
+      toolpath.insert(toolpath.end(), ls.cbegin(), ls.cend());
+      return true;
+    } else if (bg::distance(ls.back(), toolpath.front()) < max_distance) {
+      toolpath.insert(toolpath.begin(), ls.cbegin(), ls.cend());
+      return true;
+    }
+  }
+  return false;
+}
+
+void attach_ls(const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
+               const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+               const multi_polygon_type_fp& scaled_already_milled_shrunk) {
   for (auto& toolpath : toolpaths) {
-    if (attach_ring(ring, toolpath, max_distance, dir)) {
-      return;
+    if (bg::equals(ls.front(), ls.back())) {
+      // This path is actually a ring.
+      if (attach_ring(ls, toolpath, max_distance, dir)) {
+        return;
+      }
+    } else {
+      if (attach_ls(ls, toolpath, max_distance, dir)) {
+        return;
+      }
     }
   }
   if (dir == MillFeedDirection::CONVENTIONAL) {
-    toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
+    toolpaths.push_back(linestring_type_fp(ls.rbegin(), ls.rend()));
   } else {
-    toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+    toolpaths.push_back(linestring_type_fp(ls.begin(), ls.end()));
+  }
+}
+
+// Given a ring, attach it to one of the toolpaths.  The ring is first masked
+// with the scaled_already_milled_shrunk, so it may become a few linestrings.  Those
+// linestrings are attached.  Only attach if there is a point on the linestring
+// that is close enough to one of the toolpaths' endpoints is it attached.  If
+// none of the toolpaths have a close enough endpoint, a new toolpath is added
+// to the list of toolpaths.
+void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+                 const multi_polygon_type_fp& scaled_already_milled_shrunk) {
+  multi_linestring_type_fp ring_paths{linestring_type_fp(ring.cbegin(), ring.cend())}; // Make a copy into an mls.
+  ring_paths = ring_paths - scaled_already_milled_shrunk;
+  for (const auto& ring_path : ring_paths) {
+    attach_ls(ring_path, toolpaths, max_distance, dir, scaled_already_milled_shrunk);
   }
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
 void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                     const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+                     const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+                     const multi_polygon_type_fp& scaled_already_milled_shrunk) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, max_distance, dir);
+    attach_ring(poly.outer(), toolpaths, max_distance, dir, scaled_already_milled_shrunk);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -228,7 +285,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_typ
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
+        attach_ring(poly.inners()[i], toolpaths, max_distance, dir, scaled_already_milled_shrunk);
       }
     }
   }
@@ -236,7 +293,8 @@ void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_typ
 
 // Get all the toolpaths for a single milling bit.
 multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
-    shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix) {
+    shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
+    const multi_polygon_type_fp& scaled_already_milled_shrunk) {
     coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp scaled_diameter = tool_diameter * scale;
@@ -309,7 +367,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(*polygon, toolpath, scaled_diameter, dir);
+        attach_polygons(*polygon, toolpath, scaled_diameter, dir, scaled_already_milled_shrunk);
         debug_image.add(*polygon, 0, r, g, b);
         traced_debug_image.add(*polygon, 1, r, g, b);
       }
@@ -333,14 +391,13 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     } else {
       tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
     }
-    auto scaled_toolpath = scale_and_mirror_toolpath(toolpath, mirror, scale);
 
     if (mill->optimise) {
       multi_linestring_type_fp temp_mls;
-      bg::simplify(scaled_toolpath, temp_mls, mill->tolerance);
-      scaled_toolpath = temp_mls;
+      bg::simplify(toolpath, temp_mls, scaled_tolerance);
+      toolpath = temp_mls;
     }
-    return scaled_toolpath;
+    return toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)
