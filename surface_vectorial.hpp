@@ -83,13 +83,6 @@ protected:
   multi_linestring_type_fp get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
       const multi_polygon_type_fp& already_milled);
-  // Points that are very close to each other, probably because of a
-  // rounding error, are merged together to a single location.
-  static size_t merge_near_points(multi_linestring_type_fp& mls);
-  // Returns a minimal number of toolpaths that include all the
-  // milling in the oroginal toolpaths.  Each path is traversed
-  // once.
-  multi_linestring_type_fp eulerian_paths(const multi_linestring_type_fp& toolpaths);
   // Fill thermal reliefs in with a polygon of appropriate size so
   // that they will get milled even in voronoi mode or if the offset
   // is larger than the half the thickness of the thermal relief.
