@@ -100,21 +100,6 @@ protected:
       bool& contentions, coordinate_type_fp scaled_diameter,
       coordinate_type_fp scaled_overlap,
       unsigned int steps, bool do_voronoi);
-  // Given a ring, attach it to one of the ends of the toolpath.  Only attach if
-  // there is a point on the ring that is close enough to the toolpath endpoint.
-  static bool attach_ring(
-      const ring_type_fp& ring, linestring_type_fp& toolpath,
-      const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
-  // Given a ring, attach it to one of the toolpaths.  Only attach if there is a
-  // point on the ring that is close enough to one of the toolpaths' endpoints.
-  // If none of the toolpaths have a close enough endpint, a new toolpath is added
-  // to the list of toolpaths.
-  void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                   const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
-  // Given polygons, attach all the rings inside to the toolpaths.
-  void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                       const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir);
-
 };
 
 class svg_writer

@@ -152,6 +152,88 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
+// Given a ring, attach it to one of the ends of the toolpath.  Only attach if
+// there is a point on the ring that is close enough to the toolpath endpoint.
+// toolpath must not be empty.
+bool attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
+                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+  bool insert_at_front = true;
+  auto best_ring_point = ring.begin();
+  double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
+  for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
+    if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
+      best_ring_point = ring_point;
+      insert_at_front = true;
+    }
+    if (bg::comparable_distance(*ring_point, toolpath.back()) < best_distance) {
+      best_distance = bg::comparable_distance(*ring_point, toolpath.back());
+      best_ring_point = ring_point;
+      insert_at_front = false;
+    }
+  }
+  if (bg::distance(*best_ring_point,
+                   insert_at_front ? toolpath.front() : toolpath.back()) >= max_distance) {
+    return false;
+  }
+  toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
+  auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
+  if (insert_at_front) {
+    std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
+    insertion_point = toolpath.begin();
+  }
+  if (dir == MillFeedDirection::CONVENTIONAL) {
+    // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
+    // Next to take the next of each element because the range is closed at the
+    // start and open at the end.
+    auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
+    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
+    *close_ring_point = *best_ring_point;
+  } else {
+    auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+    *close_ring_point = *best_ring_point;
+  }
+  return true;
+}
+
+// Given a ring, attach it to one of the toolpaths.  Only attach if there is a
+// point on the ring that is close enough to one of the toolpaths' endpoints.
+// If none of the toolpaths have a close enough endpint, a new toolpath is added
+// to the list of toolpaths.
+void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+  for (auto& toolpath : toolpaths) {
+    if (attach_ring(ring, toolpath, max_distance, dir)) {
+      return;
+    }
+  }
+  if (dir == MillFeedDirection::CONVENTIONAL) {
+    toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
+  } else {
+    toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
+  }
+}
+
+// Given polygons, attach all the rings inside to the toolpaths.
+void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                     const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+  // Loop through the polygons by ring index because that will lead to better
+  // connections between loops.
+  for (const auto& poly : polygons) {
+    attach_ring(poly.outer(), toolpaths, max_distance, dir);
+  }
+  bool found_one = true;
+  for (size_t i = 0; found_one; i++) {
+    found_one = false;
+    for (const auto& poly : polygons) {
+      if (poly.inners().size() > i) {
+        found_one = true;
+        attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
+      }
+    }
+  }
+}
+
 // Get all the toolpaths for a single milling bit.
 multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix) {
@@ -370,88 +452,6 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   }
 
   return polygons;
-}
-
-// Given a ring, attach it to one of the ends of the toolpath.  Only attach if
-// there is a point on the ring that is close enough to the toolpath endpoint.
-// toolpath must not be empty.
-bool Surface_vectorial::attach_ring(const ring_type_fp& ring, linestring_type_fp& toolpath,
-                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
-  bool insert_at_front = true;
-  auto best_ring_point = ring.begin();
-  double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
-  for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
-    if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
-      best_distance = bg::comparable_distance(*ring_point, toolpath.front());
-      best_ring_point = ring_point;
-      insert_at_front = true;
-    }
-    if (bg::comparable_distance(*ring_point, toolpath.back()) < best_distance) {
-      best_distance = bg::comparable_distance(*ring_point, toolpath.back());
-      best_ring_point = ring_point;
-      insert_at_front = false;
-    }
-  }
-  if (bg::distance(*best_ring_point,
-                   insert_at_front ? toolpath.front() : toolpath.back()) >= max_distance) {
-    return false;
-  }
-  toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
-  auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
-  if (insert_at_front) {
-    std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
-    insertion_point = toolpath.begin();
-  }
-  if (dir == MillFeedDirection::CONVENTIONAL) {
-    // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
-    // Next to take the next of each element because the range is closed at the
-    // start and open at the end.
-    auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
-    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
-    *close_ring_point = *best_ring_point;
-  } else {
-    auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
-    *close_ring_point = *best_ring_point;
-  }
-  return true;
-}
-
-// Given a ring, attach it to one of the toolpaths.  Only attach if there is a
-// point on the ring that is close enough to one of the toolpaths' endpoints.
-// If none of the toolpaths have a close enough endpint, a new toolpath is added
-// to the list of toolpaths.
-void Surface_vectorial::attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                                    const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
-  for (auto& toolpath : toolpaths) {
-    if (attach_ring(ring, toolpath, max_distance, dir)) {
-      return;
-    }
-  }
-  if (dir == MillFeedDirection::CONVENTIONAL) {
-    toolpaths.push_back(linestring_type_fp(ring.rbegin(), ring.rend()));
-  } else {
-    toolpaths.push_back(linestring_type_fp(ring.begin(), ring.end()));
-  }
-}
-
-// Given polygons, attach all the rings inside to the toolpaths.
-void Surface_vectorial::attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                                        const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
-  // Loop through the polygons by ring index because that will lead to better
-  // connections between loops.
-  for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, max_distance, dir);
-  }
-  bool found_one = true;
-  for (size_t i = 0; found_one; i++) {
-    found_one = false;
-    for (const auto& poly : polygons) {
-      if (poly.inners().size() > i) {
-        found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, max_distance, dir);
-      }
-    }
-  }
 }
 
 size_t Surface_vectorial::merge_near_points(multi_linestring_type_fp& mls) {
