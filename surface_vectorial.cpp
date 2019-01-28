@@ -492,6 +492,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
     size_t thermal_reliefs_found = 0;
     boost::optional<svg_writer> image;
     multi_polygon_type_fp holes;
+    unsigned int contentions = 0;
     for (auto& p : milling_surface) {
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
@@ -499,18 +500,30 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
             multi_polygon_type_fp shrunk_thermal_hole;
             bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
             bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
-            if (empty_hole) {
-                thermal_reliefs_found++;
-                if (!image) {
-                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
-                }
-                image->add(shrunk_thermal_hole, 1, true);
-                for (const auto& p : shrunk_thermal_hole) {
-                    holes.push_back(p);
-                }
+            if (!empty_hole) {
+              continue; // This isn't a thermal, there is something in the hole!
+            }
+            thermal_reliefs_found++;
+            if (bg::area(shrunk_thermal_hole) <= 0) {
+              // There isn't room enough to preserve this thermal relief.
+              contentions++;
+              break;
+            }
+            if (!image) {
+              image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
+            }
+            image->add(shrunk_thermal_hole, 1, true);
+            for (const auto& p : shrunk_thermal_hole) {
+              holes.push_back(p);
             }
         }
     }
+    if (contentions > 0) {
+      cerr << "\nWarning: pcb2gcode hasn't been able to preserve all thermal reliefs. "
+          "You may want to check the g-code output and"
+          " possibly use a smaller milling width." << endl;
+    }
+
     milling_surface.insert(milling_surface.end(), holes.begin(), holes.end());
     return thermal_reliefs_found;
 }
