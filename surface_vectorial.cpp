@@ -152,6 +152,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
+// Get all the toolpaths for a single milling bit.
 multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix) {
     coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
@@ -203,41 +204,43 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     srand(1);
     multi_linestring_type_fp toolpath;
 
-    for (unsigned int i = 0; i < vectorial_surface->size(); i++)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
+    for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+      const unsigned int r = rand() % 256;
+      const unsigned int g = rand() % 256;
+      const unsigned int b = rand() % 256;
 
-        vector<multi_polygon_type_fp> polygons;
-        polygons = offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
-                                  scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
-        for (auto polygon = polygons.begin(); polygon != polygons.end(); polygon++) {
-          MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-          if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
-            // This is the outermost loop and it isn't the only loop so invert
-            // it to remove burrs.
-            dir = invert(dir);
-          }
-          if (mirror) {
-            // This is on the back so all loops are reversed.
-            dir = invert(dir);
-          }
-          attach_polygons(*polygon, toolpath, scaled_diameter, dir);
-          debug_image.add(*polygon, 0, r, g, b);
-          traced_debug_image.add(*polygon, 1, r, g, b);
+      const vector<multi_polygon_type_fp> polygons =
+          offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
+                         scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
+      // The rings of polygons are the paths to mill.  The paths may include
+      // both inner and outer rings.  They vector has them sorted from the
+      // smallest outer to the largest outer, both for voronoi and for regular
+      // isolation.
+      for (auto polygon = polygons.cbegin(); polygon != polygons.cend(); polygon++) {
+        MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
+        if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
+          // This is the outermost loop and it isn't the only loop so invert
+          // it to remove burrs.
+          dir = invert(dir);
         }
+        if (mirror) {
+          // This is on the back so all loops are reversed.
+          dir = invert(dir);
+        }
+        attach_polygons(*polygon, toolpath, scaled_diameter, dir);
+        debug_image.add(*polygon, 0, r, g, b);
+        traced_debug_image.add(*polygon, 1, r, g, b);
+      }
     }
 
     srand(1);
     debug_image.add(*vectorial_surface, 1, true);
 
-    if (contentions)
-    {
-        cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
-             << " clearance requirements and tried a best effort approach"
-             << " instead. You may want to check the g-code output and"
-             << " possibly use a smaller milling width.\n";
+    if (contentions) {
+      cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
+           << " clearance requirements and tried a best effort approach"
+           << " instead. You may want to check the g-code output and"
+           << " possibly use a smaller milling width.\n";
     }
 
     if (mill->eulerian_paths) {
