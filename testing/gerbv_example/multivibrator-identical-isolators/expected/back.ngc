@@ -1492,22 +1492,6 @@ G00 Z1.000 ( retract )
 
 M5 ( Spindle off. )
 G04 P1.000000
-
-G00 Z1.00000 (Retract to tool change height)
-T1
-M5      (Spindle stop.)
-G04 P1.00000 (Wait for spindle to stop)
-(MSG, Change tool bit to mill diameter 0.00787in)
-M6      (Tool change.)
-M0      (Temporary machine stop.)
-M3 ( Spindle on clockwise. )
-G04 P1.00000 (Wait for spindle to get up to speed)
-
-G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
-
-M5 ( Spindle off. )
-G04 P1.000000
 M9 ( Coolant off. )
 M2 ( Program end. )
 

@@ -227,6 +227,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     vector<vector<shared_ptr<icoords>>> all_toolpaths = layer->get_toolpaths();
 
+    if (all_toolpaths.size() < 1) {
+      return; // Nothing to do.
+    }
+
     globalVars.getUniqueCode();
     globalVars.getUniqueCode();
 
@@ -291,6 +295,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     uniqueCodes main_sub_ocodes(200);
     for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
+      const auto& toolpaths = all_toolpaths[toolpaths_index];
+      if (toolpaths.size() < 1) {
+        continue; // Nothing to do for this mill size.
+      }
       Tiling tiling(tileInfo, cfactor, main_sub_ocodes.getUniqueCode());
       tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
                          + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) +
@@ -336,9 +344,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
             of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
           // contours
-          const auto& toolpaths = all_toolpaths[toolpaths_index];
           for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
             shared_ptr<icoords> path = toolpaths[path_index];
+            if (path->size() < 1) {
+              continue; // Empty path.
+            }
 
             // retract, move to the starting point of the next contour
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
