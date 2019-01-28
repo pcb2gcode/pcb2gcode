@@ -131,7 +131,7 @@ vector<shared_ptr<icoords>> Surface_vectorial::get_toolpath(shared_ptr<RoutingMi
         tolerance = 0.0001 * scale;
 
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-        preserve_thermal_reliefs(*vectorial_surface, std::max(scaled_diameter/2, tolerance));
+      preserve_thermal_reliefs(*vectorial_surface, std::max(scaled_diameter + (scaled_diameter-scaled_overlap) * extra_passes + tolerance, tolerance));
     }
 
     bg::unique(*vectorial_surface);
@@ -261,7 +261,17 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   if (mask) {
     masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
   } else {
-    masked_milling_polys = masked_milling_poly & bounding_box;
+    // Increase the size of the bounding box to accomodate all milling.
+    box_type_fp new_bounding_box;
+    if (do_voronoi) {
+      // This worked experimentally to remove spurious contention.
+      double factor = (1-double(steps+2))/2;
+      auto expand_by = (scaled_diameter - scaled_overlap) * factor;
+      bg::buffer(bounding_box, new_bounding_box, -expand_by);
+    } else {
+      bg::buffer(bounding_box, new_bounding_box, scaled_diameter / 2 + (scaled_diameter - scaled_overlap) * (steps - 1));
+    }
+    masked_milling_polys = masked_milling_poly & new_bounding_box;
   }
 
   // Convert the input shape into a bunch of rings that need to be milled.
@@ -482,6 +492,7 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
     size_t thermal_reliefs_found = 0;
     boost::optional<svg_writer> image;
     multi_polygon_type_fp holes;
+    unsigned int contentions = 0;
     for (auto& p : milling_surface) {
         for (auto& inner : p.inners()) {
             auto thermal_hole = inner;
@@ -489,18 +500,30 @@ size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& millin
             multi_polygon_type_fp shrunk_thermal_hole;
             bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
             bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
-            if (empty_hole) {
-                thermal_reliefs_found++;
-                if (!image) {
-                    image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
-                }
-                image->add(shrunk_thermal_hole, 1, true);
-                for (const auto& p : shrunk_thermal_hole) {
-                    holes.push_back(p);
-                }
+            if (!empty_hole) {
+              continue; // This isn't a thermal, there is something in the hole!
+            }
+            thermal_reliefs_found++;
+            if (bg::area(shrunk_thermal_hole) <= 0) {
+              // There isn't room enough to preserve this thermal relief.
+              contentions++;
+              break;
+            }
+            if (!image) {
+              image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
+            }
+            image->add(shrunk_thermal_hole, 1, true);
+            for (const auto& p : shrunk_thermal_hole) {
+              holes.push_back(p);
             }
         }
     }
+    if (contentions > 0) {
+      cerr << "\nWarning: pcb2gcode hasn't been able to preserve all thermal reliefs. "
+          "You may want to check the g-code output and"
+          " possibly use a smaller milling width." << endl;
+    }
+
     milling_surface.insert(milling_surface.end(), holes.begin(), holes.end());
     return thermal_reliefs_found;
 }
