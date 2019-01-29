@@ -157,12 +157,41 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
+// Find if a distance between two ponts should be milled or retract, move fast,
+// and plunge.  Milling is chosen if it's faster.  Also, it's chosen if the past
+// is entirely within the allowed_milling surface.
+coordinate_type_fp do_milling(
+    const shared_ptr<RoutingMill>& mill,
+    const point_type_fp& a, const point_type_fp& b, const boost::optional<multi_polygon_type_fp> allowed_milling) {
+  // Solve for distance:
+  // risetime at G0 + horizontal distance G0 + plunge G1 ==
+  // travel time at G1
+  // The horizontal G0 move is for the maximum of the X and Y coordinates.
+  // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
+  const auto vertical_distance = mill->zsafe - mill->zwork;
+  const auto horizontal_distance = bg::distance(a, b);
+  const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
+  const double vertG0speed = 50;
+  const double horizontalG0speed = 100;
+  const double horizontalG1speed = mill->feed;
+  const double vertG1speed = mill->vertfeed;
+  if (vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed <
+      horizontal_distance/horizontalG1speed) {
+    return false; // Faster to go up and back down.
+  }
+  if (allowed_milling && !bg::covered_by(linestring_type_fp{a, b}, *allowed_milling)) {
+    return false;
+  }
+  return true;
+}
+
 // Given a linestring which has the same front and back (so it's actually a
 // ring), attach it to one of the ends of the toolpath.  Only attach if there is
 // a point on the ring that is close enough to the toolpath endpoint.  toolpath
 // must not be empty.
-bool attach_ring(const linestring_type_fp& ring, linestring_type_fp& toolpath,
-                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
+bool attach_ring(const shared_ptr<RoutingMill>& mill,
+                 const linestring_type_fp& ring, linestring_type_fp& toolpath,
+                 const MillFeedDirection::MillFeedDirection& dir) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -178,8 +207,7 @@ bool attach_ring(const linestring_type_fp& ring, linestring_type_fp& toolpath,
       insert_at_front = false;
     }
   }
-  if (bg::distance(*best_ring_point,
-                   insert_at_front ? toolpath.front() : toolpath.back()) >= max_distance) {
+  if (!do_milling(mill, *best_ring_point, insert_at_front ? toolpath.front() : toolpath.back(), boost::none)) {
     return false;
   }
   toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
@@ -204,22 +232,23 @@ bool attach_ring(const linestring_type_fp& ring, linestring_type_fp& toolpath,
   return true;
 }
 
-bool attach_ls(const linestring_type_fp& ls, linestring_type_fp& toolpath,
-               const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir) {
-  auto best_insertion_point = toolpath.begin();
+bool attach_ls(const shared_ptr<RoutingMill>& mill,
+               const linestring_type_fp& ls, linestring_type_fp& toolpath,
+               const MillFeedDirection::MillFeedDirection& dir) {
+  bool insert_front = false;
   bool insert_reversed;
   auto best_distance = std::numeric_limits<double>::infinity();
   if (dir != MillFeedDirection::CLIMB) {
     // We may attach it reversed, either:
     // toolpath.front() ... toolpath.back() ls.back() ... ls.front()
     if (bg::distance(toolpath.back(), ls.back()) < best_distance) {
-      best_insertion_point = toolpath.end();
+      insert_front = false;
       insert_reversed = true;
       best_distance = bg::distance(toolpath.back(), ls.back());
     }
     // ls.back() ... ls.front() toolpath.front() ... toolpath.back()
     if (bg::distance(ls.front(), toolpath.front()) < best_distance) {
-      best_insertion_point = toolpath.begin();
+      insert_front = true;
       insert_reversed = true;
       best_distance = bg::distance(ls.front(), toolpath.front());
     }
@@ -228,39 +257,46 @@ bool attach_ls(const linestring_type_fp& ls, linestring_type_fp& toolpath,
     // We may attach the list in the forward direction, either:
     // toolpath.front() ... toolpath.back() ls.front() ... ls.back()
     if (bg::distance(toolpath.back(), ls.front()) < best_distance) {
-      best_insertion_point = toolpath.end();
+      insert_front = false;
       insert_reversed = false;
       best_distance = bg::distance(toolpath.back(), ls.front());
     }
     // ls.front() ... ls.back() toolpath.front() ... toolpath.back()
     if (bg::distance(ls.back(), toolpath.front()) < best_distance) {
-      best_insertion_point = toolpath.begin();
+      insert_front = true;
       insert_reversed = false;
       best_distance = bg::distance(ls.back(), toolpath.front());
     }
   }
-  if (best_distance < max_distance) { // TODO remove the 10.
-    if (insert_reversed) {
-      toolpath.insert(best_insertion_point, ls.crbegin(), ls.crend());
-    } else {
-      toolpath.insert(best_insertion_point, ls.cbegin(), ls.cend());
-    }
-    return true;
+  if (best_distance == std::numeric_limits<double>::infinity()) {
+    return false;
   }
-  return false;
+  const auto& toolpath_neighbor = insert_front ? toolpath.front() : toolpath.back();
+  const auto& ls_neighbor = (insert_front == insert_reversed) ? ls.front() : ls.back();
+  if (!do_milling(mill, toolpath_neighbor, ls_neighbor, boost::none)) {
+    return false;
+  }
+  const auto insertion_position = insert_front ? toolpath.begin() : toolpath.end();
+  if (insert_reversed) {
+    toolpath.insert(insertion_position, ls.crbegin(), ls.crend());
+  } else {
+    toolpath.insert(insertion_position, ls.cbegin(), ls.cend());
+  }
+  return true;
 }
 
-void attach_ls(const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
-               const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+void attach_ls(const shared_ptr<RoutingMill>& mill,
+               const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
+               const MillFeedDirection::MillFeedDirection& dir,
                const multi_polygon_type_fp& scaled_already_milled_shrunk) {
   for (auto& toolpath : toolpaths) {
     if (bg::equals(ls.front(), ls.back())) {
       // This path is actually a ring.
-      if (attach_ring(ls, toolpath, max_distance, dir)) {
+      if (attach_ring(mill, ls, toolpath, dir)) {
         return;
       }
     } else {
-      if (attach_ls(ls, toolpath, max_distance, dir)) {
+      if (attach_ls(mill, ls, toolpath, dir)) {
         return;
       }
     }
@@ -365,25 +401,27 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
 // that is close enough to one of the toolpaths' endpoints is it attached.  If
 // none of the toolpaths have a close enough endpoint, a new toolpath is added
 // to the list of toolpaths.
-void attach_ring(const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
-                 const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+void attach_ring(const shared_ptr<RoutingMill>& mill,
+                 const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                 const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& scaled_already_milled_shrunk) {
   multi_linestring_type_fp ring_paths{linestring_type_fp(ring.cbegin(), ring.cend())}; // Make a copy into an mls.
   ring_paths = ring_paths - scaled_already_milled_shrunk;
-  //ring_paths = make_eulerian_paths(ring_paths, dir);
+  ring_paths = make_eulerian_paths(ring_paths, dir);
   for (const auto& ring_path : ring_paths) {
-    attach_ls(ring_path, toolpaths, max_distance, dir, scaled_already_milled_shrunk);
+    attach_ls(mill, ring_path, toolpaths, dir, scaled_already_milled_shrunk);
   }
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
-void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
-                     const coordinate_type_fp& max_distance, const MillFeedDirection::MillFeedDirection& dir,
+void attach_polygons(const shared_ptr<RoutingMill>& mill,
+                     const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                     const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& scaled_already_milled_shrunk) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, max_distance, dir, scaled_already_milled_shrunk);
+    attach_ring(mill, poly.outer(), toolpaths, dir, scaled_already_milled_shrunk);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -391,7 +429,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons, multi_linestring_typ
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, max_distance, dir, scaled_already_milled_shrunk);
+        attach_ring(mill, poly.inners()[i], toolpaths, dir, scaled_already_milled_shrunk);
       }
     }
   }
@@ -473,7 +511,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(*polygon, toolpath, scaled_diameter, dir, scaled_already_milled_shrunk);
+        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk);
         debug_image.add(*polygon, 0, r, g, b);
         traced_debug_image.add(*polygon, 1, r, g, b);
       }
