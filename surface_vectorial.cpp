@@ -502,7 +502,9 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
       const vector<multi_polygon_type_fp> polygons =
           offset_polygon(current_trace, voronoi[i], contentions,
                          scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
-
+      multi_polygon_type_fp keep_out;
+      bg_helpers::buffer(current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
+      multi_polygon_type_fp allowed_milling = voronoi[i] - keep_out;
       // The rings of polygons are the paths to mill.  The paths may include
       // both inner and outer rings.  They vector has them sorted from the
       // smallest outer to the largest outer, both for voronoi and for regular
@@ -518,7 +520,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk, boost::none);
+        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk, allowed_milling);
         debug_image.add(*polygon, 0, r, g, b);
         traced_debug_image.add(*polygon, 1, r, g, b);
       }

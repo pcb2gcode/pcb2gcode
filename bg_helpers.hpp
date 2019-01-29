@@ -12,6 +12,16 @@ static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model
   return ret;
 }
 
+template <typename rhs_t>
+static inline multi_polygon_type_fp operator-(const polygon_type_fp& lhs, const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return multi_polygon_type_fp{lhs};
+  }
+  multi_polygon_type_fp ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
+
 template <typename linestring_type_t, typename rhs_t>
 static inline bg::model::multi_linestring<linestring_type_t> operator-(const bg::model::multi_linestring<linestring_type_t>& lhs,
                                                                        const rhs_t& rhs) {
