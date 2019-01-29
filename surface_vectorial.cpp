@@ -162,7 +162,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
 // is entirely within the allowed_milling surface.
 coordinate_type_fp do_milling(
     const shared_ptr<RoutingMill>& mill,
-    const point_type_fp& a, const point_type_fp& b, const boost::optional<multi_polygon_type_fp> allowed_milling) {
+    const point_type_fp& a, const point_type_fp& b, const boost::optional<multi_polygon_type_fp>& allowed_milling) {
   // Solve for distance:
   // risetime at G0 + horizontal distance G0 + plunge G1 ==
   // travel time at G1
@@ -191,7 +191,8 @@ coordinate_type_fp do_milling(
 // must not be empty.
 bool attach_ring(const shared_ptr<RoutingMill>& mill,
                  const linestring_type_fp& ring, linestring_type_fp& toolpath,
-                 const MillFeedDirection::MillFeedDirection& dir) {
+                 const MillFeedDirection::MillFeedDirection& dir,
+                 const boost::optional<multi_polygon_type_fp>& allowed_milling) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -207,7 +208,7 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
       insert_at_front = false;
     }
   }
-  if (!do_milling(mill, *best_ring_point, insert_at_front ? toolpath.front() : toolpath.back(), boost::none)) {
+  if (!do_milling(mill, *best_ring_point, insert_at_front ? toolpath.front() : toolpath.back(), allowed_milling)) {
     return false;
   }
   toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
@@ -234,7 +235,8 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
 
 bool attach_ls(const shared_ptr<RoutingMill>& mill,
                const linestring_type_fp& ls, linestring_type_fp& toolpath,
-               const MillFeedDirection::MillFeedDirection& dir) {
+               const MillFeedDirection::MillFeedDirection& dir,
+               const boost::optional<multi_polygon_type_fp>& allowed_milling) {
   bool insert_front = false;
   bool insert_reversed;
   auto best_distance = std::numeric_limits<double>::infinity();
@@ -273,7 +275,7 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
   }
   const auto& toolpath_neighbor = insert_front ? toolpath.front() : toolpath.back();
   const auto& ls_neighbor = (insert_front == insert_reversed) ? ls.front() : ls.back();
-  if (!do_milling(mill, toolpath_neighbor, ls_neighbor, boost::none)) {
+  if (!do_milling(mill, toolpath_neighbor, ls_neighbor, allowed_milling)) {
     return false;
   }
   const auto insertion_position = insert_front ? toolpath.begin() : toolpath.end();
@@ -288,15 +290,16 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
 void attach_ls(const shared_ptr<RoutingMill>& mill,
                const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
-               const multi_polygon_type_fp& scaled_already_milled_shrunk) {
+               const multi_polygon_type_fp& scaled_already_milled_shrunk,
+               const boost::optional<multi_polygon_type_fp> allowed_milling) {
   for (auto& toolpath : toolpaths) {
     if (bg::equals(ls.front(), ls.back())) {
       // This path is actually a ring.
-      if (attach_ring(mill, ls, toolpath, dir)) {
+      if (attach_ring(mill, ls, toolpath, dir, allowed_milling)) {
         return;
       }
     } else {
-      if (attach_ls(mill, ls, toolpath, dir)) {
+      if (attach_ls(mill, ls, toolpath, dir, allowed_milling)) {
         return;
       }
     }
@@ -404,12 +407,13 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
 void attach_ring(const shared_ptr<RoutingMill>& mill,
                  const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
-                 const multi_polygon_type_fp& scaled_already_milled_shrunk) {
+                 const multi_polygon_type_fp& scaled_already_milled_shrunk,
+                 const boost::optional<multi_polygon_type_fp> allowed_milling) {
   multi_linestring_type_fp ring_paths{linestring_type_fp(ring.cbegin(), ring.cend())}; // Make a copy into an mls.
   ring_paths = ring_paths - scaled_already_milled_shrunk;
   ring_paths = make_eulerian_paths(ring_paths, dir);
   for (const auto& ring_path : ring_paths) {
-    attach_ls(mill, ring_path, toolpaths, dir, scaled_already_milled_shrunk);
+    attach_ls(mill, ring_path, toolpaths, dir, scaled_already_milled_shrunk, allowed_milling);
   }
 }
 
@@ -417,11 +421,12 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
 void attach_polygons(const shared_ptr<RoutingMill>& mill,
                      const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
-                     const multi_polygon_type_fp& scaled_already_milled_shrunk) {
+                     const multi_polygon_type_fp& scaled_already_milled_shrunk,
+                     const boost::optional<multi_polygon_type_fp> allowed_milling) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(mill, poly.outer(), toolpaths, dir, scaled_already_milled_shrunk);
+    attach_ring(mill, poly.outer(), toolpaths, dir, scaled_already_milled_shrunk, allowed_milling);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -429,7 +434,7 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(mill, poly.inners()[i], toolpaths, dir, scaled_already_milled_shrunk);
+        attach_ring(mill, poly.inners()[i], toolpaths, dir, scaled_already_milled_shrunk, allowed_milling);
       }
     }
   }
@@ -493,9 +498,11 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
       const unsigned int g = rand() % 256;
       const unsigned int b = rand() % 256;
 
+      const auto& current_trace = vectorial_surface->at(i);
       const vector<multi_polygon_type_fp> polygons =
-          offset_polygon(vectorial_surface->at(i), voronoi[i], contentions,
+          offset_polygon(current_trace, voronoi[i], contentions,
                          scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
+
       // The rings of polygons are the paths to mill.  The paths may include
       // both inner and outer rings.  They vector has them sorted from the
       // smallest outer to the largest outer, both for voronoi and for regular
@@ -511,7 +518,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk);
+        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk, boost::none);
         debug_image.add(*polygon, 0, r, g, b);
         traced_debug_image.add(*polygon, 1, r, g, b);
       }
