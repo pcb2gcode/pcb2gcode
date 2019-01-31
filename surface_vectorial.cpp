@@ -627,6 +627,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
         throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
+// Might not have an input, which is when we are milling for thermal reliefs.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
@@ -637,8 +638,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   vector<multi_polygon_type_fp> polygons;
 
   // Mask the polygon that we need to mill.
-  polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : *input;  // Milling voronoi or trace?
-  multi_polygon_type_fp masked_milling_polys;
+  multi_polygon_type_fp masked_milling_poly{do_voronoi ? voronoi_polygon : *input};  // Milling voronoi or trace?
+  if (!input) {
+    // This means that we are milling a thermal so we need to move inward
+    // slightly to accomodate the thickness of the millbit.
+    multi_polygon_type_fp temp;
+    bg_helpers::buffer(masked_milling_poly, temp, -scaled_diameter/2);
+    masked_milling_poly = temp;
+  }
   // This is the area that the milling must not cross so that it doesn't dig
   // into the trace.  We only need this if there is an input. which is not the
   // case if this is a thermal hole.
@@ -646,6 +653,10 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   if (input) {
     bg_helpers::buffer(*input, path_minimum, scaled_diameter/2);
   }
+
+  multi_polygon_type_fp masked_milling_polys;
+  // We need to crop the area that we'll mill if it extends outside the PCB's
+  // outline.  This saves time in milling.
   if (mask) {
     masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
   } else {
@@ -671,7 +682,15 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     } else {
       // Voronoi lines are on the boundary and shared between
       // multi_polygons so we only need half as many of them.
-      double factor = ((1-double(steps))/2 + i);
+      double factor;
+      if (!input) {
+        // This means that we are milling a thermal so we need to do all the
+        // passes here.  We can't count on the passes around the input surface
+        // because there is no input surface.
+        factor = double(i) + 1 - steps;
+      } else {
+        factor = ((1-double(steps))/2 + i);
+      }
       if (factor > 0) {
         continue; // Don't need this step.
       }
