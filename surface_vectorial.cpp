@@ -633,7 +633,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const polygon_type_fp& voronoi_polygon,
     bool& contentions, coordinate_type_fp scaled_diameter,
     coordinate_type_fp scaled_overlap,
-    unsigned int steps, bool do_voronoi) {
+    unsigned int steps, bool do_voronoi) const {
   // The polygons to add to the PNG debuging output files.
   vector<multi_polygon_type_fp> polygons;
 

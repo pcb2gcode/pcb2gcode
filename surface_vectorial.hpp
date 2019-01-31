@@ -89,7 +89,7 @@ protected:
       const polygon_type_fp& voronoi,
       bool& contentions, coordinate_type_fp scaled_diameter,
       coordinate_type_fp scaled_overlap,
-      unsigned int steps, bool do_voronoi);
+      unsigned int steps, bool do_voronoi) const;
   void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
 };
 
