@@ -158,8 +158,8 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
 }
 
 // Find if a distance between two ponts should be milled or retract, move fast,
-// and plunge.  Milling is chosen if it's faster.  Also, it's chosen if the past
-// is entirely within the allowed_milling surface.
+// and plunge.  Milling is chosen if it's faster and also the path is entirely
+// within the allowed_milling surface.
 coordinate_type_fp do_milling(
     const shared_ptr<RoutingMill>& mill,
     const point_type_fp& a, const point_type_fp& b, const boost::optional<multi_polygon_type_fp>& allowed_milling) {
@@ -418,6 +418,8 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
+// allowed_milling is the area that we believe that we may mill safely because
+// it doesn't cut through traces.
 void attach_polygons(const shared_ptr<RoutingMill>& mill,
                      const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
@@ -440,7 +442,13 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
   }
 }
 
-// Get all the toolpaths for a single milling bit.
+// Get all the toolpaths for a single milling bit.  The mill is the tool to use
+// and the tool_diameter and the overlap_width are the specifics of the tool to
+// use in the milling.  mirror means that the entire shapre should be reflected
+// across the y=0 axis, because it will be on the back.  The tool_suffix is for
+// making unique filenames if there are multiple tools.  The
+// scaled_already_milled_shrunk is the running union of all the milled area so
+// far, so that new milling can avoid re-milling areas that are already milled.
 multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
     const multi_polygon_type_fp& scaled_already_milled_shrunk) {
@@ -504,14 +512,17 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
                          scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
       multi_polygon_type_fp keep_out;
       bg_helpers::buffer(current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
+      // This is the area where milling is allowed but not necessarily required.
+      // It can be used to connect paths that are nearly connected.
       multi_polygon_type_fp allowed_milling = voronoi[i] - keep_out;
       // The rings of polygons are the paths to mill.  The paths may include
       // both inner and outer rings.  They vector has them sorted from the
       // smallest outer to the largest outer, both for voronoi and for regular
       // isolation.
-      for (auto polygon = polygons.cbegin(); polygon != polygons.cend(); polygon++) {
+      for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
+        const auto& polygon = polygons[polygon_index];
         MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-        if (std::next(polygon) == polygons.cend() && polygon != polygons.cbegin()) {
+        if (polygon_index + 1 == polygons.size() && polygon_index != 0) {
           // This is the outermost loop and it isn't the only loop so invert
           // it to remove burrs.
           dir = invert(dir);
@@ -520,9 +531,9 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(mill, *polygon, toolpath, dir, scaled_already_milled_shrunk, allowed_milling);
-        debug_image.add(*polygon, 0, r, g, b);
-        traced_debug_image.add(*polygon, 1, r, g, b);
+        attach_polygons(mill, polygon, toolpath, dir, scaled_already_milled_shrunk, allowed_milling);
+        debug_image.add(polygon, 0, r, g, b);
+        traced_debug_image.add(polygon, 1, r, g, b);
       }
     }
 
