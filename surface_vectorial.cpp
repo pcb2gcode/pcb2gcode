@@ -118,10 +118,46 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp& mls) 
   return result;
 }
 
+// Find all potential thermal reliefs.  Those are usually holes in traces.
+// Return those shapes as rings with correct orientation.
+vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface,
+                                          const coordinate_type_fp scaled_tolerance) {
+  // For each shape, see if it has any holes that are empty.
+  optional<svg_writer> image;
+  vector<ring_type_fp> holes;
+  for (const auto& p : milling_surface) {
+    for (const auto& inner : p.inners()) {
+      auto thermal_hole = inner;
+      bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
+      multi_polygon_type_fp shrunk_thermal_hole;
+      bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -scaled_tolerance);
+      bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
+      if (!empty_hole) {
+        continue;
+      }
+      holes.push_back(thermal_hole);
+    }
+  }
+  return holes;
+}
+
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
+  bg::unique(*vectorial_surface);
+  const auto scaled_tolerance = mill->tolerance * scale;
+  {
+    // Get the voronoi region for each trace.
+    box_type voronoi_bounding_box;
+    bg::convert(bounding_box, voronoi_bounding_box);
+    multi_polygon_type voronoi_vectorial_surface;
+    bg::convert(*vectorial_surface, voronoi_vectorial_surface);
+    voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, scaled_tolerance);
+  }
   auto isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator) {
+    if (isolator->preserve_thermal_reliefs && isolator->voronoi) {
+      thermal_holes = find_thermal_reliefs(*vectorial_surface, scaled_tolerance);
+    }
     vector<vector<shared_ptr<icoords>>> results;
     // Area that was already milled.
     multi_polygon_type_fp scaled_already_milled;
@@ -129,7 +165,6 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
       const auto scaled_tool_diameter = tool.first * scale;
-      const auto scaled_tolerance = mill->tolerance * scale;
       multi_polygon_type_fp scaled_already_milled_shrunk;
       bg_helpers::buffer(scaled_already_milled, scaled_already_milled_shrunk, -scaled_tool_diameter/2 + scaled_tolerance);
       auto new_toolpath = get_single_toolpath(isolator, mirror, tool.first, tool.second,
@@ -462,28 +497,6 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
   }
 }
 
-// Find all potential thermal reliefs.  Those are usually holes in traces.
-// Return those shapes as rings with correct orientation.
-vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface, const coordinate_type_fp scaled_tolerance) {
-    // For each shape, see if it has any holes that are empty.
-  optional<svg_writer> image;
-  vector<ring_type_fp> holes;
-  for (const auto& p : milling_surface) {
-    for (const auto& inner : p.inners()) {
-      auto thermal_hole = inner;
-      bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-      multi_polygon_type_fp shrunk_thermal_hole;
-      bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -scaled_tolerance);
-      bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
-      if (!empty_hole) {
-        continue;
-      }
-      holes.push_back(thermal_hole);
-    }
-  }
-  return holes;
-}
-
 // Get all the toolpaths for a single milling bit.  The mill is the tool to use
 // and the tool_diameter and the overlap_width are the specifics of the tool to
 // use in the milling.  mirror means that the entire shapre should be reflected
@@ -512,18 +525,6 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
                 - isolator->tolerance))) // In case it divides evenly, do fewer passes.
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
-
-    vector<ring_type_fp> thermal_holes;
-    if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-      thermal_holes = find_thermal_reliefs(*vectorial_surface, scaled_tolerance);
-    }
-
-    bg::unique(*vectorial_surface);
-    box_type voronoi_bounding_box;
-    bg::convert(bounding_box, voronoi_bounding_box);
-    multi_polygon_type voronoi_vectorial_surface;
-    bg::convert(*vectorial_surface, voronoi_vectorial_surface);
-    multi_polygon_type_fp voronoi = Voronoi::build_voronoi(voronoi_vectorial_surface, voronoi_bounding_box, scaled_tolerance);
 
     box_type_fp svg_bounding_box;
 

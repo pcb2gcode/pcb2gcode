@@ -76,6 +76,9 @@ protected:
   const MillFeedDirection::MillFeedDirection mill_feed_direction;
 
   std::shared_ptr<multi_polygon_type_fp> vectorial_surface;
+  multi_polygon_type_fp voronoi;
+  vector<ring_type_fp> thermal_holes;
+
   coordinate_type_fp scale;
   box_type_fp bounding_box;
 
