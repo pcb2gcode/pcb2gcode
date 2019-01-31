@@ -94,6 +94,7 @@ protected:
       bool& contentions, coordinate_type_fp scaled_diameter,
       coordinate_type_fp scaled_overlap,
       unsigned int steps, bool do_voronoi);
+  void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
 };
 
 class svg_writer

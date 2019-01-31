@@ -134,6 +134,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
       auto new_toolpath = get_single_toolpath(isolator, mirror, tool.first, tool.second,
                                               tool_count > 1 ? "_" + std::to_string(tool_index) : "",
                                               scaled_already_milled_shrunk);
+      post_process_toolpath(isolator, new_toolpath);
       results.push_back(mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale)));
       if (tool_index + 1 == tool_count) {
         // No point in updating the already_milled.
@@ -147,12 +148,9 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    return {
-      mls_to_icoords(
-          scale_and_mirror_toolpath(
-              get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp()),
-              mirror,
-              scale))};
+      auto new_toolpath = get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp());
+      post_process_toolpath(cutter, new_toolpath);
+      return {mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
@@ -398,6 +396,24 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
                      mill_feed_direction == MillFeedDirection::ANY);
 }
 
+void Surface_vectorial::post_process_toolpath(
+    const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
+  if (mill->eulerian_paths) {
+    toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
+  }
+  if (tsp_2opt) {
+    tsp_solver::tsp_2opt(toolpath, point_type_fp(0, 0));
+  } else {
+    tsp_solver::nearest_neighbour(toolpath, point_type_fp(0, 0));
+  }
+
+  if (mill->optimise) {
+    multi_linestring_type_fp temp_mls;
+    bg::simplify(toolpath, temp_mls, mill->tolerance * scale);
+    toolpath = temp_mls;
+  }
+}
+
 // Given a ring, attach it to one of the toolpaths.  The ring is first masked
 // with the scaled_already_milled_shrunk, so it may become a few linestrings.  Those
 // linestrings are attached.  Only attach if there is a point on the linestring
@@ -544,20 +560,6 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
            << " possibly use a smaller milling width.\n";
     }
 
-    if (mill->eulerian_paths) {
-      toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
-    }
-    if (tsp_2opt) {
-      tsp_solver::tsp_2opt( toolpath, point_type_fp(0, 0) );
-    } else {
-      tsp_solver::nearest_neighbour( toolpath, point_type_fp(0, 0) );
-    }
-
-    if (mill->optimise) {
-      multi_linestring_type_fp temp_mls;
-      bg::simplify(toolpath, temp_mls, scaled_tolerance);
-      toolpath = temp_mls;
-    }
     return toolpath;
 }
 
