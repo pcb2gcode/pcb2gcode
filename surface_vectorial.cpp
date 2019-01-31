@@ -493,7 +493,7 @@ vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_s
 // far, so that new milling can avoid re-milling areas that are already milled.
 multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
-    const multi_polygon_type_fp& scaled_already_milled_shrunk) {
+    const multi_polygon_type_fp& scaled_already_milled_shrunk) const {
     coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp scaled_diameter = tool_diameter * scale;

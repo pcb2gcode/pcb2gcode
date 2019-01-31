@@ -48,8 +48,8 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable {
   Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
                     string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
-  std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::shared_ptr<RoutingMill> mill,
-                                            bool mirror);
+  std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
+      std::shared_ptr<RoutingMill> mill, bool mirror);
   void save_debug_image(string message);
   void enable_filling();
   void add_mask(std::shared_ptr<Core> surface);
@@ -83,7 +83,7 @@ protected:
 
   multi_linestring_type_fp get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
-      const multi_polygon_type_fp& already_milled);
+      const multi_polygon_type_fp& already_milled) const;
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
