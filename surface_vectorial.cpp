@@ -29,6 +29,7 @@ using std::endl;
 
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
+using boost::optional;
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -160,7 +161,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
 // within the allowed_milling surface.
 coordinate_type_fp do_milling(
     const shared_ptr<RoutingMill>& mill,
-    const point_type_fp& a, const point_type_fp& b, const boost::optional<multi_polygon_type_fp>& allowed_milling) {
+    const point_type_fp& a, const point_type_fp& b, const optional<multi_polygon_type_fp>& allowed_milling) {
   // Solve for distance:
   // risetime at G0 + horizontal distance G0 + plunge G1 ==
   // travel time at G1
@@ -190,7 +191,7 @@ coordinate_type_fp do_milling(
 bool attach_ring(const shared_ptr<RoutingMill>& mill,
                  const linestring_type_fp& ring, linestring_type_fp& toolpath,
                  const MillFeedDirection::MillFeedDirection& dir,
-                 const boost::optional<multi_polygon_type_fp>& allowed_milling) {
+                 const optional<multi_polygon_type_fp>& allowed_milling) {
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -234,7 +235,7 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
 bool attach_ls(const shared_ptr<RoutingMill>& mill,
                const linestring_type_fp& ls, linestring_type_fp& toolpath,
                const MillFeedDirection::MillFeedDirection& dir,
-               const boost::optional<multi_polygon_type_fp>& allowed_milling) {
+               const optional<multi_polygon_type_fp>& allowed_milling) {
   bool insert_front = false;
   bool insert_reversed;
   auto best_distance = std::numeric_limits<double>::infinity();
@@ -289,7 +290,7 @@ void attach_ls(const shared_ptr<RoutingMill>& mill,
                const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
                const multi_polygon_type_fp& scaled_already_milled_shrunk,
-               const boost::optional<multi_polygon_type_fp> allowed_milling) {
+               const optional<multi_polygon_type_fp> allowed_milling) {
   for (auto& toolpath : toolpaths) {
     if (bg::equals(ls.front(), ls.back())) {
       // This path is actually a ring.
@@ -396,6 +397,9 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
                      mill_feed_direction == MillFeedDirection::ANY);
 }
 
+// Make eulerian paths if needed.  Sort the paths order to make it faster.
+// Simplify paths by remving points that don't affect the path or affect it very
+// little.
 void Surface_vectorial::post_process_toolpath(
     const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
   if (mill->eulerian_paths) {
@@ -424,7 +428,7 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
                  const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& scaled_already_milled_shrunk,
-                 const boost::optional<multi_polygon_type_fp> allowed_milling) {
+                 const optional<multi_polygon_type_fp> allowed_milling) {
   multi_linestring_type_fp ring_paths{linestring_type_fp(ring.cbegin(), ring.cend())}; // Make a copy into an mls.
   ring_paths = ring_paths - scaled_already_milled_shrunk;
   ring_paths = make_eulerian_paths(ring_paths, dir);
@@ -440,7 +444,7 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
                      const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& scaled_already_milled_shrunk,
-                     const boost::optional<multi_polygon_type_fp> allowed_milling) {
+                     const optional<multi_polygon_type_fp> allowed_milling) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
@@ -456,6 +460,28 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
       }
     }
   }
+}
+
+// Find all potential thermal reliefs.  Those are usually holes in traces.
+// Return those shapes as rings with correct orientation.
+vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface, const coordinate_type_fp scaled_tolerance) {
+    // For each shape, see if it has any holes that are empty.
+  optional<svg_writer> image;
+  vector<ring_type_fp> holes;
+  for (const auto& p : milling_surface) {
+    for (const auto& inner : p.inners()) {
+      auto thermal_hole = inner;
+      bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
+      multi_polygon_type_fp shrunk_thermal_hole;
+      bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -scaled_tolerance);
+      bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
+      if (!empty_hole) {
+        continue;
+      }
+      holes.push_back(thermal_hole);
+    }
+  }
+  return holes;
 }
 
 // Get all the toolpaths for a single milling bit.  The mill is the tool to use
@@ -487,8 +513,9 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
+    vector<ring_type_fp> thermal_holes;
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
-      preserve_thermal_reliefs(*vectorial_surface, scaled_diameter + (scaled_diameter-scaled_overlap) * extra_passes + scaled_tolerance);
+      thermal_holes = find_thermal_reliefs(*vectorial_surface, scaled_tolerance);
     }
 
     bg::unique(*vectorial_surface);
@@ -514,20 +541,27 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     srand(1);
     multi_linestring_type_fp toolpath;
 
-    for (unsigned int i = 0; i < vectorial_surface->size(); i++) {
+    for (unsigned int trace_index = 0; trace_index < vectorial_surface->size() + thermal_holes.size(); trace_index++) {
       const unsigned int r = rand() % 256;
       const unsigned int g = rand() % 256;
       const unsigned int b = rand() % 256;
 
-      const auto& current_trace = vectorial_surface->at(i);
+      optional<polygon_type_fp> current_trace = boost::none;
+      if (trace_index < vectorial_surface->size()) {
+        current_trace.emplace(vectorial_surface->at(trace_index));
+      }
+      const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : polygon_type_fp({thermal_holes[trace_index - voronoi.size()]});
       const vector<multi_polygon_type_fp> polygons =
-          offset_polygon(current_trace, voronoi[i], contentions,
+          offset_polygon(current_trace, current_voronoi, contentions,
                          scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
-      multi_polygon_type_fp keep_out;
-      bg_helpers::buffer(current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
-      // This is the area where milling is allowed but not necessarily required.
-      // It can be used to connect paths that are nearly connected.
-      multi_polygon_type_fp allowed_milling = voronoi[i] - keep_out;
+      boost::optional<multi_polygon_type_fp> allowed_milling;
+      if (current_trace) {
+        multi_polygon_type_fp keep_out;
+        bg_helpers::buffer(*current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
+        // This is the area where milling is allowed but not necessarily required.
+        // It can be used to connect paths that are nearly connected.
+        allowed_milling.emplace(current_voronoi - keep_out);
+      }
       // The rings of polygons are the paths to mill.  The paths may include
       // both inner and outer rings.  They vector has them sorted from the
       // smallest outer to the largest outer, both for voronoi and for regular
@@ -594,7 +628,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface)
 }
 
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
-    const polygon_type_fp& input,
+    const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     bool& contentions, coordinate_type_fp scaled_diameter,
     coordinate_type_fp scaled_overlap,
@@ -603,12 +637,15 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   vector<multi_polygon_type_fp> polygons;
 
   // Mask the polygon that we need to mill.
-  polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : input;  // Milling voronoi or trace?
+  polygon_type_fp masked_milling_poly = do_voronoi ? voronoi_polygon : *input;  // Milling voronoi or trace?
   multi_polygon_type_fp masked_milling_polys;
   // This is the area that the milling must not cross so that it doesn't dig
-  // into the trace.
+  // into the trace.  We only need this if there is an input. which is not the
+  // case if this is a thermal hole.
   multi_polygon_type_fp path_minimum;
-  bg_helpers::buffer(input, path_minimum, scaled_diameter/2);
+  if (input) {
+    bg_helpers::buffer(*input, path_minimum, scaled_diameter/2);
+  }
   if (mask) {
     masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
   } else {
@@ -672,47 +709,6 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   }
 
   return polygons;
-}
-
-size_t Surface_vectorial::preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& grow) {
-    // For each shape, see if it has any holes that are empty.
-    size_t thermal_reliefs_found = 0;
-    boost::optional<svg_writer> image;
-    multi_polygon_type_fp holes;
-    unsigned int contentions = 0;
-    for (auto& p : milling_surface) {
-        for (auto& inner : p.inners()) {
-            auto thermal_hole = inner;
-            bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-            multi_polygon_type_fp shrunk_thermal_hole;
-            bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -grow);
-            bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
-            if (!empty_hole) {
-              continue; // This isn't a thermal, there is something in the hole!
-            }
-            thermal_reliefs_found++;
-            if (bg::area(shrunk_thermal_hole) <= 0) {
-              // There isn't room enough to preserve this thermal relief.
-              contentions++;
-              break;
-            }
-            if (!image) {
-              image.emplace(build_filename(outputdir, "thermal_reliefs_" + name + ".svg"), scale, bounding_box);
-            }
-            image->add(shrunk_thermal_hole, 1, true);
-            for (const auto& p : shrunk_thermal_hole) {
-              holes.push_back(p);
-            }
-        }
-    }
-    if (contentions > 0) {
-      cerr << "\nWarning: pcb2gcode hasn't been able to preserve all thermal reliefs. "
-          "You may want to check the g-code output and"
-          " possibly use a smaller milling width." << endl;
-    }
-
-    milling_surface.insert(milling_surface.end(), holes.begin(), holes.end());
-    return thermal_reliefs_found;
 }
 
 svg_writer::svg_writer(string filename, coordinate_type_fp scale, box_type_fp bounding_box) :

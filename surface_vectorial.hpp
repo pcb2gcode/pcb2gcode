@@ -31,6 +31,7 @@
 #include <memory>
 
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #include "mill.hpp"
 #include "gerberimporter.hpp"
@@ -83,13 +84,8 @@ protected:
   multi_linestring_type_fp get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
       const multi_polygon_type_fp& already_milled);
-  // Fill thermal reliefs in with a polygon of appropriate size so
-  // that they will get milled even in voronoi mode or if the offset
-  // is larger than the half the thickness of the thermal relief.
-  // Returns the number of thermal reliefs found and filled.
-  size_t preserve_thermal_reliefs(multi_polygon_type_fp& milling_surface, const coordinate_type_fp& tollerance);
   std::vector<multi_polygon_type_fp> offset_polygon(
-      const polygon_type_fp& input,
+      const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
       bool& contentions, coordinate_type_fp scaled_diameter,
       coordinate_type_fp scaled_overlap,
