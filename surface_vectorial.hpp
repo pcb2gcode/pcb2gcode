@@ -84,7 +84,7 @@ protected:
 
   std::shared_ptr<Surface_vectorial> mask;
 
-  multi_linestring_type_fp get_single_toolpath(
+  vector<multi_linestring_type_fp> get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
       const multi_polygon_type_fp& already_milled) const;
   std::vector<multi_polygon_type_fp> offset_polygon(

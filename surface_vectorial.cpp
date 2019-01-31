@@ -141,6 +141,19 @@ vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_s
   return holes;
 }
 
+
+multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) {
+  size_t total_size = 0;
+  for (const auto& sub : v) {
+    total_size += sub.size();
+  }
+  multi_linestring_type_fp result;
+  result.reserve(total_size);
+  for (const auto& sub : v) {
+    result.insert(result.end(), sub.begin(), sub.end());
+  }
+  return result;
+}
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(*vectorial_surface);
@@ -167,9 +180,10 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
       const auto scaled_tool_diameter = tool.first * scale;
       multi_polygon_type_fp scaled_already_milled_shrunk;
       bg_helpers::buffer(scaled_already_milled, scaled_already_milled_shrunk, -scaled_tool_diameter/2 + scaled_tolerance);
-      auto new_toolpath = get_single_toolpath(isolator, mirror, tool.first, tool.second,
-                                              tool_count > 1 ? "_" + std::to_string(tool_index) : "",
-                                              scaled_already_milled_shrunk);
+      const auto new_trace_toolpaths = get_single_toolpath(isolator, mirror, tool.first, tool.second,
+                                                           tool_count > 1 ? "_" + std::to_string(tool_index) : "",
+                                                           scaled_already_milled_shrunk);
+      auto new_toolpath = flatten_mls(new_trace_toolpaths);
       post_process_toolpath(isolator, new_toolpath);
       results.push_back(mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale)));
       if (tool_index + 1 == tool_count) {
@@ -184,9 +198,10 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-      auto new_toolpath = get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp());
-      post_process_toolpath(cutter, new_toolpath);
-      return {mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale))};
+    const auto new_trace_toolpaths = get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp());
+    auto new_toolpath = flatten_mls(new_trace_toolpaths);
+    post_process_toolpath(cutter, new_toolpath);
+    return {mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
@@ -504,7 +519,7 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
 // making unique filenames if there are multiple tools.  The
 // scaled_already_milled_shrunk is the running union of all the milled area so
 // far, so that new milling can avoid re-milling areas that are already milled.
-multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
+vector<multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
     const multi_polygon_type_fp& scaled_already_milled_shrunk) const {
     coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
@@ -540,7 +555,9 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     bool contentions = false;
 
     srand(1);
-    multi_linestring_type_fp toolpath;
+    // One for each trace and thermal_hole.  The traces first, then the thermal
+    // holes, in the same order that they are provided.
+    vector<multi_linestring_type_fp> toolpaths(vectorial_surface->size() + thermal_holes.size());
 
     for (unsigned int trace_index = 0; trace_index < vectorial_surface->size() + thermal_holes.size(); trace_index++) {
       const unsigned int r = rand() % 256;
@@ -579,7 +596,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
           // This is on the back so all loops are reversed.
           dir = invert(dir);
         }
-        attach_polygons(mill, polygon, toolpath, dir, scaled_already_milled_shrunk, allowed_milling);
+        attach_polygons(mill, polygon, toolpaths[trace_index], dir, scaled_already_milled_shrunk, allowed_milling);
         debug_image.add(polygon, 0, r, g, b);
         traced_debug_image.add(polygon, 1, r, g, b);
       }
@@ -595,7 +612,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
            << " possibly use a smaller milling width.\n";
     }
 
-    return toolpath;
+    return toolpaths;
 }
 
 void Surface_vectorial::save_debug_image(string message)
