@@ -471,9 +471,6 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
-    if (scaled_tolerance <= 0)
-        scaled_tolerance = 0.0001 * scale;
-
     if (isolator && isolator->preserve_thermal_reliefs && do_voronoi) {
       preserve_thermal_reliefs(*vectorial_surface, scaled_diameter + (scaled_diameter-scaled_overlap) * extra_passes + scaled_tolerance);
     }
