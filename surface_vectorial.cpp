@@ -537,7 +537,8 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& scaled_already_milled_shrunk,
                  const optional<multi_polygon_type_fp> allowed_milling) {
-  multi_linestring_type_fp ring_paths{linestring_type_fp(ring.cbegin(), ring.cend())}; // Make a copy into an mls.
+  multi_linestring_type_fp ring_paths;
+  ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
   ring_paths = ring_paths - scaled_already_milled_shrunk;
   ring_paths = make_eulerian_paths(ring_paths, dir);
   for (const auto& ring_path : ring_paths) {
