@@ -195,10 +195,9 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
                   - isolator->tolerance))); // In case it divides evenly, do fewer passes.
 
       bg::buffer(bounding_box, svg_bounding_box, scaled_tool_diameter / 2 + (scaled_tool_diameter-scaled_overlap_width) * extra_passes);
-      const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
       svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), scale, svg_bounding_box);
-      svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
+      svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), scale, svg_bounding_box);
       srand(1);
       debug_image.add(voronoi, 0.3, false);
       srand(1);
@@ -240,9 +239,8 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
 
     const auto scaled_tool_diameter = cutter->tool_diameter * scale;
     bg::buffer(bounding_box, svg_bounding_box, scaled_tool_diameter / 2);
-    const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
     svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + ".svg"), scale, svg_bounding_box);
     srand(1);
     debug_image.add(voronoi, 0.3, false);
     srand(1);
