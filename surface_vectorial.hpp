@@ -77,7 +77,7 @@ protected:
 
   std::shared_ptr<multi_polygon_type_fp> vectorial_surface;
   multi_polygon_type_fp voronoi;
-  vector<ring_type_fp> thermal_holes;
+  vector<polygon_type_fp> thermal_holes;
 
   box_type_fp bounding_box;
 

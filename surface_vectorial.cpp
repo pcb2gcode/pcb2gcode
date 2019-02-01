@@ -121,11 +121,11 @@ vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp& mls) 
 
 // Find all potential thermal reliefs.  Those are usually holes in traces.
 // Return those shapes as rings with correct orientation.
-vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface,
-                                          const coordinate_type_fp tolerance) {
+vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface,
+                                             const coordinate_type_fp tolerance) {
   // For each shape, see if it has any holes that are empty.
   optional<svg_writer> image;
-  vector<ring_type_fp> holes;
+  vector<polygon_type_fp> holes;
   for (const auto& p : milling_surface) {
     for (const auto& inner : p.inners()) {
       auto thermal_hole = inner;
@@ -136,7 +136,9 @@ vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_s
       if (!empty_hole) {
         continue;
       }
-      holes.push_back(thermal_hole);
+      polygon_type_fp p;
+      p.outer() = thermal_hole;
+      holes.push_back(p);
     }
   }
   return holes;
@@ -609,7 +611,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     if (trace_index < vectorial_surface->size()) {
       current_trace.emplace(vectorial_surface->at(trace_index));
     }
-    const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : polygon_type_fp({thermal_holes[trace_index - voronoi.size()]});
+    const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi, contentions,
                        diameter, overlap, extra_passes + 1, do_voronoi);
