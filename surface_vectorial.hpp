@@ -104,6 +104,7 @@ public:
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
     void add(const std::vector<polygon_type_fp>& geometries, double opacity,
         int r = -1, int g = -1, int b = -1);
+    void add(const multi_linestring_type_fp& paths, unsigned int r, unsigned int g, unsigned int b);
 
 protected:
     std::ofstream output_file;

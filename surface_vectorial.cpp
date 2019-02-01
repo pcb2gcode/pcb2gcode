@@ -597,9 +597,9 @@ vector<multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
           dir = invert(dir);
         }
         attach_polygons(mill, polygon, toolpaths[trace_index], dir, scaled_already_milled_shrunk, allowed_milling);
-        debug_image.add(polygon, 0, r, g, b);
-        traced_debug_image.add(polygon, 1, r, g, b);
       }
+      debug_image.add(toolpaths[trace_index], r, g, b);
+      traced_debug_image.add(toolpaths[trace_index], r, g, b);
     }
 
     srand(1);
@@ -808,5 +808,15 @@ void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, 
                   str(boost::format("fill-opacity:%f;stroke:rgb(0,0,0);stroke-width:2") %
                       opacity));
     }
+  }
+}
+
+void svg_writer::add(const multi_linestring_type_fp& paths, unsigned int r, unsigned int g, unsigned int b) {
+  for (const auto& path : paths) {
+    // Just strokes.
+    mapper->map(path,
+                str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:4")
+                    % r % g % b));
+    mapper->map(path, "stroke:rgb(0,0,0);stroke-width:2");
   }
 }
