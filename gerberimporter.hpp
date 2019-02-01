@@ -63,17 +63,10 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y, const GdkColor& color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
                         const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const;
-
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const;
-  virtual inline unsigned int vectorial_scale() const {
-    return scale;
-  }
-
 
 protected:
     enum Side { FRONT = 0, BACK = 1 } side;
-
-    static const unsigned int scale;
 
 private:
     gerbv_project_t* project;

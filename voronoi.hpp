@@ -74,9 +74,12 @@ public:
      * is the maximum error for interpolating parabolic curves into discrete
      * linestrings.  Smaller means more accurate and more points.
      */
-    static multi_polygon_type_fp build_voronoi(
-        const multi_polygon_type& input,
-        const box_type& bounding_box, coordinate_type max_dist);
+  static multi_polygon_type_fp build_voronoi(
+      const multi_polygon_type& input,
+      const box_type& bounding_box, coordinate_type max_dist);
+  static multi_polygon_type_fp build_voronoi(
+      const multi_polygon_type_fp& input,
+      const box_type_fp& bounding_box, coordinate_type_fp max_dist);
 
 protected:
     static linestring_type_fp edge_to_linestring(const edge_type& edge, const vector<segment_type_p>& segments, const box_type_fp& bounding_box, coordinate_type max_dist);

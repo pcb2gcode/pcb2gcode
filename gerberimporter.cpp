@@ -43,9 +43,6 @@ namespace bg = boost::geometry;
 typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
 typedef bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2> translate;
 
-//As suggested by the Gerber specification, we retain 6 decimals
-const unsigned int GerberImporter::scale = 1000000;
-
 GerberImporter::GerberImporter() {
   project = gerbv_create_project();
 }
@@ -850,13 +847,9 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     multi_polygon_type_fp scaled_result;
     bg::transform(result, scaled_result,
                   bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
-                      scale/25.4, scale/25.4));
+                      1/25.4, 1/25.4));
     return scaled_result;
   } else {
-    multi_polygon_type_fp scaled_result;
-    bg::transform(result, scaled_result,
-                  bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
-                      scale, scale));
-    return scaled_result;
+    return result;
   }
 }

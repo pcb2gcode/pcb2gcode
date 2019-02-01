@@ -79,7 +79,6 @@ protected:
   multi_polygon_type_fp voronoi;
   vector<ring_type_fp> thermal_holes;
 
-  coordinate_type_fp scale;
   box_type_fp bounding_box;
 
   std::shared_ptr<Surface_vectorial> mask;
@@ -91,8 +90,8 @@ protected:
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
-      bool& contentions, coordinate_type_fp scaled_diameter,
-      coordinate_type_fp scaled_overlap,
+      bool& contentions, coordinate_type_fp diameter,
+      coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
   void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
 };
@@ -100,7 +99,7 @@ protected:
 class svg_writer
 {
 public:
-    svg_writer(string filename, coordinate_type_fp scale, box_type_fp bounding_box);
+    svg_writer(string filename, box_type_fp bounding_box);
     template <typename multi_polygon_type_t>
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
     void add(const std::vector<polygon_type_fp>& geometries, double opacity,
