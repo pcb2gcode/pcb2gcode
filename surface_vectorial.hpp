@@ -45,7 +45,7 @@
 /******************************************************************************/
 class Surface_vectorial: public Core, virtual public boost::noncopyable {
  public:
-  Surface_vectorial(unsigned int points_per_circle, ivalue_t width, ivalue_t height,
+  Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
                     string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
   std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
@@ -56,17 +56,16 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable {
   void render(std::shared_ptr<VectorialLayerImporter> importer);
 
   inline ivalue_t get_width_in() {
-    return width_in;
+    return bounding_box.max_corner().x() - bounding_box.min_corner().x();
   }
 
   inline ivalue_t get_height_in() {
-    return height_in;
+    return bounding_box.max_corner().y() - bounding_box.min_corner().y();
   }
 
 protected:
   const unsigned int points_per_circle;
-  const ivalue_t width_in;
-  const ivalue_t height_in;
+  const box_type_fp bounding_box;
   const string name;
   const string outputdir;
   const bool tsp_2opt;
@@ -79,7 +78,6 @@ protected:
   multi_polygon_type_fp voronoi;
   vector<polygon_type_fp> thermal_holes;
 
-  box_type_fp bounding_box;
 
   std::shared_ptr<Surface_vectorial> mask;
 
@@ -108,7 +106,7 @@ public:
 
 protected:
     std::ofstream output_file;
-    box_type_fp bounding_box;
+    const box_type_fp bounding_box;
     unique_ptr<bg::svg_mapper<point_type_fp> > mapper;
 };
 

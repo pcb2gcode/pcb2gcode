@@ -22,16 +22,16 @@ G04 P1.00000 (Wait for spindle to get up to speed)
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X0.13250 Y-0.13250 ( rapid move to begin. )
+G00 X0.33250 Y-0.33250 ( rapid move to begin. )
 G01 F3.00000
 G01 Z-0.00800
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F6.00000
-G01 X0.13250 Y-0.13250
-G01 X0.13250 Y10.13250
-G01 X-10.13250 Y10.13250
-G01 X-10.13250 Y-0.13250
-G01 X0.13250 Y-0.13250
+G01 X0.33250 Y-0.33250
+G01 X0.33250 Y10.33250
+G01 X-10.33250 Y10.33250
+G01 X-10.33250 Y-0.33250
+G01 X0.33250 Y-0.33250
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 

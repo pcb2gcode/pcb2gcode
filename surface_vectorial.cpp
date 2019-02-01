@@ -51,12 +51,14 @@ unsigned int Surface_vectorial::debug_image_index = 0;
 // For use when we have to convert from float to long and back.
 const double SCALE = 1000000.0;
 
-Surface_vectorial::Surface_vectorial(unsigned int points_per_circle, ivalue_t width,
-                                     ivalue_t height, string name, string outputdir,
+Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
+                                     ivalue_t min_x, ivalue_t max_x,
+                                     ivalue_t min_y, ivalue_t max_y,
+                                     string name, string outputdir,
                                      bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction) :
     points_per_circle(points_per_circle),
-    width_in(width),
-    height_in(height),
+    bounding_box(box_type_fp(point_type_fp(min_x, min_y),
+                             point_type_fp(max_x, max_y))),
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
@@ -78,7 +80,6 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
 
   //With a very small loss of precision we can reduce memory usage and processing time
   bg::simplify(vectorial_surface_not_simplified, *vectorial_surface, 0.0001);
-  bg::envelope(*vectorial_surface, bounding_box);
 }
 
 // If the direction is ccw, return cw and vice versa.  If any, return any.
@@ -663,23 +664,18 @@ void Surface_vectorial::save_debug_image(string message)
     ++debug_image_index;
 }
 
-void Surface_vectorial::enable_filling()
-{
+void Surface_vectorial::enable_filling() {
     fill = true;
 }
 
-void Surface_vectorial::add_mask(shared_ptr<Core> surface)
-{
+void Surface_vectorial::add_mask(shared_ptr<Core> surface) {
     mask = dynamic_pointer_cast<Surface_vectorial>(surface);
 
-    if (mask)
-    {
-        *vectorial_surface = *vectorial_surface & *(mask->vectorial_surface);
-
-        bg::envelope(*(mask->vectorial_surface), bounding_box);
+    if (mask) {
+      *vectorial_surface = *vectorial_surface & *(mask->vectorial_surface);
+      return;
     }
-    else
-        throw std::logic_error("Can't cast Core to Surface_vectorial");
+    throw std::logic_error("Can't cast Core to Surface_vectorial");
 }
 
 // Might not have an input, which is when we are milling for thermal reliefs.

@@ -2,61 +2,61 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
 "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <!-- original:
-<svg width="241.663" height="184.063" viewBox="0 0 5034.65 3834.65" version="1.1"
+<svg width="220.715" height="162.021" viewBox="0 0 4598.23 3375.43" version="1.1"
 -->
-<svg width="2416.63" height="1840.63" viewBox="0 0 5034.65 3834.65" version="1.1"
+<svg width="2207.15" height="1620.21" viewBox="0 0 4598.23 3375.43" version="1.1"
 xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
-<circle cx="1367.32" cy="1667.32" r="31.4961" style=""/>
-<circle cx="1564.17" cy="1667.32" r="31.4961" style=""/>
-<circle cx="1367.32" cy="2309.84" r="31.4961" style=""/>
-<circle cx="1367.32" cy="2467.32" r="31.4961" style=""/>
-<circle cx="1367.32" cy="2624.8" r="31.4961" style=""/>
-<circle cx="3470.47" cy="1667.32" r="31.4961" style=""/>
-<circle cx="3667.32" cy="1667.32" r="31.4961" style=""/>
-<circle cx="3567.32" cy="2309.84" r="31.4961" style=""/>
-<circle cx="3567.32" cy="2467.32" r="31.4961" style=""/>
-<circle cx="3567.32" cy="2624.8" r="31.4961" style=""/>
-<circle cx="1067.32" cy="1867.32" r="39.4094" style=""/>
-<circle cx="1067.32" cy="1067.32" r="39.4094" style=""/>
-<circle cx="1867.32" cy="1067.32" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1298.03" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1140.63" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1210.59" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1245.56" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1175.61" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1263.05" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1228.08" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1193.1" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1158.12" r="39.4094" style=""/>
-<circle cx="2197.32" cy="1280.54" r="39.4094" style=""/>
-<circle cx="2488.66" cy="983.15" r="39.4094" style=""/>
-<circle cx="2645.98" cy="983.15" r="39.4094" style=""/>
-<circle cx="2576.06" cy="983.15" r="39.4094" style=""/>
-<circle cx="2541.1" cy="983.15" r="39.4094" style=""/>
-<circle cx="2611.02" cy="983.15" r="39.4094" style=""/>
-<circle cx="2523.62" cy="983.15" r="39.4094" style=""/>
-<circle cx="2558.58" cy="983.15" r="39.4094" style=""/>
-<circle cx="2593.54" cy="983.15" r="39.4094" style=""/>
-<circle cx="2628.5" cy="983.15" r="39.4094" style=""/>
-<circle cx="2506.14" cy="983.15" r="39.4094" style=""/>
-<circle cx="2645.98" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2488.66" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2558.58" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2593.54" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2523.62" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2611.02" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2576.06" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2541.1" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2506.14" cy="1455.51" r="39.4094" style=""/>
-<circle cx="2628.5" cy="1455.51" r="39.4094" style=""/>
-<circle cx="1867.32" cy="1867.32" r="39.4094" style=""/>
-<circle cx="2067.32" cy="2567.32" r="39.4094" style=""/>
-<circle cx="2267.32" cy="2567.32" r="39.4094" style=""/>
-<circle cx="2667.32" cy="2567.32" r="39.4094" style=""/>
-<circle cx="2867.32" cy="2567.32" r="39.4094" style=""/>
-<circle cx="3167.32" cy="1867.32" r="39.4094" style=""/>
-<circle cx="3967.32" cy="1867.32" r="39.4094" style=""/>
-<circle cx="3167.32" cy="1067.32" r="39.4094" style=""/>
-<circle cx="3967.32" cy="1067.32" r="39.4094" style=""/>
+<circle cx="1156.12" cy="1585.42" r="31.4961" style=""/>
+<circle cx="1352.97" cy="1585.42" r="31.4961" style=""/>
+<circle cx="1156.12" cy="2227.94" r="31.4961" style=""/>
+<circle cx="1156.12" cy="2385.42" r="31.4961" style=""/>
+<circle cx="1156.12" cy="2542.9" r="31.4961" style=""/>
+<circle cx="3259.27" cy="1585.42" r="31.4961" style=""/>
+<circle cx="3456.12" cy="1585.42" r="31.4961" style=""/>
+<circle cx="3356.12" cy="2227.94" r="31.4961" style=""/>
+<circle cx="3356.12" cy="2385.42" r="31.4961" style=""/>
+<circle cx="3356.12" cy="2542.9" r="31.4961" style=""/>
+<circle cx="856.117" cy="1785.42" r="39.4094" style=""/>
+<circle cx="856.117" cy="985.417" r="39.4094" style=""/>
+<circle cx="1656.12" cy="985.417" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1216.13" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1058.72" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1128.68" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1163.66" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1093.7" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1181.15" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1146.17" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1111.19" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1076.21" r="39.4094" style=""/>
+<circle cx="1986.12" cy="1198.64" r="39.4094" style=""/>
+<circle cx="2277.46" cy="901.244" r="39.4094" style=""/>
+<circle cx="2434.78" cy="901.244" r="39.4094" style=""/>
+<circle cx="2364.86" cy="901.244" r="39.4094" style=""/>
+<circle cx="2329.9" cy="901.244" r="39.4094" style=""/>
+<circle cx="2399.82" cy="901.244" r="39.4094" style=""/>
+<circle cx="2312.42" cy="901.244" r="39.4094" style=""/>
+<circle cx="2347.38" cy="901.244" r="39.4094" style=""/>
+<circle cx="2382.34" cy="901.244" r="39.4094" style=""/>
+<circle cx="2417.3" cy="901.244" r="39.4094" style=""/>
+<circle cx="2294.94" cy="901.244" r="39.4094" style=""/>
+<circle cx="2434.78" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2277.46" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2347.38" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2382.34" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2312.42" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2399.82" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2364.86" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2329.9" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2294.94" cy="1373.61" r="39.4094" style=""/>
+<circle cx="2417.3" cy="1373.61" r="39.4094" style=""/>
+<circle cx="1656.12" cy="1785.42" r="39.4094" style=""/>
+<circle cx="1856.12" cy="2485.42" r="39.4094" style=""/>
+<circle cx="2056.12" cy="2485.42" r="39.4094" style=""/>
+<circle cx="2456.12" cy="2485.42" r="39.4094" style=""/>
+<circle cx="2656.12" cy="2485.42" r="39.4094" style=""/>
+<circle cx="2956.12" cy="1785.42" r="39.4094" style=""/>
+<circle cx="3756.12" cy="1785.42" r="39.4094" style=""/>
+<circle cx="2956.12" cy="985.417" r="39.4094" style=""/>
+<circle cx="3756.12" cy="985.417" r="39.4094" style=""/>
 </svg>

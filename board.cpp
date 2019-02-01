@@ -73,8 +73,6 @@ void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, s
 /******************************************************************************/
 void Board::createLayers()
 {
-    const double quantization_error = 2.0 / dpi;
-
     if (!prepared_layers.size())
       return; // Nothing to do.
 
@@ -86,46 +84,36 @@ void Board::createLayers()
     max_y = -INFINITY;
 
     // Calculate the maximum possible room needed by the PCB traces, for tiling later.
-    for (const auto& prepared_layer : prepared_layers) {
-      shared_ptr<LayerImporter> importer = get<0>(prepared_layer.second);
-      min_x = std::min(min_x, importer->get_min_x());
-      max_x = std::max(max_x, importer->get_max_x());
-      min_y = std::min(min_y, importer->get_min_y());
-      max_y = std::max(max_y, importer->get_max_y());
-    }
-
-    // Calculate the maximum possible margin needed.
-    double margin = quantization_error;
     const auto outline = prepared_layers.find("outline");
     if (outline != prepared_layers.cend()) {
       shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
+      const auto& importer = get<0>(outline->second);
       ivalue_t tool_diameter = outline_mill->tool_diameter;
-      if (tool_diameter > margin) {
-        margin = tool_diameter;  // We'll need to make space enough for the cutter to go around.
-      }
+      min_x = std::min(min_x, importer->get_min_x() - tool_diameter);
+      max_x = std::max(max_x, importer->get_max_x() + tool_diameter);
+      min_y = std::min(min_y, importer->get_min_y() - tool_diameter);
+      max_y = std::max(max_y, importer->get_max_y() + tool_diameter);
     }
     for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
       const auto current_layer = prepared_layers.find(layer_name);
       if (current_layer != prepared_layers.cend()) {
         shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
+        const auto& importer = get<0>(current_layer->second);
         for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
           auto tool_diameter = tool.first;
           auto overlap_width = tool.second;
-          auto passes = std::max(
-              int(std::ceil((trace_mill->isolation_width - tool_diameter)/(tool_diameter - overlap_width))),
+          auto extra_passes = std::max(
+              int(std::ceil((trace_mill->isolation_width - tool_diameter) / (tool_diameter - overlap_width))),
               trace_mill->extra_passes);
           // Figure out how much margin the extra passes might make.
-          double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * passes;
-          if (extra_passes_margin > margin) {
-            margin = extra_passes_margin;
-          }
+          double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
+          min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin);
+          max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin);
+          min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin);
+          max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin);
         }
       }
     }
-    min_x -= margin;
-    max_x += margin;
-    min_y -= margin;
-    max_y += margin;
 
     // board size calculated. create layers
     for (const auto& prepared_layer : prepared_layers) {
@@ -138,8 +126,9 @@ void Board::createLayers()
         if (!vectorial_layer_importer) {
           throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
         }
-        shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
-                                                                    max_y - min_y,
+        shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30,
+                                                                    min_x, max_x,
+                                                                    min_y, max_y,
                                                                     prepared_layer.first, outputdir, tsp_2opt,
                                                                     mill_feed_direction));
         if (fill) {
