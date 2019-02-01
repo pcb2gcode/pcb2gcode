@@ -141,7 +141,6 @@ vector<ring_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_s
   return holes;
 }
 
-
 multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) {
   size_t total_size = 0;
   for (const auto& sub : v) {
@@ -154,6 +153,7 @@ multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) 
   }
   return result;
 }
+
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(*vectorial_surface);
@@ -171,34 +171,94 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     if (isolator->preserve_thermal_reliefs && isolator->voronoi) {
       thermal_holes = find_thermal_reliefs(*vectorial_surface, scaled_tolerance);
     }
-    vector<vector<shared_ptr<icoords>>> results;
-    // Area that was already milled.
-    multi_polygon_type_fp scaled_already_milled;
     const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
+    vector<vector<shared_ptr<icoords>>> results(tool_count);
+    const auto trace_count = vectorial_surface->size() + thermal_holes.size(); // Includes thermal holes.
+    // One for each trace or thermal hole, including all prior tools.
+    vector<multi_polygon_type_fp> scaled_already_milled(trace_count);
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
       const auto scaled_tool_diameter = tool.first * scale;
-      multi_polygon_type_fp scaled_already_milled_shrunk;
-      bg_helpers::buffer(scaled_already_milled, scaled_already_milled_shrunk, -scaled_tool_diameter/2 + scaled_tolerance);
-      const auto new_trace_toolpaths = get_single_toolpath(isolator, mirror, tool.first, tool.second,
-                                                           tool_count > 1 ? "_" + std::to_string(tool_index) : "",
-                                                           scaled_already_milled_shrunk);
+      const auto scaled_overlap_width = tool.second * scale;
+      vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+
+      // Now set up the debug images, one per tool.
+      box_type_fp svg_bounding_box;
+      // Extra passes are done on each trace if requested,
+      // each offset by the tool diameter less the overlap requested.
+      const int extra_passes =
+          std::max(
+              isolator->extra_passes,
+              int(std::ceil(
+                  (isolator->isolation_width - tool.first) /
+                  (tool.first - tool.second)
+                  - isolator->tolerance))); // In case it divides evenly, do fewer passes.
+
+      bg::buffer(bounding_box, svg_bounding_box, scaled_tool_diameter / 2 + (scaled_tool_diameter-scaled_overlap_width) * extra_passes);
+      const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
+      const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
+      svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), scale, svg_bounding_box);
+      svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
+      srand(1);
+      debug_image.add(voronoi, 0.3, false);
+      srand(1);
+      for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+        multi_polygon_type_fp scaled_already_milled_shrunk;
+        bg_helpers::buffer(scaled_already_milled[trace_index], scaled_already_milled_shrunk, -scaled_tool_diameter/2 + scaled_tolerance);
+        const auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
+                                                            scaled_already_milled_shrunk);
+        const unsigned int r = rand() % 256;
+        const unsigned int g = rand() % 256;
+        const unsigned int b = rand() % 256;
+        debug_image.add(new_trace_toolpath, r, g, b);
+        traced_debug_image.add(new_trace_toolpath, r, g, b);
+
+        new_trace_toolpaths[trace_index] = new_trace_toolpath;
+        if (tool_index + 1 == tool_count) {
+          // No point in updating the already_milled.
+          continue;
+        }
+        multi_polygon_type_fp new_trace_toolpath_bufferred;
+        bg_helpers::buffer(new_trace_toolpath, new_trace_toolpath_bufferred, scaled_tool_diameter/2);
+        scaled_already_milled[trace_index] = scaled_already_milled[trace_index] + new_trace_toolpath_bufferred;
+      }
+      srand(1);
+      debug_image.add(*vectorial_surface, 1, true);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
       post_process_toolpath(isolator, new_toolpath);
-      results.push_back(mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale)));
-      if (tool_index + 1 == tool_count) {
-        // No point in updating the already_milled.
-        break;
-      }
-      multi_polygon_type_fp new_toolpath_bufferred;
-      bg_helpers::buffer(new_toolpath, new_toolpath_bufferred, scaled_tool_diameter/2);
-      scaled_already_milled = scaled_already_milled + new_toolpath_bufferred;
+      results[tool_index] = mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale));
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    const auto new_trace_toolpaths = get_single_toolpath(cutter, mirror, cutter->tool_diameter, 0, "", multi_polygon_type_fp());
+    const auto trace_count = vectorial_surface->size();
+    vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+
+    // Now set up the debug images, one per tool.
+    box_type_fp svg_bounding_box;
+
+    const auto scaled_tool_diameter = cutter->tool_diameter * scale;
+    bg::buffer(bounding_box, svg_bounding_box, scaled_tool_diameter / 2);
+    const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), scale, svg_bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
+    srand(1);
+    debug_image.add(voronoi, 0.3, false);
+    srand(1);
+    for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+      const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
+      const unsigned int r = rand() % 256;
+      const unsigned int g = rand() % 256;
+      const unsigned int b = rand() % 256;
+      debug_image.add(new_trace_toolpath, r, g, b);
+      traced_debug_image.add(new_trace_toolpath, r, g, b);
+
+      new_trace_toolpaths[trace_index] = new_trace_toolpath;
+    }
+    srand(1);
+    debug_image.add(*vectorial_surface, 1, true);
+
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
     post_process_toolpath(cutter, new_toolpath);
     return {mls_to_icoords(scale_and_mirror_toolpath(new_toolpath, mirror, scale))};
@@ -512,15 +572,17 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
   }
 }
 
-// Get all the toolpaths for a single milling bit.  The mill is the tool to use
-// and the tool_diameter and the overlap_width are the specifics of the tool to
-// use in the milling.  mirror means that the entire shapre should be reflected
-// across the y=0 axis, because it will be on the back.  The tool_suffix is for
-// making unique filenames if there are multiple tools.  The
-// scaled_already_milled_shrunk is the running union of all the milled area so
-// far, so that new milling can avoid re-milling areas that are already milled.
-vector<multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
-    shared_ptr<RoutingMill> mill, bool mirror, const double tool_diameter, const double overlap_width, const std::string& tool_suffix,
+// Get all the toolpaths for a single milling bit for just one of the traces or
+// thermal holes.  The mill is the tool to use and the tool_diameter and the
+// overlap_width are the specifics of the tool to use in the milling.  mirror
+// means that the entire shapre should be reflected across the y=0 axis, because
+// it will be on the back.  The tool_suffix is for making unique filenames if
+// there are multiple tools.  The scaled_already_milled_shrunk is the running
+// union of all the milled area so far, so that new milling can avoid re-milling
+// areas that are already milled.
+multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
+    shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
+    const double overlap_width,
     const multi_polygon_type_fp& scaled_already_milled_shrunk) const {
     coordinate_type_fp scaled_tolerance = mill->tolerance * scale;
     // This is by how much we will grow each trace if extra passes are needed.
@@ -541,69 +603,44 @@ vector<multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
-    box_type_fp svg_bounding_box;
-
-    bg::buffer(bounding_box, svg_bounding_box, scaled_diameter / 2 + (scaled_diameter-scaled_overlap) * extra_passes);
-
-    const string traced_filename = (boost::format("outp%d_traced_%s.svg") % debug_image_index++ % name).str();
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), scale, svg_bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, traced_filename), scale, svg_bounding_box);
-
-    srand(1);
-    debug_image.add(voronoi, 0.3, false);
-
     bool contentions = false;
 
-    srand(1);
-    // One for each trace and thermal_hole.  The traces first, then the thermal
-    // holes, in the same order that they are provided.
-    vector<multi_linestring_type_fp> toolpaths(vectorial_surface->size() + thermal_holes.size());
+    multi_linestring_type_fp toolpath;
 
-    for (unsigned int trace_index = 0; trace_index < vectorial_surface->size() + thermal_holes.size(); trace_index++) {
-      const unsigned int r = rand() % 256;
-      const unsigned int g = rand() % 256;
-      const unsigned int b = rand() % 256;
-
-      optional<polygon_type_fp> current_trace = boost::none;
-      if (trace_index < vectorial_surface->size()) {
-        current_trace.emplace(vectorial_surface->at(trace_index));
-      }
-      const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : polygon_type_fp({thermal_holes[trace_index - voronoi.size()]});
-      const vector<multi_polygon_type_fp> polygons =
-          offset_polygon(current_trace, current_voronoi, contentions,
-                         scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
-      boost::optional<multi_polygon_type_fp> allowed_milling;
-      if (current_trace) {
-        multi_polygon_type_fp keep_out;
-        bg_helpers::buffer(*current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
-        // This is the area where milling is allowed but not necessarily required.
-        // It can be used to connect paths that are nearly connected.
-        allowed_milling.emplace(current_voronoi - keep_out);
-      }
-      // The rings of polygons are the paths to mill.  The paths may include
-      // both inner and outer rings.  They vector has them sorted from the
-      // smallest outer to the largest outer, both for voronoi and for regular
-      // isolation.
-      for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
-        const auto& polygon = polygons[polygon_index];
-        MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-        if (polygon_index + 1 == polygons.size() && polygon_index != 0) {
-          // This is the outermost loop and it isn't the only loop so invert
-          // it to remove burrs.
-          dir = invert(dir);
-        }
-        if (mirror) {
-          // This is on the back so all loops are reversed.
-          dir = invert(dir);
-        }
-        attach_polygons(mill, polygon, toolpaths[trace_index], dir, scaled_already_milled_shrunk, allowed_milling);
-      }
-      debug_image.add(toolpaths[trace_index], r, g, b);
-      traced_debug_image.add(toolpaths[trace_index], r, g, b);
+    optional<polygon_type_fp> current_trace = boost::none;
+    if (trace_index < vectorial_surface->size()) {
+      current_trace.emplace(vectorial_surface->at(trace_index));
     }
-
-    srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : polygon_type_fp({thermal_holes[trace_index - voronoi.size()]});
+    const vector<multi_polygon_type_fp> polygons =
+        offset_polygon(current_trace, current_voronoi, contentions,
+                       scaled_diameter, scaled_overlap, extra_passes + 1, do_voronoi);
+    boost::optional<multi_polygon_type_fp> allowed_milling;
+    if (current_trace) {
+      multi_polygon_type_fp keep_out;
+      bg_helpers::buffer(*current_trace, keep_out, scaled_diameter/2 - scaled_tolerance);
+      // This is the area where milling is allowed but not necessarily required.
+      // It can be used to connect paths that are nearly connected.
+      allowed_milling.emplace(current_voronoi - keep_out);
+    }
+    // The rings of polygons are the paths to mill.  The paths may include
+    // both inner and outer rings.  They vector has them sorted from the
+    // smallest outer to the largest outer, both for voronoi and for regular
+    // isolation.
+    for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
+      const auto& polygon = polygons[polygon_index];
+      MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
+      if (polygon_index + 1 == polygons.size() && polygon_index != 0) {
+        // This is the outermost loop and it isn't the only loop so invert
+        // it to remove burrs.
+        dir = invert(dir);
+      }
+      if (mirror) {
+        // This is on the back so all loops are reversed.
+        dir = invert(dir);
+      }
+      attach_polygons(mill, polygon, toolpath, dir, scaled_already_milled_shrunk, allowed_milling);
+    }
 
     if (contentions) {
       cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
@@ -612,7 +649,7 @@ vector<multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
            << " possibly use a smaller milling width.\n";
     }
 
-    return toolpaths;
+    return toolpath;
 }
 
 void Surface_vectorial::save_debug_image(string message)

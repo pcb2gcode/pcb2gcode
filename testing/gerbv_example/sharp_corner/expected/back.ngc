@@ -156,7 +156,7 @@ G01 X-5.47138 Y-4.19114
 G01 X-5.49207 Y-4.17046
 G01 X-5.49427 Y-4.16547
 G01 X-5.46663 Y-4.19311
-G01 X-5.50572 Y-4.19311
+G01 X-5.50573 Y-4.19311
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z1.000 ( retract )
