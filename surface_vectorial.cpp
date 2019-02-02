@@ -689,7 +689,8 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   vector<multi_polygon_type_fp> polygons;
 
   // Mask the polygon that we need to mill.
-  multi_polygon_type_fp masked_milling_poly{do_voronoi ? voronoi_polygon : *input};  // Milling voronoi or trace?
+  multi_polygon_type_fp masked_milling_poly;
+  masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
     // slightly to accomodate the thickness of the millbit.
