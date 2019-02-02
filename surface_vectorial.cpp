@@ -285,8 +285,13 @@ coordinate_type_fp do_milling(
       horizontal_distance/horizontalG1speed) {
     return false; // Faster to go up and back down.
   }
-  if (allowed_milling && !bg::covered_by(linestring_type_fp{a, b}, *allowed_milling)) {
-    return false;
+  if (allowed_milling) {
+    linestring_type_fp connector;
+    connector.push_back(a);
+    connector.push_back(b);
+    if (!bg::covered_by(connector, *allowed_milling)) {
+      return false;
+    }
   }
   return true;
 }
