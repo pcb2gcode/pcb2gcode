@@ -7,8 +7,8 @@
 <svg width="5039.55" height="3080.92" viewBox="0 0 1049.91 641.858" version="1.1"
 xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
-<g fill-rule="evenodd"><path d="M 1.81899e-12,0 L 1049.91,0 L 1049.91,641.858 L 1.81899e-12,641.858 L 1.81899e-12,0 z " style="fill-opacity:0.300000;fill:rgb(103,198,105);"/></g>
-<polyline points="115.953,635.953 115.953,35.9528 1015.95,35.9528 1015.95,635.953 115.953,635.953" style="stroke:rgb(103,198,105);stroke-width:4;fill:none"/>
-<polyline points="115.953,635.953 115.953,35.9528 1015.95,35.9528 1015.95,635.953 115.953,635.953" style="stroke:rgb(0,0,0);stroke-width:2;fill:none"/>
+<g fill-rule="evenodd"><path d="M 1.81899e-12,0 L 1049.91,0 L 1049.91,641.858 L 1.81899e-12,641.858 L 1.81899e-12,0 z " style="fill-opacity:0.200000;fill:rgb(103,198,105);"/></g>
+<polyline points="115.953,635.953 115.953,35.9528 1015.95,35.9528 1015.95,635.953 115.953,635.953" style="stroke:rgb(103,198,105);stroke-width:0.000000;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="115.953,635.953 115.953,35.9528 1015.95,35.9528 1015.95,635.953 115.953,635.953" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
 <g fill-rule="evenodd"><path d="M 115.953,35.9528 L 1015.95,35.9528 L 1015.95,635.953 L 115.953,635.953 L 115.953,35.9528 z " style="fill-opacity:1.000000;fill:rgb(103,198,105);stroke:rgb(0,0,0);stroke-width:2"/></g>
 </svg>

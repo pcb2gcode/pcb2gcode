@@ -178,27 +178,14 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
       const auto tool_diameter = tool.first;
-      const auto overlap_width = tool.second;
       vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
 
       // Now set up the debug images, one per tool.
-      box_type_fp svg_bounding_box;
-      // Extra passes are done on each trace if requested,
-      // each offset by the tool diameter less the overlap requested.
-      const int extra_passes =
-          std::max(
-              isolator->extra_passes,
-              int(std::ceil(
-                  (isolator->isolation_width - tool.first) /
-                  (tool.first - tool.second)
-                  - isolator->tolerance))); // In case it divides evenly, do fewer passes.
-
-      bg::buffer(bounding_box, svg_bounding_box, tool_diameter / 2 + (tool_diameter-overlap_width) * extra_passes);
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
-      svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), svg_bounding_box);
-      svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), svg_bounding_box);
+      svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
+      svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
       srand(1);
-      debug_image.add(voronoi, 0.3, false);
+      debug_image.add(voronoi, 0.2, false);
       srand(1);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk;
@@ -208,8 +195,8 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         const unsigned int r = rand() % 256;
         const unsigned int g = rand() % 256;
         const unsigned int b = rand() % 256;
-        debug_image.add(new_trace_toolpath, r, g, b);
-        traced_debug_image.add(new_trace_toolpath, r, g, b);
+        debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
+        traced_debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
 
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
@@ -234,22 +221,18 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
 
     // Now set up the debug images, one per tool.
-    box_type_fp svg_bounding_box;
-
-    const auto tool_diameter = cutter->tool_diameter;
-    bg::buffer(bounding_box, svg_bounding_box, tool_diameter / 2);
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), svg_bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + ".svg"), svg_bounding_box);
+    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), bounding_box);
+    svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + ".svg"), bounding_box);
     srand(1);
-    debug_image.add(voronoi, 0.3, false);
+    debug_image.add(voronoi, 0.2, false);
     srand(1);
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
       const unsigned int r = rand() % 256;
       const unsigned int g = rand() % 256;
       const unsigned int b = rand() % 256;
-      debug_image.add(new_trace_toolpath, r, g, b);
-      traced_debug_image.add(new_trace_toolpath, r, g, b);
+      debug_image.add(new_trace_toolpath, cutter->tool_diameter, r, g, b);
+      traced_debug_image.add(new_trace_toolpath, cutter->tool_diameter, r, g, b);
 
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
@@ -850,12 +833,15 @@ void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, 
   }
 }
 
-void svg_writer::add(const multi_linestring_type_fp& paths, unsigned int r, unsigned int g, unsigned int b) {
+void svg_writer::add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
   for (const auto& path : paths) {
-    // Just strokes.
+    // Stroke the width of the path.
     mapper->map(path,
-                str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:4")
-                    % r % g % b));
-    mapper->map(path, "stroke:rgb(0,0,0);stroke-width:2");
+                str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:%f;fill:none;"
+                                  "stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;") % r % g % b % (width * SVG_DOTS_PER_IN)));
+    // Stroke the center of the path.
+    mapper->map(path,
+                "stroke:rgb(0,0,0);stroke-width:1px;fill:none;"
+                "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
   }
 }
