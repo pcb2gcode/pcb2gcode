@@ -158,6 +158,28 @@ multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) 
   return result;
 }
 
+void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
+                                   const vector<multi_linestring_type_fp>& new_trace_toolpaths) const {
+  // Now set up the debug images, one per tool.
+  const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
+  svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
+  svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
+  srand(1);
+  debug_image.add(voronoi, 0.2, false);
+  srand(1);
+  const auto trace_count = new_trace_toolpaths.size();
+  for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+    const auto& new_trace_toolpath = new_trace_toolpaths[trace_index];
+    const unsigned int r = rand() % 256;
+    const unsigned int g = rand() % 256;
+    const unsigned int b = rand() % 256;
+    debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
+    traced_debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
+  }
+  srand(1);
+  debug_image.add(*vectorial_surface, 1, true);
+}
+
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(*vectorial_surface);
@@ -180,24 +202,11 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
       const auto tool_diameter = tool.first;
       vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
 
-      // Now set up the debug images, one per tool.
-      const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
-      svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
-      svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
-      srand(1);
-      debug_image.add(voronoi, 0.2, false);
-      srand(1);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk;
         bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
         const auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                             already_milled_shrunk);
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-        debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
-        traced_debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
-
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
           // No point in updating the already_milled.
@@ -207,8 +216,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         bg_helpers::buffer(new_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
-      srand(1);
-      debug_image.add(*vectorial_surface, 1, true);
+      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
       post_process_toolpath(isolator, new_toolpath);
       results[tool_index] = mls_to_icoords(mirror_toolpath(new_toolpath, mirror));
@@ -220,25 +228,11 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     const auto trace_count = vectorial_surface->size();
     vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
 
-    // Now set up the debug images, one per tool.
-    svg_writer debug_image(build_filename(outputdir, "processed_" + name + ".svg"), bounding_box);
-    svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + ".svg"), bounding_box);
-    srand(1);
-    debug_image.add(voronoi, 0.2, false);
-    srand(1);
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
-      const unsigned int r = rand() % 256;
-      const unsigned int g = rand() % 256;
-      const unsigned int b = rand() % 256;
-      debug_image.add(new_trace_toolpath, cutter->tool_diameter, r, g, b);
-      traced_debug_image.add(new_trace_toolpath, cutter->tool_diameter, r, g, b);
-
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
-    srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
-
+    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths);
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
     post_process_toolpath(cutter, new_toolpath);
     return {mls_to_icoords(mirror_toolpath(new_toolpath, mirror))};

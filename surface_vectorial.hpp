@@ -92,6 +92,8 @@ protected:
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
   void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
+  void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
+                  const vector<multi_linestring_type_fp>& new_trace_toolpaths) const;
 };
 
 class svg_writer
