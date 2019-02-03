@@ -205,8 +205,13 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk;
         bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
-        const auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
-                                                            already_milled_shrunk);
+        auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
+                                                      already_milled_shrunk);
+        if (mill->optimise) {
+          multi_linestring_type_fp temp_mls;
+          bg::simplify(new_trace_toolpath, temp_mls, mill->tolerance);
+          new_trace_toolpath = temp_mls;
+        }
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
           // No point in updating the already_milled.
