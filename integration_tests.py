@@ -57,6 +57,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_no_export_milldrill",
                   "multivibrator_no_zero_start",
                   "multivibrator_pre_post_milling_gcode",
+                  "multivibrator-two-isolators",
                   "multivibrator_xy_offset",
                   "multivibrator_xy_offset_zero_start",
                   "multi_outline",
