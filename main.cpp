@@ -25,6 +25,9 @@
 #include <sstream>
 #include <memory>
 
+#include <vector>
+using std::vector;
+
 using std::cout;
 using std::cerr;
 using std::endl;

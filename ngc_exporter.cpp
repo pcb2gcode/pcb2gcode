@@ -34,6 +34,9 @@ using std::string;
 using std::cout;
 using std::endl;
 
+#include <vector>
+using std::vector;
+
 #include <cmath>
 using std::ceil;
 

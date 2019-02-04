@@ -30,6 +30,9 @@
 using std::list;
 using std::map;
 
+#include <vector>
+using std::vector;
+
 // For use when we have to convert from float to long and back.
 const double SCALE = 1000000.0;
 

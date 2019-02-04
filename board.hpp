@@ -64,9 +64,9 @@ public:
     ivalue_t get_max_y() {	return max_y; }
     double get_layersnum() {  return layers.size(); }
 
-    vector<std::string> list_layers();
+    std::vector<std::string> list_layers();
     std::shared_ptr<Layer> get_layer(std::string layername);
-    vector<vector<std::shared_ptr<icoords>>> get_toolpath(std::string layername);
+    std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
     unsigned int get_dpi();

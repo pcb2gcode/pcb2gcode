@@ -29,6 +29,12 @@ using std::string;
 using std::get;
 using std::static_pointer_cast;
 
+#include <utility>
+using std::pair;
+
+#include <vector>
+using std::vector;
+
 typedef pair<string, shared_ptr<Layer> > layer_t;
 
 /******************************************************************************/

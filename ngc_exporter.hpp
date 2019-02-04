@@ -57,12 +57,12 @@ public:
 protected:
   void export_layer(std::shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
   void cutter_milling(std::ofstream& of, std::shared_ptr<Cutter> cutter, std::shared_ptr<icoords> path,
-                      const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot);
+                      const std::vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot);
   void isolation_milling(std::ofstream& of, std::shared_ptr<RoutingMill> mill, std::shared_ptr<icoords> path,
                          boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot);
 
     std::shared_ptr<Board> board;
-    vector<std::string> header;
+    std::vector<std::string> header;
     std::string preamble;        //Preamble from command line (user file)
     std::string postamble;       //Postamble from command line (user file)
 
