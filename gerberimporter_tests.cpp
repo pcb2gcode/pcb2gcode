@@ -10,6 +10,11 @@
 #include <librsvg-2.0/librsvg/rsvg.h>
 #include <boost/format.hpp>
 #include <cstdlib>
+#include <string>
+using std::string;
+
+#include <map>
+using std::map;
 
 struct Fixture {
   Fixture() {

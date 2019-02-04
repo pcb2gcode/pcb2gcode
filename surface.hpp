@@ -54,12 +54,12 @@ class Surface: public Core, virtual public boost::noncopyable
 {
 public:
     Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
-            ivalue_t max_y, string name, string outputdir, bool tsp_2opt);
+            ivalue_t max_y, std::string name, std::string outputdir, bool tsp_2opt);
     void render(shared_ptr<RasterLayerImporter> importer);
 
     shared_ptr<Surface> deep_copy();
 
-    void save_debug_image(string);
+    void save_debug_image(std::string);
 
     std::vector<vector<shared_ptr<icoords>>> get_toolpath(
         shared_ptr<RoutingMill> mill, bool mirror);
@@ -86,8 +86,8 @@ protected:
     const ivalue_t dpi;
     const ivalue_t min_x, max_x, min_y, max_y;
     const int zero_x, zero_y;
-    const string name;
-    const string outputdir;
+    const std::string name;
+    const std::string outputdir;
     const bool tsp_2opt;
 
     bool fill;

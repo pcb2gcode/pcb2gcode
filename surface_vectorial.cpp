@@ -21,6 +21,12 @@
 #include <limits>
 using std::numeric_limits;
 
+#include <string>
+using std::string;
+
+#include <memory>
+using std::make_shared;
+
 #include <algorithm>
 #include <iostream>
 #include <cmath>

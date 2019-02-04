@@ -46,11 +46,11 @@
 class Surface_vectorial: public Core, virtual public boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
-                    string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
+                    std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
   std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
-  void save_debug_image(string message);
+  void save_debug_image(std::string message);
   void enable_filling();
   void add_mask(std::shared_ptr<Core> surface);
   void render(std::shared_ptr<VectorialLayerImporter> importer);
@@ -66,8 +66,8 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable {
 protected:
   const unsigned int points_per_circle;
   const box_type_fp bounding_box;
-  const string name;
-  const string outputdir;
+  const std::string name;
+  const std::string outputdir;
   const bool tsp_2opt;
   static unsigned int debug_image_index;
 
@@ -99,7 +99,7 @@ protected:
 class svg_writer
 {
 public:
-    svg_writer(string filename, box_type_fp bounding_box);
+    svg_writer(std::string filename, box_type_fp bounding_box);
     template <typename multi_polygon_type_t>
     void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
     void add(const std::vector<polygon_type_fp>& geometries, double opacity,

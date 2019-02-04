@@ -95,8 +95,8 @@ private:
      * signature of Layer.
      */
     typedef std::tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
-    map<string, prep_t> prepared_layers;
-    map<string, shared_ptr<Layer> > layers;
+    std::map<string, prep_t> prepared_layers;
+    std::map<string, shared_ptr<Layer> > layers;
 };
 
 #endif // BOARD_H

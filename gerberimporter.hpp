@@ -21,18 +21,8 @@
 #define GERBERIMPORTER_H
 
 #include <string>
-using std::string;
-
 #include <iostream>
-using std::cerr;
-using std::endl;
-
 #include "importer.hpp"
-
-using std::make_shared;
-using std::map;
-using std::pair;
-using std::vector;
 
 extern "C" {
 #include <gerbv.h>
@@ -51,7 +41,7 @@ class gerber_exception: public std::exception {};
 class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter {
 public:
     GerberImporter();
-    bool load_file(const string& path);
+  bool load_file(const std::string& path);
     virtual ~GerberImporter();
 
     virtual gdouble get_min_x() const;
