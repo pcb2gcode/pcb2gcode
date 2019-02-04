@@ -476,15 +476,17 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
     // First we need to split all paths so that they don't cross.  We need to
     // scale them up because the input is not floating point.
     vector<segment_type_p> all_segments;
+    vector<bool> allow_reversals;
     for (const auto& toolpath : merged_toolpaths) {
-        for (size_t i = 1; i < toolpath.size(); i++) {
-            all_segments.push_back(
-                segment_type_p(
-                    point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
-                    point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
-        }
+      for (size_t i = 1; i < toolpath.size(); i++) {
+        all_segments.push_back(
+            segment_type_p(
+                point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
+                point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
+        allow_reversals.push_back(mill_feed_direction == MillFeedDirection::ANY);
+      }
     }
-    vector<segment_type_p> split_segments = segmentize::segmentize(all_segments, mill_feed_direction == MillFeedDirection::ANY);
+    vector<segment_type_p> split_segments = segmentize::segmentize(all_segments, allow_reversals);
 
     // We need to scale them back down.
     multi_linestring_type_fp segments_as_linestrings;
