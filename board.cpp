@@ -20,6 +20,8 @@
 
 #include "board.hpp"
 #include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
 
 #include <string>
 using std::string;

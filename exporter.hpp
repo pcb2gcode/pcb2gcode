@@ -32,7 +32,7 @@
 
 class Exporter: public boost::noncopyable {
  public:
-  Exporter(shared_ptr<Board> board) {}
+  Exporter(std::shared_ptr<Board> board) {}
   virtual void export_all(boost::program_options::variables_map&) = 0;
 };
 

@@ -37,6 +37,10 @@ using std::endl;
 #include <cmath>
 using std::ceil;
 
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+
 #include <iomanip>
 
 #include <glibmm/miscutils.h>

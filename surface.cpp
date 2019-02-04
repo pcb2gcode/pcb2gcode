@@ -29,6 +29,8 @@ using std::pair;
 using Glib::build_filename;
 
 #include <memory>
+using std::dynamic_pointer_cast;
+using std::shared_ptr;
 
 #include <string>
 using std::string;

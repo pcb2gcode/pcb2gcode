@@ -44,9 +44,7 @@
 class NGC_Exporter: public Exporter
 {
 public:
-    NGC_Exporter(shared_ptr<Board> board);
-    /* virtual void add_path( shared_ptr<icoords> ); */
-    /* virtual void add_path( vector< shared_ptr<icoords> > ); */
+    NGC_Exporter(std::shared_ptr<Board> board);
     void add_header(std::string);
     void export_all(boost::program_options::variables_map&);
     void set_preamble(std::string);
@@ -57,13 +55,13 @@ public:
     }
 
 protected:
-  void export_layer(shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
-  void cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
+  void export_layer(std::shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
+  void cutter_milling(std::ofstream& of, std::shared_ptr<Cutter> cutter, std::shared_ptr<icoords> path,
                       const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot);
-  void isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, shared_ptr<icoords> path,
+  void isolation_milling(std::ofstream& of, std::shared_ptr<RoutingMill> mill, std::shared_ptr<icoords> path,
                          boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot);
 
-    shared_ptr<Board> board;
+    std::shared_ptr<Board> board;
     vector<std::string> header;
     std::string preamble;        //Preamble from command line (user file)
     std::string postamble;       //Postamble from command line (user file)
