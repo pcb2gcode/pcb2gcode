@@ -21,6 +21,9 @@
 #include "board.hpp"
 #include <memory>
 
+#include <string>
+using std::string;
+
 using std::get;
 using std::static_pointer_cast;
 

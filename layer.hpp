@@ -22,9 +22,7 @@
 #define LAYER_H
 
 #include <string>
-using std::string;
 #include <vector>
-using std::vector;
 
 #include <boost/noncopyable.hpp>
 
@@ -36,29 +34,26 @@ using std::vector;
 /*
  */
 /******************************************************************************/
-class Layer: boost::noncopyable
-{
-public:
-    Layer(const string& name, shared_ptr<Core> surface,
-          shared_ptr<RoutingMill> manufacturer, bool backside);
+class Layer: boost::noncopyable {
+ public:
+  Layer(const std::string& name, shared_ptr<Core> surface,
+        shared_ptr<RoutingMill> manufacturer, bool backside);
 
-    std::vector<vector<shared_ptr<icoords>>> get_toolpaths();
-    shared_ptr<RoutingMill> get_manufacturer();
-    vector<size_t> get_bridges(shared_ptr<icoords> toolpath);
-    string get_name()
-    {
-        return name;
-    }
-    ;
-    void add_mask(shared_ptr<Layer>);
+  std::vector<vector<shared_ptr<icoords>>> get_toolpaths();
+  shared_ptr<RoutingMill> get_manufacturer();
+  vector<size_t> get_bridges(shared_ptr<icoords> toolpath);
+  std::string get_name() {
+    return name;
+  }
+  void add_mask(shared_ptr<Layer>);
 
-private:
-    string name;
-    bool mirrored;
-    shared_ptr<Core> surface;
-    shared_ptr<RoutingMill> manufacturer;
+ private:
+  std::string name;
+  bool mirrored;
+  shared_ptr<Core> surface;
+  shared_ptr<RoutingMill> manufacturer;
 
-    friend class Board;
+  friend class Board;
 };
 
 #endif // LAYER_H

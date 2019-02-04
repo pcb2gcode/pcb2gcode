@@ -24,7 +24,7 @@
 /*
  */
 /******************************************************************************/
-Layer::Layer(const string& name, shared_ptr<Core> surface,
+Layer::Layer(const std::string& name, shared_ptr<Core> surface,
              shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;
