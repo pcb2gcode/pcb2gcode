@@ -26,6 +26,7 @@ using std::string;
 
 #include <memory>
 using std::make_shared;
+using std::shared_ptr;
 
 #include <algorithm>
 #include <iostream>

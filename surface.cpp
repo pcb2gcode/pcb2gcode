@@ -35,6 +35,9 @@ using std::shared_ptr;
 #include <string>
 using std::string;
 
+#include <vector>
+using std::vector;
+
 // color definitions for the ARGB32 format used
 
 #define OPAQUE 0xFF000000
