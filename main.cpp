@@ -25,12 +25,18 @@
 #include <sstream>
 #include <memory>
 
+#include <vector>
+using std::vector;
+
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::flush;
 using std::fstream;
 using std::shared_ptr;
+
+#include <string>
+using std::string;
 
 #include <glibmm/ustring.h>
 using Glib::ustring;

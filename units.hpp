@@ -349,7 +349,6 @@ template<>
 class Unit<rpm_unit> : public UnitBase<rpm_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  using UnitBase::as;
   double asRpm(double factor) const {
     return as(factor, 1.0 * rpm);
   }
@@ -376,7 +375,6 @@ template<>
 class Unit<percent_unit> : public UnitBase<percent_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  using UnitBase::as;
   double asPercent(double factor) const {
     return as(factor, 1.0 * percent);
   }

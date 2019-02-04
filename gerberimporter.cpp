@@ -19,8 +19,19 @@
 
 #include <algorithm>
 #include <utility>
+using std::pair;
 using std::reverse;
 using std::swap;
+
+#include <iostream>
+using std::cerr;
+using std::endl;
+
+#include <string>
+using std::string;
+
+#include <vector>
+using std::vector;
 
 #include <cstdint>
 #include <list>
@@ -29,8 +40,14 @@ using std::list;
 using std::next;
 using std::make_move_iterator;
 
+#include <memory>
+using std::unique_ptr;
+
 #include <forward_list>
 using std::forward_list;
+
+#include <map>
+using std::map;
 
 #include <boost/format.hpp>
 

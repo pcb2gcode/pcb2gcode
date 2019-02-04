@@ -50,11 +50,11 @@
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
+    Board(int dpi, bool fill_outline, double outline_width, std::string outputdir, bool vectorial, bool tsp_2opt,
           MillFeedDirection::MillFeedDirection mill_feed_direction);
 
-    void prepareLayer(string layername, shared_ptr<LayerImporter> importer,
-                      shared_ptr<RoutingMill> manufacturer, bool backside);
+    void prepareLayer(std::string layername, std::shared_ptr<LayerImporter> importer,
+                      std::shared_ptr<RoutingMill> manufacturer, bool backside);
     void set_margins(double margins) { margin = margins;	}
     ivalue_t get_width();
     ivalue_t get_height();
@@ -64,9 +64,9 @@ public:
     ivalue_t get_max_y() {	return max_y; }
     double get_layersnum() {  return layers.size(); }
 
-    vector<string> list_layers();
-    shared_ptr<Layer> get_layer(string layername);
-    vector<vector<shared_ptr<icoords>>> get_toolpath(string layername);
+    std::vector<std::string> list_layers();
+    std::shared_ptr<Layer> get_layer(std::string layername);
+    std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
     unsigned int get_dpi();
@@ -76,7 +76,7 @@ private:
     const unsigned int dpi;
     const bool fill_outline;
     const double outline_width;
-    const string outputdir;
+    const std::string outputdir;
     const bool vectorial;
     const bool tsp_2opt;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
@@ -94,9 +94,9 @@ private:
      * prep_t tuples, whose signature must basically match the construction
      * signature of Layer.
      */
-    typedef std::tuple<shared_ptr<LayerImporter>, shared_ptr<RoutingMill>, bool> prep_t;
-    map<string, prep_t> prepared_layers;
-    map<string, shared_ptr<Layer> > layers;
+    typedef std::tuple<std::shared_ptr<LayerImporter>, std::shared_ptr<RoutingMill>, bool> prep_t;
+    std::map<std::string, prep_t> prepared_layers;
+    std::map<std::string, std::shared_ptr<Layer> > layers;
 };
 
 #endif // BOARD_H

@@ -21,6 +21,17 @@
 #include <limits>
 using std::numeric_limits;
 
+#include <string>
+using std::string;
+
+#include <memory>
+using std::make_shared;
+using std::shared_ptr;
+using std::unique_ptr;
+
+#include <vector>
+using std::vector;
+
 #include <algorithm>
 #include <iostream>
 #include <cmath>
@@ -794,7 +805,7 @@ svg_writer::svg_writer(string filename, box_type_fp bounding_box) :
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
-    mapper = unique_ptr<bg::svg_mapper<point_type_fp> >
+    mapper = unique_ptr<bg::svg_mapper<point_type_fp>>
         (new bg::svg_mapper<point_type_fp>(output_file, viewBox_width, viewBox_height, svg_dimensions));
     mapper->add(bounding_box);
 }

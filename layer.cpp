@@ -20,11 +20,18 @@
 
 #include "layer.hpp"
 
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+
+#include <vector>
+using std::vector;
+
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-Layer::Layer(const string& name, shared_ptr<Core> surface,
+Layer::Layer(const std::string& name, shared_ptr<Core> surface,
              shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;

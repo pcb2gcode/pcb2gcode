@@ -31,6 +31,10 @@
 #include "units.hpp"
 #include "available_drills.hpp"
 
+#include <string>
+using std::string;
+using std::to_string;
+
 #include <iostream>
 using std::cerr;
 using std::endl;

@@ -46,11 +46,11 @@
 class Surface_vectorial: public Core, virtual public boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
-                    string name, string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
+                    std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
 
   std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
-  void save_debug_image(string message);
+  void save_debug_image(std::string message);
   void enable_filling();
   void add_mask(std::shared_ptr<Core> surface);
   void render(std::shared_ptr<VectorialLayerImporter> importer);
@@ -66,8 +66,8 @@ class Surface_vectorial: public Core, virtual public boost::noncopyable {
 protected:
   const unsigned int points_per_circle;
   const box_type_fp bounding_box;
-  const string name;
-  const string outputdir;
+  const std::string name;
+  const std::string outputdir;
   const bool tsp_2opt;
   static unsigned int debug_image_index;
 
@@ -76,7 +76,7 @@ protected:
 
   std::shared_ptr<multi_polygon_type_fp> vectorial_surface;
   multi_polygon_type_fp voronoi;
-  vector<polygon_type_fp> thermal_holes;
+  std::vector<polygon_type_fp> thermal_holes;
 
 
   std::shared_ptr<Surface_vectorial> mask;
@@ -93,23 +93,22 @@ protected:
       unsigned int steps, bool do_voronoi) const;
   void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
   void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                  const vector<multi_linestring_type_fp>& new_trace_toolpaths) const;
+                  const std::vector<multi_linestring_type_fp>& new_trace_toolpaths) const;
 };
 
-class svg_writer
-{
-public:
-    svg_writer(string filename, box_type_fp bounding_box);
-    template <typename multi_polygon_type_t>
-    void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
-    void add(const std::vector<polygon_type_fp>& geometries, double opacity,
-        int r = -1, int g = -1, int b = -1);
-    void add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b);
+class svg_writer {
+ public:
+  svg_writer(std::string filename, box_type_fp bounding_box);
+  template <typename multi_polygon_type_t>
+      void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
+  void add(const std::vector<polygon_type_fp>& geometries, double opacity,
+           int r = -1, int g = -1, int b = -1);
+  void add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b);
 
-protected:
-    std::ofstream output_file;
-    const box_type_fp bounding_box;
-    unique_ptr<bg::svg_mapper<point_type_fp> > mapper;
+ protected:
+  std::ofstream output_file;
+  const box_type_fp bounding_box;
+  std::unique_ptr<bg::svg_mapper<point_type_fp> > mapper;
 };
 
 #endif // SURFACE_VECTORIAL_H

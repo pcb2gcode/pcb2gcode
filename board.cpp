@@ -20,9 +20,20 @@
 
 #include "board.hpp"
 #include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+
+#include <string>
+using std::string;
 
 using std::get;
 using std::static_pointer_cast;
+
+#include <utility>
+using std::pair;
+
+#include <vector>
+using std::vector;
 
 typedef pair<string, shared_ptr<Layer> > layer_t;
 

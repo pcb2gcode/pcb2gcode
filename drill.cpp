@@ -30,8 +30,14 @@ using std::cout;
 using std::endl;
 using std::flush;
 
+#include <vector>
+using std::vector;
+
 #include <sstream>
 using std::stringstream;
+
+#include <memory>
+using std::shared_ptr;
 
 #include <numeric>
 #include <iomanip>
