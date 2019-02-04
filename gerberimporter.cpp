@@ -40,6 +40,9 @@ using std::list;
 using std::next;
 using std::make_move_iterator;
 
+#include <memory>
+using std::unique_ptr;
+
 #include <forward_list>
 using std::forward_list;
 

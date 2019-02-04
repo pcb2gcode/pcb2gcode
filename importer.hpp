@@ -21,11 +21,7 @@
 #define IMPORTER_H
 
 #include <memory>
-using std::shared_ptr;
-using std::unique_ptr;
-
 #include <glibmm/ustring.h>
-using Glib::ustring;
 
 #include <glibmm/refptr.h>
 #include <cairomm/cairomm.h>
@@ -45,28 +41,26 @@ extern "C" {
  Pure virtual base class for importers.
  */
 /******************************************************************************/
-class LayerImporter
-{
-public:
-    virtual gdouble get_min_x() const = 0;
-    virtual gdouble get_max_x() const = 0;
-    virtual gdouble get_min_y() const = 0;
-    virtual gdouble get_max_y() const = 0;
+class LayerImporter {
+ public:
+  virtual gdouble get_min_x() const = 0;
+  virtual gdouble get_max_x() const = 0;
+  virtual gdouble get_min_y() const = 0;
+  virtual gdouble get_max_y() const = 0;
 };
 
-class RasterLayerImporter : virtual public LayerImporter
-{
-public:
-    virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-                        const guint dpi, const double xoff, const double yoff,
-                        const GdkColor& color =  { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
-                        const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const = 0;
+class RasterLayerImporter : virtual public LayerImporter {
+ public:
+  virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
+                      const guint dpi, const double xoff, const double yoff,
+                      const GdkColor& color =  { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
+                      const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const = 0;
 
 };
 
 class VectorialLayerImporter : virtual public LayerImporter {
-public:
-    virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
+ public:
+  virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
 };
 
 #endif // IMPORTER_H
