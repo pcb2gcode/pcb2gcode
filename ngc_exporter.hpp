@@ -24,18 +24,9 @@
 #define NGCEXPORTER_H
 
 #include <vector>
-using std::vector;
-
 #include <string>
-using std::string;
-using std::pair;
-
 #include <fstream>
-using std::ofstream;
-
 #include <memory>
-using std::shared_ptr;
-using std::dynamic_pointer_cast;
 
 #include <boost/program_options.hpp>
 
@@ -56,26 +47,26 @@ public:
     NGC_Exporter(shared_ptr<Board> board);
     /* virtual void add_path( shared_ptr<icoords> ); */
     /* virtual void add_path( vector< shared_ptr<icoords> > ); */
-    void add_header(string);
+    void add_header(std::string);
     void export_all(boost::program_options::variables_map&);
-    void set_preamble(string);
-    void set_postamble(string);
+    void set_preamble(std::string);
+    void set_postamble(std::string);
     inline Tiling::TileInfo getTileInfo()
     {
         return tileInfo;
     }
 
 protected:
-  void export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller);
+  void export_layer(shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
   void cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
                       const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot);
   void isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, shared_ptr<icoords> path,
                          boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot);
 
     shared_ptr<Board> board;
-    vector<string> header;
-    string preamble;        //Preamble from command line (user file)
-    string postamble;       //Postamble from command line (user file)
+    vector<std::string> header;
+    std::string preamble;        //Preamble from command line (user file)
+    std::string postamble;       //Postamble from command line (user file)
 
     double cfactor;         //imperial/metric conversion factor for output file
     bool bMetricinput;      //if true, input parameters are in metric units
