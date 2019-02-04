@@ -29,7 +29,7 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-7']
           packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils', 'ninja-build', 'llvm-dev', 'libclang-dev', 'clang']
       env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage" IWYU=1
 
