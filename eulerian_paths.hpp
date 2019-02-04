@@ -43,33 +43,33 @@ class eulerian_paths {
       allow_reversal(allow_reversal) {};
   multi_linestring_t get() {
     /* We use Hierholzer's algorithm to find the minimum cycles.  First, make a
-     * path from each vertex with more paths out than in.  In the reversible case,
-     * that means an odd path count.  Follow the path until it ends.
+     * path from each vertex with more paths out than in.  In the reversible
+     * case, that means an odd path count.  Follow the path until it ends.
      *
-     * For the reversible case, the start vertex will have count decrease by one,
-     * the end vertex will decrease from 1 to 0, and all other vertices will
-     * decrease by two.  So the result is that two vertices will have the edges
-     * counts go from odd to even and the rest will have edge counts stay either
-     * odd or even.
+     * For the reversible case, the start vertex will have count decrease by
+     * one, the end vertex will decrease from 1 to 0, and all other vertices
+     * will decrease by two.  So the result is that two vertices will have the
+     * edges counts go from odd to even and the rest will have edge counts stay
+     * either odd or even.
      *
      * For non-reversible, we only start at vertices where the out edges is
      * greater than in edges.  A path must start at those because any path that
      * goes through will subtract one from both inbound and outbound edge counts
-     * so eventually the vertex will end with only outbound eddges and so must be
-     * the start of a path.  For the new path, the start vertex will have outbound
-     * count decreased by one.  The end path will have inbound decreased by one
-     * and outbound must be zero.  All middle vertices will have inbound and
-     * outbound decreased by one each.  The result is that the outbound minus
-     * inbound count for each vertex stays the same except for the start where it
-     * goes one down by one and thend where it goes up by one.  The start was
-     * positive because we only started at edges where outbound was greater than
-     * inbound and the end must have been negative because outbound is zero.  So
-     * both the start and end vertex outbound minus inbound move closer to zero by
-     * one.  Doing this on all vertices where outbound is greater than inbound
-     * will bring all those vetices to outbound=inbound.  And because the total
-     * outbound==total inbound, that means that all vertices will have the same
-     * number of outbound and inbound, which means that we have made the
-     * precondition to stich_loops.
+     * so eventually the vertex will end with only outbound eddges and so must
+     * be the start of a path.  For the new path, the start vertex will have
+     * outbound count decreased by one.  The end path will have inbound
+     * decreased by one and outbound must be zero.  All middle vertices will
+     * have inbound and outbound decreased by one each.  The result is that the
+     * outbound minus inbound count for each vertex stays the same except for
+     * the start where it goes one down by one and the end where it goes up by
+     * one.  The start was positive because we only started at edges where
+     * outbound was greater than inbound and the end must have been negative
+     * because outbound is zero.  So both the start and end vertex outbound
+     * minus inbound move closer to zero by one.  Doing this on all vertices
+     * where outbound is greater than inbound will bring all those vertices to
+     * outbound==inbound.  And because the total_outbound==total_inbound, that
+     * means that all vertices will have the same number of outbound and
+     * inbound, which means that we have made the precondition to stitch_loops.
      */
     add_paths_to_maps();
 
