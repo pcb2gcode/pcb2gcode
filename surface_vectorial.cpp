@@ -819,27 +819,6 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
     }
 }
 
-void svg_writer::add(const vector<polygon_type_fp>& geometries, double opacity, int r, int g, int b)
-{
-  for (unsigned int i = geometries.size(); i != 0; i--) {
-    multi_polygon_type_fp mpoly = geometries[i - 1] & bounding_box;
-
-    if (opacity > 0) {
-      mapper->map(mpoly,
-                  str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);stroke:rgb(0,0,0);stroke-width:2") %
-                      opacity % r % g % b));
-    } else {
-      // Just strokes.
-      mapper->map(mpoly,
-                  str(boost::format("fill-opacity:%f;stroke:rgb(%u,%u,%u);stroke-width:4") %
-                      opacity % r % g % b));
-      mapper->map(mpoly,
-                  str(boost::format("fill-opacity:%f;stroke:rgb(0,0,0);stroke-width:2") %
-                      opacity));
-    }
-  }
-}
-
 void svg_writer::add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
   for (const auto& path : paths) {
     // Stroke the width of the path.
