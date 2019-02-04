@@ -28,7 +28,9 @@ using std::cerr;
 using std::flush;
 using std::ios_base;
 using std::left;
+#include <string>
 using std::to_string;
+using std::string;
 using std::cout;
 using std::endl;
 

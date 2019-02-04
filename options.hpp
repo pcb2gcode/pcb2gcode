@@ -24,8 +24,6 @@
 #include <stdexcept>
 
 #include <memory>
-using std::shared_ptr;
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -33,8 +31,6 @@ namespace po = boost::program_options;
 
 #include <istream>
 #include <string>
-using std::string;
-using std::to_string;
 
 enum ErrorCodes {
     ERR_OK = 0,
@@ -130,7 +126,7 @@ public:
         return instance().vm;
     }
     ;
-    static string help();
+    static std::string help();
 
     static void maybe_throw(const std::string& what, ErrorCodes error_code);
 private:

@@ -32,6 +32,9 @@ using std::flush;
 using std::fstream;
 using std::shared_ptr;
 
+#include <string>
+using std::string;
+
 #include <glibmm/ustring.h>
 using Glib::ustring;
 
