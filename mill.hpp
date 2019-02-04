@@ -23,32 +23,29 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <vector>
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class Mill
-{
-public:
-    virtual ~Mill()
-    {
-    }
-    ;
+class Mill {
+ public:
+  virtual ~Mill() {}
 
-    double feed;
-    double vertfeed;
-    int speed;
-    double zchange;
-    double zsafe;
-    double zwork;
-    double tolerance;
-    bool explicit_tolerance;
-    bool backside;
-    double spinup_time;
-    double spindown_time;
-    std::string pre_milling_gcode;
-    std::string post_milling_gcode;
+  double feed;
+  double vertfeed;
+  int speed;
+  double zchange;
+  double zsafe;
+  double zwork;
+  double tolerance;
+  bool explicit_tolerance;
+  bool backside;
+  double spinup_time;
+  double spindown_time;
+  std::string pre_milling_gcode;
+  std::string post_milling_gcode;
 };
 
 /******************************************************************************/
@@ -57,35 +54,36 @@ public:
 /******************************************************************************/
 class RoutingMill: public Mill {
  public:
-  double tool_diameter;
   bool optimise;
   bool eulerian_paths;
-  double overlap_width; // How much to overlap the extra passes.
 };
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class Isolator: public RoutingMill
-{
-public:
-    int extra_passes;
-    bool voronoi;
-    bool preserve_thermal_reliefs;
+class Isolator: public RoutingMill {
+ public:
+  // Each element is the tool diameter and the overlap width for that tool, both
+  // in inches.
+  std::vector<std::pair<double, double>> tool_diameters_and_overlap_widths;
+  int extra_passes;
+  bool voronoi;
+  bool preserve_thermal_reliefs;
+  double isolation_width;
 };
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class Cutter: public RoutingMill
-{
-public:
-    double stepsize;
-    unsigned int bridges_num;
-    double bridges_height;
-    double bridges_width;
+class Cutter: public RoutingMill {
+ public:
+  double tool_diameter;
+  double stepsize;
+  unsigned int bridges_num;
+  double bridges_height;
+  double bridges_width;
 };
 
 /******************************************************************************/

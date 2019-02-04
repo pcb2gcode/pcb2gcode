@@ -30,6 +30,37 @@
 using std::list;
 using std::map;
 
+// For use when we have to convert from float to long and back.
+const double SCALE = 1000000.0;
+
+multi_polygon_type_fp Voronoi::build_voronoi(
+    const multi_polygon_type_fp& input,
+    const box_type_fp& mask_bounding_box, coordinate_type_fp max_dist) {
+  // We need to scale all the inputs and call the integer version.
+  multi_polygon_type_fp scaled_input;
+  bg::transform(input, scaled_input,
+                bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
+                    SCALE, SCALE));
+
+  box_type_fp scaled_mask_bounding_box;
+  bg::transform(mask_bounding_box, scaled_mask_bounding_box,
+                bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
+                    SCALE, SCALE));
+
+  multi_polygon_type voronoi_input;
+  bg::convert(scaled_input, voronoi_input);
+  box_type voronoi_bounding_box;
+  bg::convert(scaled_mask_bounding_box, voronoi_bounding_box);
+
+  const multi_polygon_type_fp scaled_voronoi = build_voronoi(voronoi_input, voronoi_bounding_box, max_dist * SCALE);
+  // Scale the result back down.
+  multi_polygon_type_fp voronoi;
+  bg::transform(scaled_voronoi, voronoi,
+                bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
+                    1.0/SCALE, 1.0/SCALE));
+  return voronoi;
+}
+
 multi_polygon_type_fp Voronoi::build_voronoi(
     const multi_polygon_type& input,
     const box_type& mask_bounding_box, coordinate_type max_dist) {

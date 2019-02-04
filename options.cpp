@@ -209,6 +209,8 @@ options::options()
         ->multitoken(), "Diameters of mill bits, used in the order that they are provided.")
        ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),
         "How much to overlap milling passes, from 0% to 100% or an absolute length")
+       ("isolation-width", po::value<Length>()->default_value(Length(0)),
+        "Minimum isolation width between copper surfaces")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")
@@ -226,7 +228,8 @@ options::options()
         "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
        ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
        ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
-       ("extra-passes", po::value<int>()->default_value(0), "specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")
+       ("extra-passes", po::value<int>()->default_value(0), "[DEPRECATED] use --isolation-width instead. "
+        "Specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")
        ("fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")
        ("outline-width", po::value<Length>()->default_value(parse_unit<Length>("1.5mm")), "width of the outline, used only when vectorial is disabled")
        ("cutter-diameter", po::value<Length>(), "diameter of the end mill used for cutting out the PCB")

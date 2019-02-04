@@ -19,6 +19,7 @@
  */
 
 #include "board.hpp"
+#include <memory>
 
 using std::get;
 using std::static_pointer_cast;
@@ -43,41 +44,27 @@ Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir,
 
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double Board::get_width()
-{
-    return layers.begin()->second->surface->get_width_in();
+double Board::get_width() {
+  if (layers.size() < 1) {
+    return 0;
+  }
+  return layers.begin()->second->surface->get_width_in();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-double Board::get_height()
-{
-    return layers.begin()->second->surface->get_height_in();
+double Board::get_height() {
+  if (layers.size() < 1) {
+    return 0;
+  }
+  return layers.begin()->second->surface->get_height_in();
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-unsigned int Board::get_dpi()
-{
-    return dpi;
+unsigned int Board::get_dpi() {
+  return dpi;
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside)
-{
-    // see comment for prep_t in board.hpp
-    prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
+void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {
+  // see comment for prep_t in board.hpp
+  prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
 }
 
 /******************************************************************************/
@@ -86,10 +73,8 @@ void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, s
 /******************************************************************************/
 void Board::createLayers()
 {
-    const double quantization_error = 2.0 / dpi;
-
     if (!prepared_layers.size())
-        throw std::logic_error("No layers prepared.");
+      return; // Nothing to do.
 
     // start calculating the minimal board size
 
@@ -98,151 +83,101 @@ void Board::createLayers()
     min_y = INFINITY;
     max_y = -INFINITY;
 
-    // calculate room needed by the PCB traces
-    for( map< string, prep_t >::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
-    {
-        shared_ptr<LayerImporter> importer = get<0>(it->second);
-        double t;
-        t = importer->get_min_x();
-        if(min_x > t) min_x = t;
-        t = importer->get_max_x();
-        if(max_x < t) max_x = t;
-        t = importer->get_min_y();
-        if(min_y > t) min_y = t;
-        t = importer->get_max_y();
-        if(max_y < t) max_y = t;
+    // Calculate the maximum possible room needed by the PCB traces, for tiling later.
+    const auto outline = prepared_layers.find("outline");
+    if (outline != prepared_layers.cend()) {
+      shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
+      const auto& importer = get<0>(outline->second);
+      ivalue_t tool_diameter = outline_mill->tool_diameter;
+      min_x = std::min(min_x, importer->get_min_x() - tool_diameter);
+      max_x = std::max(max_x, importer->get_max_x() + tool_diameter);
+      min_y = std::min(min_y, importer->get_min_y() - tool_diameter);
+      max_y = std::max(max_y, importer->get_max_y() + tool_diameter);
     }
-
-    // if there's no pcb outline, add the specified margins
-    try
-    {
-        shared_ptr<RoutingMill> outline_mill = get<1>(prepared_layers.at("outline"));
-        ivalue_t radius = outline_mill->tool_diameter / 2;
-        min_x -= radius;
-        max_x += radius;
-        min_y -= radius;
-        max_y += radius;
-    }
-    catch( std::logic_error& e )
-    {
-        try
-        {
-            shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(prepared_layers.at("front")));
-            ivalue_t radius = trace_mill->tool_diameter / 2;
-            int passes = trace_mill->extra_passes + 1;
-            min_x -= radius * passes;
-            max_x += radius * passes;
-            min_y -= radius * passes;
-            max_y += radius * passes;
+    for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
+      const auto current_layer = prepared_layers.find(layer_name);
+      if (current_layer != prepared_layers.cend()) {
+        shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
+        const auto& importer = get<0>(current_layer->second);
+        for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
+          auto tool_diameter = tool.first;
+          auto overlap_width = tool.second;
+          auto extra_passes = std::max(
+              int(std::ceil((trace_mill->isolation_width - tool_diameter) / (tool_diameter - overlap_width))),
+              trace_mill->extra_passes);
+          // Figure out how much margin the extra passes might make.
+          double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
+          min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin);
+          max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin);
+          min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin);
+          max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin);
         }
-        catch( std::logic_error& e )
-        {
-            min_x -= margin;
-            max_x += margin;
-            min_y -= margin;
-            max_y += margin;
-        }
+      }
     }
-
-    min_x -= quantization_error;
-    max_x += quantization_error;
-    min_y -= quantization_error;
-    max_y += quantization_error;
 
     // board size calculated. create layers
-    for( map<string, prep_t>::iterator it = prepared_layers.begin(); it != prepared_layers.end(); it++ )
-    {
-        // prepare the surface
-        shared_ptr<LayerImporter> importer = get<0>(it->second);
-        const bool fill = fill_outline && it->first == "outline";
+    for (const auto& prepared_layer : prepared_layers) {
+      // prepare the surface
+      shared_ptr<LayerImporter> importer = get<0>(prepared_layer.second);
+      const bool fill = fill_outline && prepared_layer.first == "outline";
 
-        if (vectorial)
-        {
-            if (dynamic_pointer_cast<VectorialLayerImporter>(importer))
-            {
-                shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30, max_x - min_x,
-                                                                            max_y - min_y,
-                                                                            it->first, outputdir, tsp_2opt,
-                                                                            mill_feed_direction));
-                if (fill)
-                    surface->enable_filling();
-
-                surface->render(dynamic_pointer_cast<VectorialLayerImporter>(importer));
-
-                shared_ptr<Layer> layer(new Layer(it->first,
-                                                    surface,
-                                                    get<1>(it->second),
-                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
-
-                layers.insert(std::make_pair(layer->get_name(), layer));
-            }
-            else
-                throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
+      if (vectorial) {
+        auto vectorial_layer_importer = dynamic_pointer_cast<VectorialLayerImporter>(importer);
+        if (!vectorial_layer_importer) {
+          throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
         }
-        else
-        {
-            if (dynamic_pointer_cast<RasterLayerImporter>(importer))
-            {
-                shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
-                                                        it->first, outputdir, tsp_2opt));
-                if (fill)
-                    surface->enable_filling(outline_width);
-
-                surface->render(dynamic_pointer_cast<RasterLayerImporter>(importer));
-
-                shared_ptr<Layer> layer(new Layer(it->first,
-                                                    surface, 
-                                                    get<1>(it->second),
-                                                    get<2>(it->second))); // see comment for prep_t in board.hpp
-                
-                layers.insert(std::make_pair(layer->get_name(), layer));
-            }
-            else
-                throw std::logic_error("Can't cast LayerImporter to RasterLayerImporter!");
+        shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30,
+                                                                    min_x, max_x,
+                                                                    min_y, max_y,
+                                                                    prepared_layer.first, outputdir, tsp_2opt,
+                                                                    mill_feed_direction));
+        if (fill) {
+          surface->enable_filling();
         }
+        surface->render(vectorial_layer_importer);
+        shared_ptr<Layer> layer(new Layer(prepared_layer.first,
+                                          surface,
+                                          get<1>(prepared_layer.second),
+                                          get<2>(prepared_layer.second))); // see comment for prep_t in board.hpp
+        layers.insert(std::make_pair(layer->get_name(), layer));
+      } else {
+        auto raster_layer_importer = dynamic_pointer_cast<RasterLayerImporter>(importer);
+        if (!raster_layer_importer) {
+          throw std::logic_error("Can't cast LayerImporter to RasterLayerImporter!");
+        }
+        shared_ptr<Surface> surface(new Surface(dpi, min_x, max_x, min_y, max_y,
+                                                prepared_layer.first, outputdir, tsp_2opt));
+        if (fill)
+          surface->enable_filling(outline_width);
+        surface->render(raster_layer_importer);
+        shared_ptr<Layer> layer(new Layer(prepared_layer.first,
+                                          surface,
+                                          get<1>(prepared_layer.second),
+                                          get<2>(prepared_layer.second))); // see comment for prep_t in board.hpp
+        layers.insert(std::make_pair(layer->get_name(), layer));
+      }
     }
 
     // DEBUG output
-    for ( layer_t layer : layers )
-    {
-        layer.second->surface->save_debug_image(string("original_") + layer.second->get_name());
+    for (layer_t layer : layers) {
+      layer.second->surface->save_debug_image(string("original_") + layer.second->get_name());
     }
 
     // mask layers with outline
-    if (prepared_layers.find("outline") != prepared_layers.end())
-    {
-        shared_ptr<Layer> outline_layer = layers.at("outline");
+    if (prepared_layers.find("outline") != prepared_layers.end()) {
+      shared_ptr<Layer> outline_layer = layers.at("outline");
 
-        for (map<string, shared_ptr<Layer> >::iterator it = layers.begin(); it != layers.end(); it++)
-        {
-            if (it->second != outline_layer)
-            {
-                it->second->add_mask(outline_layer);
-                it->second->surface->save_debug_image(string("masked_") + it->second->get_name());
-            }
+      for (const auto& layer : layers) {
+        if (layer.second != outline_layer) {
+          layer.second->add_mask(outline_layer);
+          layer.second->surface->save_debug_image(string("masked_") + layer.second->get_name());
         }
+      }
     }
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<shared_ptr<icoords> > Board::get_toolpath(string layername)
-{
-    vector<shared_ptr<icoords> > toolpath;
-
-    try
-    {
-        return layers[layername]->get_toolpaths();
-    }
-    catch (std::logic_error& e)
-    {
-        std::stringstream msg;
-        msg << "class Board: get_toolpath(): layer not available: ";
-        msg << layername << std::endl;
-        throw std::logic_error(msg.str());
-    }
+vector<vector<shared_ptr<icoords>>> Board::get_toolpath(string layername) {
+  return layers[layername]->get_toolpaths();
 }
 
 /******************************************************************************/

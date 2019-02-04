@@ -59,14 +59,14 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"%3% %4% %5% %6%\"")
             % "100%"
             % "100%"
-            % ((min_x - svg_bounding_box.min_corner().x() / 1000000) * dpi)
+            % ((min_x - svg_bounding_box.min_corner().x()) * dpi)
             // max and not min because the origin is in a different corner for svg vs gbr
-            % ((svg_bounding_box.max_corner().y() / 1000000 - max_y) * dpi)
-            % (svg_width * dpi / 1000000)
-            % (svg_height * dpi / 1000000));
+            % ((svg_bounding_box.max_corner().y() - max_y) * dpi)
+            % (svg_width * dpi)
+            % (svg_height * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
-                                      svg_width * dpi / 1000000,
-                                      svg_height * dpi / 1000000,
+                                      svg_width * dpi,
+                                      svg_height * dpi,
                                       svg_dimensions);
     svg.add(polys); // This is needed for the next line to work, not sure why.
     svg.map(polys, str(boost::format("fill-opacity:%1%;fill:rgb(%2%,%3%,%4%);")
@@ -142,14 +142,15 @@ void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter(gerber_path);
+  auto g = GerberImporter();
+  BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(false, 360);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
-  double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x() / g.vectorial_scale());
-  double min_y = std::min(g.get_min_y(), bounding_box.min_corner().y() / g.vectorial_scale());
-  double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x() / g.vectorial_scale());
-  double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y() / g.vectorial_scale());
+  double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x());
+  double min_y = std::min(g.get_min_y(), bounding_box.min_corner().y());
+  double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x());
+  double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y());
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
   bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
   boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
@@ -189,14 +190,15 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter(gerber_path);
+  auto g = GerberImporter();
+  BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(false, 30);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
-  double min_x = bounding_box.min_corner().x() / g.vectorial_scale();
-  double min_y = bounding_box.min_corner().y() / g.vectorial_scale();
-  double max_x = bounding_box.max_corner().x() / g.vectorial_scale();
-  double max_y = bounding_box.max_corner().y() / g.vectorial_scale();
+  double min_x = bounding_box.min_corner().x();
+  double min_y = bounding_box.min_corner().y();
+  double max_x = bounding_box.max_corner().x();
+  double max_y = bounding_box.max_corner().y();
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
   boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
   auto counts = get_counts(cairo_surface);
@@ -255,7 +257,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
-  BOOST_CHECK_THROW(GerberImporter("foo.gbr"), gerber_exception);
+  auto g = GerberImporter();
+  BOOST_CHECK(!g.load_file("foo.gbr"));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

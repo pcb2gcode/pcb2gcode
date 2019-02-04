@@ -40,11 +40,6 @@ extern "C" {
 #include <gerbv.h>
 }
 
-struct import_exception: virtual std::exception, virtual boost::exception
-{
-};
-typedef boost::error_info<struct tag_my_info, ustring> errorstring;
-
 /******************************************************************************/
 /*
  Pure virtual base class for importers.
@@ -72,7 +67,6 @@ public:
 class VectorialLayerImporter : virtual public LayerImporter {
 public:
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
-    virtual unsigned int vectorial_scale() const = 0;
 };
 
 #endif // IMPORTER_H

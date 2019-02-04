@@ -26,8 +26,8 @@ using boost::format;
 
 #include "units.hpp"
 
-Tiling::Tiling( TileInfo tileInfo, double cfactor ) :
-    tileInfo( tileInfo ), cfactor( cfactor ) {}
+Tiling::Tiling( TileInfo tileInfo, double cfactor, int tileVar ) :
+    tileInfo( tileInfo ), cfactor( cfactor ), tileVar(tileVar) {}
 
 void Tiling::header( std::ofstream &of )
 {
@@ -36,13 +36,13 @@ void Tiling::header( std::ofstream &of )
         switch( tileInfo.software )
         {
             case Software::LINUXCNC:
-                of << "\no" << tileInfo.tileVar << " sub ( Main subroutine )\n\n";
+                of << "\no" << tileVar << " sub ( Main subroutine )\n\n";
                 break;
             
             case Software::MACH3:
             case Software::MACH4:
                 tileSequence( of );
-                of << gCodeEnd << "\nO" << tileInfo.tileVar << " ( Main subroutine )\n\n";
+                of << gCodeEnd << "\nO" << tileVar << " ( Main subroutine )\n\n";
                 break;
             
             case Software::CUSTOM:
@@ -59,7 +59,7 @@ void Tiling::footer( std::ofstream &of )
         switch( tileInfo.software )
         {
             case Software::LINUXCNC:
-                of << "\no" << tileInfo.tileVar << " endsub\n\n";
+                of << "\no" << tileVar << " endsub\n\n";
                 tileSequence( of );
                 of << gCodeEnd;
                 break;
@@ -86,12 +86,12 @@ void Tiling::tileSequence( std::ofstream &of )
 
     for( unsigned int i = 0; i < tileInfo.tileY; i++ )
     {
-        of << ( format( callSub[tileInfo.software] ) % tileInfo.tileVar ) << "\n";
+        of << ( format( callSub[tileInfo.software] ) % tileVar ) << "\n";
         for( unsigned int j = 0; j < tileInfo.tileX - 1; j++ )
         {
             of << ( format( setX0[tileInfo.software] ) %
                   ( i % 2 == 0 ? tileInfo.boardWidth * cfactor : -tileInfo.boardWidth * cfactor ) ) << "\n";
-            of << ( format( callSub[tileInfo.software] ) % tileInfo.tileVar ) << "\n";
+            of << ( format( callSub[tileInfo.software] ) % tileVar ) << "\n";
         }
         if( i < tileInfo.tileY - 1 )
            of << str( format( setY0[tileInfo.software] ) % ( tileInfo.boardHeight * cfactor ) ) << "\n";
@@ -112,7 +112,6 @@ Tiling::TileInfo Tiling::generateTileInfo( const boost::program_options::variabl
     tileInfo.tileY = options["tile-y"].as<int>();
     tileInfo.boardHeight = boardHeight;
     tileInfo.boardWidth = boardWidth;
-    tileInfo.tileVar = ocodes.getUniqueCode();
 
     if( !options.count("software") ) {
         tileInfo.software = Software::CUSTOM;

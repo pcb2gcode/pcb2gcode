@@ -38,9 +38,7 @@ extern "C" {
 #include <gerbv.h>
 }
 
-struct gerber_exception: virtual import_exception
-{
-};
+class gerber_exception: public std::exception {};
 
 /******************************************************************************/
 /*
@@ -50,10 +48,11 @@ struct gerber_exception: virtual import_exception
  different file formats and gerber dialects.
  */
 /******************************************************************************/
-class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter
-{
+class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter {
 public:
-    GerberImporter(const string path);
+    GerberImporter();
+    bool load_file(const string& path);
+    virtual ~GerberImporter();
 
     virtual gdouble get_min_x() const;
     virtual gdouble get_max_x() const;
@@ -64,18 +63,10 @@ public:
                         const guint dpi, const double min_x,
                         const double min_y, const GdkColor& color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
                         const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const;
-
     virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const;
-  virtual inline unsigned int vectorial_scale() const {
-    return scale;
-  }
-
-    virtual ~GerberImporter();
 
 protected:
     enum Side { FRONT = 0, BACK = 1 } side;
-
-    static const unsigned int scale;
 
 private:
     gerbv_project_t* project;
