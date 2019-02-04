@@ -88,12 +88,13 @@ protected:
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
-      bool& contentions, coordinate_type_fp diameter,
+      coordinate_type_fp diameter,
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
   void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
   void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                  const std::vector<multi_linestring_type_fp>& new_trace_toolpaths) const;
+                  const std::vector<multi_linestring_type_fp>& new_trace_toolpaths,
+                  coordinate_type_fp tolerance, bool find_contentions) const;
 };
 
 class svg_writer {
