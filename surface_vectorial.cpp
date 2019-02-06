@@ -512,7 +512,7 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
       linestring_type_fp,
       multi_linestring_type_fp,
       PointLessThan>(segments_as_linestrings,
-                     mill_feed_direction == MillFeedDirection::ANY);
+                     vector<bool>(segments_as_linestrings.size(), mill_feed_direction == MillFeedDirection::ANY));
 }
 
 // Make eulerian paths if needed.  Sort the paths order to make it faster.

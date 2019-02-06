@@ -668,7 +668,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths =
       eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-          paths);
+          paths, vector<bool>(paths.size(), true));
   multi_polygon_type_fp ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
