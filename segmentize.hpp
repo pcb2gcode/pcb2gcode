@@ -21,7 +21,7 @@ namespace segmentize {
  * Non-reversible segments are re-oriented if needed.  The default is reversible
  * true.
  */
-std::vector<segment_type_p> segmentize(const std::vector<segment_type_p>& all_segments,
-                                       const std::vector<bool>& allow_reversals);
+std::vector<std::pair<segment_type_p, bool>> segmentize(const std::vector<segment_type_p>& all_segments,
+                                                        const std::vector<bool>& allow_reversals);
 } //namespace segmentize
 #endif //SEGMENTIZE_H

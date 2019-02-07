@@ -486,18 +486,7 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
         allow_reversals.push_back(mill_feed_direction == MillFeedDirection::ANY);
       }
     }
-    vector<segment_type_p> split_segments = segmentize::segmentize(all_segments, allow_reversals);
-
-    // We need to scale them back down.
-    multi_linestring_type_fp segments_as_linestrings;
-    for (const auto& segment : split_segments) {
-        // Make a little 1-edge linestrings, filter out those that
-        // aren't in the mask.
-        linestring_type_fp ls;
-        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
-        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
-        segments_as_linestrings.push_back(ls);
-    }
+    vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
 
     // Make a minimal number of paths from those segments.
     struct PointLessThan {
@@ -506,13 +495,27 @@ multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& too
       }
     };
     // Only allow reversing the direction of travel if mill_feed_direction is
-    // ANY.
+    // ANY.  We need to scale them back down.
+    multi_linestring_type_fp segments_as_linestrings;
+    segments_as_linestrings.reserve(split_segments.size());
+    allow_reversals.clear();
+    allow_reversals.reserve(split_segments.size());
+    for (const auto& segment_and_allow_reversal : split_segments) {
+        // Make a little 1-edge linestrings.
+        linestring_type_fp ls;
+        const auto& segment = segment_and_allow_reversal.first;
+        const auto& allow_reversal = segment_and_allow_reversal.second;
+        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
+        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
+        segments_as_linestrings.push_back(ls);
+        allow_reversals.push_back(allow_reversal);
+    }
+
     return eulerian_paths::get_eulerian_paths<
-      point_type_fp,
-      linestring_type_fp,
-      multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings,
-                     vector<bool>(segments_as_linestrings.size(), mill_feed_direction == MillFeedDirection::ANY));
+        point_type_fp,
+        linestring_type_fp,
+        multi_linestring_type_fp,
+        PointLessThan>(segments_as_linestrings, allow_reversals);
 }
 
 // Make eulerian paths if needed.  Sort the paths order to make it faster.

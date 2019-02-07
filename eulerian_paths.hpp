@@ -39,9 +39,9 @@ static bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edg
   return (bidi_edges + out_edges + in_edges) % 2 == 1;
 }
 
-/* This finds a minimal number of eulerian paths that cover the input.
- * The number of paths returned is equal to the number of vertices
- * with odd edge count divided by 2.
+/* This finds a minimal number of eulerian paths that cover the input.  The
+ * number of paths returned is equal to the number of vertices with odd edge
+ * count divided by 2 if all of them are bidirectional.
  *
  * To use, first get paths.  Each path is a vector of n points that
  * represents n-1 line segments.  Each path is considerd

@@ -23,19 +23,19 @@ int sgn(T val) {
  * Non-reversible segments are re-oriented if needed.  The default is reversible
  * true.
  */
-std::vector<segment_type_p> segmentize(const std::vector<segment_type_p>& all_segments,
-                                       const std::vector<bool>& allow_reversals) {
+std::vector<std::pair<segment_type_p, bool>> segmentize(const std::vector<segment_type_p>& all_segments,
+                                                      const std::vector<bool>& allow_reversals) {
   std::vector<std::pair<size_t, segment_type_p>> intersected_segment_pairs;
   boost::polygon::intersect_segments(intersected_segment_pairs, all_segments.cbegin(), all_segments.cend());
-  std::vector<segment_type_p> intersected_segments;
+  std::vector<std::pair<segment_type_p, bool>> intersected_segments;
   for (const auto& p : intersected_segment_pairs) {
     const auto index_in_input = p.first;
-    intersected_segments.push_back(p.second);
-    const auto& allow_reversal = index_in_input < allow_reversals.size() ? allow_reversals[index_in_input] : true;
+    const auto& allow_reversal = allow_reversals[index_in_input];
+    intersected_segments.push_back(std::make_pair(p.second, allow_reversal));
     if (!allow_reversal) {
       // Reverse segments that are now pointing in the wrong direction.
       const auto& input_segment = all_segments[index_in_input];
-      auto& new_segment = intersected_segments.back();
+      auto& new_segment = intersected_segments.back().first;
       auto input_delta_x = input_segment.high().x() - input_segment.low().x();
       auto input_delta_y = input_segment.high().y() - input_segment.low().y();
       auto new_delta_x = new_segment.high().x() - new_segment.low().x();
