@@ -28,6 +28,7 @@ pcb2gcode_SOURCES = \
     ngc_exporter.hpp \
     ngc_exporter.cpp \
     segmentize.hpp \
+    segmentize.cpp \
     surface.hpp \
     surface.cpp \
     surface_vectorial.hpp \
@@ -65,7 +66,7 @@ check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_
                  available_drills_tests gerberimporter_tests options_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
-segmentize_tests_SOURCES = segmentize_tests.cpp
+segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
