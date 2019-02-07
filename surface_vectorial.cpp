@@ -38,6 +38,10 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
+#include <utility>
+using std::pair;
+using std::make_pair;
+
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 using boost::optional;
@@ -156,21 +160,25 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
   return holes;
 }
 
-multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) {
-  size_t total_size = 0;
+pair<multi_linestring_type_fp, multi_linestring_type_fp> flatten_mls(const vector<pair<multi_linestring_type_fp, multi_linestring_type_fp>>& v) {
+  size_t total_size0 = 0;
+  size_t total_size1 = 0;
   for (const auto& sub : v) {
-    total_size += sub.size();
+    total_size0 += sub.first.size();
+    total_size1 += sub.second.size();
   }
-  multi_linestring_type_fp result;
-  result.reserve(total_size);
+  pair<multi_linestring_type_fp, multi_linestring_type_fp> result;
+  result.first.reserve(total_size0);
+  result.second.reserve(total_size1);
   for (const auto& sub : v) {
-    result.insert(result.end(), sub.begin(), sub.end());
+    result.first.insert(result.first.end(), sub.first.begin(), sub.first.end());
+    result.second.insert(result.second.end(), sub.second.begin(), sub.second.end());
   }
   return result;
 }
 
 void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                                   const vector<multi_linestring_type_fp>& new_trace_toolpaths) const {
+                                   const vector<pair<multi_linestring_type_fp, multi_linestring_type_fp>>& new_trace_toolpaths) const {
   // Now set up the debug images, one per tool.
   const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
   svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
@@ -178,14 +186,14 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
   srand(1);
   debug_image.add(voronoi, 0.2, false);
   srand(1);
-  const auto trace_count = new_trace_toolpaths.size();
-  for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-    const auto& new_trace_toolpath = new_trace_toolpaths[trace_index];
+  for (const auto& new_trace_toolpath : new_trace_toolpaths) {
     const unsigned int r = rand() % 256;
     const unsigned int g = rand() % 256;
     const unsigned int b = rand() % 256;
-    debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
-    traced_debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
+    debug_image.add(new_trace_toolpath.first, tool_diameter, r, g, b);
+    traced_debug_image.add(new_trace_toolpath.first, tool_diameter, r, g, b);
+    debug_image.add(new_trace_toolpath.second, tool_diameter, r, g, b);
+    traced_debug_image.add(new_trace_toolpath.second, tool_diameter, r, g, b);
   }
   srand(1);
   debug_image.add(*vectorial_surface, 1, true);
@@ -211,7 +219,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
       const auto tool_diameter = tool.first;
-      vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+      vector<pair<multi_linestring_type_fp, multi_linestring_type_fp>> new_trace_toolpaths(trace_count);
 
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk;
@@ -227,9 +235,16 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk);
         if (mill->optimise) {
-          multi_linestring_type_fp temp_mls;
-          bg::simplify(new_trace_toolpath, temp_mls, mill->tolerance);
-          new_trace_toolpath = temp_mls;
+          {
+            multi_linestring_type_fp temp_mls;
+            bg::simplify(new_trace_toolpath.first, temp_mls, mill->tolerance);
+            new_trace_toolpath.first = temp_mls;
+          }
+          {
+            multi_linestring_type_fp temp_mls;
+            bg::simplify(new_trace_toolpath.second, temp_mls, mill->tolerance);
+            new_trace_toolpath.second = temp_mls;
+          }
         }
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
@@ -237,20 +252,22 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
           continue;
         }
         multi_polygon_type_fp new_trace_toolpath_bufferred;
-        bg_helpers::buffer(new_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
+        multi_linestring_type_fp combined_trace_toolpath(new_trace_toolpath.first);
+        combined_trace_toolpath.insert(combined_trace_toolpath.end(), new_trace_toolpath.second.cbegin(), new_trace_toolpath.second.cend());
+        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
       write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
-      post_process_toolpath(isolator, new_toolpath);
-      results[tool_index] = mls_to_icoords(mirror_toolpath(new_toolpath, mirror));
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
+      results[tool_index] = mls_to_icoords(mirror_toolpath(combined_toolpath, mirror));
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
     const auto trace_count = vectorial_surface->size();
-    vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+    vector<pair<multi_linestring_type_fp, multi_linestring_type_fp>> new_trace_toolpaths(trace_count);
 
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
@@ -258,8 +275,8 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     }
     write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths);
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
-    post_process_toolpath(cutter, new_toolpath);
-    return {mls_to_icoords(mirror_toolpath(new_toolpath, mirror))};
+    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
+    return {mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
@@ -299,7 +316,7 @@ coordinate_type_fp do_milling(
 
 // Points that are very close to each other, probably because of a
 // rounding error, are merged together to a single location.
-size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp distance) {
+size_t merge_near_points(pair<multi_linestring_type_fp, multi_linestring_type_fp>& mls, const coordinate_type_fp distance) {
   struct PointLessThan {
     bool operator()(const point_type_fp& a, const point_type_fp& b) const {
       return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
@@ -307,7 +324,12 @@ size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp
   };
 
   std::map<point_type_fp, point_type_fp, PointLessThan> points;
-  for (const auto& ls : mls) {
+  for (const auto& ls : mls.first) {
+    for (const auto& point : ls) {
+      points[point] = point;
+    }
+  }
+  for (const auto& ls : mls.second) {
     for (const auto& point : ls) {
       points[point] = point;
     }
@@ -329,7 +351,12 @@ size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp
     }
   }
   if (points_merged > 0) {
-    for (auto& ls : mls) {
+    for (auto& ls : mls.first) {
+      for (auto& point : ls) {
+        point = points[point];
+      }
+    }
+    for (auto& ls : mls.second) {
       for (auto& point : ls) {
         point = points[point];
       }
@@ -338,79 +365,94 @@ size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp
   return points_merged;
 }
 
-// Returns a minimal number of toolpaths that include all the
-// milling in the oroginal toolpaths.  Each path is traversed
-// once.
-multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& toolpaths, MillFeedDirection::MillFeedDirection mill_feed_direction) {
-    // Merge points that are very close to each other because it makes
-    // us more likely to find intersections that was can use.
-    multi_linestring_type_fp merged_toolpaths(toolpaths);
-    merge_near_points(merged_toolpaths, 0.00001);
+// Returns a minimal number of toolpaths that include all the milling in the
+// oroginal toolpaths.  Each path is traversed once.  First paths are
+// directional, second are bidi.  In the pair, the first is directional and the
+// second is bidi.
+multi_linestring_type_fp make_eulerian_paths(const pair<multi_linestring_type_fp, multi_linestring_type_fp>& toolpaths) {
+  // Merge points that are very close to each other because it makes
+  // us more likely to find intersections that was can use.
+  pair<multi_linestring_type_fp, multi_linestring_type_fp> merged_toolpaths(toolpaths);
+  merge_near_points(merged_toolpaths, 0.00001);
 
-    // First we need to split all paths so that they don't cross.  We need to
-    // scale them up because the input is not floating point.
-    vector<segment_type_p> all_segments;
-    vector<bool> allow_reversals;
-    for (const auto& toolpath : merged_toolpaths) {
-      for (size_t i = 1; i < toolpath.size(); i++) {
-        all_segments.push_back(
-            segment_type_p(
-                point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
-                point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
-        allow_reversals.push_back(mill_feed_direction == MillFeedDirection::ANY);
-      }
+  // First we need to split all paths so that they don't cross.  We need to
+  // scale them up because the input is not floating point.
+  vector<segment_type_p> all_segments;
+  vector<bool> allow_reversals;
+  for (const auto& toolpath : merged_toolpaths.first) {
+    for (size_t i = 1; i < toolpath.size(); i++) {
+      all_segments.push_back(
+          segment_type_p(
+              point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
+              point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
+      allow_reversals.push_back(false); // Directional linestrings cannot be reversed.
     }
-    vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
-
-    // Make a minimal number of paths from those segments.
-    struct PointLessThan {
-      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
-    // Only allow reversing the direction of travel if mill_feed_direction is
-    // ANY.  We need to scale them back down.
-    multi_linestring_type_fp segments_as_linestrings;
-    segments_as_linestrings.reserve(split_segments.size());
-    allow_reversals.clear();
-    allow_reversals.reserve(split_segments.size());
-    for (const auto& segment_and_allow_reversal : split_segments) {
-        // Make a little 1-edge linestrings.
-        linestring_type_fp ls;
-        const auto& segment = segment_and_allow_reversal.first;
-        const auto& allow_reversal = segment_and_allow_reversal.second;
-        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
-        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
-        segments_as_linestrings.push_back(ls);
-        allow_reversals.push_back(allow_reversal);
+  }
+  for (const auto& toolpath : merged_toolpaths.second) {
+    for (size_t i = 1; i < toolpath.size(); i++) {
+      all_segments.push_back(
+          segment_type_p(
+              point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
+              point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
+      allow_reversals.push_back(true); // Bidi linestrings can be reversed.
     }
+  }
+  vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
 
-    return eulerian_paths::get_eulerian_paths<
-        point_type_fp,
-        linestring_type_fp,
-        multi_linestring_type_fp,
-        PointLessThan>(segments_as_linestrings, allow_reversals);
+  // Make a minimal number of paths from those segments.
+  struct PointLessThan {
+    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+    }
+  };
+  // Only allow reversing the direction of travel if mill_feed_direction is
+  // ANY.  We need to scale them back down.
+  multi_linestring_type_fp segments_as_linestrings;
+  segments_as_linestrings.reserve(split_segments.size());
+  allow_reversals.clear();
+  allow_reversals.reserve(split_segments.size());
+  for (const auto& segment_and_allow_reversal : split_segments) {
+    // Make a little 1-edge linestrings.
+    linestring_type_fp ls;
+    const auto& segment = segment_and_allow_reversal.first;
+    const auto& allow_reversal = segment_and_allow_reversal.second;
+    ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
+    ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
+    segments_as_linestrings.push_back(ls);
+    allow_reversals.push_back(allow_reversal);
+  }
+
+  return eulerian_paths::get_eulerian_paths<
+      point_type_fp,
+      linestring_type_fp,
+      multi_linestring_type_fp,
+      PointLessThan>(segments_as_linestrings, allow_reversals);
 }
 
 // Make eulerian paths if needed.  Sort the paths order to make it faster.
 // Simplify paths by remving points that don't affect the path or affect it very
 // little.
-void Surface_vectorial::post_process_toolpath(
-    const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
+multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
+    const std::shared_ptr<RoutingMill>& mill, const pair<multi_linestring_type_fp, multi_linestring_type_fp>& toolpath) const {
+  multi_linestring_type_fp combined_toolpath;
   if (mill->eulerian_paths) {
-    toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
+    combined_toolpath = make_eulerian_paths(toolpath);
+  } else {
+    combined_toolpath = toolpath.first;
+    combined_toolpath.insert(combined_toolpath.end(), toolpath.second.cbegin(), toolpath.second.cend());
   }
   if (tsp_2opt) {
-    tsp_solver::tsp_2opt(toolpath, point_type_fp(0, 0));
+    tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
   } else {
-    tsp_solver::nearest_neighbour(toolpath, point_type_fp(0, 0));
+    tsp_solver::nearest_neighbour(combined_toolpath, point_type_fp(0, 0));
   }
 
   if (mill->optimise) {
     multi_linestring_type_fp temp_mls;
-    bg::simplify(toolpath, temp_mls, mill->tolerance);
-    toolpath = temp_mls;
+    bg::simplify(combined_toolpath, temp_mls, mill->tolerance);
+    combined_toolpath = temp_mls;
   }
+  return combined_toolpath;
 }
 
 // Given a linestring which has the same front and back (so it's actually a
@@ -553,7 +595,13 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
   ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
-  ring_paths = make_eulerian_paths(ring_paths, dir);  // Rejoin those paths as possible.
+  if (dir == MillFeedDirection::ANY) {
+    // It's bidirectional and in the pair, the second one is the bidirectional one.
+    ring_paths = make_eulerian_paths(make_pair(multi_linestring_type_fp(), ring_paths)); // Rejoin those paths as possible.
+  } else {
+    // It's directional and in the pair, the first one is the directional one.
+    ring_paths = make_eulerian_paths(make_pair(ring_paths, multi_linestring_type_fp())); // Rejoin those paths as possible.
+  }
   for (const auto& ring_path : ring_paths) {
     attach_ls(mill, ring_path, toolpaths, dir, already_milled_shrunk, allowed_milling);
   }
@@ -589,10 +637,12 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
 // overlap_width are the specifics of the tool to use in the milling.  mirror
 // means that the entire shapre should be reflected across the y=0 axis, because
 // it will be on the back.  The tool_suffix is for making unique filenames if
-// there are multiple tools.  The already_milled_shrunk is the running
-// union of all the milled area so far, so that new milling can avoid re-milling
-// areas that are already milled.
-multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
+// there are multiple tools.  The already_milled_shrunk is the running union of
+// all the milled area so far, so that new milling can avoid re-milling areas
+// that are already milled.  Returns first the direcitonal toolpaths and then
+// the bidircitonal toolpaths.  For the former, the dirction must be maintained.
+// For the latter, they can be turned around if needed.
+pair<multi_linestring_type_fp, multi_linestring_type_fp> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
     const multi_polygon_type_fp& already_milled_shrunk) const {
@@ -617,8 +667,6 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
 
     bool contentions = false;
 
-    multi_linestring_type_fp toolpath;
-
     optional<polygon_type_fp> current_trace = boost::none;
     if (trace_index < vectorial_surface->size()) {
       current_trace.emplace(vectorial_surface->at(trace_index));
@@ -639,6 +687,8 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
     // both inner and outer rings.  They vector has them sorted from the
     // smallest outer to the largest outer, both for voronoi and for regular
     // isolation.
+    multi_linestring_type_fp directonal_toolpath;
+    multi_linestring_type_fp bidi_toolpath;
     for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
       const auto& polygon = polygons[polygon_index];
       MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
@@ -651,6 +701,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
         // This is on the back so all loops are reversed.
         dir = invert(dir);
       }
+      auto& toolpath = (dir == MillFeedDirection::ANY) ? bidi_toolpath : directonal_toolpath;
       attach_polygons(mill, polygon, toolpath, dir, already_milled_shrunk, allowed_milling);
     }
 
@@ -661,7 +712,7 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
            << " possibly use a smaller milling width.\n";
     }
 
-    return toolpath;
+    return make_pair(directonal_toolpath, bidi_toolpath);
 }
 
 void Surface_vectorial::save_debug_image(string message)

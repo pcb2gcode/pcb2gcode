@@ -81,7 +81,7 @@ protected:
 
   std::shared_ptr<Surface_vectorial> mask;
 
-  multi_linestring_type_fp get_single_toolpath(
+  std::pair<multi_linestring_type_fp, multi_linestring_type_fp> get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
       const double overlap_width,
       const multi_polygon_type_fp& already_milled) const;
@@ -91,9 +91,9 @@ protected:
       bool& contentions, coordinate_type_fp diameter,
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
-  void post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const;
+  multi_linestring_type_fp post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, const std::pair<multi_linestring_type_fp, multi_linestring_type_fp>& toolpath) const;
   void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                  const std::vector<multi_linestring_type_fp>& new_trace_toolpaths) const;
+                  const std::vector<std::pair<multi_linestring_type_fp, multi_linestring_type_fp>>& new_trace_toolpaths) const;
 };
 
 class svg_writer {
