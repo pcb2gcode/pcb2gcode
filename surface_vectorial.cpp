@@ -297,6 +297,122 @@ coordinate_type_fp do_milling(
   return true;
 }
 
+// Points that are very close to each other, probably because of a
+// rounding error, are merged together to a single location.
+size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp distance) {
+  struct PointLessThan {
+    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+    }
+  };
+
+  std::map<point_type_fp, point_type_fp, PointLessThan> points;
+  for (const auto& ls : mls) {
+    for (const auto& point : ls) {
+      points[point] = point;
+    }
+  }
+  // Merge points that are near one another.  This doesn't do a
+  // great job but it's fast enough.
+  size_t points_merged = 0;
+  const auto distance_2 = distance * distance;
+  for (auto i = points.begin(); i != points.end(); i++) {
+    for (auto j = i;
+         j != points.upper_bound(point_type_fp(i->second.x()+distance,
+                                               i->second.y()+distance));
+         j++) {
+      if (!bg::equals(j->second, i->second) &&
+          bg::comparable_distance(i->second, j->second) <= distance_2) {
+        points_merged++;
+        j->second = i->second;
+      }
+    }
+  }
+  if (points_merged > 0) {
+    for (auto& ls : mls) {
+      for (auto& point : ls) {
+        point = points[point];
+      }
+    }
+  }
+  return points_merged;
+}
+
+// Returns a minimal number of toolpaths that include all the
+// milling in the oroginal toolpaths.  Each path is traversed
+// once.
+multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& toolpaths, MillFeedDirection::MillFeedDirection mill_feed_direction) {
+    // Merge points that are very close to each other because it makes
+    // us more likely to find intersections that was can use.
+    multi_linestring_type_fp merged_toolpaths(toolpaths);
+    merge_near_points(merged_toolpaths, 0.00001);
+
+    // First we need to split all paths so that they don't cross.  We need to
+    // scale them up because the input is not floating point.
+    vector<segment_type_p> all_segments;
+    vector<bool> allow_reversals;
+    for (const auto& toolpath : merged_toolpaths) {
+      for (size_t i = 1; i < toolpath.size(); i++) {
+        all_segments.push_back(
+            segment_type_p(
+                point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
+                point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
+        allow_reversals.push_back(mill_feed_direction == MillFeedDirection::ANY);
+      }
+    }
+    vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
+
+    // Make a minimal number of paths from those segments.
+    struct PointLessThan {
+      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+      }
+    };
+    // Only allow reversing the direction of travel if mill_feed_direction is
+    // ANY.  We need to scale them back down.
+    multi_linestring_type_fp segments_as_linestrings;
+    segments_as_linestrings.reserve(split_segments.size());
+    allow_reversals.clear();
+    allow_reversals.reserve(split_segments.size());
+    for (const auto& segment_and_allow_reversal : split_segments) {
+        // Make a little 1-edge linestrings.
+        linestring_type_fp ls;
+        const auto& segment = segment_and_allow_reversal.first;
+        const auto& allow_reversal = segment_and_allow_reversal.second;
+        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
+        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
+        segments_as_linestrings.push_back(ls);
+        allow_reversals.push_back(allow_reversal);
+    }
+
+    return eulerian_paths::get_eulerian_paths<
+        point_type_fp,
+        linestring_type_fp,
+        multi_linestring_type_fp,
+        PointLessThan>(segments_as_linestrings, allow_reversals);
+}
+
+// Make eulerian paths if needed.  Sort the paths order to make it faster.
+// Simplify paths by remving points that don't affect the path or affect it very
+// little.
+void Surface_vectorial::post_process_toolpath(
+    const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
+  if (mill->eulerian_paths) {
+    toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
+  }
+  if (tsp_2opt) {
+    tsp_solver::tsp_2opt(toolpath, point_type_fp(0, 0));
+  } else {
+    tsp_solver::nearest_neighbour(toolpath, point_type_fp(0, 0));
+  }
+
+  if (mill->optimise) {
+    multi_linestring_type_fp temp_mls;
+    bg::simplify(toolpath, temp_mls, mill->tolerance);
+    toolpath = temp_mls;
+  }
+}
+
 // Given a linestring which has the same front and back (so it's actually a
 // ring), attach it to one of the ends of the toolpath.  Only attach if there is
 // a point on the ring that is close enough to the toolpath endpoint.  toolpath
@@ -423,122 +539,6 @@ void attach_ls(const shared_ptr<RoutingMill>& mill,
   }
 }
 
-// Points that are very close to each other, probably because of a
-// rounding error, are merged together to a single location.
-size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp distance) {
-  struct PointLessThan {
-    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-    }
-  };
-
-  std::map<point_type_fp, point_type_fp, PointLessThan> points;
-  for (const auto& ls : mls) {
-    for (const auto& point : ls) {
-      points[point] = point;
-    }
-  }
-  // Merge points that are near one another.  This doesn't do a
-  // great job but it's fast enough.
-  size_t points_merged = 0;
-  const auto distance_2 = distance * distance;
-  for (auto i = points.begin(); i != points.end(); i++) {
-    for (auto j = i;
-         j != points.upper_bound(point_type_fp(i->second.x()+distance,
-                                               i->second.y()+distance));
-         j++) {
-      if (!bg::equals(j->second, i->second) &&
-          bg::comparable_distance(i->second, j->second) <= distance_2) {
-        points_merged++;
-        j->second = i->second;
-      }
-    }
-  }
-  if (points_merged > 0) {
-    for (auto& ls : mls) {
-      for (auto& point : ls) {
-        point = points[point];
-      }
-    }
-  }
-  return points_merged;
-}
-
-// Returns a minimal number of toolpaths that include all the
-// milling in the oroginal toolpaths.  Each path is traversed
-// once.
-multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& toolpaths, MillFeedDirection::MillFeedDirection mill_feed_direction) {
-    // Merge points that are very close to each other because it makes
-    // us more likely to find intersections that was can use.
-    multi_linestring_type_fp merged_toolpaths(toolpaths);
-    merge_near_points(merged_toolpaths, 0.00001);
-
-    // First we need to split all paths so that they don't cross.  We need to
-    // scale them up because the input is not floating point.
-    vector<segment_type_p> all_segments;
-    vector<bool> allow_reversals;
-    for (const auto& toolpath : merged_toolpaths) {
-      for (size_t i = 1; i < toolpath.size(); i++) {
-        all_segments.push_back(
-            segment_type_p(
-                point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
-                point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
-        allow_reversals.push_back(mill_feed_direction == MillFeedDirection::ANY);
-      }
-    }
-    vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
-
-    // Make a minimal number of paths from those segments.
-    struct PointLessThan {
-      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
-    // Only allow reversing the direction of travel if mill_feed_direction is
-    // ANY.  We need to scale them back down.
-    multi_linestring_type_fp segments_as_linestrings;
-    segments_as_linestrings.reserve(split_segments.size());
-    allow_reversals.clear();
-    allow_reversals.reserve(split_segments.size());
-    for (const auto& segment_and_allow_reversal : split_segments) {
-        // Make a little 1-edge linestrings.
-        linestring_type_fp ls;
-        const auto& segment = segment_and_allow_reversal.first;
-        const auto& allow_reversal = segment_and_allow_reversal.second;
-        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
-        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
-        segments_as_linestrings.push_back(ls);
-        allow_reversals.push_back(allow_reversal);
-    }
-
-    return eulerian_paths::get_eulerian_paths<
-        point_type_fp,
-        linestring_type_fp,
-        multi_linestring_type_fp,
-        PointLessThan>(segments_as_linestrings, allow_reversals);
-}
-
-// Make eulerian paths if needed.  Sort the paths order to make it faster.
-// Simplify paths by remving points that don't affect the path or affect it very
-// little.
-void Surface_vectorial::post_process_toolpath(
-    const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
-  if (mill->eulerian_paths) {
-    toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
-  }
-  if (tsp_2opt) {
-    tsp_solver::tsp_2opt(toolpath, point_type_fp(0, 0));
-  } else {
-    tsp_solver::nearest_neighbour(toolpath, point_type_fp(0, 0));
-  }
-
-  if (mill->optimise) {
-    multi_linestring_type_fp temp_mls;
-    bg::simplify(toolpath, temp_mls, mill->tolerance);
-    toolpath = temp_mls;
-  }
-}
-
 // Given a ring, attach it to one of the toolpaths.  The ring is first masked
 // with the already_milled_shrunk, so it may become a few linestrings.  Those
 // linestrings are attached.  Only attach if there is a point on the linestring
@@ -552,8 +552,8 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
                  const optional<multi_polygon_type_fp> allowed_milling) {
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
-  ring_paths = ring_paths - already_milled_shrunk;
-  ring_paths = make_eulerian_paths(ring_paths, dir);
+  ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
+  ring_paths = make_eulerian_paths(ring_paths, dir);  // Rejoin those paths as possible.
   for (const auto& ring_path : ring_paths) {
     attach_ls(mill, ring_path, toolpaths, dir, already_milled_shrunk, allowed_milling);
   }
