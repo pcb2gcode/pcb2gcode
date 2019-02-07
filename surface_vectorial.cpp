@@ -692,10 +692,15 @@ pair<multi_linestring_type_fp, multi_linestring_type_fp> Surface_vectorial::get_
     for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
       const auto& polygon = polygons[polygon_index];
       MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-      if (polygon_index + 1 == polygons.size() && polygon_index != 0) {
-        // This is the outermost loop and it isn't the only loop so invert
-        // it to remove burrs.
-        dir = invert(dir);
+      if (polygon_index != 0) {
+        if (polygon_index + 1 == polygons.size()) {
+          // This is the outermost pass and it isn't the only loop so invert
+          // it to remove burrs.
+          dir = invert(dir);
+        } else {
+          // This is a middle pass so it can go in any direction.
+          dir = MillFeedDirection::ANY;
+        }
       }
       if (mirror) {
         // This is on the back so all loops are reversed.
