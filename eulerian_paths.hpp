@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <map>
-#include <cmath>
 
 #include "geometry.hpp"
 
@@ -25,7 +24,7 @@ static inline bool operator ==(const point_type_fp& x, const point_type_fp& y) {
 }
 
 // Made public for testing.
-static bool must_start_helper(long out_edges, long in_edges, long bidi_edges) {
+static bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
   if (out_edges > in_edges + bidi_edges) {
     // Even with all the in and bidi paths, we would still need a path that starts here.
     return true;
@@ -34,9 +33,10 @@ static bool must_start_helper(long out_edges, long in_edges, long bidi_edges) {
     // Pairing all bidi edges with in edges leaves no edges to start from.
     return false;
   }
-  // By this point, out - in <= bidi and out - in >= -bidi so abs(out-in) <= bidi
-  // If number of unmatched bidi edges is odd then this must be a start.
-  return (bidi_edges - std::abs(out_edges - in_edges)) % 2 == 1;
+  // By this point, out - in <= bidi and out - in >= -bidi so abs(out-in) <=
+  // bidi If number of unmatched bidi edges is odd then this must be a start.
+  // (bidi - abs(out - in)) % 2 works but we can avoid the abs by just addings.
+  return (bidi_edges + out_edges + in_edges) % 2 == 1;
 }
 
 /* This finds a minimal number of eulerian paths that cover the input.

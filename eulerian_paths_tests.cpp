@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE(directional_loop) {
 }
 
 BOOST_AUTO_TEST_CASE(must_start_tests) {
-  vector<std::tuple<long, long, long, bool>> tests{
+  vector<std::tuple<size_t, size_t, size_t, bool>> tests{
     // Sum = 0
     std::make_tuple(0, 0, 0, false),
 
