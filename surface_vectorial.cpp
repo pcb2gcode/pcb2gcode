@@ -169,15 +169,19 @@ vector<pair<linestring_type_fp, bool>> flatten_mls(const vector<vector<pair<line
 }
 
 void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                                   const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths) const {
+                                   const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
+                                   coordinate_type_fp tolerance, bool find_contentions) const {
   // Now set up the debug images, one per tool.
   const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
   svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
   svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
+  optional<svg_writer> contentions_image;
   srand(1);
   debug_image.add(voronoi, 0.2, false);
   srand(1);
-  for (const auto& new_trace_toolpath : new_trace_toolpaths) {
+  const auto trace_count = new_trace_toolpaths.size();
+  for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+    const auto& new_trace_toolpath = new_trace_toolpaths[trace_index];
     const unsigned int r = rand() % 256;
     const unsigned int g = rand() % 256;
     const unsigned int b = rand() % 256;
@@ -185,6 +189,29 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
       debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
       traced_debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
     }
+
+    if (find_contentions) {
+      if (trace_index < vectorial_surface->size()) {
+        multi_polygon_type_fp temp;
+        bg_helpers::buffer(vectorial_surface->at(trace_index), temp, tool_diameter/2 - tolerance);
+        multi_linestring_type_fp temp2;
+        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+          temp2.push_back(ls_and_allow_reversal.first);
+        }
+        temp2 = temp2 & temp;
+        if (bg::length(temp2) > 0) {
+          if (!contentions_image) {
+            contentions_image.emplace(build_filename(outputdir, "contentions_" + name + tool_suffix + ".svg"), bounding_box);
+          }
+          contentions_image->add(temp2, tool_diameter, 255, 0, 0);
+        }
+      }
+    }
+  }
+  if (contentions_image) {
+    cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
+        " clearance requirements.  Check the contentions output"
+        " and consider using a smaller milling bit.\n";
   }
   srand(1);
   debug_image.add(*vectorial_surface, 1, true);
@@ -246,7 +273,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
-      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths);
+      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
       results[tool_index] = mls_to_icoords(mirror_toolpath(combined_toolpath, mirror));
@@ -262,7 +289,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
-    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths);
+    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
     return {mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))};
@@ -699,15 +726,13 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
-    bool contentions = false;
-
     optional<polygon_type_fp> current_trace = boost::none;
     if (trace_index < vectorial_surface->size()) {
       current_trace.emplace(vectorial_surface->at(trace_index));
     }
     const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
     const vector<multi_polygon_type_fp> polygons =
-        offset_polygon(current_trace, current_voronoi, contentions,
+        offset_polygon(current_trace, current_voronoi,
                        diameter, overlap, extra_passes + 1, do_voronoi);
     boost::optional<multi_polygon_type_fp> allowed_milling;
     if (current_trace) {
@@ -743,13 +768,6 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
       attach_polygons(mill, polygon, toolpath, dir, already_milled_shrunk, allowed_milling);
     }
 
-    if (contentions) {
-      cerr << "\nWarning: pcb2gcode hasn't been able to fulfill all"
-           << " clearance requirements and tried a best effort approach"
-           << " instead. You may want to check the g-code output and"
-           << " possibly use a smaller milling width.\n";
-    }
-
     return toolpath;
 }
 
@@ -782,7 +800,7 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface) {
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
-    bool& contentions, coordinate_type_fp diameter,
+    coordinate_type_fp diameter,
     coordinate_type_fp overlap,
     unsigned int steps, bool do_voronoi) const {
   // The polygons to add to the PNG debuging output files.
@@ -863,9 +881,6 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       } else {
         mpoly = mpoly_temp + path_minimum;
       }
-      if (!bg::equals(mpoly_temp, mpoly)) {
-        contentions = true;
-      }
     }
     multi_polygon_type_fp masked_expanded_milling_polys;
     if (mask) {
@@ -933,4 +948,10 @@ void svg_writer::add(const linestring_type_fp& path, coordinate_type_fp width, u
   mapper->map(path,
               "stroke:rgb(0,0,0);stroke-width:1px;fill:none;"
               "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
+}
+
+void svg_writer::add(const multi_linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
+  for (const auto& p : path) {
+    add(p, width, r, g, b);
+  }
 }

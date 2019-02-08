@@ -88,12 +88,13 @@ protected:
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
-      bool& contentions, coordinate_type_fp diameter,
+      coordinate_type_fp diameter,
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
   multi_linestring_type_fp post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, const std::vector<std::pair<linestring_type_fp, bool>>& toolpath) const;
   void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                  const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths) const;
+                  const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
+                  coordinate_type_fp tolerance, bool find_contentions) const;
 };
 
 class svg_writer {
@@ -104,6 +105,7 @@ class svg_writer {
   void add(const std::vector<polygon_type_fp>& geometries, double opacity,
            int r = -1, int g = -1, int b = -1);
   void add(const linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b);
+  void add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b);
 
  protected:
   std::ofstream output_file;
