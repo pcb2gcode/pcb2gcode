@@ -38,6 +38,10 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
+#include <utility>
+using std::pair;
+using std::make_pair;
+
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 using boost::optional;
@@ -156,13 +160,8 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
   return holes;
 }
 
-multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) {
-  size_t total_size = 0;
-  for (const auto& sub : v) {
-    total_size += sub.size();
-  }
-  multi_linestring_type_fp result;
-  result.reserve(total_size);
+vector<pair<linestring_type_fp, bool>> flatten_mls(const vector<vector<pair<linestring_type_fp, bool>>>& v) {
+  vector<pair<linestring_type_fp, bool>> result;
   for (const auto& sub : v) {
     result.insert(result.end(), sub.begin(), sub.end());
   }
@@ -170,7 +169,7 @@ multi_linestring_type_fp flatten_mls(const vector<multi_linestring_type_fp>& v) 
 }
 
 void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
-                                   const vector<multi_linestring_type_fp>& new_trace_toolpaths,
+                                   const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                                    coordinate_type_fp tolerance, bool find_contentions) const {
   // Now set up the debug images, one per tool.
   const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
@@ -186,14 +185,20 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
     const unsigned int r = rand() % 256;
     const unsigned int g = rand() % 256;
     const unsigned int b = rand() % 256;
-    debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
-    traced_debug_image.add(new_trace_toolpath, tool_diameter, r, g, b);
+    for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+      debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
+      traced_debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
+    }
 
     if (find_contentions) {
       if (trace_index < vectorial_surface->size()) {
         multi_polygon_type_fp temp;
         bg_helpers::buffer(vectorial_surface->at(trace_index), temp, tool_diameter/2 - tolerance);
-        const auto temp2 = new_trace_toolpath & temp;
+        multi_linestring_type_fp temp2;
+        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+          temp2.push_back(ls_and_allow_reversal.first);
+        }
+        temp2 = temp2 & temp;
         if (bg::length(temp2) > 0) {
           if (!contentions_image) {
             contentions_image.emplace(build_filename(outputdir, "contentions_" + name + tool_suffix + ".svg"), bounding_box);
@@ -232,7 +237,7 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
       const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
       const auto tool_diameter = tool.first;
-      vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+      vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk;
@@ -248,30 +253,37 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk);
         if (mill->optimise) {
-          multi_linestring_type_fp temp_mls;
-          bg::simplify(new_trace_toolpath, temp_mls, mill->tolerance);
-          new_trace_toolpath = temp_mls;
+          for (auto& ls_and_allow_reversal : new_trace_toolpath) {
+            linestring_type_fp temp_ls;
+            bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
+            ls_and_allow_reversal.first = temp_ls;
+          }
         }
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
           // No point in updating the already_milled.
           continue;
         }
+        multi_linestring_type_fp combined_trace_toolpath;
+        combined_trace_toolpath.reserve(new_trace_toolpath.size());
+        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+          combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
+        }
         multi_polygon_type_fp new_trace_toolpath_bufferred;
-        bg_helpers::buffer(new_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
+        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
       write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
-      post_process_toolpath(isolator, new_toolpath);
-      results[tool_index] = mls_to_icoords(mirror_toolpath(new_toolpath, mirror));
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
+      results[tool_index] = mls_to_icoords(mirror_toolpath(combined_toolpath, mirror));
     }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
     const auto trace_count = vectorial_surface->size();
-    vector<multi_linestring_type_fp> new_trace_toolpaths(trace_count);
+    vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
@@ -279,8 +291,8 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     }
     write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
-    post_process_toolpath(cutter, new_toolpath);
-    return {mls_to_icoords(mirror_toolpath(new_toolpath, mirror))};
+    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
+    return {mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
@@ -318,14 +330,141 @@ coordinate_type_fp do_milling(
   return true;
 }
 
+// Points that are very close to each other, probably because of a
+// rounding error, are merged together to a single location.
+size_t merge_near_points(vector<pair<linestring_type_fp, bool>>& mls, const coordinate_type_fp distance) {
+  struct PointLessThan {
+    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+    }
+  };
+
+  std::map<point_type_fp, point_type_fp, PointLessThan> points;
+  for (const auto& ls_and_allow_reversal : mls) {
+    for (const auto& point : ls_and_allow_reversal.first) {
+      points[point] = point;
+    }
+  }
+  // Merge points that are near one another.  This doesn't do a
+  // great job but it's fast enough.
+  size_t points_merged = 0;
+  const auto distance_2 = distance * distance;
+  for (auto i = points.begin(); i != points.end(); i++) {
+    for (auto j = i;
+         j != points.upper_bound(point_type_fp(i->second.x()+distance,
+                                               i->second.y()+distance));
+         j++) {
+      if (!bg::equals(j->second, i->second) &&
+          bg::comparable_distance(i->second, j->second) <= distance_2) {
+        points_merged++;
+        j->second = i->second;
+      }
+    }
+  }
+  if (points_merged > 0) {
+    for (auto& ls_and_allow_reversal : mls) {
+      for (auto& point : ls_and_allow_reversal.first) {
+        point = points[point];
+      }
+    }
+  }
+  return points_merged;
+}
+
+// Returns a minimal number of toolpaths that include all the milling in the
+// oroginal toolpaths.  Each path is traversed once.  First paths are
+// directional, second are bidi.  In the pair, the first is directional and the
+// second is bidi.
+multi_linestring_type_fp make_eulerian_paths(const vector<pair<linestring_type_fp, bool>>& toolpaths) {
+  // Merge points that are very close to each other because it makes
+  // us more likely to find intersections that was can use.
+  auto merged_toolpaths = toolpaths;
+  merge_near_points(merged_toolpaths, 0.00001);
+
+  // First we need to split all paths so that they don't cross.  We need to
+  // scale them up because the input is not floating point.
+  vector<segment_type_p> all_segments;
+  vector<bool> allow_reversals;
+  for (const auto& toolpath_and_allow_reversal : merged_toolpaths) {
+    const auto& toolpath = toolpath_and_allow_reversal.first;
+    for (size_t i = 1; i < toolpath.size(); i++) {
+      all_segments.push_back(
+          segment_type_p(
+              point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
+              point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
+      allow_reversals.push_back(toolpath_and_allow_reversal.second);
+    }
+  }
+  vector<std::pair<segment_type_p, bool>> split_segments = segmentize::segmentize(all_segments, allow_reversals);
+
+  // Make a minimal number of paths from those segments.
+  struct PointLessThan {
+    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+    }
+  };
+  // Only allow reversing the direction of travel if mill_feed_direction is
+  // ANY.  We need to scale them back down.
+  multi_linestring_type_fp segments_as_linestrings;
+  segments_as_linestrings.reserve(split_segments.size());
+  allow_reversals.clear();
+  allow_reversals.reserve(split_segments.size());
+  for (const auto& segment_and_allow_reversal : split_segments) {
+    // Make a little 1-edge linestrings.
+    linestring_type_fp ls;
+    const auto& segment = segment_and_allow_reversal.first;
+    const auto& allow_reversal = segment_and_allow_reversal.second;
+    ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
+    ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
+    segments_as_linestrings.push_back(ls);
+    allow_reversals.push_back(allow_reversal);
+  }
+
+  return eulerian_paths::get_eulerian_paths<
+      point_type_fp,
+      linestring_type_fp,
+      multi_linestring_type_fp,
+      PointLessThan>(segments_as_linestrings, allow_reversals);
+}
+
+// Make eulerian paths if needed.  Sort the paths order to make it faster.
+// Simplify paths by remving points that don't affect the path or affect it very
+// little.
+multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
+    const std::shared_ptr<RoutingMill>& mill, const vector<pair<linestring_type_fp, bool>>& toolpath) const {
+  multi_linestring_type_fp combined_toolpath;
+  if (mill->eulerian_paths) {
+    combined_toolpath = make_eulerian_paths(toolpath);
+  } else {
+    combined_toolpath.reserve(toolpath.size());
+    for (const auto& ls_and_allow_reversal : toolpath) {
+      combined_toolpath.push_back(ls_and_allow_reversal.first);
+    }
+  }
+  if (tsp_2opt) {
+    tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
+  } else {
+    tsp_solver::nearest_neighbour(combined_toolpath, point_type_fp(0, 0));
+  }
+
+  if (mill->optimise) {
+    multi_linestring_type_fp temp_mls;
+    bg::simplify(combined_toolpath, temp_mls, mill->tolerance);
+    combined_toolpath = temp_mls;
+  }
+  return combined_toolpath;
+}
+
 // Given a linestring which has the same front and back (so it's actually a
 // ring), attach it to one of the ends of the toolpath.  Only attach if there is
 // a point on the ring that is close enough to the toolpath endpoint.  toolpath
 // must not be empty.
 bool attach_ring(const shared_ptr<RoutingMill>& mill,
-                 const linestring_type_fp& ring, linestring_type_fp& toolpath,
+                 const linestring_type_fp& ring,
+                 pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                  const MillFeedDirection::MillFeedDirection& dir,
                  const optional<multi_polygon_type_fp>& allowed_milling) {
+  auto& toolpath = toolpath_and_allow_reversal.first;
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
@@ -359,30 +498,38 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
     auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
     close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
     *close_ring_point = *best_ring_point;
-  } else {
+  } else { // It's ANY or CLIMB.  For ANY, we can choose either direction and we
+           // default to the current direction.
     auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
     *close_ring_point = *best_ring_point;
   }
+  // Iff both inputs are reversible than the path remains reversible.
+  toolpath_and_allow_reversal.second = dir == MillFeedDirection::ANY && toolpath_and_allow_reversal.second;
   return true;
 }
 
 bool attach_ls(const shared_ptr<RoutingMill>& mill,
-               const linestring_type_fp& ls, linestring_type_fp& toolpath,
+               const linestring_type_fp& ls,
+               pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                const MillFeedDirection::MillFeedDirection& dir,
                const optional<multi_polygon_type_fp>& allowed_milling) {
-  bool insert_front = false;
-  bool insert_reversed;
+  auto& toolpath = toolpath_and_allow_reversal.first;
+  bool reverse_toolpath; // Do we start with a reversed toolpath?
+  bool insert_front = false; // Then, do we insert at the front?
+  bool insert_reversed; // Finally, do we reverse the new ls?
   auto best_distance = std::numeric_limits<double>::infinity();
   if (dir != MillFeedDirection::CLIMB) {
     // We may attach it reversed, either:
     // toolpath.front() ... toolpath.back() ls.back() ... ls.front()
     if (bg::distance(toolpath.back(), ls.back()) < best_distance) {
+      reverse_toolpath = false;
       insert_front = false;
       insert_reversed = true;
       best_distance = bg::distance(toolpath.back(), ls.back());
     }
     // ls.back() ... ls.front() toolpath.front() ... toolpath.back()
     if (bg::distance(ls.front(), toolpath.front()) < best_distance) {
+      reverse_toolpath = false;
       insert_front = true;
       insert_reversed = true;
       best_distance = bg::distance(ls.front(), toolpath.front());
@@ -392,24 +539,67 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
     // We may attach the list in the forward direction, either:
     // toolpath.front() ... toolpath.back() ls.front() ... ls.back()
     if (bg::distance(toolpath.back(), ls.front()) < best_distance) {
+      reverse_toolpath = false;
       insert_front = false;
       insert_reversed = false;
       best_distance = bg::distance(toolpath.back(), ls.front());
     }
     // ls.front() ... ls.back() toolpath.front() ... toolpath.back()
     if (bg::distance(ls.back(), toolpath.front()) < best_distance) {
+      reverse_toolpath = false;
       insert_front = true;
       insert_reversed = false;
       best_distance = bg::distance(ls.back(), toolpath.front());
     }
   }
+  if (toolpath_and_allow_reversal.second) {
+    // The toolpath that we are inserting into may be reversed.
+    if (dir != MillFeedDirection::CLIMB) {
+      // We may attach it reversed, either:
+      // toolpath.back() ... toolpath.front() ls.back() ... ls.front()
+      if (bg::distance(toolpath.front(), ls.back()) < best_distance) {
+        reverse_toolpath = true;
+        insert_front = false;
+        insert_reversed = true;
+        best_distance = bg::distance(toolpath.front(), ls.back());
+      }
+      // ls.back() ... ls.front() toolpath.back() ... toolpath.front()
+      if (bg::distance(ls.front(), toolpath.back()) < best_distance) {
+        reverse_toolpath = true;
+        insert_front = true;
+        insert_reversed = true;
+        best_distance = bg::distance(ls.front(), toolpath.back());
+      }
+    }
+    if (dir != MillFeedDirection::CONVENTIONAL) {
+      // We may attach the list in the forward direction, either:
+      // toolpath.back() ... toolpath.front() ls.front() ... ls.back()
+      if (bg::distance(toolpath.front(), ls.front()) < best_distance) {
+        reverse_toolpath = true;
+        insert_front = false;
+        insert_reversed = false;
+        best_distance = bg::distance(toolpath.front(), ls.front());
+      }
+      // ls.front() ... ls.back() toolpath.back() ... toolpath.front()
+      if (bg::distance(ls.back(), toolpath.back()) < best_distance) {
+        reverse_toolpath = true;
+        insert_front = true;
+        insert_reversed = false;
+        best_distance = bg::distance(ls.back(), toolpath.back());
+      }
+    }
+  }
+
   if (best_distance == std::numeric_limits<double>::infinity()) {
     return false;
   }
-  const auto& toolpath_neighbor = insert_front ? toolpath.front() : toolpath.back();
+  const auto& toolpath_neighbor = (reverse_toolpath == insert_front) ? toolpath.back() : toolpath.front();
   const auto& ls_neighbor = (insert_front == insert_reversed) ? ls.front() : ls.back();
   if (!do_milling(mill, toolpath_neighbor, ls_neighbor, allowed_milling)) {
     return false;
+  }
+  if (reverse_toolpath) {
+    bg::reverse(toolpath);
   }
   const auto insertion_position = insert_front ? toolpath.begin() : toolpath.end();
   if (insert_reversed) {
@@ -417,141 +607,38 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
   } else {
     toolpath.insert(insertion_position, ls.cbegin(), ls.cend());
   }
+  // Iff both inputs are reversible than the path remains reversible.
+  toolpath_and_allow_reversal.second = dir == MillFeedDirection::ANY && toolpath_and_allow_reversal.second;
   return true;
 }
 
 void attach_ls(const shared_ptr<RoutingMill>& mill,
-               const linestring_type_fp& ls, multi_linestring_type_fp& toolpaths,
+               const linestring_type_fp& ls,
+               vector<pair<linestring_type_fp, bool>>& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
                const multi_polygon_type_fp& already_milled_shrunk,
                const optional<multi_polygon_type_fp> allowed_milling) {
-  for (auto& toolpath : toolpaths) {
-    if (bg::equals(ls.front(), ls.back())) {
-      // This path is actually a ring.
+  if (bg::equals(ls.front(), ls.back())) {
+    // This path is actually a ring so we can use attach_ring which can connect
+    // at any point.
+    for (auto& toolpath : toolpaths) {
       if (attach_ring(mill, ls, toolpath, dir, allowed_milling)) {
         return;
       }
-    } else {
+    }
+  } else {
+    for (auto& toolpath : toolpaths) {
       if (attach_ls(mill, ls, toolpath, dir, allowed_milling)) {
         return;
       }
     }
   }
   if (dir == MillFeedDirection::CONVENTIONAL) {
-    toolpaths.push_back(linestring_type_fp(ls.rbegin(), ls.rend()));
+    toolpaths.push_back(make_pair(linestring_type_fp(ls.crbegin(), ls.crend()), false));
+  } else if (dir == MillFeedDirection::CLIMB) {
+    toolpaths.push_back(make_pair(linestring_type_fp(ls.cbegin(), ls.cend()), false));
   } else {
-    toolpaths.push_back(linestring_type_fp(ls.begin(), ls.end()));
-  }
-}
-
-// Points that are very close to each other, probably because of a
-// rounding error, are merged together to a single location.
-size_t merge_near_points(multi_linestring_type_fp& mls, const coordinate_type_fp distance) {
-  struct PointLessThan {
-    bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-      return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-    }
-  };
-
-  std::map<point_type_fp, point_type_fp, PointLessThan> points;
-  for (const auto& ls : mls) {
-    for (const auto& point : ls) {
-      points[point] = point;
-    }
-  }
-  // Merge points that are near one another.  This doesn't do a
-  // great job but it's fast enough.
-  size_t points_merged = 0;
-  const auto distance_2 = distance * distance;
-  for (auto i = points.begin(); i != points.end(); i++) {
-    for (auto j = i;
-         j != points.upper_bound(point_type_fp(i->second.x()+distance,
-                                               i->second.y()+distance));
-         j++) {
-      if (!bg::equals(j->second, i->second) &&
-          bg::comparable_distance(i->second, j->second) <= distance_2) {
-        points_merged++;
-        j->second = i->second;
-      }
-    }
-  }
-  if (points_merged > 0) {
-    for (auto& ls : mls) {
-      for (auto& point : ls) {
-        point = points[point];
-      }
-    }
-  }
-  return points_merged;
-}
-
-// Returns a minimal number of toolpaths that include all the
-// milling in the oroginal toolpaths.  Each path is traversed
-// once.
-multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& toolpaths, MillFeedDirection::MillFeedDirection mill_feed_direction) {
-    // Merge points that are very close to each other because it makes
-    // us more likely to find intersections that was can use.
-    multi_linestring_type_fp merged_toolpaths(toolpaths);
-    merge_near_points(merged_toolpaths, 0.00001);
-
-    // First we need to split all paths so that they don't cross.  We need to
-    // scale them up because the input is not floating point.
-    vector<segment_type_p> all_segments;
-    for (const auto& toolpath : merged_toolpaths) {
-        for (size_t i = 1; i < toolpath.size(); i++) {
-            all_segments.push_back(
-                segment_type_p(
-                    point_type_p(toolpath[i-1].x() * SCALE, toolpath[i-1].y() * SCALE),
-                    point_type_p(toolpath[i  ].x() * SCALE, toolpath[i  ].y() * SCALE)));
-        }
-    }
-    vector<segment_type_p> split_segments = segmentize::segmentize(all_segments, mill_feed_direction == MillFeedDirection::ANY);
-
-    // We need to scale them back down.
-    multi_linestring_type_fp segments_as_linestrings;
-    for (const auto& segment : split_segments) {
-        // Make a little 1-edge linestrings, filter out those that
-        // aren't in the mask.
-        linestring_type_fp ls;
-        ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
-        ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
-        segments_as_linestrings.push_back(ls);
-    }
-
-    // Make a minimal number of paths from those segments.
-    struct PointLessThan {
-      bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-          return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-      }
-    };
-    // Only allow reversing the direction of travel if mill_feed_direction is
-    // ANY.
-    return eulerian_paths::get_eulerian_paths<
-      point_type_fp,
-      linestring_type_fp,
-      multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings,
-                     mill_feed_direction == MillFeedDirection::ANY);
-}
-
-// Make eulerian paths if needed.  Sort the paths order to make it faster.
-// Simplify paths by remving points that don't affect the path or affect it very
-// little.
-void Surface_vectorial::post_process_toolpath(
-    const std::shared_ptr<RoutingMill>& mill, multi_linestring_type_fp& toolpath) const {
-  if (mill->eulerian_paths) {
-    toolpath = make_eulerian_paths(toolpath, mill_feed_direction);
-  }
-  if (tsp_2opt) {
-    tsp_solver::tsp_2opt(toolpath, point_type_fp(0, 0));
-  } else {
-    tsp_solver::nearest_neighbour(toolpath, point_type_fp(0, 0));
-  }
-
-  if (mill->optimise) {
-    multi_linestring_type_fp temp_mls;
-    bg::simplify(toolpath, temp_mls, mill->tolerance);
-    toolpath = temp_mls;
+    toolpaths.push_back(make_pair(linestring_type_fp(ls.cbegin(), ls.cend()), true)); // true for reversible
   }
 }
 
@@ -562,15 +649,20 @@ void Surface_vectorial::post_process_toolpath(
 // none of the toolpaths have a close enough endpoint, a new toolpath is added
 // to the list of toolpaths.
 void attach_ring(const shared_ptr<RoutingMill>& mill,
-                 const ring_type_fp& ring, multi_linestring_type_fp& toolpaths,
+                 const ring_type_fp& ring,
+                 vector<pair<linestring_type_fp, bool>>& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& already_milled_shrunk,
                  const optional<multi_polygon_type_fp> allowed_milling) {
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
-  ring_paths = ring_paths - already_milled_shrunk;
-  ring_paths = make_eulerian_paths(ring_paths, dir);
+  ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
+  vector<pair<linestring_type_fp, bool>> ring_paths_with_direction;
   for (const auto& ring_path : ring_paths) {
+    ring_paths_with_direction.push_back(make_pair(ring_path, dir == MillFeedDirection::ANY));
+  }
+  ring_paths = make_eulerian_paths(ring_paths_with_direction); // Rejoin those paths as possible.
+  for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
     attach_ls(mill, ring_path, toolpaths, dir, already_milled_shrunk, allowed_milling);
   }
 }
@@ -579,7 +671,8 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
 // allowed_milling is the area that we believe that we may mill safely because
 // it doesn't cut through traces.
 void attach_polygons(const shared_ptr<RoutingMill>& mill,
-                     const multi_polygon_type_fp& polygons, multi_linestring_type_fp& toolpaths,
+                     const multi_polygon_type_fp& polygons,
+                     vector<pair<linestring_type_fp, bool>>& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
                      const optional<multi_polygon_type_fp> allowed_milling) {
@@ -605,10 +698,12 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
 // overlap_width are the specifics of the tool to use in the milling.  mirror
 // means that the entire shapre should be reflected across the y=0 axis, because
 // it will be on the back.  The tool_suffix is for making unique filenames if
-// there are multiple tools.  The already_milled_shrunk is the running
-// union of all the milled area so far, so that new milling can avoid re-milling
-// areas that are already milled.
-multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
+// there are multiple tools.  The already_milled_shrunk is the running union of
+// all the milled area so far, so that new milling can avoid re-milling areas
+// that are already milled.  Returns first the direcitonal toolpaths and then
+// the bidircitonal toolpaths.  For the former, the dirction must be maintained.
+// For the latter, they can be turned around if needed.
+vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
     const multi_polygon_type_fp& already_milled_shrunk) const {
@@ -631,8 +726,6 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
         : 0;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
-    multi_linestring_type_fp toolpath;
-
     optional<polygon_type_fp> current_trace = boost::none;
     if (trace_index < vectorial_surface->size()) {
       current_trace.emplace(vectorial_surface->at(trace_index));
@@ -649,17 +742,24 @@ multi_linestring_type_fp Surface_vectorial::get_single_toolpath(
       // It can be used to connect paths that are nearly connected.
       allowed_milling.emplace(current_voronoi - keep_out);
     }
-    // The rings of polygons are the paths to mill.  The paths may include
-    // both inner and outer rings.  They vector has them sorted from the
-    // smallest outer to the largest outer, both for voronoi and for regular
-    // isolation.
+    // The rings of polygons are the paths to mill.  The paths may include both
+    // inner and outer rings.  They vector has them sorted from the smallest
+    // outer to the largest outer, both for voronoi and for regular isolation.
+    // Each linestring has a bool attached to it indicating if it is reversible.
+    // true means reversal is still allowed.
+    vector<pair<linestring_type_fp, bool>> toolpath;
     for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
       const auto& polygon = polygons[polygon_index];
       MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
-      if (polygon_index + 1 == polygons.size() && polygon_index != 0) {
-        // This is the outermost loop and it isn't the only loop so invert
-        // it to remove burrs.
-        dir = invert(dir);
+      if (polygon_index != 0) {
+        if (polygon_index + 1 == polygons.size()) {
+          // This is the outermost pass and it isn't the only loop so invert
+          // it to remove burrs.
+          dir = invert(dir);
+        } else {
+          // This is a middle pass so it can go in any direction.
+          dir = MillFeedDirection::ANY;
+        }
       }
       if (mirror) {
         // This is on the back so all loops are reversed.
@@ -839,15 +939,19 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
     }
 }
 
-void svg_writer::add(const multi_linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
-  for (const auto& path : paths) {
-    // Stroke the width of the path.
-    mapper->map(path,
-                str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:%f;fill:none;"
-                                  "stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;") % r % g % b % (width * SVG_DOTS_PER_IN)));
-    // Stroke the center of the path.
-    mapper->map(path,
-                "stroke:rgb(0,0,0);stroke-width:1px;fill:none;"
-                "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
+void svg_writer::add(const linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
+  // Stroke the width of the path.
+  mapper->map(path,
+              str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:%f;fill:none;"
+                                "stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;") % r % g % b % (width * SVG_DOTS_PER_IN)));
+  // Stroke the center of the path.
+  mapper->map(path,
+              "stroke:rgb(0,0,0);stroke-width:1px;fill:none;"
+              "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
+}
+
+void svg_writer::add(const multi_linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
+  for (const auto& p : path) {
+    add(p, width, r, g, b);
   }
 }
