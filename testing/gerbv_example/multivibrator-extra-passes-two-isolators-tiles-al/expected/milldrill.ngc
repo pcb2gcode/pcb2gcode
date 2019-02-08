@@ -1,4 +1,4 @@
-( pcb2gcode 1.3.2 )
+( pcb2gcode 2.0.0 )
 ( Gcode for linuxcnc )
 ( This file uses a mill head of 0.03150inch to drill the 2 hole sizes. )
 ( Hole sizes: [0.0314961 inch] [0.0394094 inch] )
