@@ -99,7 +99,7 @@ namespace bg_helpers {
 // 0, unlike bg::buffer.
 static const int points_per_circle = 30;
 template<typename CoordinateType>
-void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+static inline void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
   } else {
@@ -128,7 +128,7 @@ static inline multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometr
 }
 
 template<typename CoordinateType>
-void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+static inline void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
   } else {
@@ -142,7 +142,7 @@ void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometr
 }
 
 template<typename CoordinateType>
-void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+static inline void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
   } else {
@@ -153,7 +153,7 @@ void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_o
 }
 
 template<typename CoordinateType>
-multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
+static inline multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
   multi_polygon_type_fp geometry_out;
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
@@ -166,7 +166,7 @@ multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType
 }
 
 template<typename CoordinateType>
-void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   bg::buffer(geometry_in, geometry_out,
              bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
              bg::strategy::buffer::side_straight(),
@@ -176,7 +176,7 @@ void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp 
 }
 
 template<typename CoordinateType>
-void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+static inline void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
   } else {
