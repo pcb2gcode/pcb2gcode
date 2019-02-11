@@ -67,10 +67,14 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       for i in {1..5}; do
-        wget -T5 -t1 -O "boost_${BOOST}_amd64.tar.xz" "https://github.com/eyal0/pcb2gcode/releases/download/1.3.3/boost_${BOOST}_amd64.tar.xz" && break;
+        wget -T5 -t1 -O "boost_${BOOST}.tar.bz2" "https://sourceforge.net/projects/boost/files/boost/`echo ${BOOST} | tr _ .`/boost_${BOOST}.tar.bz2/download" && break;
       done &&
-      tar xJf "boost_${BOOST}_amd64.tar.xz" &&
-      export BOOST_DIR="$PWD/boost"
+      tar xjf "boost_${BOOST}.tar.bz2" &&
+      pushd boost_${BOOST} &&
+      export BOOST_DIR="$PWD/boost" &&
+      ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR} &&
+      chronic ./b2 install &&
+      popd
     fi
   - >
     if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
