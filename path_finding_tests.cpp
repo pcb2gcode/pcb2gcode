@@ -1,4 +1,25 @@
 #define BOOST_TEST_MODULE path finding tests
+
+#include <ostream>
+#include "geometry.hpp"
+
+namespace std {
+
+std::ostream& operator<<(std::ostream& out, const linestring_type_fp& ls) {
+  out << bg::wkt(ls);
+  return out;
+}
+
+} // namespace std
+
+namespace boost { namespace geometry { namespace model { namespace d2 {
+
+bool operator==(const point_type_fp& a, const point_type_fp& b) {
+  return bg::equals(a, b);
+}
+
+}}}} // namespace boost::geometry::model::d2
+
 #include <boost/test/included/unit_test.hpp>
 #include <boost/optional.hpp>
 using boost::make_optional;
@@ -9,19 +30,6 @@ using boost::make_optional;
 
 using namespace std;
 using namespace path_finding;
-
-namespace std {
-
-std::ostream& operator<<(std::ostream& out, const linestring_type_fp& ls) {
-  out << bg::wkt(ls);
-  return out;
-}
-
-bool operator==(const point_type_fp& a, const point_type_fp& b) {
-  return bg::equals(a, b);
-}
-
-} // namespace std
 
 BOOST_AUTO_TEST_SUITE(path_finding_tests);
 
