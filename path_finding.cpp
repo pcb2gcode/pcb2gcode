@@ -10,6 +10,8 @@ using std::vector;
 #include "geometry.hpp"
 #include "bg_helpers.hpp"
 
+namespace path_finding {
+
 using boost::optional;
 using boost::make_optional;
 
@@ -17,9 +19,9 @@ using std::shared_ptr;
 using std::make_shared;
 
 
-class PathSurfaceBase {
+class PathFindingSurface {
  public:
-  PathSurfaceBase(const optional<multi_polygon_type_fp>& keep_in,
+  PathFindingSurface(const optional<multi_polygon_type_fp>& keep_in,
                   const optional<multi_polygon_type_fp>& keep_out,
                   const coordinate_type_fp tolerance)
       :  keep_in_grown(keep_in ? make_optional(bg_helpers::buffer(*keep_in, tolerance)) : boost::none),
@@ -54,7 +56,7 @@ class PathSurfaceBase {
 // This is apoint surface that doesn't have a start and end in it.
 class PathSurface {
  public:
-  PathSurface(std::shared_ptr<PathSurfaceBase> base, const point_type_fp begin, const point_type_fp end)
+  PathSurface(const std::shared_ptr<const PathFindingSurface> base, const point_type_fp begin, const point_type_fp end)
       : base(base),
         begin(begin),
         end(end) {}
@@ -83,7 +85,7 @@ class PathSurface {
     return true;
   }
  private:
-  std::shared_ptr<PathSurfaceBase> base;
+  const std::shared_ptr<const PathFindingSurface> base;
   point_type_fp begin;
   point_type_fp end;
 };
@@ -95,6 +97,8 @@ struct path_surface_traversal_catetory:
 class OutEdgeIteratorImpl;
 class VertexIteratorImpl;
 
+} // namespace path_finding
+
 namespace boost {
 /*
 bool operator==(const point_type_fp& a, const point_type_fp& b) {
@@ -105,15 +109,15 @@ bool operator!=(const point_type_fp& a, const point_type_fp& b) {
   return a.x() != b.x() || a.y() != b.y();
 }
 */
-template <> struct graph_traits<PathSurface> {
+template <> struct graph_traits<path_finding::PathSurface> {
   typedef size_t vertex_descriptor;
   typedef std::pair<vertex_descriptor, vertex_descriptor> edge_descriptor;
   typedef boost::undirected_tag directed_category;
   typedef boost::disallow_parallel_edge_tag edge_parallel_category;
-  typedef path_surface_traversal_catetory traversal_category;
+  typedef path_finding::path_surface_traversal_catetory traversal_category;
 
-  typedef VertexIteratorImpl vertex_iterator;
-  typedef OutEdgeIteratorImpl out_edge_iterator;
+  typedef path_finding::VertexIteratorImpl vertex_iterator;
+  typedef path_finding::OutEdgeIteratorImpl out_edge_iterator;
   typedef size_t degree_size_type;
   typedef size_t vertices_size_type;
 
@@ -121,7 +125,9 @@ template <> struct graph_traits<PathSurface> {
   typedef void edge_iterator;
   typedef void edges_size_type;
 };
-}
+} // namespace boost
+
+namespace path_finding {
 
 typedef boost::graph_traits<PathSurface>::vertex_descriptor Vertex;
 typedef boost::graph_traits<PathSurface>::edge_descriptor Edge;
@@ -220,13 +226,17 @@ VerticesSizeType num_vertices(const PathSurface& path_surface) {
   return path_surface.points_num();
 }
 
+} // namespace path_finding
+
 namespace boost {
 
-template <> struct vertex_property_type<PathSurface> {
-  typedef boost::graph_traits<PathSurface>::vertex_descriptor type;
+template <> struct vertex_property_type<path_finding::PathSurface> {
+  typedef boost::graph_traits<path_finding::PathSurface>::vertex_descriptor type;
 };
 
 } // namespace boost
+
+namespace path_finding {
 
 class PathSurfaceHeuristic: public boost::astar_heuristic<PathSurface, coordinate_type_fp> {
  public:
@@ -260,17 +270,20 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
   Vertex goal;
 };
 
-namespace path_finding {
-
-boost::optional<linestring_type_fp> find_path(const point_type_fp& start, const point_type_fp& end,
-                                              const boost::optional<multi_polygon_type_fp>& keep_in,
-                                              const boost::optional<multi_polygon_type_fp>& keep_out,
-                                              const coordinate_type_fp tolerance) {
+const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
+    const boost::optional<multi_polygon_type_fp>& keep_in,
+    const boost::optional<multi_polygon_type_fp>& keep_out,
+    const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
-  auto path_surface = make_shared<PathSurface>(make_shared<PathSurfaceBase>(PathSurfaceBase(keep_in,
-                                                                                            keep_out,
-                                                                                            tolerance)),
+  return make_shared<PathFindingSurface>(PathFindingSurface(keep_in,
+                                                            keep_out,
+                                                            tolerance));
+}
+boost::optional<linestring_type_fp> find_path(
+    const std::shared_ptr<const PathFindingSurface> path_finding_surface,
+    const point_type_fp& start, const point_type_fp& end) {
+  auto path_surface = make_shared<PathSurface>(path_finding_surface,
                                                start,
                                                end);
 
