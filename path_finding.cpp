@@ -75,6 +75,28 @@ class PathSurface {
   const size_t points_num() const {
     return base->all_vertices.size() + 2;
   }
+  // Returns true if there is at least some path from begin to end.
+  bool has_path() {
+    vector<bool> seen(points_num(), false);
+    std::unordered_set<size_t> to_examine;
+    to_examine.emplace(0);
+
+    while (to_examine.size() > 0) {
+      size_t current = *to_examine.begin();
+      to_examine.erase(to_examine.begin());
+      seen[current] = true;
+      for (size_t i = 0; i < points_num(); i++) {
+        if (!seen[i] && in_surface(current, i)) {
+          if (i == 1) {
+            return true;
+          }
+          to_examine.emplace(i);
+        }
+      }
+    }
+    return false;
+  }
+
   bool in_surface(const size_t& a_index, const size_t& b_index) const {
     if (a_index > b_index) {
       return in_surface(b_index, a_index);
@@ -287,9 +309,9 @@ const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
     const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
-  return make_shared<PathFindingSurface>(PathFindingSurface(keep_in,
-                                                            keep_out,
-                                                            tolerance));
+  return make_shared<PathFindingSurface>(keep_in,
+                                         keep_out,
+                                         tolerance);
 }
 boost::optional<linestring_type_fp> find_path(
     const std::shared_ptr<const PathFindingSurface> path_finding_surface,
@@ -297,7 +319,9 @@ boost::optional<linestring_type_fp> find_path(
   auto path_surface = make_shared<PathSurface>(path_finding_surface,
                                                start,
                                                end);
-
+  if (!path_surface->has_path()) {
+    return boost::none;
+  }
   // The predecessor map is a vertex-to-vertex mapping.
   typedef vector<Vertex> pred_map;
   pred_map predecessor(path_surface->points_num());
