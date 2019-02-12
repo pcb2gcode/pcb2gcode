@@ -25,11 +25,15 @@ using std::make_shared;
 class PathFindingSurface {
  public:
   PathFindingSurface(const optional<multi_polygon_type_fp>& keep_in,
-                  const optional<multi_polygon_type_fp>& keep_out,
-                  const coordinate_type_fp tolerance)
+                     const optional<multi_polygon_type_fp>& keep_out,
+                     const coordinate_type_fp tolerance)
       :  keep_in_grown(keep_in ? make_optional(bg_helpers::buffer(*keep_in, tolerance)) : boost::none),
          keep_out_shrunk(keep_out ? make_optional(bg_helpers::buffer(*keep_out, -tolerance)) : boost::none),
-         all_vertices(get_all_vertices(keep_in, keep_out)) {}
+         all_vertices(get_all_vertices(keep_in, keep_out)) {
+    if (keep_in && keep_out) {
+      throw std::exception();
+    }
+  }
   const optional<multi_polygon_type_fp> keep_in_grown;
   const optional<multi_polygon_type_fp> keep_out_shrunk;
   const vector<point_type_fp> all_vertices;
@@ -47,7 +51,7 @@ class PathFindingSurface {
           for (const auto& inner : poly.inners()) {
             for (const auto& point : inner) {
               all_vertices.push_back(point);
-            }
+          }
           }
         }
       }
@@ -309,8 +313,14 @@ const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
     const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
-  return make_shared<PathFindingSurface>(keep_in,
-                                         keep_out,
+  optional<multi_polygon_type_fp> total_keep_in = keep_in;
+  optional<multi_polygon_type_fp> total_keep_out = keep_out;
+  if (keep_in && keep_out) {
+    *total_keep_in = *keep_in - *keep_out;
+    total_keep_out = boost::none;
+  }
+  return make_shared<PathFindingSurface>(total_keep_in,
+                                         total_keep_out,
                                          tolerance);
 }
 boost::optional<linestring_type_fp> find_path(
