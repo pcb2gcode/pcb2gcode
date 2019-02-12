@@ -24,81 +24,65 @@ using std::make_shared;
 
 class PathFindingSurface {
  public:
-  PathFindingSurface(const optional<multi_polygon_type_fp>& keep_in,
+  PathFindingSurface(const multi_polygon_type_fp& keep_in,
                      const optional<multi_polygon_type_fp>& keep_out,
-                     const coordinate_type_fp tolerance)
-      :  keep_in_grown(keep_in ? make_optional(bg_helpers::buffer(*keep_in, tolerance)) : boost::none),
-         keep_out_shrunk(keep_out ? make_optional(bg_helpers::buffer(*keep_out, -tolerance)) : boost::none),
-         all_vertices(get_all_vertices(keep_in, keep_out)) {
-    if (keep_in && keep_out) {
-      throw std::exception();
+                     const coordinate_type_fp tolerance) {
+    multi_polygon_type_fp total_keep_in;
+    total_keep_in = keep_in;
+    // By here, total_keep_in_grown is ready.
+    if (keep_out) {
+      total_keep_in = total_keep_in - *keep_out;
     }
-  }
-  const optional<multi_polygon_type_fp> keep_in_grown;
-  const optional<multi_polygon_type_fp> keep_out_shrunk;
-  const vector<point_type_fp> all_vertices;
- private:
-  static vector<point_type_fp> get_all_vertices(const optional<multi_polygon_type_fp>& keep_in,
-                                                const optional<multi_polygon_type_fp>& keep_out) {
-    vector<point_type_fp> all_vertices;
-    for (const auto& optional_mpoly : {keep_in, keep_out}) {
-      if (optional_mpoly) {
-        const auto& mpoly = *optional_mpoly;
-        for (const auto& poly : mpoly) {
-          for (const auto& point : poly.outer()) {
-            all_vertices.push_back(point);
-          }
-          for (const auto& inner : poly.inners()) {
-            for (const auto& point : inner) {
-              all_vertices.push_back(point);
-          }
-          }
+
+    all_vertices.clear();
+    for (const auto& poly : total_keep_in) {
+      for (const auto& point : poly.outer()) {
+        all_vertices.push_back(point);
+      }
+      for (const auto& inner : poly.inners()) {
+        for (const auto& point : inner) {
+          all_vertices.push_back(point);
         }
       }
     }
-    return all_vertices;
+
+    total_keep_in_grown = bg_helpers::buffer(total_keep_in, tolerance);
   }
+  multi_polygon_type_fp total_keep_in_grown;
+  vector<point_type_fp> all_vertices;
 };
 
 // This is apoint surface that doesn't have a start and end in it.
 class PathSurface {
  public:
-  PathSurface(const std::shared_ptr<const PathFindingSurface> base, const point_type_fp begin, const point_type_fp end)
-      : base(base),
-        begin(begin),
-        end(end) {}
+  PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end)
+      : begin(begin),
+        end(end) {
+    total_keep_in_grown.clear();
+    for (const auto& poly : base->total_keep_in_grown) {
+      if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
+        total_keep_in_grown.push_back(poly);
+      }
+    }
+    all_vertices.clear();
+    all_vertices.push_back(begin);
+    all_vertices.push_back(end);
+    for (const auto& point : base->all_vertices) {
+      if (bg::covered_by(point, total_keep_in_grown)) {
+        all_vertices.push_back(point);
+      }
+    }
+  }
   // Return from all_vertices with begin==0 and end==1 and the rest shifted by 2.
   const point_type_fp& get_point_by_index(const size_t index) const {
-    if (index == 0) {
-      return begin;
-    } if (index == 1) {
-      return end;
-    }
-    return base->all_vertices[index-2];
+    return all_vertices[index];
   }
   const size_t points_num() const {
-    return base->all_vertices.size() + 2;
+    return all_vertices.size();
   }
   // Returns true if there is at least some path from begin to end.
   bool has_path() {
-    vector<bool> seen(points_num(), false);
-    std::unordered_set<size_t> to_examine;
-    to_examine.emplace(0);
-
-    while (to_examine.size() > 0) {
-      size_t current = *to_examine.begin();
-      to_examine.erase(to_examine.begin());
-      seen[current] = true;
-      for (size_t i = 0; i < points_num(); i++) {
-        if (!seen[i] && in_surface(current, i)) {
-          if (i == 1) {
-            return true;
-          }
-          to_examine.emplace(i);
-        }
-      }
-    }
-    return false;
+    return total_keep_in_grown.size() > 0;
   }
 
   bool in_surface(const size_t& a_index, const size_t& b_index) const {
@@ -113,19 +97,16 @@ class PathSurface {
     linestring_type_fp segment;
     segment.push_back(get_point_by_index(a_index));
     segment.push_back(get_point_by_index(b_index));
-    bool result = true;
-    if ((base->keep_in_grown && !bg::covered_by(segment, *base->keep_in_grown)) ||
-        (base->keep_out_shrunk && bg::intersects(segment, *base->keep_out_shrunk))) {
-      result = false;
-    }
+    bool result = bg::covered_by(segment, total_keep_in_grown);
     in_surface_memo.emplace(a_b_hash, result);
     return result;
   }
  private:
   mutable std::unordered_map<size_t, bool> in_surface_memo;
-  const std::shared_ptr<const PathFindingSurface> base;
   const point_type_fp begin;
   const point_type_fp end;
+  multi_polygon_type_fp total_keep_in_grown;
+  vector<point_type_fp> all_vertices;
 };
 
 struct path_surface_traversal_catetory:
@@ -308,20 +289,12 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
 };
 
 const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
-    const boost::optional<multi_polygon_type_fp>& keep_in,
+    const multi_polygon_type_fp& keep_in,
     const boost::optional<multi_polygon_type_fp>& keep_out,
     const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
-  optional<multi_polygon_type_fp> total_keep_in = keep_in;
-  optional<multi_polygon_type_fp> total_keep_out = keep_out;
-  if (keep_in && keep_out) {
-    *total_keep_in = *keep_in - *keep_out;
-    total_keep_out = boost::none;
-  }
-  return make_shared<PathFindingSurface>(total_keep_in,
-                                         total_keep_out,
-                                         tolerance);
+  return make_shared<PathFindingSurface>(keep_in, keep_out, tolerance);
 }
 boost::optional<linestring_type_fp> find_path(
     const std::shared_ptr<const PathFindingSurface> path_finding_surface,

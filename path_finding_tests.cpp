@@ -34,7 +34,11 @@ using namespace path_finding;
 BOOST_AUTO_TEST_SUITE(path_finding_tests);
 
 BOOST_AUTO_TEST_CASE(simple) {
-  auto surface = create_path_finding_surface(boost::none, boost::none, 0.1);
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = create_path_finding_surface(keep_in, boost::none, 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(1,1));
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
@@ -53,7 +57,11 @@ BOOST_AUTO_TEST_CASE(box) {
   poly.outer() = box;
   multi_polygon_type_fp keep_out;
   keep_out.push_back(poly);
-  auto surface = create_path_finding_surface(boost::none, boost::make_optional(keep_out), 0.1);
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10));
 
   linestring_type_fp expected;
@@ -74,7 +82,11 @@ BOOST_AUTO_TEST_CASE(unreachable_box) {
   poly.outer() = box;
   multi_polygon_type_fp keep_out;
   keep_out.push_back(poly);
-  auto surface = create_path_finding_surface(boost::none, boost::make_optional(keep_out), 0.1);
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5));
 
   BOOST_CHECK_EQUAL(ret, boost::none);
@@ -91,7 +103,11 @@ BOOST_AUTO_TEST_CASE(reuse_surface) {
   poly.outer() = box;
   multi_polygon_type_fp keep_out;
   keep_out.push_back(poly);
-  auto surface = create_path_finding_surface(boost::none, boost::make_optional(keep_out), 0.1);
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5));
   BOOST_CHECK_EQUAL(ret, boost::none);
 
@@ -118,7 +134,7 @@ BOOST_AUTO_TEST_CASE(u_shape) {
   poly.outer() = u_shape;
   multi_polygon_type_fp keep_in;
   keep_in.push_back(poly);
-  auto surface = create_path_finding_surface(boost::make_optional(keep_in), boost::none, 0.1);
+  auto surface = create_path_finding_surface(keep_in, boost::none, 0.1);
   auto ret = find_path(surface, point_type_fp(1,9), point_type_fp(9,9));
 
   linestring_type_fp expected;

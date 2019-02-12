@@ -754,7 +754,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     if (current_trace) {
       keep_out = bg_helpers::buffer(*current_trace, diameter/2);
     }
-    auto path_finding_surface = path_finding::create_path_finding_surface(make_optional(keep_in), keep_out, mill->tolerance);
+    auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
     // The rings of polygons are the paths to mill.  The paths may include both
     // inner and outer rings.  They vector has them sorted from the smallest
     // outer to the largest outer, both for voronoi and for regular isolation.
