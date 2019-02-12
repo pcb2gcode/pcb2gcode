@@ -142,6 +142,13 @@ static inline void buffer(polygon_type_fp const & geometry_in, multi_polygon_typ
 }
 
 template<typename CoordinateType>
+static inline multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
+  multi_polygon_type_fp geometry_out;
+  buffer(geometry_in, geometry_out, expand_by);
+  return geometry_out;
+}
+
+template<typename CoordinateType>
 static inline void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
@@ -150,19 +157,6 @@ static inline void buffer(polygon_type const & geometry_in, multi_polygon_type_f
     bg::convert(geometry_in, geometry_in_fp);
     buffer(geometry_in_fp, geometry_out, expand_by);
   }
-}
-
-template<typename CoordinateType>
-static inline multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
-  multi_polygon_type_fp geometry_out;
-  if (expand_by == 0) {
-    bg::convert(geometry_in, geometry_out);
-  } else {
-    polygon_type_fp geometry_in_fp;
-    bg::convert(geometry_in, geometry_in_fp);
-    buffer(geometry_in_fp, geometry_out, expand_by);
-  }
-  return geometry_out;
 }
 
 template<typename CoordinateType>
