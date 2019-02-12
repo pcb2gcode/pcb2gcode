@@ -1,6 +1,9 @@
 #include <vector>
 using std::vector;
 
+#include <unordered_map>
+using std::unordered_map;
+
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/astar_search.hpp>
 #include <boost/optional.hpp>
@@ -72,22 +75,31 @@ class PathSurface {
   const size_t points_num() const {
     return base->all_vertices.size() + 2;
   }
-  bool in_surface(const point_type_fp& a, const point_type_fp& b) const {
+  bool in_surface(const size_t& a_index, const size_t& b_index) const {
+    if (a_index > b_index) {
+      return in_surface(b_index, a_index);
+    }
+    auto a_b_hash = a_index * points_num() + b_index;
+    auto memoized_result = in_surface_memo.find(a_b_hash);
+    if (memoized_result != in_surface_memo.cend()) {
+      return memoized_result->second;
+    }
     linestring_type_fp segment;
-    segment.push_back(a);
-    segment.push_back(b);
-    if (base->keep_in_grown && !bg::covered_by(segment, *base->keep_in_grown)) {
-      return false;
+    segment.push_back(get_point_by_index(a_index));
+    segment.push_back(get_point_by_index(b_index));
+    bool result = true;
+    if ((base->keep_in_grown && !bg::covered_by(segment, *base->keep_in_grown)) ||
+        (base->keep_out_shrunk && bg::intersects(segment, *base->keep_out_shrunk))) {
+      result = false;
     }
-    if (base->keep_out_shrunk && bg::intersects(segment, *base->keep_out_shrunk)) {
-      return false;
-    }
-    return true;
+    in_surface_memo.emplace(a_b_hash, result);
+    return result;
   }
  private:
+  mutable std::unordered_map<size_t, bool> in_surface_memo;
   const std::shared_ptr<const PathFindingSurface> base;
-  point_type_fp begin;
-  point_type_fp end;
+  const point_type_fp begin;
+  const point_type_fp end;
 };
 
 struct path_surface_traversal_catetory:
@@ -165,8 +177,7 @@ class OutEdgeIteratorImpl : public boost::forward_iterator_helper<OutEdgeIterato
   void move_to_valid_target() {
     while (target < path_surface->points_num() && // didn't fall of the target yet
            (target == source || // 0 length path
-            !path_surface->in_surface(path_surface->get_point_by_index(source),  // segment is not in the allowed surface
-                                      path_surface->get_point_by_index(target)))) {
+            !path_surface->in_surface(source, target))) { // segment is not in the allowed surface
       target++;
     }
   }
