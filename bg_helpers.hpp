@@ -149,6 +149,19 @@ void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_o
 }
 
 template<typename CoordinateType>
+multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
+  multi_polygon_type_fp geometry_out;
+  if (expand_by == 0) {
+    bg::convert(geometry_in, geometry_out);
+  } else {
+    polygon_type_fp geometry_in_fp;
+    bg::convert(geometry_in, geometry_in_fp);
+    buffer(geometry_in_fp, geometry_out, expand_by);
+  }
+  return geometry_out;
+}
+
+template<typename CoordinateType>
 void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   bg::buffer(geometry_in, geometry_out,
              bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
