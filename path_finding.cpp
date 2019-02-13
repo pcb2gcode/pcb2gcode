@@ -119,15 +119,7 @@ class VertexIteratorImpl;
 } // namespace path_finding
 
 namespace boost {
-/*
-bool operator==(const point_type_fp& a, const point_type_fp& b) {
-  return a.x() == b.x() && a.y() == b.y();
-}
 
-bool operator!=(const point_type_fp& a, const point_type_fp& b) {
-  return a.x() != b.x() || a.y() != b.y();
-}
-*/
 template <> struct graph_traits<path_finding::PathSurface> {
   typedef size_t vertex_descriptor;
   typedef std::pair<vertex_descriptor, vertex_descriptor> edge_descriptor;
@@ -278,7 +270,7 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
   AstarGoalVisitor(Vertex goal)
       : goal(goal) {}
 
-  void examine_vertex(Vertex u, const PathSurface&) {
+  void discover_vertex(Vertex u, const PathSurface&) {
     if (u == goal) {
       throw FoundGoal();
     }
