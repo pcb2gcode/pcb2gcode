@@ -291,6 +291,12 @@ const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
 boost::optional<linestring_type_fp> find_path(
     const std::shared_ptr<const PathFindingSurface> path_finding_surface,
     const point_type_fp& start, const point_type_fp& end) {
+  linestring_type_fp direct_ls;
+  direct_ls.push_back(start);
+  direct_ls.push_back(end);
+  if (bg::covered_by(direct_ls, path_finding_surface->total_keep_in_grown)) {
+    return direct_ls;
+  }
   auto path_surface = make_shared<PathSurface>(path_finding_surface,
                                                start,
                                                end);
