@@ -46,6 +46,19 @@ class PathFindingSurface {
       }
     }
 
+    sort(all_vertices.begin(),
+         all_vertices.end(),
+         [](const point_type_fp& a, const point_type_fp& b) {
+           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+         });
+    all_vertices.erase(
+        std::unique(all_vertices.begin(),
+                    all_vertices.end(),
+                      [](const point_type_fp& a, const point_type_fp& b) {
+                        return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
+                      }),
+        all_vertices.end());
+
     total_keep_in_grown = bg_helpers::buffer(total_keep_in, tolerance);
   }
   multi_polygon_type_fp total_keep_in_grown;
@@ -55,8 +68,10 @@ class PathFindingSurface {
 // This is apoint surface that doesn't have a start and end in it.
 class PathSurface {
  public:
-  PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end)
-      : begin(begin),
+  PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
+              PathLimiter path_limiter)
+      : path_limiter(path_limiter),
+        begin(begin),
         end(end) {
     total_keep_in_grown.clear();
     for (const auto& poly : base->total_keep_in_grown) {
@@ -68,10 +83,11 @@ class PathSurface {
     all_vertices.push_back(begin);
     all_vertices.push_back(end);
     for (const auto& point : base->all_vertices) {
-      if (bg::covered_by(point, total_keep_in_grown)) {
+      if (!bg::equals(begin, point) && !bg::equals(end, point) && bg::covered_by(point, total_keep_in_grown)) {
         all_vertices.push_back(point);
       }
     }
+    distance.resize(points_num());
   }
   // Return from all_vertices with begin==0 and end==1 and the rest shifted by 2.
   const point_type_fp& get_point_by_index(const size_t index) const {
@@ -101,6 +117,9 @@ class PathSurface {
     in_surface_memo.emplace(a_b_hash, result);
     return result;
   }
+  // The distance map is a vertex-to-distance mapping.
+  vector<coordinate_type_fp> distance;
+  const PathLimiter path_limiter;
  private:
   mutable std::unordered_map<size_t, bool> in_surface_memo;
   const point_type_fp begin;
@@ -174,10 +193,27 @@ class OutEdgeIteratorImpl : public boost::forward_iterator_helper<OutEdgeIterato
  private:
   // Only advances if the current edge isn't in the surface or it's 0 length.
   void move_to_valid_target() {
-    while (target < path_surface->points_num() && // didn't fall of the target yet
-           (target == source || // 0 length path
-            !path_surface->in_surface(source, target))) { // segment is not in the allowed surface
-      target++;
+    while (true) {
+      if (target >= path_surface->points_num()) {
+        break; // already fell off the end
+      }
+      if (target == source) {
+        target++; // don't self-edge for sure
+        continue;
+      }
+      if (path_surface->path_limiter &&
+          path_surface->path_limiter(path_surface->get_point_by_index(target),
+                                     path_surface->distance[source] +
+                                     bg::distance(path_surface->get_point_by_index(source),
+                                                  path_surface->get_point_by_index(target)))) {
+        target++; // This path would be too long.
+        continue;
+      }
+      if (!path_surface->in_surface(source, target)) {
+        target++; // segment is not in the allowed surface
+        continue;
+      }
+      break;
     }
   }
   const PathSurface* path_surface;
@@ -288,9 +324,11 @@ const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
   return make_shared<PathFindingSurface>(keep_in, keep_out, tolerance);
 }
+
 boost::optional<linestring_type_fp> find_path(
     const std::shared_ptr<const PathFindingSurface> path_finding_surface,
-    const point_type_fp& start, const point_type_fp& end) {
+    const point_type_fp& start, const point_type_fp& end,
+    PathLimiter path_limiter) {
   linestring_type_fp direct_ls;
   direct_ls.push_back(start);
   direct_ls.push_back(end);
@@ -298,20 +336,13 @@ boost::optional<linestring_type_fp> find_path(
     return direct_ls;
   }
   auto path_surface = make_shared<PathSurface>(path_finding_surface,
-                                               start,
-                                               end);
+                                               start, end,
+                                               path_limiter);
   if (!path_surface->has_path()) {
     return boost::none;
   }
   // The predecessor map is a vertex-to-vertex mapping.
-  typedef vector<Vertex> pred_map;
-  pred_map predecessor(path_surface->points_num());
-  //boost::iterator_property_map<pred_map::iterator, pred_map> pred_pmap(predecessor.begin());
-  //auto pred_pmap = boost::make_iterator_property_map(predecessor.begin(), get(boost::vertex_index, *path_surface));
-  // The distance map is a vertex-to-distance mapping.
-  typedef vector<coordinate_type_fp> dist_map;
-  dist_map distance(path_surface->points_num());;
-  //boost::iterator_property_map<dist_map> dist_pmap(distance);
+  vector<Vertex> predecessor(path_surface->points_num());
 
   // The weight map is the length of each segment.
   auto weight_pmap = boost::make_function_property_map<Edge>(
@@ -326,7 +357,7 @@ boost::optional<linestring_type_fp> find_path(
     astar_search(*path_surface, 0, PathSurfaceHeuristic(path_surface, 1), // The end point is always made spot number 1 in the PathSurface.
                  boost::weight_map(weight_pmap)
                  .predecessor_map(&predecessor[0])
-                 .distance_map(&distance[0])
+                 .distance_map(&path_surface->distance[0])
                  .vertex_index_map(vertex_index_pmap)
                  .visitor(AstarGoalVisitor(1)));
   } catch (FoundGoal f) {

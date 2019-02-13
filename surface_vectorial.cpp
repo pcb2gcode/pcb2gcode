@@ -313,19 +313,28 @@ optional<linestring_type_fp> do_milling(
   // The horizontal G0 move is for the maximum of the X and Y coordinates.
   // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
   const auto vertical_distance = mill->zsafe - mill->zwork;
-  const auto path = find_path(path_finding_surface, a, b);
-  if (!path) {
-    return boost::none;
-  }
-  const auto horizontal_distance = bg::length(*path);
   const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
-  const double vertG0speed = 50;
-  const double horizontalG0speed = 100;
   const double horizontalG1speed = mill->feed;
   const double vertG1speed = mill->vertfeed;
-  if (vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed <
-      horizontal_distance/horizontalG1speed) {
-    return boost::none; // Faster to go up and back down.
+  const double vertG0speed = 50;
+  const double horizontalG0speed = 100;
+  const double g0_time = vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed;
+  const double max_g1_distance = g0_time * horizontalG1speed;
+  //path_finding::PathLimiter x = [](const point_type_fp& target, const coordinate_type_fp& length) -> bool { return true; };
+  path_finding::PathLimiter path_limiter =
+      [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
+        // Return true if this path needs to be clipped.  The distance from
+        // a to target so far is length.  At best, we'll have a stright
+        // line from there to the goal, b.
+        const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
+        if (potential_horizontal_distance > max_g1_distance) {
+          return true; // clip this path
+        }
+        return false;
+      };
+  const auto path = find_path(path_finding_surface, a, b, path_limiter);
+  if (!path) {
+    return boost::none;
   }
   return path;
 }
