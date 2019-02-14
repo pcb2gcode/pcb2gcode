@@ -329,7 +329,26 @@ inline static void unsupported_polarity_throw_exception() {
   throw gerber_exception();
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>>& layers,
+multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& multi_draws) {
+  if (multi_draws.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (multi_draws.size() == 1) {
+    return multi_draws.front();
+  }
+  auto current = multi_draws.cbegin();
+  vector<multi_polygon_type_fp> new_draws;
+  if (multi_draws.size() % 2 == 1) {
+    new_draws.push_back(*current);
+    current++;
+  }
+  // There are at least two and the total number is even.
+  for (; current != multi_draws.cend(); current += 2) {
+    new_draws.push_back(*current + *(current + 1));
+  }
+  return merge_multi_draws(new_draws);
+}
+
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers,
                                       unsigned int points_per_circle) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
@@ -337,7 +356,8 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_p
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    multi_polygon_type_fp draws = layer->second;
+    vector<multi_polygon_type_fp> multi_draws = layer->second;
+    multi_polygon_type_fp draws = merge_multi_draws(multi_draws);
 
     // First duplicate in the x direction.
     auto original_draw = draws;
@@ -711,7 +731,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>> layers(1);
+  vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>> layers(1);
 
   gerbv_image_t *gerber = project->file[0]->image;
 
@@ -733,14 +753,14 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
       // About to start a new layer, render all the linear_circular_paths so far.
       for (const auto& diameter_and_path : linear_circular_paths) {
-        layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle);
+        layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
       }
       linear_circular_paths.clear();
       layers.resize(layers.size() + 1);
       layers.back().first = currentNet->layer;
     }
 
-    multi_polygon_type_fp& draws = layers.back().second;
+    vector<multi_polygon_type_fp>& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -761,7 +781,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
                                                      parameters[1]);
-            draws = draws + mpoly;
+            draws.push_back(mpoly);
           } else {
             cerr << ("Drawing with an aperture different from a circle "
                      "or a rectangle is forbidden by the Gerber standard; skipping.")
@@ -781,12 +801,12 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             cerr << "Macro aperture " << currentNet->aperture <<
                 " not found in macros list; skipping" << endl;
           }
-          draws = draws + mpoly;
+          draws.push_back(mpoly);
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
           bg::append(region, stop);
-          draws = draws + simplify_cutins(region);
+          draws.push_back(simplify_cutins(region));
           region.clear();
         }
       } else {
@@ -796,7 +816,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
-      draws = draws + simplify_cutins(region);
+      draws.push_back(simplify_cutins(region));
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
@@ -853,7 +873,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   }
   // If there are any unrendered circular paths, add them to the last layer.
   for (const auto& diameter_and_path : linear_circular_paths) {
-    layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle);
+    layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
   }
   linear_circular_paths.clear();
   auto result = generate_layers(layers, points_per_circle);
