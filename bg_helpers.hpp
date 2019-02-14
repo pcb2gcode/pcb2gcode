@@ -49,83 +49,6 @@ static inline bg::model::multi_linestring<linestring_type_t> operator&(const bg:
   return ret;
 }
 
-template <typename polygon_type_t>
-static inline void point_transform(
-    bg::model::multi_polygon<polygon_type_t>& mp,
-    std::function<void(point_type_fp&)> point_transformer) {
-  for (auto& poly : mp) {
-    for (auto& point : poly.outer()) {
-      point_transformer(point);
-    }
-    for (auto& inner : poly.inners()) {
-      for (auto& point : inner) {
-        point_transformer(point);
-      }
-    }
-  }
-}
-
-template <typename polygon_type_t, typename rhs_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const rhs_t& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  if (bg::area(lhs) <= 0) {
-    bg::model::multi_polygon<polygon_type_t> ret;
-    bg::convert(rhs, ret);
-    return ret;
-  }
-  // This optimization fixes a bug in boost geometry when shapes are bordering
-  // somwhat but not overlapping.  This is exposed by EasyEDA that makes lots of
-  // shapes like that.
-  const auto lhs_box = bg::return_envelope<box_type_fp>(lhs);
-  const auto rhs_box = bg::return_envelope<box_type_fp>(rhs);
-  if (lhs_box.max_corner().x() == rhs_box.min_corner().x()) {
-    bg::model::multi_polygon<polygon_type_t> new_lhs(lhs);
-    bg::model::multi_polygon<polygon_type_t> new_rhs;
-    bg::convert(rhs, new_rhs);
-
-    const auto matching_x = lhs_box.max_corner().x();
-    point_transform(new_lhs, [matching_x](point_type_fp& p) { if (p.x() == matching_x) p.x(matching_x + 0.0000001); });
-    point_transform(new_rhs, [matching_x](point_type_fp& p) { if (p.x() == matching_x) p.x(matching_x - 0.0000001); });
-    return new_lhs + new_rhs;
-  }
-  if (rhs_box.max_corner().x() == lhs_box.min_corner().x()) {
-    bg::model::multi_polygon<polygon_type_t> new_rhs;
-    bg::convert(rhs, new_rhs);
-    bg::model::multi_polygon<polygon_type_t> new_lhs(lhs);
-
-    const auto matching_x = rhs_box.max_corner().x();
-    point_transform(new_rhs, [matching_x](point_type_fp& p) { if (p.x() == matching_x) p.x(matching_x + 0.0000001); });
-    point_transform(new_lhs, [matching_x](point_type_fp& p) { if (p.x() == matching_x) p.x(matching_x - 0.0000001); });
-    return new_lhs + new_rhs;
-  }
-  if (lhs_box.max_corner().y() == rhs_box.min_corner().y()) {
-    bg::model::multi_polygon<polygon_type_t> new_lhs(lhs);
-    bg::model::multi_polygon<polygon_type_t> new_rhs;
-    bg::convert(rhs, new_rhs);
-
-    const auto matching_y = lhs_box.max_corner().y();
-    point_transform(new_lhs, [matching_y](point_type_fp& p) { if (p.y() == matching_y) p.y(matching_y + 0.0000001); });
-    point_transform(new_rhs, [matching_y](point_type_fp& p) { if (p.y() == matching_y) p.y(matching_y - 0.0000001); });
-    return new_lhs + new_rhs;
-  }
-  if (rhs_box.max_corner().y() == lhs_box.min_corner().y()) {
-    bg::model::multi_polygon<polygon_type_t> new_rhs;
-    bg::convert(rhs, new_rhs);
-    bg::model::multi_polygon<polygon_type_t> new_lhs(lhs);
-
-    const auto matching_y = rhs_box.max_corner().y();
-    point_transform(new_rhs, [matching_y](point_type_fp& p) { if (p.y() == matching_y) p.y(matching_y + 0.0000001); });
-    point_transform(new_lhs, [matching_y](point_type_fp& p) { if (p.y() == matching_y) p.y(matching_y - 0.0000001); });
-    return new_lhs + new_rhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::union_(lhs, rhs, ret);
-  return ret;
-}
-
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {
@@ -186,6 +109,21 @@ void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & g
                bg::strategy::buffer::join_round(points_per_circle),
                bg::strategy::buffer::end_round(points_per_circle),
                bg::strategy::buffer::point_circle(points_per_circle));
+  }
+}
+
+static inline multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0) {
+    return geometry_in;
+  } else {
+    multi_polygon_type_fp geometry_out;
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    return geometry_out;
   }
 }
 
@@ -254,5 +192,34 @@ void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_o
   }
 }
 } // namespace bg_helpers
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  if (bg::area(lhs) <= 0) {
+    bg::model::multi_polygon<polygon_type_t> ret;
+    bg::convert(rhs, ret);
+    return ret;
+  }
+  // This optimization fixes a bug in boost geometry when shapes are bordering
+  // somwhat but not overlapping.  This is exposed by EasyEDA that makes lots of
+  // shapes like that.
+  const auto lhs_box = bg::return_envelope<box_type_fp>(lhs);
+  const auto rhs_box = bg::return_envelope<box_type_fp>(rhs);
+  if (lhs_box.max_corner().x() == rhs_box.min_corner().x() ||
+      rhs_box.max_corner().x() == lhs_box.min_corner().x() ||
+      lhs_box.max_corner().y() == rhs_box.min_corner().y() ||
+      rhs_box.max_corner().y() == lhs_box.min_corner().y()) {
+    multi_polygon_type_fp new_rhs;
+    bg::convert(rhs, new_rhs);
+    return bg_helpers::buffer(lhs, 0.00001) + bg_helpers::buffer(new_rhs, 0.00001);
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::union_(lhs, rhs, ret);
+  return ret;
+}
 
 #endif //BG_HELPERS_H
