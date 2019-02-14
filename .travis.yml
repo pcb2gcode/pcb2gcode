@@ -118,7 +118,7 @@ script:
     if [ "${BOOST}" != "1_56_0" ]; then    # If the version of boost is modern then
       export VECTORIAL="--vectorial=true"; # always use vectorial because all examples should work with modern boost
     fi || travis_terminate 1
-  - ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; chronic ../../../pcb2gcode ${VECTORIAL} || exit ; popd" || travis_terminate 1
+  - ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode ${VECTORIAL} || exit ; popd" || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
   - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j 2 check || travis_terminate 1
