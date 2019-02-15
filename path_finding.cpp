@@ -65,7 +65,39 @@ class PathFindingSurface {
   vector<point_type_fp> all_vertices;
 };
 
-// This is apoint surface that doesn't have a start and end in it.
+inline bool is_intersecting(const point_type_fp& p0, const point_type_fp& p1,
+                            const point_type_fp& p2, const point_type_fp& p3) {
+  const coordinate_type_fp s10_x = p1.x() - p0.x();
+  const coordinate_type_fp s10_y = p1.y() - p0.y();
+  const coordinate_type_fp s32_x = p3.x() - p2.x();
+  const coordinate_type_fp s32_y = p3.y() - p2.y();
+
+  coordinate_type_fp denom = s10_x * s32_y - s32_x * s10_y;
+  if (denom == 0) {
+    return false; // Collinear
+  }
+  const bool denomPositive = denom > 0;
+
+  const coordinate_type_fp s02_x = p0.x() - p2.x();
+  const coordinate_type_fp s02_y = p0.y() - p2.y();
+  const coordinate_type_fp s_numer = s10_x * s02_y - s10_y * s02_x;
+  if ((s_numer < 0) == denomPositive) {
+    return false; // No collision
+  }
+
+  const coordinate_type_fp t_numer = s32_x * s02_y - s32_y * s02_x;
+  if ((t_numer < 0) == denomPositive) {
+    return false; // No collision
+  }
+
+  if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive)) {
+    return false; // No collision
+  }
+  return true;
+}
+
+
+// This is a point surface that doesn't have a start and end in it.
 class PathSurface {
  public:
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
@@ -83,7 +115,7 @@ class PathSurface {
     all_vertices.push_back(begin);
     all_vertices.push_back(end);
     for (const auto& point : base->all_vertices) {
-      if (!bg::equals(begin, point) && !bg::equals(end, point) && bg::covered_by(point, total_keep_in_grown)) {
+      if (!bg::equals(begin, point) && !bg::equals(end, point)) {
         all_vertices.push_back(point);
       }
     }
@@ -110,12 +142,27 @@ class PathSurface {
     if (memoized_result != in_surface_memo.cend()) {
       return memoized_result->second;
     }
-    linestring_type_fp segment;
-    segment.push_back(get_point_by_index(a_index));
-    segment.push_back(get_point_by_index(b_index));
-    bool result = bg::covered_by(segment, total_keep_in_grown);
-    in_surface_memo.emplace(a_b_hash, result);
-    return result;
+    const auto& point_a = get_point_by_index(a_index);
+    const auto& point_b = get_point_by_index(b_index);
+    for (const auto& poly : total_keep_in_grown) {
+      const auto& ring = poly.outer();
+      for (auto current = ring.cbegin(); current + 1 != ring.cend(); current++) {
+        if (is_intersecting(point_a, point_b, *current, *(current+1))) {
+          in_surface_memo.emplace(a_b_hash, false);
+          return false;
+        }
+      }
+      for (const auto& ring : poly.inners()) {
+        for (auto current = ring.cbegin(); current + 1 != ring.cend(); current++) {
+          if (is_intersecting(point_a, point_b, *current, *(current+1))) {
+            in_surface_memo.emplace(a_b_hash, false);
+            return false;
+          }
+        }
+      }
+    }
+    in_surface_memo.emplace(a_b_hash, true);
+    return true;
   }
   // The distance map is a vertex-to-distance mapping.
   vector<coordinate_type_fp> distance;
@@ -367,6 +414,7 @@ boost::optional<linestring_type_fp> find_path(
     }
     bg::append(result, path_surface->get_point_by_index(0));
     bg::reverse(result);
+    std::cout << "path found " << bg::wkt(result) << std::endl;;
     return make_optional(result);
   }
   return boost::none;
