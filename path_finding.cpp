@@ -353,7 +353,7 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
   AstarGoalVisitor(Vertex goal)
       : goal(goal) {}
 
-  void discover_vertex(Vertex u, const PathSurface&) {
+  void examine_vertex(Vertex u, const PathSurface&) {
     if (u == goal) {
       throw FoundGoal();
     }
@@ -414,7 +414,6 @@ boost::optional<linestring_type_fp> find_path(
     }
     bg::append(result, path_surface->get_point_by_index(0));
     bg::reverse(result);
-    std::cout << "path found " << bg::wkt(result) << std::endl;;
     return make_optional(result);
   }
   return boost::none;
