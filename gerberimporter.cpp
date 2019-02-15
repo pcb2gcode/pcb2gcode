@@ -356,7 +356,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    vector<multi_polygon_type_fp> multi_draws = layer->second;
+    const vector<multi_polygon_type_fp>& multi_draws = layer->second;
     multi_polygon_type_fp draws = merge_multi_draws(multi_draws);
 
     // First duplicate in the x direction.
