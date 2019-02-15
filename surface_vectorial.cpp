@@ -740,7 +740,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
       bg_helpers::buffer(*current_trace, keep_out, diameter/2 - tolerance);
       // This is the area where milling is allowed but not necessarily required.
       // It can be used to connect paths that are nearly connected.
-      allowed_milling.emplace(current_voronoi - keep_out);
+      allowed_milling.emplace(bg_helpers::buffer(current_voronoi, tolerance) - keep_out);
     }
     // The rings of polygons are the paths to mill.  The paths may include both
     // inner and outer rings.  They vector has them sorted from the smallest
