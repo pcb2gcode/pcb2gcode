@@ -38,6 +38,8 @@ using std::vector;
 using std::cerr;
 using std::endl;
 
+#include <chrono>
+
 #include <utility>
 using std::pair;
 using std::make_pair;
@@ -325,7 +327,7 @@ optional<linestring_type_fp> do_milling(
   path_finding::PathLimiter path_limiter =
       [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
         if (system_clock::now() - t1 > seconds(1)) {
-          return true;
+          throw path_finding::GiveUp();
         }
         // Return true if this path needs to be clipped.  The distance from
         // a to target so far is length.  At best, we'll have a stright

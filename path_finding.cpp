@@ -415,6 +415,8 @@ boost::optional<linestring_type_fp> find_path(
     bg::append(result, path_surface->get_point_by_index(0));
     bg::reverse(result);
     return make_optional(result);
+  } catch (GiveUp g) {
+    return boost::none;
   }
   return boost::none;
 }

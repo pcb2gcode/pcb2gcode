@@ -9,6 +9,8 @@ namespace path_finding {
 
 class PathFindingSurface;
 
+struct GiveUp {};
+
 // Given a target location and a potential path length to get there, determine
 // if it still makes sense to follow the path.  Return true if it does,
 // otherwise false.
