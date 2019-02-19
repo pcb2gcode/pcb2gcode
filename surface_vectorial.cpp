@@ -705,9 +705,9 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
 // it will be on the back.  The tool_suffix is for making unique filenames if
 // there are multiple tools.  The already_milled_shrunk is the running union of
 // all the milled area so far, so that new milling can avoid re-milling areas
-// that are already milled.  Returns first the direcitonal toolpaths and then
-// the bidircitonal toolpaths.  For the former, the dirction must be maintained.
-// For the latter, they can be turned around if needed.
+// that are already milled.  Returns each pass' toolpath with a boolean
+// indicating if the path can be reversed.  True means reversal is allowed and
+// false means that it isn't.
 vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
