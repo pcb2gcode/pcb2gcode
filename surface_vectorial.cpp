@@ -896,6 +896,11 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     } else {
       masked_expanded_milling_polys = mpoly;
     }
+    if (polygons.size() > 0 && bg::equals(masked_expanded_milling_polys, polygons.back())) {
+      // Once we start getting repeats, we can expect that all the rest will be
+      // the same so we're done.
+      break;
+    }
     polygons.push_back(masked_expanded_milling_polys);
   }
 
