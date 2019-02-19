@@ -70,7 +70,8 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
                                      ivalue_t min_x, ivalue_t max_x,
                                      ivalue_t min_y, ivalue_t max_y,
                                      string name, string outputdir,
-                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction) :
+                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
+                                     bool invert_gerbers) :
     points_per_circle(points_per_circle),
     bounding_box(box_type_fp(point_type_fp(min_x, min_y),
                              point_type_fp(max_x, max_y))),
@@ -78,7 +79,8 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
     fill(false),
-    mill_feed_direction(mill_feed_direction) {}
+    mill_feed_direction(mill_feed_direction),
+    invert_gerbers(invert_gerbers) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
   multi_polygon_type_fp vectorial_surface_not_simplified;
@@ -220,6 +222,9 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(*vectorial_surface);
+  if (invert_gerbers) {
+    *vectorial_surface = bounding_box - *vectorial_surface;
+  }
   const auto tolerance = mill->tolerance;
   // Get the voronoi region for each trace.
   voronoi = Voronoi::build_voronoi(*vectorial_surface, bounding_box, tolerance);

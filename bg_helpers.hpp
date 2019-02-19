@@ -24,6 +24,13 @@ static inline multi_polygon_type_fp operator-(const polygon_type_fp& lhs, const 
   return ret;
 }
 
+template <typename rhs_t>
+static inline multi_polygon_type_fp operator-(const box_type_fp& lhs, const rhs_t& rhs) {
+  auto box_mp = multi_polygon_type_fp();
+  bg::convert(lhs, box_mp);
+  return box_mp - rhs;
+}
+
 template <typename linestring_type_t, typename rhs_t>
 static inline bg::model::multi_linestring<linestring_type_t> operator-(const bg::model::multi_linestring<linestring_type_t>& lhs,
                                                                        const rhs_t& rhs) {

@@ -42,7 +42,7 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
  */
 /******************************************************************************/
 Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
-             MillFeedDirection::MillFeedDirection mill_feed_direction) :
+             MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
@@ -50,10 +50,8 @@ Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir,
     outputdir(outputdir),
     vectorial(vectorial),
     tsp_2opt(tsp_2opt),
-    mill_feed_direction(mill_feed_direction)
-{
-
-}
+    mill_feed_direction(mill_feed_direction),
+    invert_gerbers(invert_gerbers) {}
 
 double Board::get_width() {
   if (layers.size() < 1) {
@@ -142,7 +140,7 @@ void Board::createLayers()
                                                                     min_x, max_x,
                                                                     min_y, max_y,
                                                                     prepared_layer.first, outputdir, tsp_2opt,
-                                                                    mill_feed_direction));
+                                                                    mill_feed_direction, invert_gerbers));
         if (fill) {
           surface->enable_filling();
         }
