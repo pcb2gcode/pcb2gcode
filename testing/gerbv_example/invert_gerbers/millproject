@@ -22,5 +22,7 @@ bridges=5mm
 bridgesnum=4
 
 invert-gerbers=true
-mill-diameters=0.2mm
-isolation-width=2mm
+mill-diameters=0mm
+isolation-width=2000mm
+tile-x=2
+tile-y=3
