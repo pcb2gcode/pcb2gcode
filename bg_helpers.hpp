@@ -56,6 +56,20 @@ static inline bg::model::multi_linestring<linestring_type_t> operator&(const bg:
   return ret;
 }
 
+template <typename rhs_t>
+static inline multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
+                                                 const rhs_t& rhs) {
+  multi_linestring_type_fp ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::length(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {

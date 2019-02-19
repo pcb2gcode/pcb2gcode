@@ -257,6 +257,18 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         }
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk);
+        if (invert_gerbers) {
+          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
+          vector<pair<linestring_type_fp, bool>> temp;
+          for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+            multi_linestring_type_fp temp_mls;
+            temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
+            for (const auto& ls : temp_mls) {
+              temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
+            }
+          }
+          new_trace_toolpath.swap(temp);
+        }
         if (mill->optimise) {
           for (auto& ls_and_allow_reversal : new_trace_toolpath) {
             linestring_type_fp temp_ls;
@@ -895,6 +907,9 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       masked_expanded_milling_polys = ((mpoly & *(mask->vectorial_surface)) + path_minimum) & voronoi_polygon;
     } else {
       masked_expanded_milling_polys = mpoly;
+    }
+    if (invert_gerbers) {
+      masked_expanded_milling_polys = masked_expanded_milling_polys & bounding_box;
     }
     if (polygons.size() > 0 && bg::equals(masked_expanded_milling_polys, polygons.back())) {
       // Once we start getting repeats, we can expect that all the rest will be
