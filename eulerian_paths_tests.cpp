@@ -328,13 +328,9 @@ BOOST_AUTO_TEST_CASE(must_start_tests) {
     std::make_tuple(4, 0, 0, true),
   };
   for (const auto& test : tests) {
-#if BOOST_VERSION >= 106000
     BOOST_TEST_CONTEXT("must_start_helper(" << std::get<0>(test) << ", " << std::get<1>(test) << ", " << std::get<2>(test) << ")") {
-#endif
       BOOST_CHECK_EQUAL(must_start_helper(std::get<0>(test), std::get<1>(test), std::get<2>(test)), std::get<3>(test));
-#if BOOST_VERSION >= 106000
     }
-#endif
   }
 }
 

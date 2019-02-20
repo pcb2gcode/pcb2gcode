@@ -45,6 +45,7 @@ using std::make_pair;
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 using boost::optional;
+using boost::make_optional;
 
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
@@ -55,6 +56,7 @@ using Glib::build_filename;
 #include "segmentize.hpp"
 #include "bg_helpers.hpp"
 #include "units.hpp"
+#include "path_finding.hpp"
 
 using std::max;
 using std::max_element;
@@ -316,35 +318,46 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
 
 // Find if a distance between two ponts should be milled or retract, move fast,
 // and plunge.  Milling is chosen if it's faster and also the path is entirely
-// within the allowed_milling surface.
-coordinate_type_fp do_milling(
+// within the path_finding_surface.  If it's not faster or the path isn't
+// possible, boost::none is returned.
+optional<linestring_type_fp> do_milling(
     const shared_ptr<RoutingMill>& mill,
-    const point_type_fp& a, const point_type_fp& b, const optional<multi_polygon_type_fp>& allowed_milling) {
+    const point_type_fp& a, const point_type_fp& b,
+    const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
   // Solve for distance:
   // risetime at G0 + horizontal distance G0 + plunge G1 ==
   // travel time at G1
   // The horizontal G0 move is for the maximum of the X and Y coordinates.
   // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
   const auto vertical_distance = mill->zsafe - mill->zwork;
-  const auto horizontal_distance = bg::distance(a, b);
   const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
-  const double vertG0speed = 50;
-  const double horizontalG0speed = 100;
   const double horizontalG1speed = mill->feed;
   const double vertG1speed = mill->vertfeed;
-  if (vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed <
-      horizontal_distance/horizontalG1speed) {
-    return false; // Faster to go up and back down.
+  const double vertG0speed = 50;
+  const double horizontalG0speed = 100;
+  const double g0_time = vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed;
+  const double max_g1_distance = g0_time * horizontalG1speed;
+  auto tries = 0;
+  path_finding::PathLimiter path_limiter =
+      [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
+        if (tries >= 200000) {
+          throw path_finding::GiveUp();
+        }
+        tries++;
+        // Return true if this path needs to be clipped.  The distance from
+        // a to target so far is length.  At best, we'll have a stright
+        // line from there to the goal, b.
+        const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
+        if (potential_horizontal_distance > max_g1_distance) {
+          return true; // clip this path
+        }
+        return false;
+      };
+  const auto path = find_path(path_finding_surface, a, b, path_limiter);
+  if (!path) {
+    return boost::none;
   }
-  if (allowed_milling) {
-    linestring_type_fp connector;
-    connector.push_back(a);
-    connector.push_back(b);
-    if (!bg::covered_by(connector, *allowed_milling)) {
-      return false;
-    }
-  }
-  return true;
+  return path;
 }
 
 // Points that are very close to each other, probably because of a
@@ -480,7 +493,7 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
                  const linestring_type_fp& ring,
                  pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                  const MillFeedDirection::MillFeedDirection& dir,
-                 const optional<multi_polygon_type_fp>& allowed_milling) {
+                 const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
   auto& toolpath = toolpath_and_allow_reversal.first;
   bool insert_at_front = true;
   auto best_ring_point = ring.begin();
@@ -497,13 +510,22 @@ bool attach_ring(const shared_ptr<RoutingMill>& mill,
       insert_at_front = false;
     }
   }
-  if (!do_milling(mill, *best_ring_point, insert_at_front ? toolpath.front() : toolpath.back(), allowed_milling)) {
+  const auto path = insert_at_front ?
+                    do_milling(mill, *best_ring_point, toolpath.front(), path_finding_surface) :
+                    do_milling(mill, toolpath.back(), *best_ring_point, path_finding_surface);
+  if (!path) {
     return false;
   }
-  toolpath.resize(toolpath.size() + ring.size()); // Make space for the ring.
-  auto insertion_point = toolpath.end() - ring.size(); // Insert at the end
+  toolpath.resize(toolpath.size() + path->size() - 2 + ring.size()); // Make space for the ring and connection.
+  auto insertion_point = toolpath.end() - (path->size() - 2 + ring.size()); // Points at the first element after the toolpath.
   if (insert_at_front) {
     std::move_backward(toolpath.begin(), insertion_point, toolpath.end());
+    insertion_point = toolpath.begin() + ring.size(); // Leave room for the ring.
+  }
+  // Now insertion point is where to write the connecting path.  Don't copy the
+  // first and last points, they are already part of the toolpath and ring.
+  insertion_point = std::copy(path->begin()+1, path->end()-1, insertion_point);
+  if (insert_at_front) {
     insertion_point = toolpath.begin();
   }
   // It's a ring so if dir == ANY, we can connect however we like because it
@@ -529,7 +551,7 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
                const linestring_type_fp& ls,
                pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                const MillFeedDirection::MillFeedDirection& dir,
-               const optional<multi_polygon_type_fp>& allowed_milling) {
+               const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
   auto& toolpath = toolpath_and_allow_reversal.first;
   bool reverse_toolpath; // Do we start with a reversed toolpath?
   bool insert_front = false; // Then, do we insert at the front?
@@ -612,13 +634,18 @@ bool attach_ls(const shared_ptr<RoutingMill>& mill,
   }
   const auto& toolpath_neighbor = (reverse_toolpath == insert_front) ? toolpath.back() : toolpath.front();
   const auto& ls_neighbor = (insert_front == insert_reversed) ? ls.front() : ls.back();
-  if (!do_milling(mill, toolpath_neighbor, ls_neighbor, allowed_milling)) {
+  const auto path = insert_front ?
+                    do_milling(mill, ls_neighbor, toolpath_neighbor, path_finding_surface) :
+                    do_milling(mill, toolpath_neighbor, ls_neighbor, path_finding_surface);
+  if (!path) {
     return false;
   }
   if (reverse_toolpath) {
     bg::reverse(toolpath);
   }
-  const auto insertion_position = insert_front ? toolpath.begin() : toolpath.end();
+  auto insertion_position = insert_front ? toolpath.begin() : toolpath.end();
+  toolpath.insert(insertion_position, path->cbegin() + 1, path->cend() - 1);
+  insertion_position = insert_front ? toolpath.begin() : toolpath.end();
   if (insert_reversed) {
     toolpath.insert(insertion_position, ls.crbegin(), ls.crend());
   } else {
@@ -634,18 +661,19 @@ void attach_ls(const shared_ptr<RoutingMill>& mill,
                vector<pair<linestring_type_fp, bool>>& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
                const multi_polygon_type_fp& already_milled_shrunk,
-               const optional<multi_polygon_type_fp> allowed_milling) {
+               const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
+
   if (bg::equals(ls.front(), ls.back())) {
     // This path is actually a ring so we can use attach_ring which can connect
     // at any point.
     for (auto& toolpath : toolpaths) {
-      if (attach_ring(mill, ls, toolpath, dir, allowed_milling)) {
+      if (attach_ring(mill, ls, toolpath, dir, path_finding_surface)) {
         return;
       }
     }
   } else {
     for (auto& toolpath : toolpaths) {
-      if (attach_ls(mill, ls, toolpath, dir, allowed_milling)) {
+      if (attach_ls(mill, ls, toolpath, dir, path_finding_surface)) {
         return;
       }
     }
@@ -670,7 +698,7 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
                  vector<pair<linestring_type_fp, bool>>& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& already_milled_shrunk,
-                 const optional<multi_polygon_type_fp> allowed_milling) {
+                 const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
   ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
@@ -680,23 +708,23 @@ void attach_ring(const shared_ptr<RoutingMill>& mill,
   }
   ring_paths = make_eulerian_paths(ring_paths_with_direction); // Rejoin those paths as possible.
   for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
-    attach_ls(mill, ring_path, toolpaths, dir, already_milled_shrunk, allowed_milling);
+    attach_ls(mill, ring_path, toolpaths, dir, already_milled_shrunk, path_finding_surface);
   }
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.
-// allowed_milling is the area that we believe that we may mill safely because
+// path_finding_surface is the area that we believe that we may mill safely because
 // it doesn't cut through traces.
 void attach_polygons(const shared_ptr<RoutingMill>& mill,
                      const multi_polygon_type_fp& polygons,
                      vector<pair<linestring_type_fp, bool>>& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
-                     const optional<multi_polygon_type_fp> allowed_milling) {
+                     const shared_ptr<const path_finding::PathFindingSurface>& path_finding_surface) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(mill, poly.outer(), toolpaths, dir, already_milled_shrunk, allowed_milling);
+    attach_ring(mill, poly.outer(), toolpaths, dir, already_milled_shrunk, path_finding_surface);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -704,7 +732,7 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(mill, poly.inners()[i], toolpaths, dir, already_milled_shrunk, allowed_milling);
+        attach_ring(mill, poly.inners()[i], toolpaths, dir, already_milled_shrunk, path_finding_surface);
       }
     }
   }
@@ -724,7 +752,6 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
     const multi_polygon_type_fp& already_milled_shrunk) const {
-    coordinate_type_fp tolerance = mill->tolerance;
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp diameter = tool_diameter;
     coordinate_type_fp overlap = overlap_width;
@@ -751,14 +778,13 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi,
                        diameter, overlap, extra_passes + 1, do_voronoi);
-    boost::optional<multi_polygon_type_fp> allowed_milling;
+    multi_polygon_type_fp keep_in;
+    keep_in.push_back(current_voronoi);
+    optional<multi_polygon_type_fp> keep_out;
     if (current_trace) {
-      multi_polygon_type_fp keep_out;
-      bg_helpers::buffer(*current_trace, keep_out, diameter/2 - tolerance);
-      // This is the area where milling is allowed but not necessarily required.
-      // It can be used to connect paths that are nearly connected.
-      allowed_milling.emplace(bg_helpers::buffer(current_voronoi, tolerance) - keep_out);
+      keep_out = bg_helpers::buffer(*current_trace, diameter/2);
     }
+    auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
     // The rings of polygons are the paths to mill.  The paths may include both
     // inner and outer rings.  They vector has them sorted from the smallest
     // outer to the largest outer, both for voronoi and for regular isolation.
@@ -782,7 +808,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         // This is on the back so all loops are reversed.
         dir = invert(dir);
       }
-      attach_polygons(mill, polygon, toolpath, dir, already_milled_shrunk, allowed_milling);
+      attach_polygons(mill, polygon, toolpath, dir, already_milled_shrunk, path_finding_surface);
     }
 
     return toolpath;

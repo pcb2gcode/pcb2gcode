@@ -27,6 +27,8 @@ pcb2gcode_SOURCES = \
     mill.hpp \
     ngc_exporter.hpp \
     ngc_exporter.cpp \
+    path_finding.hpp \
+    path_finding.cpp \
     segmentize.hpp \
     segmentize.cpp \
     surface.hpp \
@@ -63,10 +65,11 @@ LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) 
 EXTRA_DIST = millproject
 
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
-                 available_drills_tests gerberimporter_tests options_tests
+                 available_drills_tests gerberimporter_tests options_tests path_finding_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp
+path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
