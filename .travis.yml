@@ -29,9 +29,19 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-8']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils', 'ninja-build', 'llvm-dev', 'libclang-dev', 'clang']
-      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage" IWYU=1
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'moreutils', 'automake']
+      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty']
+          # TODO: These should really be the snapshots packages, but they are currently
+          # broken. Remove the '-9' once they get fixed (see issue #642 for more info)
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'moreutils', 'ninja-build', 'llvm-9-dev', 'llvm-9-tools', 'libclang-9-dev', 'clang-9']
+      env: COMPILER=g++-7 BOOST=1_66_0 IWYU=1
 
     - os: linux
       compiler: gcc
@@ -109,7 +119,7 @@ install:
     tar xjf "parallel-latest.tar.bz2" &&
     export CXX="$COMPILER"
   - >
-    if [ "${IWYU}" ]; then
+    if [[ "${IWYU}" ]]; then
       mkdir iwyu && pushd iwyu &&
       git clone --depth=50 --branch=master https://github.com/include-what-you-use/include-what-you-use.git include-what-you-use/include-what-you-use &&
       cd include-what-you-use/include-what-you-use &&
@@ -122,6 +132,7 @@ install:
       cd build &&
       cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
       ninja install &&
+      export IWYU_BIN=${PWD}/bin/iwyu &&
       popd
     fi
 
@@ -135,6 +146,10 @@ script:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
     fi || travis_terminate 1
+  - >
+    if [[ "${IWYU}" ]]; then
+      make -k CXX=${IWYU_BIN}; travis_terminate 0;
+    fi
   - chronic make -j 2 || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
