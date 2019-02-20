@@ -21,33 +21,23 @@
 #define CORE_H
 
 #include <memory>
-using std::shared_ptr;
-
 #include <vector>
-using std::vector;
-
 #include <string>
-using std::string;
-
 #include "geometry.hpp"
 #include "mill.hpp"
 
-/******************************************************************************/
-/*
- Pure virtual base class for cores.
- */
-/******************************************************************************/
-class Core
-{
-public:
-    virtual vector<shared_ptr<icoords> > get_toolpath(shared_ptr<RoutingMill> mill,
-            bool mirror) = 0;
-    virtual void save_debug_image(string message) = 0;
-    virtual ivalue_t get_width_in() = 0;
-    virtual ivalue_t get_height_in() = 0;
-    virtual void add_mask(shared_ptr<Core>) = 0;
-    
-    virtual vector<unsigned int> get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath);
+class Core {
+ public:
+  // Returns a vector of toolpaths.  A toolpath is a vector of linestrings.  A
+  // linestring is a vector of points.  Each point is an x,y pair of doubles.
+  virtual std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
+      std::shared_ptr<RoutingMill> mill, bool mirror) = 0;
+  virtual void save_debug_image(std::string message) = 0;
+  virtual ivalue_t get_width_in() = 0;
+  virtual ivalue_t get_height_in() = 0;
+  virtual void add_mask(std::shared_ptr<Core>) = 0;
+
+  virtual std::vector<size_t> get_bridges(std::shared_ptr<Cutter> cutter, std::shared_ptr<icoords> toolpath);
 };
 
 #endif // IMPORTER_H

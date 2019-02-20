@@ -22,34 +22,22 @@
 #include <iostream>
 using std::cerr;
 using std::endl;
+using std::vector;
+using std::shared_ptr;
 
 #include "outline_bridges.hpp"
 
-vector<unsigned int> Core::get_bridges( shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath )
-{
-    vector<unsigned int> bridges;
+vector<size_t> Core::get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath) {
+  auto bridges = outline_bridges::makeBridges(
+      toolpath,
+      cutter->bridges_num,
+      cutter->bridges_width + cutter->tool_diameter );
 
-    if( cutter != NULL )
-    {
-        try
-        {
-            bridges = outline_bridges::makeBridges( toolpath, 
-                                                    cutter->bridges_num,
-                                                    cutter->bridges_width + cutter->tool_diameter );
+  if (bridges.size() != cutter->bridges_num) {
+    cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
+        "only " << bridges.size() << " will be created." << endl;
+  }
 
-            if ( bridges.size() != cutter->bridges_num )
-                cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
-                     "only " << bridges.size() << " will be created." << endl;
-        }
-        catch ( outline_bridges_exception &exc )
-        {
-            cerr << "Can't fit any bridge in the specified outline. Are the bridges are too wide for this outline? "
-                 "Are you sure you've selected the correct outline file?" << endl;
-        }
-    }
-    else
-        cerr << "Can't create bridges on this layer: cutter object is not castable to shared_ptr<Cutter>" << endl;
-
-    return bridges;
+  return bridges;
 }
 

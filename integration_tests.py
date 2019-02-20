@@ -14,60 +14,88 @@ import re
 import collections
 import termcolor
 import colour_runner.runner
+import in_place
+import xml.etree.ElementTree
+
+from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
-# Sanitize a string to be a python identifier
-clean = lambda varStr: re.sub('\W|^(?=\d)','_', varStr)
-
 EXAMPLES_PATH = "testing/gerbv_example"
 BROKEN_EXAMPLES_PATH = "testing/broken_examples"
-TEST_CASES = ([TestCase(clean(x), os.path.join(EXAMPLES_PATH, x), [], 0)
+TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               for x in [
                   "am-test",
                   "am-test-counterclockwise",
                   "am-test-extended",
                   "am-test-voronoi",
+                  "am-test-voronoi-extra-passes",
                   "am-test-voronoi-front",
+                  "edge-cuts-inside-cuts",
+                  "edge-cuts-broken-loop",
                   "example_board_al_custom",
                   "example_board_al_linuxcnc",
+                  "invert_gerbers",
                   "KNoT-Gateway Mini Starter Board",
                   "KNoT_Thing_Starter_Board",
+                  "mill_masking",
+                  "mill_masking_voronoi",
+                  "milldrilldiatest",
                   "multivibrator",
                   "multivibrator-basename",
                   "multivibrator-clockwise",
                   "multivibrator-contentions",
                   "multivibrator-extra-passes",
+                  "multivibrator-extra-passes-big",
+                  "multivibrator-extra-passes-two-isolators",
+                  "multivibrator-extra-passes-two-isolators-tiles",
+                  "multivibrator-extra-passes-two-isolators-tiles-al",
                   "multivibrator-extra-passes-voronoi",
+                  "multivibrator-identical-isolators",
                   "multivibrator-no-tsp-2opt",
                   "multivibrator-no-zbridges",
                   "multivibrator_no_export",
                   "multivibrator_no_export_milldrill",
+                  "multivibrator_no_zero_start",
                   "multivibrator_pre_post_milling_gcode",
+                  "multivibrator-two-isolators",
                   "multivibrator_xy_offset",
                   "multivibrator_xy_offset_zero_start",
+                  "multi_outline",
+                  "sharp_corner",
+                  "sharp_corner_2",
                   "slots-milldrill",
                   "slots-with-drill",
                   "slots-with-drill-and-milldrill",
                   "slots-with-drill-metric",
                   "slots-with-drills-available",
               ]] +
-              [TestCase(clean("multivibrator_bad_" + x), os.path.join(EXAMPLES_PATH, "multivibrator"), ["--" + x + "=non_existant_file"], 1)
+              [TestCase("multivibrator_bad_" + x,
+                        os.path.join(EXAMPLES_PATH, "multivibrator"),
+                        ["--" + x + "=non_existant_file"], 100)
                for x in ("front", "back", "outline", "drill")] +
-              [TestCase(clean("broken_" + x),
+              [TestCase("broken_" + x,
                         os.path.join(BROKEN_EXAMPLES_PATH, x),
-                        [], 1)
+                        [], 100)
                for x in ("invalid-config",)
               ] +
-              [TestCase(clean("version"),
+              [TestCase("version",
                         os.path.join(EXAMPLES_PATH),
                         ["--version"],
                         0)] +
-              [TestCase(clean("tsp_2opt_with_millfeedirection"),
+              [TestCase("help",
+                        os.path.join(EXAMPLES_PATH),
+                        ["--help"],
+                        0)] +
+              [TestCase("tsp_2opt_with_millfeedirection",
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--tsp-2opt", "--mill-feed-direction=climb"],
                         100)] +
-              [TestCase(clean("invalid_millfeedirection"),
+              [TestCase("ignore warnings",
+                        os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
+                        ["--ignore-warnings"],
+                        0)] +
+              [TestCase("invalid_millfeedirection",
                         os.path.join(EXAMPLES_PATH),
                         ["--mill-feed-direction=invalid_value"],
                         101)]
@@ -80,6 +108,79 @@ def colored(text, **color):
     return text
 
 class IntegrationTests(unittest2.TestCase):
+  def rotate_pathstring(self, pathstring):
+    """Parse a string representing an SVG path.
+
+    Parse it into an array of array of points.  Each array is a series of line
+    segments.  They are drawn in order and the evenodd rule determines which is
+    the hole and which is the solid part.
+
+    It's intentionally not very flexible in what it supports, in case we
+    accidentally parse something that we've never seen before and do it
+    incorrectly.
+    """
+    def string_to_paths(pathstring):
+      """Returns an array of paths where each path starts with an absolute move
+      (M) and the rest are absolute lineTo (L) until the next moveTo (M).
+      """
+      pathstring = pathstring[2:-3] # Remove the first M and the final z
+      paths = [[tuple(point.split(",")) for point in p.strip().split(" L ")] for p in pathstring.split("M ")]
+      # Now paths is a list.  Each element is an array of points.  Each point is a pair of strings, x,y.
+      return paths
+
+    def rotate_path(path):
+      """Rotate the path so that the least element is first.
+
+      Only rotate is the first and last element match.
+      """
+      self.assertEqual(path[0], path[-1])
+      index_of_smallest = min(enumerate(path),
+                              key=lambda x: (float(x[1][0]), float(x[1][1]), x[0]))[0]
+      rotated_points = path[index_of_smallest:-1] + path[:index_of_smallest+1]
+      return rotated_points
+
+    def paths_to_string(paths):
+      """Return the path string that represents these paths."""
+      return "M " + "M ".join(" L ".join(','.join(point) for point in path) for path in paths) + " z "
+    self.assertEqual(pathstring, paths_to_string(string_to_paths(pathstring)))
+    return paths_to_string(rotate_path(p) for p in string_to_paths(pathstring))
+
+  def fix_up_expected(self, path):
+    """Fix up any files made in the output directory
+
+    This will enlarge all SVG by a factor of 10 in each direction until they are
+    at least 1000 in each dimension.  This makes them easier to view on github.
+
+    Also adjust the order of all SVG paths that start and end at the same place
+    to start on the smallest element.  This will make github diffs smaller in
+    some cases where a no-effect union or intersection of polygons chnaged the
+    order of points.
+    """
+    def bigger(matchobj):
+      width = float(matchobj.group('width'))
+      height = float(matchobj.group('height'))
+      while width < 1000 or height < 1000:
+        width *= 10
+        height *= 10
+      return 'width="' + str(width) + '" height="' + str(height) + '" '
+    for root, subdirs, files in os.walk(path):
+      for current_file in files:
+        with in_place.InPlace(os.path.join(root, current_file)) as f:
+          for line in f:
+            if line.startswith("<svg"):
+              f.write("<!-- original:\n" +
+                      line +
+                      "-->\n" +
+                      re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
+                             bigger,
+                             line))
+            elif line.startswith('<g fill-rule="evenodd"><path d="M '):
+              etree = xml.etree.ElementTree.fromstring(line)
+              pathstring = etree[0].attrib['d']
+              f.write(line.replace(pathstring, self.rotate_pathstring(pathstring)))
+            else:
+              f.write(line)
+
   def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
@@ -98,6 +199,7 @@ class IntegrationTests(unittest2.TestCase):
       p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = p.communicate()
       self.assertEqual(p.returncode, exit_code)
+      self.fix_up_expected(actual_output_path)
     finally:
       print(result[0], file=sys.stderr)
       os.chdir(cwd)
@@ -190,6 +292,18 @@ class IntegrationTests(unittest2.TestCase):
     self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
+  parser.add_argument('--fix', action='store_true', default=False,
+                      help='Generate expected outputs automatically')
+  parser.add_argument('--add', action='store_true', default=False,
+                      help='git add new expected outputs automatically')
+  parser.add_argument('-j', type=int, default=3,
+                      help='number of threads for running tests concurrently')
+  parser.add_argument('--tests', type=str, default="",
+                      help='regex of tests to run')
+  args = parser.parse_args()
+  if args.tests:
+    TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
   def add_test_case(t):
     def test_method(self):
       self.do_test_one(t)
@@ -198,12 +312,6 @@ if __name__ == '__main__':
     test_method.__doc__ = str(test_case)
   for test_case in TEST_CASES:
     add_test_case(test_case)
-  parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
-  parser.add_argument('--fix', action='store_true', default=False,
-                      help='Generate expected outputs automatically')
-  parser.add_argument('--add', action='store_true', default=False,
-                      help='git add new expected outputs automatically')
-  args = parser.parse_args()
   if args.fix:
     print("Generating expected outputs...")
     output = None
@@ -235,6 +343,8 @@ if __name__ == '__main__':
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
+    if args.j > 1:
+      suite = ConcurrentTestSuite(suite, fork_for_tests(args.j))
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:

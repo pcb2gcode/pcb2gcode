@@ -24,23 +24,10 @@
 #define DRILL_H
 
 #include <map>
-using std::map;
-
 #include <string>
-using std::string;
-
 #include <list>
-using std::list;
-
 #include <vector>
-using std::vector;
-
-#include <map>
-using std::map;
-
 #include <memory>
-using std::shared_ptr;
-using std::unique_ptr;
 
 extern "C" {
 #include <gerbv.h>
@@ -68,7 +55,7 @@ class drillbit
 public:
     //Variables, constants, flags...
     double diameter;
-    string unit;
+    std::string unit;
     int drill_count;
     Length as_length() const {
         std::ostringstream os;
@@ -93,52 +80,52 @@ public:
     ExcellonProcessor(const boost::program_options::variables_map& options,
                       const icoordpair min, const icoordpair max);
     ~ExcellonProcessor();
-    void add_header(string);
-    void set_preamble(string);
-    void set_postamble(string);
+    void add_header(std::string);
+    void set_preamble(std::string);
+    void set_postamble(std::string);
     icoords line_to_holes(const ilinesegment& line, double drill_diameter);
-    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                    shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
-    void export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                    shared_ptr<Cutter> target, bool zchange_absolute);
+    void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
+                    std::shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
+    void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
+                    std::shared_ptr<Cutter> target, bool zchange_absolute);
 
-    shared_ptr< map<int, drillbit> > get_bits();
-    shared_ptr< map<int, ilinesegments> > get_holes();
+    std::shared_ptr< std::map<int, drillbit> > get_bits();
+    std::shared_ptr< std::map<int, ilinesegments> > get_holes();
 
 private:
-  gerbv_project_t* parse_project(const string& filename);
-  map<int, drillbit> parse_bits();
-  map<int, ilinesegments> parse_holes();
+  gerbv_project_t* parse_project(const std::string& filename);
+  std::map<int, drillbit> parse_bits();
+  std::map<int, ilinesegments> parse_holes();
 
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
                   double stop_x, double stop_y,
-                  shared_ptr<Cutter> cutter, double holediameter);
+                  std::shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
-    string drill_to_string(drillbit drillbit);
+    std::string drill_to_string(drillbit drillbit);
 
-  map<int, ilinesegments> optimize_holes(map<int, drillbit>& bits, bool onedrill,
+  std::map<int, ilinesegments> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
                                          const boost::optional<Length>& min_diameter,
                                          const boost::optional<Length>& max_diameter);
-  map<int, drillbit> optimize_bits(bool onedrill);
+  std::map<int, drillbit> optimize_bits(bool onedrill);
 
     void save_svg(
-        const map<int, drillbit>& bits, const map<int, ilinesegments>& holes,
-        const string& of_dir, const string& of_name);
+        const std::map<int, drillbit>& bits, const std::map<int, ilinesegments>& holes,
+        const std::string& of_dir, const std::string& of_name);
 
     const box_type_fp board_dimensions;
     const ivalue_t board_center_x;
 
     gerbv_project_t * const project;
-    const map<int, drillbit> parsed_bits;
-    const map<int, ilinesegments> parsed_holes;
-    vector<string> header;
-    string preamble;        //Preamble for output file
+    const std::map<int, drillbit> parsed_bits;
+    const std::map<int, ilinesegments> parsed_holes;
+    std::vector<std::string> header;
+    std::string preamble;        //Preamble for output file
 
-    string preamble_ext;    //Preamble from command line (user file)
-    string postamble_ext;   //Postamble from command line (user file)
+    std::string preamble_ext;    //Preamble from command line (user file)
+    std::string postamble_ext;   //Postamble from command line (user file)
     double cfactor;         //imperial/metric conversion factor for output file
-    string zchange;
+    std::string zchange;
     const bool drillfront;
     const double inputFactor;   //Multiply unitless inputs by this value.
     const bool bMetricOutput;   //Flag to indicate metric output

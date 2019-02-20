@@ -13,14 +13,15 @@
 #include <boost/units/base_units/imperial/thou.hpp>
 #include <boost/units/io.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/variant.hpp>
 
 #include "common.hpp"
 
-struct parse_exception : public std::exception {
-  parse_exception(const std::string& get_what, const std::string& from_what) {
+struct units_parse_exception : public std::exception {
+  units_parse_exception(const std::string& get_what, const std::string& from_what) {
     what_string = "Can't get " + get_what + " from: " + from_what;
   }
-  parse_exception(const std::string& what) {
+  units_parse_exception(const std::string& what) {
     what_string = what;
   }
 
@@ -49,7 +50,7 @@ struct comparison_exception : public std::exception {
 // words, etc from it.
 class Lexer {
  public:
-  Lexer(const std::string& s) : input(s), pos(0) {}
+  Lexer(const std::string& s) : pos(0), input(s) {}
   std::string get_whitespace() {
     return get_string<int>(std::isspace);
   }
@@ -65,18 +66,26 @@ class Lexer {
     try {
       return boost::lexical_cast<double>(text);
     } catch (boost::bad_lexical_cast e) {
-      throw parse_exception("double", text);
+      throw units_parse_exception("double", text);
     }
   }
   void get_division() {
     get_whitespace();
     if (!get_exact("/") && !get_exact("per")) {
-      throw parse_exception("double", input.substr(pos));
+      throw units_parse_exception("division", input.substr(pos));
     }
   }
+  void get_percent() {
+    get_whitespace();
+    if (!get_exact("%")) {
+      throw units_parse_exception("percent", input.substr(pos));
+    }
+  }
+
   bool at_end() {
     return pos == input.size();
   }
+  size_t pos;
  private:
   // Gets all characters from current position until the first that
   // doesn't pass test_fn or end of input.
@@ -98,7 +107,14 @@ class Lexer {
     return 0;
   }
   std::string input;
-  size_t pos;
+};
+
+template <typename dimension_t>
+class UnitBase;
+
+// dimension_t is "length" or "velocity", for example.
+template <typename dimension_t>
+class Unit : public UnitBase<dimension_t> {
 };
 
 template <typename dimension_t>
@@ -138,6 +154,10 @@ class UnitBase {
   bool operator==(const UnitBase<dimension_t>& other) const {
     return (*this >= other && other >= *this);
   }
+  template<typename dim_t>
+  friend Unit<dim_t>
+  operator*(const Unit<dim_t>& lhs,
+            const double rhs);
 
  protected:
   double as(double factor, quantity wanted_unit) const {
@@ -151,21 +171,61 @@ class UnitBase {
   boost::optional<quantity> one;
 };
 
-// dimension_t is "length" or "velocity", for example.
-template<typename dimension_t>
-class Unit : public UnitBase<dimension_t> {};
+template <typename dimension_t>
+static inline Unit<dimension_t>
+operator*(const Unit<dimension_t>& lhs,
+          const double rhs) {
+  return Unit<dimension_t>(lhs.value * rhs, lhs.one);
+}
 
 // Any non-SI base units that you want to use go here.
 const boost::units::quantity<boost::units::si::length> inch(1*boost::units::imperial::inch_base_unit::unit_type());
 const boost::units::quantity<boost::units::si::length> thou(1*boost::units::imperial::thou_base_unit::unit_type());
 const boost::units::quantity<boost::units::si::time> minute(1*boost::units::metric::minute_base_unit::unit_type());
 
+struct revolution_base_dimension :
+    boost::units::base_dimension<revolution_base_dimension, 1> {};
+typedef revolution_base_dimension::dimension_type revolution_type;
+
+struct revolution_base_unit :
+    boost::units::base_unit<revolution_base_unit, revolution_type, 1> {
+  static std::string name() {return "revolution";}
+  static std::string symbol() {return "rev";}
+};
+typedef revolution_base_unit::unit_type revolution_unit;
+const boost::units::quantity<revolution_unit> revolution(1*revolution_base_unit::unit_type());
+
+struct rpm_base_dimension :
+    boost::units::base_dimension<rpm_base_dimension, 2> {};
+typedef rpm_base_dimension::dimension_type rpm_type;
+
+struct rpm_base_unit :
+    boost::units::base_unit<rpm_base_unit, rpm_type, 2> {
+  static std::string name() {return "rpm";}
+  static std::string symbol() {return "rpm";}
+};
+typedef rpm_base_unit::unit_type rpm_unit;
+const boost::units::quantity<rpm_unit> rpm(1*rpm_base_unit::unit_type());
+
+struct percent_base_dimension :
+    boost::units::base_dimension<percent_base_dimension, 3> {};
+typedef percent_base_dimension::dimension_type percent_type;
+
+struct percent_base_unit :
+    boost::units::base_unit<percent_base_unit, percent_type, 3> {
+  static std::string name() {return "percent";}
+  static std::string symbol() {return "%";}
+};
+typedef percent_base_unit::unit_type percent_unit;
+const boost::units::quantity<percent_unit> percent(1*percent_base_unit::unit_type());
+
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::time> Time;
-typedef Unit<boost::units::si::dimensionless> Dimensionless;
+typedef Unit<revolution_unit> Revolution;
 typedef Unit<boost::units::si::velocity> Velocity;
-typedef Unit<boost::units::si::frequency> Frequency;
+typedef Unit<rpm_unit> Rpm;
+typedef Unit<percent_unit> Percent;
 
 template<>
 class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length> {
@@ -197,7 +257,7 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
         unit == "mils") {
       return thou;
     }
-    throw parse_exception("length units", unit);
+    throw units_parse_exception("length units", unit);
   }
   Length operator-() const {
     return Length(-value, one);
@@ -233,27 +293,30 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
         unit == "minutes") {
       return minute;
     }
-    throw parse_exception("time units", unit);
+    throw units_parse_exception("time units", unit);
   }
 };
 
 template<>
-class Unit<boost::units::si::dimensionless> : public UnitBase<boost::units::si::dimensionless> {
+class Unit<revolution_unit> : public UnitBase<revolution_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  using UnitBase::as;
-  double as(double factor) const {
-    return as(factor, 1.0*boost::units::si::si_dimensionless);
+  double asRevolution(double factor) const {
+    return as(factor, 1.0*revolution);
   }
   static quantity get_unit(Lexer& lex) {
     std::string unit = lex.get_word();
     if (unit == "rotation" ||
         unit == "rotations" ||
+        unit == "revolutions" ||
+        unit == "revolution" ||
+        unit == "rev" ||
+        unit == "revs" ||
         unit == "cycle" ||
         unit == "cycles") {
-      return 1.0*boost::units::si::si_dimensionless;
+      return 1.0*revolution;
     }
-    throw parse_exception("dimensionless units", unit);
+    throw units_parse_exception("revolution units", unit);
   }
 };
 
@@ -275,22 +338,68 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
   }
 };
 
+
+static inline boost::units::quantity<rpm_unit>
+operator/(const boost::units::quantity<revolution_unit>& lhs,
+          const boost::units::quantity<boost::units::si::time>& rhs) {
+  return (lhs/revolution)/(rhs/minute) * rpm;
+}
+
 template<>
-class Unit<boost::units::si::frequency> : public UnitBase<boost::units::si::frequency> {
+class Unit<rpm_unit> : public UnitBase<rpm_unit> {
  public:
   Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
-  double asPerMinute(double factor) const {
-    return as(factor, 1.0/minute);
+  double asRpm(double factor) const {
+    return as(factor, 1.0 * rpm);
   }
   static quantity get_unit(Lexer& lex) {
-    // It's either "dimensionless/time" or "dimensionless per time".
-    Dimensionless::quantity numerator;
+    // It's either "revolution/time" or "revolution per time" or "rpm".
+    auto old_pos = lex.pos;
+    std::string unit = lex.get_word();
+    if (unit == "rpm" ||
+        unit == "RPM") {
+      return 1.0*rpm;
+    }
+    lex.pos = old_pos;
+
+    Revolution::quantity numerator;
     Time::quantity denominator;
-    numerator = Dimensionless::get_unit(lex);
+    numerator = Revolution::get_unit(lex);
     lex.get_division();
     denominator = Time::get_unit(lex);
     return numerator/denominator;
   }
+};
+
+template<>
+class Unit<percent_unit> : public UnitBase<percent_unit> {
+ public:
+  Unit(double value = 0, boost::optional<quantity> one = boost::none) : UnitBase(value, one) {}
+  double asPercent(double factor) const {
+    return as(factor, 1.0 * percent);
+  }
+  double asFraction(double factor) const {
+    return as(factor, 100.0 * percent);
+  }
+  static quantity get_unit(Lexer& lex) {
+    lex.get_percent();
+    return 1.0*percent;
+  }
+};
+
+class percent_visitor : public boost::static_visitor<Length> {
+ public:
+  percent_visitor(const Length& base) : base(base) {}
+  Length operator()(const Percent& p) const {
+    Length ret = base;
+    ret = ret * p.asFraction(1);
+    return ret;
+  }
+  Length operator()(const Length& l) const {
+    return l;
+  }
+ private:
+  Length base;
 };
 
 template <typename unit_t>
@@ -304,14 +413,12 @@ unit_t parse_unit(const std::string& s) {
     if (!lex.at_end()) {
       one = unit_t::get_unit(lex);
     }
-  } catch (parse_exception& e) {
-    std::cerr << e.what() << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+  } catch (units_parse_exception& e) {
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": " + e.what());
   }
   lex.get_whitespace();
   if (!lex.at_end()) {
-    std::cerr << "Extra characters at end of option" << std::endl;
-    throw boost::program_options::invalid_option_value(s);
+    throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": Extra characters at end of option");
   }
   return unit_t(value, one);
 }
@@ -321,6 +428,93 @@ inline std::istream& operator>>(std::istream& in, Unit<dimension_t>& unit) {
   std::string s(std::istreambuf_iterator<char>(in), {});
   unit = parse_unit<Unit<dimension_t>>(s);
   return in;
+}
+
+// Support variants as units.
+template <typename dimension1_t, typename dimension2_t>
+inline std::istream& operator>>(std::istream& in, boost::variant<Unit<dimension1_t>, Unit<dimension2_t>>& unit) {
+  std::vector<boost::program_options::invalid_option_value> exceptions;
+  std::string s(std::istreambuf_iterator<char>(in), {});
+  try {
+    unit = parse_unit<Unit<dimension1_t>>(s);
+    return in;
+  } catch (boost::program_options::invalid_option_value e) { }
+  Unit<dimension1_t> unit2;
+  unit = parse_unit<Unit<dimension2_t>>(s);
+  return in;
+}
+
+// Represents a few of the base unit, which can be input or output as a
+// comma-separated list.
+template <typename base_unit>
+class CommaSeparated {
+ public:
+  CommaSeparated(const std::vector<base_unit>& units) :
+      units(units) {}
+  CommaSeparated(std::initializer_list<base_unit> units) :
+      units(units) {}
+  CommaSeparated() {}
+  template <typename b>
+  friend inline std::istream& operator>>(std::istream& in, CommaSeparated<b>& units);
+  template <typename T>
+  friend std::vector<T> flatten(const std::vector<CommaSeparated<T>>& all);
+
+  bool operator==(const CommaSeparated<base_unit>& other) const {
+    return units == other.units;
+  }
+  std::ostream& write(std::ostream& out) const {
+      for (auto it = units.begin(); it != units.end(); it++) {
+      if (it != units.begin()) {
+        out << ", ";
+      }
+      out << *it;
+    }
+    return out;
+  }
+  std::istream& read(std::istream& in) {
+    std::vector<std::string> unit_strings;
+    std::string input_string(std::istreambuf_iterator<char>(in), {});
+    boost::split(unit_strings, input_string, boost::is_any_of(","));
+    for (const auto& unit_string : unit_strings) {
+      base_unit unit;
+      std::stringstream(unit_string) >> unit;
+      units.push_back(unit);
+    }
+    return in;
+  }
+ private:
+  std::vector<base_unit> units;
+};
+
+template <typename unit_base>
+inline std::istream& operator>>(std::istream& in, CommaSeparated<unit_base>& units) {
+  return units.read(in);
+}
+
+template <typename unit_base>
+inline std::ostream& operator<<(std::ostream& out, const CommaSeparated<unit_base>& units) {
+  return units.write(out);
+}
+
+template <typename unit_base>
+inline std::ostream& operator<<(std::ostream& out, const std::vector<CommaSeparated<unit_base>>& units) {
+  for (auto d = units.cbegin(); d != units.cend(); d++) {
+    if (d != units.cbegin()) {
+      out << ", ";
+    }
+    d->write(out);
+  }
+  return out;
+}
+
+/* Concatenate all the CommaSeparated into a vector. */
+template <typename T>
+std::vector<T> flatten(const std::vector<CommaSeparated<T>>& all) {
+  std::vector<T> ret;
+  for (const auto& sub : all) {
+    ret.insert(ret.end(), sub.units.begin(), sub.units.end());
+  }
+  return ret;
 }
 
 namespace BoardSide {

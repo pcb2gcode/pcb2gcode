@@ -26,7 +26,14 @@
 #include <boost/geometry/algorithms/distance.hpp>
 
 #include <boost/format.hpp>
+#include <memory>
+#include <vector>
 using boost::format;
+using std::shared_ptr;
+using std::vector;
+using std::endl;
+using std::to_string;
+using std::string;
 
 #include "units.hpp"
 
@@ -93,14 +100,31 @@ string autoleveller::getVarName( int i, int j )
     return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
-{
+box_type_fp computeWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
+  box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
+
+  for (const auto& toolpath : toolpaths) {
+    for (const auto& linestring : toolpath) {
+      boost::geometry::expand(bounding_box,
+                              boost::geometry::return_envelope<box_type_fp>(*linestring));
+    }
+  }
+
+  return bounding_box;
+}
+
+bool autoleveller::prepareWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
     int temp;
 
-    workarea = computeWorkarea( toolpaths );
+    workarea = computeWorkarea(toolpaths);
+    workarea.min_corner().x(workarea.min_corner().x() - xoffset - quantization_error);
+    workarea.min_corner().y(workarea.min_corner().y() - yoffset - quantization_error);
+    workarea.max_corner().x(workarea.max_corner().x() - xoffset + quantization_error);
+    workarea.max_corner().y(workarea.max_corner().y() - yoffset + quantization_error);
+
     workareaLenX = ( workarea.max_corner().x() - workarea.min_corner().x() ) * cfactor + 
                    tileInfo.boardWidth * cfactor * ( tileInfo.tileX - 1 );
     workareaLenY = ( workarea.max_corner().y() - workarea.min_corner().y() ) * cfactor +
@@ -130,24 +154,6 @@ bool autoleveller::prepareWorkarea( vector<shared_ptr<icoords> > &toolpaths )
         return false;
     else
         return true;
-}
-
-box_type_fp autoleveller::computeWorkarea( vector<shared_ptr<icoords> > &toolpaths )
-{
-    box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
-
-    for (const shared_ptr<icoords>& toolpath : toolpaths)
-    {
-        boost::geometry::expand(bounding_box,
-            boost::geometry::return_envelope<box_type_fp>(*toolpath));
-    }
-
-    bounding_box.min_corner().x(bounding_box.min_corner().x() - xoffset - quantization_error);
-    bounding_box.min_corner().y(bounding_box.min_corner().y() - yoffset - quantization_error);
-    bounding_box.max_corner().x(bounding_box.max_corner().x() - xoffset + quantization_error);
-    bounding_box.max_corner().y(bounding_box.max_corner().y() - yoffset + quantization_error);
-
-    return bounding_box;
 }
 
 void autoleveller::header( std::ofstream &of )

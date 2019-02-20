@@ -19,8 +19,19 @@
 
 #include <algorithm>
 #include <utility>
+using std::pair;
 using std::reverse;
 using std::swap;
+
+#include <iostream>
+using std::cerr;
+using std::endl;
+
+#include <string>
+using std::string;
+
+#include <vector>
+using std::vector;
 
 #include <cstdint>
 #include <list>
@@ -29,26 +40,36 @@ using std::list;
 using std::next;
 using std::make_move_iterator;
 
+#include <memory>
+using std::unique_ptr;
+
 #include <forward_list>
 using std::forward_list;
+
+#include <map>
+using std::map;
 
 #include <boost/format.hpp>
 
 #include "gerberimporter.hpp"
-#include "bg_helpers.hpp"
 #include "eulerian_paths.hpp"
+#include "bg_helpers.hpp"
 
 namespace bg = boost::geometry;
 
 typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
 typedef bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2> translate;
 
-//As suggested by the Gerber specification, we retain 6 decimals
-const unsigned int GerberImporter::scale = 1000000;
-
-GerberImporter::GerberImporter(const string path) {
+GerberImporter::GerberImporter() {
   project = gerbv_create_project();
+}
 
+GerberImporter::~GerberImporter() {
+  gerbv_destroy_project(project);
+}
+
+/* Returns true iff successful. */
+bool GerberImporter::load_file(const string& path) {
   const char* cfilename = path.c_str();
   char *filename = new char[strlen(cfilename) + 1];
   strcpy(filename, cfilename);
@@ -56,8 +77,7 @@ GerberImporter::GerberImporter(const string path) {
   gerbv_open_layer_from_filename(project, filename);
   delete[] filename;
 
-  if (project->file[0] == NULL)
-    throw gerber_exception();
+  return project->file[0] != NULL;
 }
 
 gdouble GerberImporter::get_min_x() const {
@@ -77,7 +97,7 @@ gdouble GerberImporter::get_max_y() const {
 }
 
 void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y,
-                            const GdkColor& color) const {
+                            const GdkColor& color, const gerbv_render_types_t& renderType) const {
   gerbv_render_info_t render_info;
 
   render_info.scaleFactorX = dpi;
@@ -86,7 +106,7 @@ void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const gu
   render_info.lowerLeftY = min_y;
   render_info.displayWidth = surface->get_width();
   render_info.displayHeight = surface->get_height();
-  render_info.renderType = GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY;
+  render_info.renderType = renderType;
 
   project->file[0]->color = color;
 
@@ -114,28 +134,6 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
   ring.push_back(ring.front()); // Don't forget to close the ring.
   multi_polygon_type_fp ret;
   bg::convert(ring, ret);
-  return ret;
-}
-
-template <typename polygon_type_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::difference(lhs, rhs, ret);
-  return ret;
-}
-
-template <typename polygon_type_t>
-static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const bg::model::multi_polygon<polygon_type_t>& rhs) {
-  if (bg::area(rhs) <= 0) {
-    return lhs;
-  }
-  bg::model::multi_polygon<polygon_type_t> ret;
-  bg::union_(lhs, rhs, ret);
   return ret;
 }
 
@@ -331,15 +329,35 @@ inline static void unsupported_polarity_throw_exception() {
   throw gerber_exception();
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>>& layers,
-                                      bool fill_rings, unsigned int points_per_circle) {
+multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& multi_draws) {
+  if (multi_draws.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (multi_draws.size() == 1) {
+    return multi_draws.front();
+  }
+  auto current = multi_draws.cbegin();
+  vector<multi_polygon_type_fp> new_draws;
+  if (multi_draws.size() % 2 == 1) {
+    new_draws.push_back(*current);
+    current++;
+  }
+  // There are at least two and the total number is even.
+  for (; current != multi_draws.cend(); current += 2) {
+    new_draws.push_back(*current + *(current + 1));
+  }
+  return merge_multi_draws(new_draws);
+}
+
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers,
+                                      unsigned int points_per_circle) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    multi_polygon_type_fp draws = layer->second;
+    const vector<multi_polygon_type_fp>& multi_draws = layer->second;
+    multi_polygon_type_fp draws = merge_multi_draws(multi_draws);
 
     // First duplicate in the x direction.
     auto original_draw = draws;
@@ -444,11 +462,9 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
       continue; // No area so ignore it.
     }
     if (this_area * area > 0) {
-      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
-      bg::union_(ret, correct_r, temp_ret);
-      ret = temp_ret;
+      ret = ret + correct_r;
     }
   }
   for (auto r : all_rings) {
@@ -457,11 +473,9 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
       continue; // No area so ignore it.
     }
     if (this_area * area < 0) {
-      multi_polygon_type_fp temp_ret;
       auto correct_r = r;
       bg::correct(correct_r);
-      bg::difference(ret, correct_r, temp_ret);
-      ret = temp_ret;
+      ret = ret - correct_r;
     }
   }
   return ret;
@@ -476,7 +490,6 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
     if (aperture) {
       const double * const parameters = aperture->parameter;
       multi_polygon_type_fp input;
-      multi_polygon_type_fp output;
 
       switch (aperture->type) {
         case GERBV_APTYPE_NONE:
@@ -614,11 +627,10 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
               bg::transform(mpoly, mpoly_rotated, rotate_deg(-rotation));
 
               if (polarity == 0) {
-                bg::difference(input, mpoly_rotated, output);
+                input = input - mpoly_rotated;
               } else {
-                bg::union_(input, mpoly_rotated, output);
+                input = input + mpoly_rotated;
               }
-              input = output;
               simplified_amacro = simplified_amacro->next;
             }
           } else {
@@ -664,19 +676,49 @@ struct PointLessThan {
 };
 
 
-multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, unsigned int points_per_circle) {
+/* Convert paths that all need to be drawn with the same diameter into shapes.
+ *
+ * If fill_closed_lines is true, we'll try to find closed loops among the paths
+ * and treat those loops as a polygons with a filled surface.  We'll ignore the
+ * direction of the paths.  Where loops overlap, we'll xor with the other loops.
+ * If there are non-loops when fill_closed_lines is true, we'll report an
+ * error.
+ */
+multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines, unsigned int points_per_circle) {
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths =
       eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-          paths);
+          paths, vector<bool>(paths.size(), true));
   multi_polygon_type_fp ovals;
-  // This converts the long paths into a shape with thickness equal to the specified diameter.
-  bg::buffer(euler_paths, ovals,
-             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
-             bg::strategy::buffer::side_straight(),
-             bg::strategy::buffer::join_round(points_per_circle),
-                   bg::strategy::buffer::end_round(points_per_circle),
-             bg::strategy::buffer::point_circle(points_per_circle));
+  if (fill_closed_lines) {
+    for (auto& euler_path : euler_paths) {
+      if (bg::equals(euler_path.front(), euler_path.back())) {
+        // This is a loop.
+        polygon_type_fp loop_poly;
+        loop_poly.outer().swap(euler_path);
+        bg::correct(loop_poly);
+        multi_polygon_type_fp loop_mpoly;
+        loop_mpoly.push_back(loop_poly);
+        ovals = ovals ^ loop_mpoly;
+      }
+    }
+  }
+  euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
+  if (fill_closed_lines && euler_paths.size() > 0) {
+    cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
+         << endl;
+  }
+  if (euler_paths.size() > 0) {
+    // This converts the long paths into a shape with thickness equal to the specified diameter.
+    multi_polygon_type_fp new_ovals;
+    bg::buffer(euler_paths, new_ovals,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    ovals = ovals + new_ovals;
+  }
   return ovals;
 }
 
@@ -689,7 +731,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, multi_polygon_type_fp>> layers(1);
+  vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>> layers(1);
 
   gerbv_image_t *gerber = project->file[0]->image;
 
@@ -711,14 +753,14 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
       // About to start a new layer, render all the linear_circular_paths so far.
       for (const auto& diameter_and_path : linear_circular_paths) {
-        layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+        layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
       }
       linear_circular_paths.clear();
       layers.resize(layers.size() + 1);
       layers.back().first = currentNet->layer;
     }
 
-    multi_polygon_type_fp& draws = layers.back().second;
+    vector<multi_polygon_type_fp>& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -736,11 +778,10 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             segment.push_back(start);
             segment.push_back(stop);
             linear_circular_paths[diameter].push_back(segment);
-            draws = draws + mpoly;
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
             mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
                                                      parameters[1]);
-            draws = draws + mpoly;
+            draws.push_back(mpoly);
           } else {
             cerr << ("Drawing with an aperture different from a circle "
                      "or a rectangle is forbidden by the Gerber standard; skipping.")
@@ -760,12 +801,12 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
             cerr << "Macro aperture " << currentNet->aperture <<
                 " not found in macros list; skipping" << endl;
           }
-          draws = draws + mpoly;
+          draws.push_back(mpoly);
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
           bg::append(region, stop);
-          draws = draws + simplify_cutins(region);
+          draws.push_back(simplify_cutins(region));
           region.clear();
         }
       } else {
@@ -775,7 +816,7 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
-      draws = draws + simplify_cutins(region);
+      draws.push_back(simplify_cutins(region));
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
@@ -832,15 +873,10 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
   }
   // If there are any unrendered circular paths, add them to the last layer.
   for (const auto& diameter_and_path : linear_circular_paths) {
-    layers.back().second = layers.back().second + paths_to_shapes(diameter_and_path.first, diameter_and_path.second, points_per_circle);
+    layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
   }
   linear_circular_paths.clear();
-  auto result = generate_layers(layers, fill_closed_lines, points_per_circle);
-  if (fill_closed_lines) {
-    for (auto& p : result) {
-      p.inners().clear();
-    }
-  }
+  auto result = generate_layers(layers, points_per_circle);
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
@@ -848,17 +884,9 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     multi_polygon_type_fp scaled_result;
     bg::transform(result, scaled_result,
                   bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
-                      scale/25.4, scale/25.4));
+                      1/25.4, 1/25.4));
     return scaled_result;
   } else {
-    multi_polygon_type_fp scaled_result;
-    bg::transform(result, scaled_result,
-                  bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
-                      scale, scale));
-    return scaled_result;
+    return result;
   }
-}
-
-GerberImporter::~GerberImporter() {
-  gerbv_destroy_project(project);
 }

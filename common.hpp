@@ -21,8 +21,6 @@
 #define COMMON_H
 
 #include <string>
-using std::string;
-
 #include <boost/program_options.hpp>
 
 namespace Software {
@@ -31,6 +29,6 @@ namespace Software {
 enum Software { CUSTOM = -1, LINUXCNC = 0, MACH4 = 1, MACH3 = 2 };
 };
 
-bool workSide( const boost::program_options::variables_map &options, string type );
+bool workSide( const boost::program_options::variables_map &options, std::string type );
 
 #endif // COMMON_H

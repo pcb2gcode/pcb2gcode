@@ -1,4 +1,4 @@
-# pcb2gcode [![Build Status](https://travis-ci.org/pcb2gcode/pcb2gcode.svg?branch=master)](https://travis-ci.org/pcb2gcode/pcb2gcode) [![Coverage Status](https://coveralls.io/repos/github/pcb2gcode/pcb2gcode/badge.svg?branch=master)](https://coveralls.io/github/pcb2gcode/pcb2gcode?branch=master) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=KDT9RVZ9Y2NA4)
+# pcb2gcode [![Build Status](https://travis-ci.org/pcb2gcode/pcb2gcode.svg?branch=master)](https://travis-ci.org/pcb2gcode/pcb2gcode) [![Coverage Status](https://coveralls.io/repos/github/pcb2gcode/pcb2gcode/badge.svg?branch=master)](https://coveralls.io/github/pcb2gcode/pcb2gcode?branch=master) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://payments.wikimedia.org/index.php?title=Special:PaypalExpressGateway&appeal=JimmyQuote&ffname=paypal_ec&recurring=&currency=USD&amount=0&payment_method=paypal&uselang=en&utm_medium=Waystogive&utm_campaign=C11_Waystogive&utm_source=Waystogive)
 
 pcb2gcode is a command-line software for the isolation, routing and drilling of PCBs.
 It takes Gerber files as input and it outputs gcode files, suitable for the milling of PCBs.
@@ -77,7 +77,7 @@ Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can in
 #### Debian Testing or newer, Ubuntu Wily or newer<a name="debianlike"></a>
 
     $ sudo apt-get update
-    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git
+    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git librsvg2-dev
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode
 

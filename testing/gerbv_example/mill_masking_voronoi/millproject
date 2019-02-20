@@ -1,0 +1,27 @@
+front=mill_masking-F.Cu.gbr
+outline=mill_masking-Edge.Cuts.gbr
+
+offset=0.5mm
+mill-feed=360 in/min
+mill-speed=200rotations/second
+voronoi=true
+zwork=-0.04inch
+drill-feed=30
+drill-side=auto
+drill-speed=12000
+milldrill=true
+onedrill=true
+zdrill=-1.6mm
+cut-feed=100
+cut-infeed=0.19mm
+cut-side=auto
+cut-speed=10000
+cutter-diameter=0
+extra-passes=4
+milldrill-diameter=0.8mm
+zbridges=-0.6000
+zcut=-0.13mm
+fill-outline=true
+zsafe=0.08
+zchange=1.0
+mill-feed-direction=any

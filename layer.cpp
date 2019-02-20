@@ -20,11 +20,18 @@
 
 #include "layer.hpp"
 
+#include <memory>
+using std::shared_ptr;
+using std::dynamic_pointer_cast;
+
+#include <vector>
+using std::vector;
+
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-Layer::Layer(const string& name, shared_ptr<Core> surface,
+Layer::Layer(const std::string& name, shared_ptr<Core> surface,
              shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;
@@ -36,12 +43,8 @@ Layer::Layer(const string& name, shared_ptr<Core> surface,
 #include <iostream>
 
 /******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<shared_ptr<icoords> > Layer::get_toolpaths()
-{
-    return surface->get_toolpath(manufacturer, mirrored);
+vector<vector<shared_ptr<icoords>>> Layer::get_toolpaths() {
+  return surface->get_toolpath(manufacturer, mirrored);
 }
 
 /******************************************************************************/
@@ -66,7 +69,7 @@ void Layer::add_mask(shared_ptr<Layer> mask)
 /*
  */
 /******************************************************************************/
-vector<unsigned int> Layer::get_bridges( shared_ptr<icoords> toolpath )
+vector<size_t> Layer::get_bridges( shared_ptr<icoords> toolpath )
 {
     return surface->get_bridges(dynamic_pointer_cast<Cutter>( manufacturer ), toolpath);
 }

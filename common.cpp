@@ -24,6 +24,7 @@
 
 #include <boost/format.hpp>
 using boost::format;
+using std::string;
 
 #include "units.hpp"
 

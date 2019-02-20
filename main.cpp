@@ -25,12 +25,18 @@
 #include <sstream>
 #include <memory>
 
+#include <vector>
+using std::vector;
+
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::flush;
 using std::fstream;
 using std::shared_ptr;
+
+#include <string>
+using std::string;
 
 #include <glibmm/ustring.h>
 using Glib::ustring;
@@ -52,13 +58,7 @@ using Glib::build_filename;
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-int main(int argc, char* argv[])
-{
-
+void do_pcb2gcode(int argc, const char* argv[]) {
     Glib::init();
     Gdk::wrap_init();
 
@@ -66,19 +66,17 @@ int main(int argc, char* argv[])
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
 
-    if (vm.count("version"))        //return version and quit
-    {
-        cout << PACKAGE_VERSION << endl;
-        cout << "Git commit: " << GIT_VERSION << endl;
-        cout << "Boost: " << BOOST_VERSION << endl;
-        cout << "Gerbv: " << GERBV_VERSION << endl;
-        exit(EXIT_SUCCESS);
+    if (vm.count("version")) {       //return version and quit
+      cout << PACKAGE_VERSION << endl;
+      cout << "Git commit: " << GIT_VERSION << endl;
+      cout << "Boost: " << BOOST_VERSION << endl;
+      cout << "Gerbv: " << GERBV_VERSION << endl;
+      return;
     }
 
-    if (vm.count("help"))        //return help and quit
-    {
-        cout << options::help();
-        exit(EXIT_SUCCESS);
+    if (vm.count("help")) {       //return help and quit
+      cout << options::help();
+      return;
     }
 
     options::check_parameters();      //check the cli parameters
@@ -103,7 +101,13 @@ int main(int argc, char* argv[])
     if (vm.count("front") || vm.count("back"))
     {
         isolator = shared_ptr<Isolator>(new Isolator());
-        isolator->tool_diameter = vm["offset"].as<Length>().asInch(unit) * 2;
+        // TODO: support more than one mill-diameter.
+        for (const auto& tool_diameter : flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())) {
+          isolator->tool_diameters_and_overlap_widths.push_back(
+              std::make_pair(
+                  tool_diameter.asInch(unit),
+                  boost::apply_visitor(percent_visitor(tool_diameter), vm["milling-overlap"].as<boost::variant<Length, Percent>>()).asInch(unit)));
+        }
         isolator->voronoi = vm["voronoi"].as<bool>();
         isolator->zwork = vm["zwork"].as<Length>().asInch(unit);
         isolator->zsafe = vm["zsafe"].as<Length>().asInch(unit);
@@ -112,9 +116,10 @@ int main(int argc, char* argv[])
             isolator->vertfeed = vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit);
         else
             isolator->vertfeed = isolator->feed / 2;
-        isolator->speed = vm["mill-speed"].as<Frequency>().asPerMinute(1);
+        isolator->speed = vm["mill-speed"].as<Rpm>().asRpm(1);
         isolator->zchange = vm["zchange"].as<Length>().asInch(unit);
         isolator->extra_passes = vm["extra-passes"].as<int>();
+        isolator->isolation_width = vm["isolation-width"].as<Length>().asInch(unit);
         isolator->optimise = vm["optimise"].as<bool>();
         isolator->preserve_thermal_reliefs = vm["preserve-thermal-reliefs"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
@@ -141,9 +146,8 @@ int main(int argc, char* argv[])
         cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
       else
         cutter->vertfeed = cutter->feed / 2;
-      cutter->speed = vm["cut-speed"].as<Frequency>().asPerMinute(1);
+      cutter->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
       cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
-      cutter->do_steps = true;
       cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
       cutter->optimise = vm["optimise"].as<bool>();
       cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
@@ -167,7 +171,7 @@ int main(int argc, char* argv[])
         driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
-        driller->speed = vm["drill-speed"].as<Frequency>().asPerMinute(1);
+        driller->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;
         driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
@@ -186,10 +190,8 @@ int main(int argc, char* argv[])
         string name = vm["preamble-text"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read preamble-text file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read preamble-text file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string line;
@@ -220,10 +222,8 @@ int main(int argc, char* argv[])
         string name = vm["preamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read preamble file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read preamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -241,10 +241,8 @@ int main(int argc, char* argv[])
         string name = vm["postamble"].as<string>();
         fstream in(name.c_str(), fstream::in);
 
-        if (!in.good())
-        {
-            cerr << "Cannot read postamble file \"" << name << "\"" << endl;
-            exit(EXIT_FAILURE);
+        if (!in.good()) {
+          options::maybe_throw("Cannot read postamble file \"" + name + "\"", ERR_INVALIDPARAMETER);
         }
 
         string tmp((std::istreambuf_iterator<char>(in)),
@@ -265,7 +263,8 @@ int main(int argc, char* argv[])
             outputdir,
             vm["vectorial"].as<bool>(),
             vm["tsp-2opt"].as<bool>(),
-            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()));
+            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
+            vm["invert-gerbers"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -276,115 +275,67 @@ int main(int argc, char* argv[])
     //--------------------------------------------------------------------------
     //load files, import layer files, create surface:
 
-    try
-    {
-
-        //-----------------------------------------------------------------------
-        cout << "Importing front side... " << flush;
-
-        if (vm.count("front") > 0) {
-            try
-            {
-                string frontfile = vm["front"].as<string>();
-                shared_ptr<LayerImporter> importer(new GerberImporter(frontfile));
-                board->prepareLayer("front", importer, isolator, false);
-                cout << "DONE.\n";
-            }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            cout << "not specified.\n";
-        }
-
-        //-----------------------------------------------------------------------
-        cout << "Importing back side... " << flush;
-
-        if (vm.count("back") > 0) {
-            try
-            {
-                string backfile = vm["back"].as<string>();
-                shared_ptr<LayerImporter> importer(
-                    new GerberImporter(backfile));
-                board->prepareLayer("back", importer, isolator, true);
-                cout << "DONE.\n";
-            }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            cout << "not specified.\n";
-        }
-
-        //-----------------------------------------------------------------------
-        cout << "Importing outline... " << flush;
-
-        if (vm.count("outline") > 0) {
-            try
-            {
-                string outline = vm["outline"].as<string>();                               //Filename
-                shared_ptr<LayerImporter> importer(new GerberImporter(outline));
-                board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
-                cout << "DONE.\n";
-            }
-            catch (import_exception& i)
-            {
-                cout << "ERROR.\n";
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            cout << "not specified.\n";
-        }
-
+    cout << "Importing front side... " << flush;
+    if (vm.count("front") > 0) {
+      string frontfile = vm["front"].as<string>();
+      shared_ptr<GerberImporter> importer(new GerberImporter());
+      if (!importer->load_file(frontfile)) {
+        options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
+      }
+      board->prepareLayer("front", importer, isolator, false);
+      cout << "DONE.\n";
+    } else {
+      cout << "not specified.\n";
     }
-    catch (import_exception& ie)
-    {
-        if (ustring const* mes = boost::get_error_info<errorstring>(ie))
-            std::cerr << "Import Error: " << *mes;
-        else
-            std::cerr << "Import Error: No reason given.";
+
+    cout << "Importing back side... " << flush;
+    if (vm.count("back") > 0) {
+      string backfile = vm["back"].as<string>();
+      shared_ptr<GerberImporter> importer(new GerberImporter());
+      if (!importer->load_file(backfile)) {
+        options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
+      }
+      board->prepareLayer("back", importer, isolator, true);
+      cout << "DONE.\n";
+    } else {
+      cout << "not specified.\n";
+    }
+
+    cout << "Importing outline... " << flush;
+    if (vm.count("outline") > 0) {
+      string outline = vm["outline"].as<string>();
+      shared_ptr<GerberImporter> importer(new GerberImporter());
+      if (!importer->load_file(outline)) {
+        options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
+      }
+      board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
+      cout << "DONE.\n";
+    } else {
+      cout << "not specified.\n";
     }
 
     Tiling::TileInfo *tileInfo = NULL;
 
-    try
-    {
-        cout << "Processing input files... " << flush;
-        board->createLayers();      // throws std::logic_error
-        cout << "DONE.\n";
+    cout << "Processing input files... " << flush;
+    board->createLayers();
+    cout << "DONE.\n";
 
-        if (!vm["no-export"].as<bool>())
-        {
-            shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
-            exporter->add_header(PACKAGE_STRING);
+    if (!vm["no-export"].as<bool>()) {
+      shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
+      exporter->add_header(PACKAGE_STRING);
 
-            if (vm.count("preamble") || vm.count("preamble-text"))
-            {
-                exporter->set_preamble(preamble);
-            }
+      if (vm.count("preamble") || vm.count("preamble-text")) {
+        exporter->set_preamble(preamble);
+      }
 
-            if (vm.count("postamble"))
-            {
-                exporter->set_postamble(postamble);
-            }
+      if (vm.count("postamble")) {
+        exporter->set_postamble(postamble);
+      }
 
-            exporter->export_all(vm);
+      exporter->export_all(vm);
 
-            tileInfo = new Tiling::TileInfo;
-            *tileInfo = exporter->getTileInfo();
-        }
-    }
-    catch (std::logic_error& le)
-    {
-        cout << "Internal Error: " << le.what() << endl;
-    }
-    catch (std::runtime_error& re)
-    {
-        cout << "Runtime Error: " << re.what() << endl;
+      tileInfo = new Tiling::TileInfo;
+      *tileInfo = exporter->getTileInfo();
     }
 
     //---------------------------------------------------------------------------
@@ -404,7 +355,10 @@ int main(int argc, char* argv[])
             //best we can do)
             if(board->get_layersnum() == 0)
             {
-                shared_ptr<LayerImporter> importer(new GerberImporter(vm["drill"].as<string>()));
+              shared_ptr<GerberImporter> importer(new GerberImporter());
+              if (!importer->load_file(vm["drill"].as<string>())) {
+                options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
+              }
                 min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
                 max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
             }
@@ -455,10 +409,8 @@ int main(int argc, char* argv[])
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";
 
         }
-        catch (const drill_exception& e)
-        {
-            cout << "ERROR: drill_exception.\n";
-            exit(EXIT_FAILURE);
+        catch (const drill_exception& e) {
+          options::maybe_throw("ERROR: drill_exception", ERR_INVALIDPARAMETER);
         }
     } else {
         cout << "not specified.\n";
@@ -466,4 +418,14 @@ int main(int argc, char* argv[])
 
     cout << "END." << endl;
 
+}
+
+int main(int argc, const char* argv[]) {
+  try {
+    do_pcb2gcode(argc, argv);
+  } catch (pcb2gcode_parse_exception e) {
+    cerr << e.what() << endl;
+    return e.code();
+  }
+  return 0;
 }

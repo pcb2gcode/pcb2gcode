@@ -28,6 +28,16 @@ using std::pair;
 #include <glibmm/miscutils.h>
 using Glib::build_filename;
 
+#include <memory>
+using std::dynamic_pointer_cast;
+using std::shared_ptr;
+
+#include <string>
+using std::string;
+
+#include <vector>
+using std::vector;
+
 // color definitions for the ARGB32 format used
 
 #define OPAQUE 0xFF000000
@@ -128,17 +138,26 @@ double distancePointLine(const icoordpair &x, const icoordpair &la,
 /*
  */
 /******************************************************************************/
-vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
-        bool mirrored)
-{
-    Isolator* iso = dynamic_cast<Isolator*>(mill.get());
+vector<vector<shared_ptr<icoords>>> Surface::get_toolpath(
+    shared_ptr<RoutingMill> mill, bool mirrored) {
+    shared_ptr<Isolator> iso = dynamic_pointer_cast<Isolator>(mill);
     int extra_passes = iso ? iso->extra_passes : 0;
 
     coords components = fill_all_components();
 
     int added = -1;
     int contentions = 0;
-    int grow = mill->tool_diameter / 2 * dpi;
+    int grow;
+    if (iso) {
+      grow = iso->tool_diameters_and_overlap_widths[0].first / 2 * dpi;
+    } else {
+      shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
+      if (cutter) {
+        grow = cutter->tool_diameter / 2 * dpi;
+      } else {
+        throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
+      }
+    }
 
     vector<shared_ptr<icoords> > toolpath;
 
@@ -205,7 +224,7 @@ vector<shared_ptr<icoords> > Surface::get_toolpath(shared_ptr<RoutingMill> mill,
     }
     save_debug_image("traced_" + name);
 
-    return toolpath;
+    return {toolpath};
 }
 
 /******************************************************************************/

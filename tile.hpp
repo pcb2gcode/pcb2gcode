@@ -38,34 +38,33 @@ public:
         unsigned int tileY;
         double boardWidth;
         double boardHeight;
-        int tileVar;
         unsigned int forXNum;
         unsigned int forYNum;
     };
 
-    Tiling( TileInfo tileInfo, double cfactor );
+    Tiling( TileInfo tileInfo, double cfactor, int tilevar );
     void header( std::ofstream &of );
     void footer( std::ofstream &of );
     static TileInfo generateTileInfo( const boost::program_options::variables_map& options,
                                       uniqueCodes &ocodes, double boardHeight, double boardWidth );
 
-    inline void setGCodeEnd( string _gCodeEnd )
+    inline void setGCodeEnd( std::string _gCodeEnd )
     {
         gCodeEnd = _gCodeEnd;
     }
     
-    inline string getGCodeEnd()
+    inline std::string getGCodeEnd()
     {
         return gCodeEnd;
     }
 
     const TileInfo tileInfo;
     const double cfactor;
-
+    const int tileVar;
 private:
     void tileSequence( std::ofstream &of );
     
-    string gCodeEnd;
+    std::string gCodeEnd;
 };
 
 #endif // TILE_H

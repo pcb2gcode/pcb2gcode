@@ -24,8 +24,6 @@
 #include <stdexcept>
 
 #include <memory>
-using std::shared_ptr;
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -33,11 +31,9 @@ namespace po = boost::program_options;
 
 #include <istream>
 #include <string>
-using std::string;
-using std::to_string;
 
-enum ErrorCodes
-{
+enum ErrorCodes {
+    ERR_OK = 0,
     ERR_NOZWORK = 1,
     ERR_NOCUTTERDIAMETER = 2,
     ERR_NOZSAFE = 3,
@@ -95,6 +91,25 @@ enum ErrorCodes
     ERR_UNKNOWNPARAMETER = 101
 };
 
+class pcb2gcode_parse_exception : public std::exception {
+ public:
+  pcb2gcode_parse_exception(const std::string& what, ErrorCodes error_code) {
+    what_string = what;
+    this->error_code = error_code;
+  }
+  virtual const char* what() const throw() {
+    return what_string.c_str();
+  }
+  virtual ErrorCodes code() const throw() {
+    return error_code;
+  }
+
+ private:
+  std::string what_string;
+  ErrorCodes error_code;
+};
+
+
 /******************************************************************************/
 /*
  */
@@ -103,7 +118,7 @@ class options: boost::noncopyable
 {
 
 public:
-    static void parse(int argc, char** argv);
+    static void parse(int argc, const char** argv);
     static void parse_files();
     static void check_parameters();
     static po::variables_map& get_vm()
@@ -111,8 +126,9 @@ public:
         return instance().vm;
     }
     ;
-    static string help();
+    static std::string help();
 
+    static void maybe_throw(const std::string& what, ErrorCodes error_code);
 private:
     options();
     po::variables_map vm;

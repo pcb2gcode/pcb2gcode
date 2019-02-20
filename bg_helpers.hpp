@@ -1,8 +1,118 @@
 #ifndef BG_HELPERS_H
 #define BG_HELPERS_H
 
-namespace bg_helpers {
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
 
+template <typename rhs_t>
+static inline multi_polygon_type_fp operator-(const polygon_type_fp& lhs, const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    auto ret = multi_polygon_type_fp();
+    ret.push_back(lhs);
+    return ret;
+  }
+  multi_polygon_type_fp ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename rhs_t>
+static inline multi_polygon_type_fp operator-(const box_type_fp& lhs, const rhs_t& rhs) {
+  auto box_mp = multi_polygon_type_fp();
+  bg::convert(lhs, box_mp);
+  return box_mp - rhs;
+}
+
+template <typename linestring_type_t, typename rhs_t>
+static inline bg::model::multi_linestring<linestring_type_t> operator-(const bg::model::multi_linestring<linestring_type_t>& lhs,
+                                                                       const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  bg::model::multi_linestring<linestring_type_t> ret;
+  bg::difference(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename linestring_type_t, typename rhs_t>
+static inline bg::model::multi_linestring<linestring_type_t> operator&(const bg::model::multi_linestring<linestring_type_t>& lhs,
+                                                                       const rhs_t& rhs) {
+  bg::model::multi_linestring<linestring_type_t> ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::length(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename rhs_t>
+static inline multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
+                                                 const rhs_t& rhs) {
+  multi_linestring_type_fp ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::length(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator^(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  if (bg::area(lhs) <= 0) {
+    return rhs;
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::sym_difference(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator&(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  bg::model::multi_polygon<polygon_type_t> ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::area(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+template <typename point_type_t, typename rhs_t>
+static inline multi_polygon_type_fp operator&(const bg::model::polygon<point_type_t>& lhs,
+                                              const rhs_t& rhs) {
+  multi_polygon_type_fp ret;
+  if (bg::area(rhs) <= 0) {
+    return ret;
+  }
+  if (bg::area(lhs) <= 0) {
+    return ret;
+  }
+  bg::intersection(lhs, rhs, ret);
+  return ret;
+}
+
+namespace bg_helpers {
 
 // The below implementations of buffer are similar to bg::buffer but
 // always convert to floating-point before doing work, if needed, and
@@ -15,11 +125,26 @@ void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & g
     bg::convert(geometry_in, geometry_out);
   } else {
     bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(points_per_circle),
                bg::strategy::buffer::end_round(points_per_circle),
                bg::strategy::buffer::point_circle(points_per_circle));
+  }
+}
+
+static inline multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0) {
+    return geometry_in;
+  } else {
+    multi_polygon_type_fp geometry_out;
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    return geometry_out;
   }
 }
 
@@ -29,7 +154,7 @@ void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometr
     bg::convert(geometry_in, geometry_out);
   } else {
     bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(points_per_circle),
                bg::strategy::buffer::end_round(points_per_circle),
@@ -49,17 +174,26 @@ void buffer(polygon_type const & geometry_in, multi_polygon_type_fp & geometry_o
 }
 
 template<typename CoordinateType>
-void buffer(multi_linestring_type const & geometry_in, multi_polygon_type & geometry_out, CoordinateType expand_by) {
-  multi_linestring_type_fp geometry_in_fp;
-  bg::convert(geometry_in, geometry_in_fp);
-  multi_polygon_type_fp geometry_out_fp;
-  bg::buffer(geometry_in_fp, geometry_out_fp,
-             bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
+  multi_polygon_type_fp geometry_out;
+  if (expand_by == 0) {
+    bg::convert(geometry_in, geometry_out);
+  } else {
+    polygon_type_fp geometry_in_fp;
+    bg::convert(geometry_in, geometry_in_fp);
+    buffer(geometry_in_fp, geometry_out, expand_by);
+  }
+  return geometry_out;
+}
+
+template<typename CoordinateType>
+void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+  bg::buffer(geometry_in, geometry_out,
+             bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
              bg::strategy::buffer::side_straight(),
              bg::strategy::buffer::join_round(points_per_circle),
              bg::strategy::buffer::end_round(points_per_circle),
              bg::strategy::buffer::point_circle(points_per_circle));
-  bg::convert(geometry_out_fp, geometry_out);
 }
 
 template<typename CoordinateType>
@@ -71,7 +205,7 @@ void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_o
     bg::convert(geometry_in, geometry_in_fp);
     multi_polygon_type_fp geometry_out_fp;
     bg::buffer(geometry_in_fp, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type>(expand_by),
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
                bg::strategy::buffer::side_straight(),
                bg::strategy::buffer::join_round(),
                bg::strategy::buffer::end_round(),
@@ -79,5 +213,34 @@ void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_o
   }
 }
 } // namespace bg_helpers
+
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs) {
+  if (bg::area(rhs) <= 0) {
+    return lhs;
+  }
+  if (bg::area(lhs) <= 0) {
+    bg::model::multi_polygon<polygon_type_t> ret;
+    bg::convert(rhs, ret);
+    return ret;
+  }
+  // This optimization fixes a bug in boost geometry when shapes are bordering
+  // somwhat but not overlapping.  This is exposed by EasyEDA that makes lots of
+  // shapes like that.
+  const auto lhs_box = bg::return_envelope<box_type_fp>(lhs);
+  const auto rhs_box = bg::return_envelope<box_type_fp>(rhs);
+  if (lhs_box.max_corner().x() == rhs_box.min_corner().x() ||
+      rhs_box.max_corner().x() == lhs_box.min_corner().x() ||
+      lhs_box.max_corner().y() == rhs_box.min_corner().y() ||
+      rhs_box.max_corner().y() == lhs_box.min_corner().y()) {
+    multi_polygon_type_fp new_rhs;
+    bg::convert(rhs, new_rhs);
+    return bg_helpers::buffer(lhs, 0.00001) + bg_helpers::buffer(new_rhs, 0.00001);
+  }
+  bg::model::multi_polygon<polygon_type_t> ret;
+  bg::union_(lhs, rhs, ret);
+  return ret;
+}
 
 #endif //BG_HELPERS_H

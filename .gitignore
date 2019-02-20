@@ -75,4 +75,4 @@ testing/gerbv_example/*/*.svg
 .directory
 
 #gerberimporter_tests outputs
-/*.xpm
+/*.gbr.png
