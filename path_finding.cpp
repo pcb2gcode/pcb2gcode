@@ -96,8 +96,6 @@ inline bool is_intersecting(const point_type_fp& p0, const point_type_fp& p1,
   return true;
 }
 
-
-// This is a point surface that doesn't have a start and end in it.
 class PathSurface {
  public:
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
@@ -121,13 +119,15 @@ class PathSurface {
     }
     distance.resize(points_num());
   }
-  // Return from all_vertices with begin==0 and end==1 and the rest shifted by 2.
+
   const point_type_fp& get_point_by_index(const size_t index) const {
     return all_vertices[index];
   }
+
   const size_t points_num() const {
     return all_vertices.size();
   }
+
   // Returns true if there is at least some path from begin to end.
   bool has_path() {
     return total_keep_in_grown.size() > 0;
