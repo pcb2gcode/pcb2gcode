@@ -104,24 +104,25 @@ void Board::createLayers()
       max_x = std::max(max_x, importer->get_max_x() + tool_diameter);
       min_y = std::min(min_y, importer->get_min_y() - tool_diameter);
       max_y = std::max(max_y, importer->get_max_y() + tool_diameter);
-    }
-    for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
-      const auto current_layer = prepared_layers.find(layer_name);
-      if (current_layer != prepared_layers.cend()) {
-        shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
-        const auto& importer = get<0>(current_layer->second);
-        for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
-          auto tool_diameter = tool.first;
-          auto overlap_width = tool.second;
-          auto extra_passes = std::max(
-              int(std::ceil((trace_mill->isolation_width - tool_diameter) / (tool_diameter - overlap_width))),
-              trace_mill->extra_passes);
-          // Figure out how much margin the extra passes might make.
-          double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
-          min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin);
-          max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin);
-          min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin);
-          max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin);
+    } else {
+      for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
+        const auto current_layer = prepared_layers.find(layer_name);
+        if (current_layer != prepared_layers.cend()) {
+          shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
+          const auto& importer = get<0>(current_layer->second);
+          for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
+            auto tool_diameter = tool.first;
+            auto overlap_width = tool.second;
+            auto extra_passes = std::max(
+                int(std::ceil((trace_mill->isolation_width - tool_diameter) / (tool_diameter - overlap_width))),
+                trace_mill->extra_passes);
+            // Figure out how much margin the extra passes might make.
+            double extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
+            min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin);
+            max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin);
+            min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin);
+            max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin);
+          }
         }
       }
     }
