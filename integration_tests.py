@@ -35,6 +35,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "edge-cuts-broken-loop",
                   "example_board_al_custom",
                   "example_board_al_linuxcnc",
+                  "invert_gerbers",
                   "KNoT-Gateway Mini Starter Board",
                   "KNoT_Thing_Starter_Board",
                   "mill_masking",

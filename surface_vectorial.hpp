@@ -46,7 +46,8 @@
 class Surface_vectorial: public Core, virtual public boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
-                    std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction);
+                    std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
+                    bool invert_gerbers);
 
   std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
@@ -73,6 +74,7 @@ protected:
 
   bool fill;
   const MillFeedDirection::MillFeedDirection mill_feed_direction;
+  const bool invert_gerbers;
 
   std::shared_ptr<multi_polygon_type_fp> vectorial_surface;
   multi_polygon_type_fp voronoi;
