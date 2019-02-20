@@ -263,7 +263,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             outputdir,
             vm["vectorial"].as<bool>(),
             vm["tsp-2opt"].as<bool>(),
-            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()));
+            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
+            vm["invert-gerbers"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))

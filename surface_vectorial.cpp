@@ -72,7 +72,8 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
                                      ivalue_t min_x, ivalue_t max_x,
                                      ivalue_t min_y, ivalue_t max_y,
                                      string name, string outputdir,
-                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction) :
+                                     bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
+                                     bool invert_gerbers) :
     points_per_circle(points_per_circle),
     bounding_box(box_type_fp(point_type_fp(min_x, min_y),
                              point_type_fp(max_x, max_y))),
@@ -80,7 +81,8 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
     fill(false),
-    mill_feed_direction(mill_feed_direction) {}
+    mill_feed_direction(mill_feed_direction),
+    invert_gerbers(invert_gerbers) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
   multi_polygon_type_fp vectorial_surface_not_simplified;
@@ -222,6 +224,9 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
 vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(*vectorial_surface);
+  if (invert_gerbers) {
+    *vectorial_surface = bounding_box - *vectorial_surface;
+  }
   const auto tolerance = mill->tolerance;
   // Get the voronoi region for each trace.
   voronoi = Voronoi::build_voronoi(*vectorial_surface, bounding_box, tolerance);
@@ -254,6 +259,18 @@ vector<vector<shared_ptr<icoords>>> Surface_vectorial::get_toolpath(
         }
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk);
+        if (invert_gerbers) {
+          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
+          vector<pair<linestring_type_fp, bool>> temp;
+          for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+            multi_linestring_type_fp temp_mls;
+            temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
+            for (const auto& ls : temp_mls) {
+              temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
+            }
+          }
+          new_trace_toolpath.swap(temp);
+        }
         if (mill->optimise) {
           for (auto& ls_and_allow_reversal : new_trace_toolpath) {
             linestring_type_fp temp_ls;
@@ -728,9 +745,9 @@ void attach_polygons(const shared_ptr<RoutingMill>& mill,
 // it will be on the back.  The tool_suffix is for making unique filenames if
 // there are multiple tools.  The already_milled_shrunk is the running union of
 // all the milled area so far, so that new milling can avoid re-milling areas
-// that are already milled.  Returns first the direcitonal toolpaths and then
-// the bidircitonal toolpaths.  For the former, the dirction must be maintained.
-// For the latter, they can be turned around if needed.
+// that are already milled.  Returns each pass' toolpath with a boolean
+// indicating if the path can be reversed.  True means reversal is allowed and
+// false means that it isn't.
 vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
@@ -916,6 +933,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       masked_expanded_milling_polys = ((mpoly & *(mask->vectorial_surface)) + path_minimum) & voronoi_polygon;
     } else {
       masked_expanded_milling_polys = mpoly;
+    }
+    if (invert_gerbers) {
+      masked_expanded_milling_polys = masked_expanded_milling_polys & bounding_box;
+    }
+    if (polygons.size() > 0 && bg::equals(masked_expanded_milling_polys, polygons.back())) {
+      // Once we start getting repeats, we can expect that all the rest will be
+      // the same so we're done.
+      break;
     }
     polygons.push_back(masked_expanded_milling_polys);
   }

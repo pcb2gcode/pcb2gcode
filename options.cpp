@@ -288,6 +288,8 @@ options::options()
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
        ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY),
         "In which direction should all milling occur")
+       ("invert-gerbers", po::value<bool>()->default_value(false)->implicit_value(true),
+        "Invert polarity of all gerbers, causing the milling to occur inside the shapes")
        ("output-dir", po::value<string>()->default_value(""), "output directory")
        ("basename", po::value<string>(), "prefix for default output file names")
        ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
