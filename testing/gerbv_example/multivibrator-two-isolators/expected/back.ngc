@@ -967,12 +967,12 @@ G01 X-3.87350 Y-2.54001
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.90263 Y-2.51088 ( rapid move to begin. )
+G00 X-3.90263 Y-2.51089 ( rapid move to begin. )
 G01 F0.50000
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F1.00000
-G01 X-3.90263 Y-2.51088
+G01 X-3.90263 Y-2.51089
 G01 X-3.91964 Y-2.49390
 G01 X-3.92263 Y-2.49154
 G01 X-3.92716 Y-2.48947
