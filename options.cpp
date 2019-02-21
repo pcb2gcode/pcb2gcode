@@ -281,7 +281,10 @@ options::options()
        ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
        ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
        ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
-       ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)");
+       ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
+       ("path-finding-limit", po::value<size_t>()->default_value(200000), "Use path finding for up to this many steps in the search (more is slower but makes a faster gcode path)")
+       ("g0-vertical-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("50in/min")), "speed of vertical G0 movements, for use in path-finding")
+       ("g0-horizontal-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("100in/min")), "speed of horizontal G0 movements, for use in path-finding");
    cfg_options.add(optimization_options);
 
    po::options_description autolevelling_options("Autolevelling options, for generating gcode to automatically probe the board and adjust milling depth to the actual board height");
