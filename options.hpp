@@ -133,7 +133,7 @@ private:
     options();
     po::variables_map vm;
     po::options_description cli_options;      //CLI options
-    po::options_description cfg_options;      //generic options
+    po::options_description cfg_options;      // all the non-CLI options
     static options& instance();
 };
 

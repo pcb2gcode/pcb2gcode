@@ -192,21 +192,42 @@ void options::parse_files()
  */
 /******************************************************************************/
 options::options()
-         : cli_options("command line only options"), cfg_options("generic options (CLI and config files)") {
+         : cli_options("command line only options"), cfg_options("Generic options (CLI and config files)") {
 
    cli_options.add_options()
        ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
        ("help,?", "produce help message")
        ("version,V", "show the current software version");
-   cfg_options.add_options()
-       ("ignore-warnings", po::value<bool>()->default_value(false)->implicit_value(true), "Ignore warnings")
+   po::options_description drilling_options("Drilling options, for making holes in the PCB");
+
+   drilling_options.add_options()
+       ("drill", po::value<string>(), "Excellon drill file")
+       ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
+       ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
+       ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
+        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+       ("zdrill", po::value<Length>(), "drilling depth")
+       ("zmilldrill", po::value<Length>(), "milldrilling depth")
+       ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
+       ("drill-speed", po::value<Rpm>(), "spindle rpm when drilling")
+       ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
+       ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO),
+        "drill side; valid choices are front, back or auto (default)")
+       ("drills-available", po::value<std::vector<AvailableDrills>>()
+        ->default_value(std::vector<AvailableDrills>{})
+        ->multitoken(), "list of drills available")
+       ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
+       ("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
+       ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
+       ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
+       ("milldrill-output", po::value<string>()->default_value("milldrill.ngc"), "output file for milldrilling");
+   cfg_options.add(drilling_options);
+
+   po::options_description milling_options("Milling options, for milling traces into the PCB");
+   milling_options.add_options()
        ("front", po::value<string>(),"front side RS274-X .gbr")
        ("back", po::value<string>(), "back side RS274-X .gbr")
-       ("outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")
-       ("drill", po::value<string>(), "Excellon drill file")
-       ("svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")
-       ("zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")
-       ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
+       ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
        ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
         "  Distance between the PCB traces and the end mill path; usually half the isolation width")
        ("mill-diameters", po::value<std::vector<CommaSeparated<Length>>>()->default_value({{Length(0)}})
@@ -215,25 +236,28 @@ options::options()
         "How much to overlap milling passes, from 0% to 100% or an absolute length")
        ("isolation-width", po::value<Length>()->default_value(Length(0)),
         "Minimum isolation width between copper surfaces")
-       ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
-       ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
-       ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")
-       ("post-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""), "custom gcode inserted after the end of milling each trace (used to deactivate pump or fan or laser connected to fan)")
-       ("spinup-time", po::value<Time>()->default_value(parse_unit<Time>("1 ms")), "time required to the spindle to reach the correct speed")
-       ("spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")
-       ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
-       ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
-       ("x-offset", po::value<Length>()->default_value(0), "offset the origin in the x-axis by this length")
-       ("y-offset", po::value<Length>()->default_value(0), "offset the origin in the y-axis by this length")
-       ("mill-speed", po::value<Rpm>(), "spindle rpm when milling")
-       ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
-       ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
-       ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
-        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
-       ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
-       ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
        ("extra-passes", po::value<int>()->default_value(0), "[DEPRECATED] use --isolation-width instead. "
         "Specify the the number of extra isolation passes, increasing the isolation width half the tool diameter with each pass")
+       ("pre-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""),
+        "custom gcode inserted before the start of milling each trace (used to activate pump or fan or laser connected to fan)")
+       ("post-milling-gcode", po::value<std::vector<string>>()->default_value(std::vector<string>{}, ""),
+        "custom gcode inserted after the end of milling each trace (used to deactivate pump or fan or laser connected to fan)")
+       ("zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")
+       ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
+       ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
+       ("mill-speed", po::value<Rpm>(), "spindle rpm when milling")
+       ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY),
+        "In which direction should all milling occur")
+       ("invert-gerbers", po::value<bool>()->default_value(false)->implicit_value(true),
+        "Invert polarity of front and back gerbers, causing the milling to occur inside the shapes")
+       ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
+       ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
+       ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer");
+   cfg_options.add(milling_options);
+
+   po::options_description outline_options("Outline options, for cutting the PCB out of the FR4");
+   outline_options.add_options()
+       ("outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")
        ("fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")
        ("outline-width", po::value<Length>()->default_value(parse_unit<Length>("1.5mm")), "width of the outline, used only when vectorial is disabled")
        ("cutter-diameter", po::value<Length>(), "diameter of the end mill used for cutting out the PCB")
@@ -244,59 +268,72 @@ options::options()
        ("cut-infeed", po::value<Length>(), "maximum cutting depth; PCB may be cut in multiple passes")
        ("cut-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use cut-side instead] cut from front side. ")
        ("cut-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "cut side; valid choices are front, back or auto (default)")
-       ("zdrill", po::value<Length>(), "drilling depth")
-       ("zmilldrill", po::value<Length>(), "milldrilling depth")
-       ("zchange", po::value<Length>(), "tool changing height")
-       ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
-       ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
-       ("drill-speed", po::value<Rpm>(), "spindle rpm when drilling")
-       ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
-       ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO), "drill side; valid choices are front, back or auto (default)")
-       ("drills-available", po::value<std::vector<AvailableDrills>>()
-        ->default_value(std::vector<AvailableDrills>{})
-        ->multitoken(), "list of drills available")
-       ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
-       ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
-       ("metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")
-       ("optimise", po::value<bool>()->default_value(true)->implicit_value(true), "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")
-       ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
        ("bridges", po::value<Length>()->default_value(Length(0)), "add bridges with the given width to the outline cut")
        ("bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")
        ("zbridges", po::value<Length>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")
-       ("tile-x", po::value<int>()->default_value(1), "number of tiling columns. Default value is 1")
-       ("tile-y", po::value<int>()->default_value(1), "number of tiling rows. Default value is 1")
+       ("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline");
+   cfg_options.add(outline_options);
+
+   po::options_description optimization_options("Optimization options, for faster PCB creation, smaller output files, and different algorithms.");
+   optimization_options.add_options()
+       ("optimise", po::value<bool>()->default_value(true)->implicit_value(true),
+        "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")
+       ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
+       ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
+       ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
+       ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)");
+   cfg_options.add(optimization_options);
+
+   po::options_description autolevelling_options("Autolevelling options, for generating gcode to automatically probe the board and adjust milling depth to the actual board height");
+   autolevelling_options.add_options()
        ("al-front", po::value<bool>()->default_value(false)->implicit_value(true), "enable the z autoleveller for the front layer")
        ("al-back", po::value<bool>()->default_value(false)->implicit_value(true),
-            "enable the z autoleveller for the back layer")
-       ("software", po::value<Software::Software>(), "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")
+        "enable the z autoleveller for the back layer")
+       ("software", po::value<Software::Software>(),
+        "choose the destination software (useful only with the autoleveller). Supported programs are linuxcnc, mach3, mach4 and custom")
        ("al-x", po::value<Length>(), "max x distance between probes")
        ("al-y", po::value<Length>(), "max y distance bewteen probes")
        ("al-probefeed", po::value<Velocity>(), "speed during the probing")
-       ("al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to enable the probe tool (default is M0)")
-       ("al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"), "execute this commands to disable the probe tool (default is M0)")
+       ("al-probe-on", po::value<string>()->default_value("(MSG, Attach the probe tool)@M0 ( Temporary machine stop. )"),
+        "execute this commands to enable the probe tool (default is M0)")
+       ("al-probe-off", po::value<string>()->default_value("(MSG, Detach the probe tool)@M0 ( Temporary machine stop. )"),
+        "execute this commands to disable the probe tool (default is M0)")
        ("al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")
        ("al-probevar", po::value<unsigned int>()->default_value(2002), "number of the variable where the result of the probing is saved (default is 2002)")
-       ("al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)")
-       ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
-       ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
+       ("al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)");
+   cfg_options.add(autolevelling_options);
+
+   po::options_description alignment_options("Alignment options, useful for aligning the milling on opposite sides of the PCB");
+   alignment_options.add_options()
+       ("x-offset", po::value<Length>()->default_value(0), "offset the origin in the x-axis by this length")
+       ("y-offset", po::value<Length>()->default_value(0), "offset the origin in the y-axis by this length")
        ("zero-start", po::value<bool>()->default_value(false)->implicit_value(true), "set the starting point of the project at (0,0)")
+       ("mirror-absolute", po::value<bool>()->default_value(true)->implicit_value(true),
+        "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")
+       ("mirror-axis", po::value<Length>()->default_value(Length(0)), "For two-sided boards, the PCB needs to be flipped along the axis x=VALUE");
+   cfg_options.add(alignment_options);
+
+   po::options_description cnc_options("CNC options, common to all the milling, drilling, and cutting");
+   cnc_options.add_options()
+       ("zsafe", po::value<Length>(), "safety height (Z-coordinate during rapid moves)")
+       ("spinup-time", po::value<Time>()->default_value(parse_unit<Time>("1 ms")), "time required to the spindle to reach the correct speed")
+       ("spindown-time", po::value<Time>(), "time required to the spindle to return to 0 rpm")
+       ("zchange", po::value<Length>(), "tool changing height")
+       ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
+       ("tile-x", po::value<int>()->default_value(1), "number of tiling columns. Default value is 1")
+       ("tile-y", po::value<int>()->default_value(1), "number of tiling rows. Default value is 1");
+   cfg_options.add(cnc_options);
+
+   cfg_options.add_options()
+       ("ignore-warnings", po::value<bool>()->default_value(false)->implicit_value(true), "Ignore warnings")
+       ("svg", po::value<string>(), "[DEPRECATED] use --vectorial, SVGs will be generated automatically; this option has no effect")
+       ("metric", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for parameters. does not affect gcode output")
+       ("metricoutput", po::value<bool>()->default_value(false)->implicit_value(true), "use metric units for output")
        ("g64", po::value<double>(), "[DEPRECATED, use tolerance instead] maximum deviation from toolpath, overrides internal calculation")
        ("tolerance", po::value<double>(), "maximum toolpath tolerance")
        ("nog64", po::value<bool>()->default_value(false)->implicit_value(true), "do not set an explicit g64")
-       ("mirror-absolute", po::value<bool>()->default_value(true)->implicit_value(true), "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")
-       ("mirror-axis", po::value<Length>()->default_value(Length(0)), "For two-sided boards, the PCB needs to be flipped along the axis x=VALUE")
-       ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
-       ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY),
-        "In which direction should all milling occur")
-       ("invert-gerbers", po::value<bool>()->default_value(false)->implicit_value(true),
-        "Invert polarity of all gerbers, causing the milling to occur inside the shapes")
        ("output-dir", po::value<string>()->default_value(""), "output directory")
        ("basename", po::value<string>(), "prefix for default output file names")
-       ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
-       ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer")
-       ("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline")
-       ("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
-       ("milldrill-output", po::value<string>()->default_value("milldrill.ngc"), "output file for milldrilling")
        ("preamble-text", po::value<string>(), "preamble text file, inserted at the very beginning as a comment.")
        ("preamble", po::value<string>(), "gcode preamble file, inserted at the very beginning.")
        ("postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.")
