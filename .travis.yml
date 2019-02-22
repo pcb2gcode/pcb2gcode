@@ -132,7 +132,7 @@ install:
       cd build &&
       cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
       ninja install &&
-      export IWYU_BIN=${PWD}/bin/include-what-you-use &&
+      export IWYU_BIN="${PWD}/bin/include-what-you-use --mapping_file=${PWD}/../boost-all.imp" &&
       popd
     fi
 
@@ -148,7 +148,7 @@ script:
     fi || travis_terminate 1
   - >
     if [[ "${IWYU}" ]]; then
-      make -k CXX=${IWYU_BIN}; travis_terminate 0;
+      make -k CXX="${IWYU_BIN}"; travis_terminate 0;
     fi
   - chronic make -j 2 || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
