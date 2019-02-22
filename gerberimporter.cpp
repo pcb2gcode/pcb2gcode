@@ -54,6 +54,7 @@ using std::map;
 #include "gerberimporter.hpp"
 #include "eulerian_paths.hpp"
 #include "bg_helpers.hpp"
+#include "merge_near_points.hpp"
 
 namespace bg = boost::geometry;
 
@@ -685,10 +686,16 @@ struct PointLessThan {
  * error.
  */
 multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines, unsigned int points_per_circle) {
+  multi_linestring_type_fp new_paths(paths);
+  if (fill_closed_lines) {
+    if (merge_near_points(new_paths, diameter) > 0) {
+      cerr << "Some nearly-connected lines in the gerber input have been adjusted to properly connect" << endl;
+    }
+  }
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths =
       eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-          paths, vector<bool>(paths.size(), true));
+          new_paths, vector<bool>(new_paths.size(), true));
   multi_polygon_type_fp ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {

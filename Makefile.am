@@ -24,6 +24,8 @@ pcb2gcode_SOURCES = \
     importer.hpp \
     layer.hpp \
     layer.cpp \
+    merge_near_points.hpp \
+    merge_near_points.cpp \
     mill.hpp \
     ngc_exporter.hpp \
     ngc_exporter.cpp \
@@ -73,7 +75,7 @@ path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_findin
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
-gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp
+gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp
 gerberimporter_tests_LDFLAGS = $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
 

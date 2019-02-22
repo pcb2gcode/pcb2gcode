@@ -191,13 +191,13 @@ void test_one(const string& gerber_file, double max_error_rate) {
 // For cases when even gerbv is wrong, just check that the number of pixels
 // marked is more or less correct.  Look at http://www.gerber-viewer.com/ to
 // test these.
-void test_visual(const string& gerber_file, double min_set_ratio, double max_set_ratio) {
+void test_visual(const string& gerber_file, bool fill_closed_lines, double min_set_ratio, double max_set_ratio) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, 30);
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, 30);
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = bounding_box.min_corner().x();
@@ -215,6 +215,7 @@ void test_visual(const string& gerber_file, double min_set_ratio, double max_set
         break;
       default:
         marked += kv.second;
+        total += kv.second;
         break;
     }
   }
@@ -258,7 +259,8 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("thermal.gbr",                 0.011);
   test_one("cutins.gbr",                  0.000);
 
-  test_visual("circular_arcs.gbr",        0.084,    0.085);
+  test_visual("circular_arcs.gbr", false, 0.077,    0.078);
+  test_visual("broken_box.gbr",    true,  0.700,    0.701);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
