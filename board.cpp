@@ -109,7 +109,9 @@ void Board::createLayers()
           shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
           const auto& importer = get<0>(current_layer->second);
           for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
-            double extra_passes_margin = trace_mill->tolerance * 2;
+            // Testing showed that 2 was not enough by 3 and above remove all
+            // the small connecting lines that would potentially be created.
+            double extra_passes_margin = trace_mill->tolerance * 3;
             if (!invert_gerbers) {
               auto tool_diameter = tool.first;
               auto overlap_width = tool.second;
