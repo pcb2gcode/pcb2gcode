@@ -334,14 +334,12 @@ optional<linestring_type_fp> do_milling(
   const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
   const double horizontalG1speed = mill->feed;
   const double vertG1speed = mill->vertfeed;
-  const double vertG0speed = 50;
-  const double horizontalG0speed = 100;
-  const double g0_time = vertical_distance/vertG0speed + max_manhattan/horizontalG0speed + vertical_distance/vertG1speed;
+  const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
   const double max_g1_distance = g0_time * horizontalG1speed;
-  auto tries = 0;
+  size_t tries = 0;
   path_finding::PathLimiter path_limiter =
       [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
-        if (tries >= 200000) {
+        if (tries >= mill->path_finding_limit) {
           throw path_finding::GiveUp();
         }
         tries++;
