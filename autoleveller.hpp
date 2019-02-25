@@ -26,16 +26,15 @@
 //Fixed probe fail depth (in mm, string)
 #define FIXED_FAIL_DEPTH_MM "-3"
 
-#include <string>
-#include <fstream>
-#include <vector>
-#include <memory>
-#include <boost/program_options.hpp>
-
-#include "geometry.hpp"
-#include "unique_codes.hpp"
-#include "common.hpp"
-#include "tile.hpp"
+#include <fstream>                                  // for ofstream
+#include <memory>                                   // for shared_ptr
+#include <string>                                   // for string
+#include <vector>                                   // for vector
+#include "boost/program_options/variables_map.hpp"  // for variables_map
+#include "common.hpp"                               // for LINUXCNC, Software
+#include "geometry.hpp"                             // for icoordpair, icoords
+#include "tile.hpp"                                 // for Tiling, Tiling::T...
+class uniqueCodes;
 
 class autoleveller
 {
