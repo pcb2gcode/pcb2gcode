@@ -45,7 +45,7 @@ struct surface_exception: virtual std::exception, virtual boost::exception
 /*
  */
 /******************************************************************************/
-class Surface: public Core, virtual public boost::noncopyable {
+class Surface: public Core, private boost::noncopyable {
 public:
   Surface(guint dpi, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y,
           ivalue_t max_y, std::string name, std::string outputdir, bool tsp_2opt);
