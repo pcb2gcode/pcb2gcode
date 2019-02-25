@@ -1,0 +1,4 @@
+[
+#manually include:
+{ include: ["@<boost/geometry/.*>", private, "<boost/geometry.hpp>", public ] }
+]
