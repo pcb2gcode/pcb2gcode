@@ -74,6 +74,7 @@ matrix:
       env: COMPILER=clang++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
 install:
+  - export PCB2GCODE_DIR=$PWD
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       brew update &&
       brew reinstall -s libtool &&
@@ -132,7 +133,7 @@ install:
       cd build &&
       cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
       ninja install &&
-      export IWYU_BIN="${PWD}/bin/include-what-you-use --mapping_file=${PWD}/../../../pcb2gcode-iwyu.imp" &&
+      export IWYU_BIN="${PWD}/bin/include-what-you-use --mapping_file=${PCB2GCODE_DIR}/pcb2gcode-iwyu.imp" &&
       popd
     fi
 
