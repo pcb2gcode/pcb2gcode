@@ -21,22 +21,16 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <stdint.h>
-
-#include <stdexcept>
-#include <sstream>
-
-#include <iostream>
-#include <map>
-#include <vector>
-#include <memory>
-#include <tuple>
-#include "geometry.hpp"
-#include "surface.hpp"
-#include "surface_vectorial.hpp"
-#include "layer.hpp"
-
-#include "mill.hpp"
+#include <map>           // for map
+#include <memory>        // for shared_ptr
+#include <string>        // for string
+#include <tuple>         // for tuple
+#include <vector>        // for vector
+#include "geometry.hpp"  // for ivalue_t, icoords
+#include "units.hpp"     // for MillFeedDirection
+class Layer;
+class LayerImporter;
+class RoutingMill;
 
 /******************************************************************************/
 /*

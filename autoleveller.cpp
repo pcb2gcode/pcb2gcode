@@ -18,16 +18,19 @@
  */
 
 #include "autoleveller.hpp"
+#include <stdlib.h>                                // for abs
+#include <cmath>                                   // for ceil, floor
+#include <memory>                                  // for allocator, __share...
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector, vector<>::...
+#include "boost/algorithm/string/replace.hpp"      // for replace_all_copy
+#include "boost/format.hpp"                        // for format, all_error_...
+#include "boost/geometry.hpp"                      // for box, point_xy, dis...
+#include "boost/optional/optional.hpp"             // for get_pointer
+#include "boost/type_index/type_index_facade.hpp"  // for operator==
+#include "unique_codes.hpp"                        // for uniqueCodes
+#include "units.hpp"                               // for Unit, Length, Velo...
 
-#include <cmath>
-#include <limits>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/geometry/algorithms/distance.hpp>
-
-#include <boost/format.hpp>
-#include <memory>
-#include <vector>
 using boost::format;
 using std::shared_ptr;
 using std::vector;

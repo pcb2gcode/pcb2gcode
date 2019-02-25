@@ -19,20 +19,27 @@
  */
 
 #include "board.hpp"
-#include <memory>
+#include <math.h>                              // for ceil, INFINITY
+#include <algorithm>                           // for max, min
+#include <memory>                              // for shared_ptr, __shared_p...
+#include <stdexcept>                           // for logic_error
+#include <string>                              // for string, basic_string
+#include <utility>                             // for pair, make_pair
+#include <vector>                              // for vector
+#include "boost/container/detail/std_fwd.hpp"  // for pair
+#include "core.hpp"                            // for Core
+#include "importer.hpp"                        // for LayerImporter, RasterL...
+#include "layer.hpp"                           // for Layer
+#include "mill.hpp"                            // for Isolator, Cutter, Rout...
+#include "surface.hpp"                         // for Surface
+#include "surface_vectorial.hpp"               // for Surface_vectorial
+
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
-
-#include <string>
 using std::string;
-
 using std::get;
 using std::static_pointer_cast;
-
-#include <utility>
 using std::pair;
-
-#include <vector>
 using std::vector;
 
 typedef pair<string, shared_ptr<Layer> > layer_t;

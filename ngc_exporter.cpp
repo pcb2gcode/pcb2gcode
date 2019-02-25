@@ -21,38 +21,42 @@
  */
 
 #include "ngc_exporter.hpp"
-#include "options.hpp"
-#include <boost/algorithm/string.hpp>
-#include <iostream>
+#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
+#include <glibmm/miscutils.h>                       // for build_filename
+#include <cmath>                                    // for ceil
+#include <iostream>                                 // for cout, cerr
+#include <memory>                                   // for shared_ptr, alloc...
+#include <stdexcept>                                // for logic_error
+#include <string>                                   // for char_traits, string
+#include <utility>                                  // for pair
+#include <vector>                                   // for vector, vector<>:...
+#include "autoleveller.hpp"                         // for autoleveller
+#include "board.hpp"                                // for Board
+#include "boost/format.hpp"                         // for format
+#include "boost/move/utility_core.hpp"              // for move
+#include "boost/none.hpp"                           // for none
+#include "boost/program_options/variables_map.hpp"  // for variable_value
+#include "boost/type_index/type_index_facade.hpp"   // for operator==
+#include "common.hpp"                               // for workSide, CUSTOM
+#include "layer.hpp"                                // for Layer
+#include "mill.hpp"                                 // for RoutingMill, Cutter
+#include "options.hpp"                              // for ERR_INVALIDPARAMETER
+#include "units.hpp"                                // for Length, Unit, ope...
+
 using std::cerr;
 using std::flush;
 using std::ios_base;
 using std::left;
-#include <string>
 using std::to_string;
 using std::string;
 using std::cout;
 using std::endl;
-
-#include <vector>
 using std::vector;
-
-#include <cmath>
 using std::ceil;
-
-#include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
-
-#include <iomanip>
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <boost/format.hpp>
 using boost::format;
-
-#include "units.hpp"
 
 /******************************************************************************/
 /*
