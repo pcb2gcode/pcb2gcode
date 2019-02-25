@@ -33,8 +33,6 @@ pcb2gcode_SOURCES = \
     path_finding.cpp \
     segmentize.hpp \
     segmentize.cpp \
-    surface.hpp \
-    surface.cpp \
     surface_vectorial.hpp \
     surface_vectorial.cpp \
     tile.hpp \

@@ -27,7 +27,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "geometry.hpp"
-#include "surface.hpp"
+#include "core.hpp"
 #include "mill.hpp"
 
 class Layer : private boost::noncopyable {

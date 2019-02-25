@@ -32,7 +32,6 @@
 #include <memory>
 #include <tuple>
 #include "geometry.hpp"
-#include "surface.hpp"
 #include "surface_vectorial.hpp"
 #include "layer.hpp"
 

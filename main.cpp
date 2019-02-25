@@ -48,7 +48,6 @@ using Glib::ustring;
 using Glib::build_filename;
 
 #include "gerberimporter.hpp"
-#include "surface.hpp"
 #include "ngc_exporter.hpp"
 #include "board.hpp"
 #include "drill.hpp"
