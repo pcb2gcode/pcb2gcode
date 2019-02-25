@@ -43,7 +43,7 @@
 /*
  */
 /******************************************************************************/
-class Surface_vectorial: public Core, virtual public boost::noncopyable {
+class Surface_vectorial: public Core, virtual private boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
