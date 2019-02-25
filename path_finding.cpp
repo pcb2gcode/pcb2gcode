@@ -100,9 +100,7 @@ class PathSurface {
  public:
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
               PathLimiter path_limiter)
-      : path_limiter(path_limiter),
-        begin(begin),
-        end(end) {
+      : path_limiter(path_limiter) {
     total_keep_in_grown.clear();
     for (const auto& poly : base->total_keep_in_grown) {
       if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
@@ -169,8 +167,6 @@ class PathSurface {
   const PathLimiter path_limiter;
  private:
   mutable std::unordered_map<size_t, bool> in_surface_memo;
-  const point_type_fp begin;
-  const point_type_fp end;
   multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;
 };
