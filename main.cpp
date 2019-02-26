@@ -22,42 +22,40 @@
 
 #include <gdkmm/wrap_init.h>                             // for wrap_init
 #include <glibmm/init.h>                                 // for init
-#include <glibmm/miscutils.h>                            // for build_filename
 #include <math.h>                                        // for INFINITY
 #include <stddef.h>                                      // for size_t, NULL
 #include <boost/version.hpp>                             // for BOOST_VERSION
-#include <iostream>                                      // for operator<<
-#include <iterator>                                      // for istreambuf_i...
+#include <iostream>                                      // for operator<<, ostream, cout, basic_ostream, flush, fstream, endl, basic_istream, basic_ostream::operator<<, basic_ostream<>::__ostream_type, cerr
+#include <iterator>                                      // for istreambuf_iterator, operator!=, operator==
 #include <limits>                                        // for numeric_limits
-#include <memory>                                        // for shared_ptr
-#include <string>                                        // for string, basi...
+#include <memory>                                        // for shared_ptr, __shared_ptr_access, __shared_ptr_access<>::element_type, allocator
+#include <string>                                        // for string, basic_string, operator+, char_traits, getline, operator<<
 #include <utility>                                       // for pair, make_pair
 #include <vector>                                        // for vector
 #include "board.hpp"                                     // for Board
 #include "boost/algorithm/string/erase.hpp"              // for erase_all
 #include "boost/algorithm/string/join.hpp"               // for join
 #include "boost/algorithm/string/replace.hpp"            // for replace_all
-#include "boost/iterator/iterator_traits.hpp"            // for iterator_val...
+#include "boost/iterator/iterator_traits.hpp"            // for iterator_value<>::type
 #include "boost/move/utility_core.hpp"                   // for move
 #include "boost/none.hpp"                                // for none
 #include "boost/optional/optional.hpp"                   // for optional
-#include "boost/program_options/variables_map.hpp"       // for variables_map
+#include "boost/program_options.hpp"                     // for variables_map, variable_value
 #include "boost/type_index/type_index_facade.hpp"        // for operator==
 #include "boost/units/detail/one.hpp"                    // for operator>
 #include "boost/variant/detail/apply_visitor_unary.hpp"  // for apply_visitor
-#include "boost/variant/static_visitor.hpp"              // for static_visit...
+#include "boost/variant/static_visitor.hpp"              // for static_visitor<>::result_type
 #include "boost/variant/variant.hpp"                     // for variant
 #include "common.hpp"                                    // for workSide
-#include "config.h"                                      // for PACKAGE_STRING
-#include "drill.hpp"                                     // for ExcellonProc...
+#include "config.h"                                      // for PACKAGE_STRING, PACKAGE_VERSION
+#include "drill.hpp"                                     // for ExcellonProcessor, drill_exception
 #include "geometry.hpp"                                  // for icoordpair
 #include "gerberimporter.hpp"                            // for GerberImporter
-#include "mill.hpp"                                      // for Cutter, Isol...
+#include "mill.hpp"                                      // for Cutter, Isolator, Driller
 #include "ngc_exporter.hpp"                              // for NGC_Exporter
-#include "options.hpp"                                   // for options, ERR...
-#include "tile.hpp"                                      // for Tiling, Tili...
-#include "units.hpp"                                     // for Unit, Length
-namespace Glib { class ustring; }
+#include "options.hpp"                                   // for options, ERR_INVALIDPARAMETER, pcb2gcode_parse_exception
+#include "tile.hpp"                                      // for Tiling, Tiling::TileInfo
+#include "units.hpp"                                     // for Unit, Length, Velocity, percent_visitor, Time, Rpm, flatten, CommaSeparated, MillFeedDirection, Percent, UnitBase
 
 using std::vector;
 using std::cout;
@@ -67,8 +65,6 @@ using std::flush;
 using std::fstream;
 using std::shared_ptr;
 using std::string;
-using Glib::ustring;
-using Glib::build_filename;
 
 void do_pcb2gcode(int argc, const char* argv[]) {
     Glib::init();
