@@ -133,7 +133,7 @@ install:
       cd build &&
       cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
       ninja install &&
-      export IWYU_BIN="${PWD}/bin/include-what-you-use -Xiwyu --mapping_file=${PCB2GCODE_DIR}/pcb2gcode-iwyu.imp -Xiwyu --check_also=${PCB2GCODE_DIR}/* -Xiwyu --verbose=1" &&
+      export IWYU_BIN="${PWD}/bin/include-what-you-use -Xiwyu --mapping_file=${PCB2GCODE_DIR}/pcb2gcode-iwyu.imp -Xiwyu --check_also=${PCB2GCODE_DIR}/* -Xiwyu --verbose=3" &&
       popd
     fi
 

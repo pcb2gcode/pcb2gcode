@@ -20,12 +20,11 @@
 #ifndef TILE_H
 #define TILE_H
 
-#include <fstream>
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include "common.hpp"
-#include "unique_codes.hpp"
+#include <fstream>                                  // for ofstream
+#include <string>                                   // for string
+#include "boost/program_options/variables_map.hpp"  // for variables_map
+#include "common.hpp"                               // for Software
+class uniqueCodes;
 
 class Tiling
 {

@@ -21,7 +21,6 @@
  */
 
 #include "ngc_exporter.hpp"
-#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
 #include <glibmm/miscutils.h>                       // for build_filename
 #include <cmath>                                    // for ceil
 #include <iostream>                                 // for cout, cerr
@@ -32,8 +31,7 @@
 #include <vector>                                   // for vector, vector<>:...
 #include "autoleveller.hpp"                         // for autoleveller
 #include "board.hpp"                                // for Board
-#include "boost/format.hpp"                         // for format
-#include "boost/move/utility_core.hpp"              // for move
+#include "boost/format.hpp"                         // for basic_altstringbu...
 #include "boost/none.hpp"                           // for none
 #include "boost/program_options/variables_map.hpp"  // for variable_value
 #include "boost/type_index/type_index_facade.hpp"   // for operator==

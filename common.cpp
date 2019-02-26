@@ -18,7 +18,7 @@
  */
 
 #include "common.hpp"
-#include "boost/format/format_fwd.hpp"             // for format
+#include "boost/format.hpp"                        // for format
 #include "boost/type_index/type_index_facade.hpp"  // for operator==
 #include "units.hpp"                               // for AUTO, BACK, BoardSide
 

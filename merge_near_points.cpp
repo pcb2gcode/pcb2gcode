@@ -1,5 +1,4 @@
 #include <stddef.h>                            // for size_t
-#include <algorithm>                           // for max
 #include <map>                                 // for _Rb_tree_iterator, map
 #include <tuple>                               // for tie, operator<, tuple
 #include <utility>                             // for pair

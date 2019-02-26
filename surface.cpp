@@ -25,7 +25,7 @@
 #include <math.h>                              // for fabs, sqrt
 #include <stdio.h>                             // for fprintf, stderr
 #include <stdlib.h>                            // for rand
-#include <algorithm>                           // for copy, max, copy_backward
+#include <algorithm>                           // for max, copy, copy_backward
 #include <iostream>                            // for operator<<, basic_ostr...
 #include <list>                                // for _List_const_iterator
 #include <memory>                              // for __shared_ptr_access<>:...
@@ -37,7 +37,6 @@
 #include "boost/format.hpp"                    // for basic_altstringbuf<>::...
 #include "boost/geometry.hpp"                  // for simplify
 #include "boost/move/utility_core.hpp"         // for move
-#include "boost/optional/optional.hpp"         // for get_pointer
 #include "cairomm/enums.h"                     // for FORMAT_ARGB32
 #include "gdkmm/pixbuf.h"                      // for Pixbuf, COLORSPACE_RGB
 #include "glibmm/refptr.h"                     // for RefPtr
@@ -74,7 +73,6 @@ void Surface::make_the_surface(unsigned int width, unsigned int height)
                     Cairo::FORMAT_ARGB32, width, height, pixbuf->get_rowstride());
 }
 
-#include <iostream>
 using std::cerr;
 using std::endl;
 
@@ -125,7 +123,6 @@ void Surface::render(shared_ptr<RasterLayerImporter> importer)
         fill_outline();
 }
 
-#include <iostream>
 using std::cout;
 using std::endl;
 using std::list;
@@ -296,8 +293,6 @@ std::vector<std::pair<int, int> > Surface::fill_all_components()
 
     return components;
 }
-
-#include <stack>
 
 /******************************************************************************/
 /*
@@ -696,8 +691,6 @@ void Surface::add_mask(shared_ptr<Core> mask_surface)
     else
         throw std::logic_error("Can't cast Core to Surface");
 }
-
-#include <boost/format.hpp>
 
 /******************************************************************************/
 /*

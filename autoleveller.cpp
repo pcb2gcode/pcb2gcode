@@ -24,9 +24,8 @@
 #include <utility>                                 // for pair
 #include <vector>                                  // for vector, vector<>::...
 #include "boost/algorithm/string/replace.hpp"      // for replace_all_copy
-#include "boost/format.hpp"                        // for format, all_error_...
+#include "boost/format.hpp"                        // for basic_altstringbuf...
 #include "boost/geometry.hpp"                      // for box, point_xy, dis...
-#include "boost/optional/optional.hpp"             // for get_pointer
 #include "boost/type_index/type_index_facade.hpp"  // for operator==
 #include "unique_codes.hpp"                        // for uniqueCodes
 #include "units.hpp"                               // for Unit, Length, Velo...
@@ -37,8 +36,6 @@ using std::vector;
 using std::endl;
 using std::to_string;
 using std::string;
-
-#include "units.hpp"
 
 const string autoleveller::callSubRepeat[] = {
  "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",
