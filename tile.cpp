@@ -18,10 +18,9 @@
  */
 
 #include "tile.hpp"
-#include "boost/format.hpp"                        // for basic_altstringbuf...
-#include "boost/optional/optional.hpp"             // for get_pointer
+#include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, operator<<, format, str
 #include "boost/type_index/type_index_facade.hpp"  // for operator==
-class uniqueCodes;
+class uniqueCodes;  // lines 24-24
 
 using boost::format;
 

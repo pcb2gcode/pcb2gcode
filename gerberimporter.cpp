@@ -17,32 +17,32 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "gerberimporter.hpp"
-#include <math.h>                              // for atan2, cos, round, sin
+#include <math.h>                              // for atan2, cos, round, sin, ceil
 #include <stdlib.h>                            // for abs, NULL, size_t
 #include <string.h>                            // for strcpy, strlen
 #include <algorithm>                           // for min, remove_if, reverse
-#include <forward_list>                        // for forward_list, swap
 #include <initializer_list>                    // for initializer_list
-#include <iostream>                            // for operator<<, endl, basi...
-#include <iterator>                            // for next, prev, make_move_...
+#include <iostream>                            // for operator<<, endl, basic_ostream, cerr, ostream, basic_ostream::operator<<, basic_ostream<>::__ostream_type
+#include <iterator>                            // for next, prev, make_move_iterator
 #include <list>                                // for list
-#include <map>                                 // for map, map<>::mapped_type
-#include <memory>                              // for allocator_traits<>::va...
+#include <map>                                 // for map, map<>::mapped_type, _Rb_tree_const_iterator
+#include <memory>                              // for allocator_traits<>::value_type, unique_ptr
 #include <set>                                 // for set
 #include <string>                              // for string
 #include <tuple>                               // for tie, operator<, tuple
 #include <utility>                             // for pair
 #include <vector>                              // for vector
-#include "bg_helpers.hpp"                      // for operator+, operator-
+#include "bg_helpers.hpp"                      // for operator+, operator-, operator^
 #include "boost/container/detail/std_fwd.hpp"  // for pair
-#include "boost/geometry.hpp"                  // for ring, multi_polygon
+#include "boost/geometry.hpp"                  // for ring, multi_polygon, polygon, distance_symmetric, pi, end_round, distance, side_straight, transform, correct, join_round, polygon<>::ring_type, scale_transformer, append, area, buffer, convert, end_flat, equals, point_circle, linestring, convex_hull, multi_linestring, point_xy, ring_type<>::type, geometry, rotate_transformer, translate_transformer
 #include "cairomm/context.h"                   // for Context
 #include "cairomm/refptr.h"                    // for RefPtr
 #include "cairomm/surface.h"                   // for ImageSurface, Surface
 #include "eulerian_paths.hpp"                  // for get_eulerian_paths
 extern "C" {
-#include "gerbv.h"                             // for gerbv_net_t, gerbv_ape...
+#include "gerbv.h"                             // for gerbv_net_t, gerbv_aperture_t, gerbv_step_and_repeat_t, gerbv_fileinfo_t, gerbv_image_t, gerbv_layer_t, gerbv_project_t, gerbv_render_info_t, gerbv_cirseg_t, gerbv_simplified_amacro_t, gerbv_image_info_t, GERBV_APTYPE_CIRCLE, GERBV_APTYPE_RECTANGLE, GERBV_INTERPOLATION_CW_CIRCULAR, gerbv_create_project, gerbv_destroy_project, gerbv_open_layer_from_filename, gerbv_render_layer_to_cairo_target, (anonymous), GERBV_APERTURE_STATE_FLASH, GERBV_APERTURE_STATE_ON, GERBV_APTYPE_MACRO, GERBV_APTYPE_MACRO_CIRCLE, GERBV_APTYPE_MACRO_LINE20, GERBV_APTYPE_MACRO_LINE21, GERBV_APTYPE_MACRO_LINE22, GERBV_APTYPE_MACRO_MOIRE, GERBV_APTYPE_MACRO_OUTLINE, GERBV_APTYPE_MACRO_POLYGON, GERBV_APTYPE_MACRO_THERMAL, GERBV_APTYPE_NONE, GERBV_APTYPE_OVAL, GERBV_APTYPE_POLYGON, APERTURE_MAX, GERBV_APERTURE_STATE_OFF, GERBV_INTERPOLATION_CCW_CIRCULAR, GERBV_INTERPOLATION_LINEARx001, GERBV_INTERPOLATION_LINEARx01, GERBV_INTERPOLATION_LINEARx1, GERBV_INTERPOLATION_PAREA_END, GERBV_INTERPOLATION_PAREA_START, GERBV_INTERPOLATION_x10, GERBV_POLARITY_CLEAR, GERBV_POLARITY_DARK, GERBV_POLARITY_POSITIVE, GERBV_UNIT_MM, gerbv_netstate_t, gerbv_polarity_t, gerbv_render_types_t
 }
 #include "merge_near_points.hpp"               // for merge_near_points
 

@@ -21,25 +21,25 @@
  */
 
 #include "ngc_exporter.hpp"
-#include <glibmm/miscutils.h>                       // for build_filename
-#include <cmath>                                    // for ceil
-#include <iostream>                                 // for cout, cerr
-#include <memory>                                   // for shared_ptr, alloc...
-#include <stdexcept>                                // for logic_error
-#include <string>                                   // for char_traits, string
-#include <utility>                                  // for pair
-#include <vector>                                   // for vector, vector<>:...
-#include "autoleveller.hpp"                         // for autoleveller
-#include "board.hpp"                                // for Board
-#include "boost/format.hpp"                         // for basic_altstringbu...
-#include "boost/none.hpp"                           // for none
-#include "boost/program_options/variables_map.hpp"  // for variable_value
-#include "boost/type_index/type_index_facade.hpp"   // for operator==
-#include "common.hpp"                               // for workSide, CUSTOM
-#include "layer.hpp"                                // for Layer
-#include "mill.hpp"                                 // for RoutingMill, Cutter
-#include "options.hpp"                              // for ERR_INVALIDPARAMETER
-#include "units.hpp"                                // for Length, Unit, ope...
+#include <glibmm/miscutils.h>                      // for build_filename
+#include <cmath>                                   // for ceil
+#include <iostream>                                // for cout, cerr
+#include <memory>                                  // for shared_ptr, allocator, __shared_ptr_access, __shared_ptr_access<>::element_type, dynamic_pointer_cast, allocator_traits<>::value_type, __alloc_traits<>::value_type
+#include <stdexcept>                               // for logic_error
+#include <string>                                  // for char_traits, string, operator+, operator<<, operator==, to_string
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector, vector<>::iterator
+#include "autoleveller.hpp"                        // for autoleveller
+#include "board.hpp"                               // for Board
+#include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, str, format
+#include "boost/none.hpp"                          // for none
+#include "boost/program_options.hpp"               // for variable_value, variables_map
+#include "boost/type_index/type_index_facade.hpp"  // for operator==
+#include "common.hpp"                              // for workSide, CUSTOM
+#include "layer.hpp"                               // for Layer
+#include "mill.hpp"                                // for RoutingMill, Cutter, Isolator
+#include "options.hpp"                             // for ERR_INVALIDPARAMETER, options
+#include "units.hpp"                               // for Length, Unit, operator<<
 
 using std::cerr;
 using std::flush;

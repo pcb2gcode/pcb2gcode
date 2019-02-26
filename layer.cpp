@@ -42,8 +42,6 @@ Layer::Layer(const std::string& name, shared_ptr<Core> surface,
     this->manufacturer = manufacturer;
 }
 
-#include <iostream>
-
 /******************************************************************************/
 vector<vector<shared_ptr<icoords>>> Layer::get_toolpaths() {
   return surface->get_toolpath(manufacturer, mirrored);

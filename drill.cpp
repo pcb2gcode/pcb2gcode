@@ -20,33 +20,38 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "drill.hpp"
-#include <glib.h>                                    // for g_assert
-#include <glibmm/miscutils.h>                        // for build_filename
-#include <math.h>                                    // for sqrt, ceil, M_PI
-#include <stdlib.h>                                  // for abs
-#include <algorithm>                                 // for min, max, min_el...
-#include <cstring>                                   // for strcpy, strlen
-#include <iomanip>                                   // for operator<<, setp...
-#include <iostream>                                  // for operator<<, basi...
-#include <iterator>                                  // for next
-#include <limits>                                    // for numeric_limits
-#include <list>                                      // for _List_const_iter...
-#include <map>                                       // for map, _Rb_tree_it...
-#include <memory>                                    // for allocator, share...
-#include <string>                                    // for char_traits, string
-#include <type_traits>                               // for __decay_and_stri...
-#include <utility>                                   // for pair, make_pair
-#include <vector>                                    // for vector
-#include "available_drills.hpp"                      // for AvailableDrill
-#include "boost/format.hpp"                          // for format
-#include "boost/geometry.hpp"                        // for point_xy, svg_ma...
-#include "boost/none.hpp"                            // for none
-#include "common.hpp"                                // for workSide, CUSTOM
-#include "gerbv.h"                                   // for gerbv_net_t, ger...
-#include "mill.hpp"                                  // for Cutter, Driller
-#include "tsp_solver.hpp"                            // for tsp_solver
-#include "units.hpp"                                 // for Length, Unit
+#include <glib.h>                                  // for g_assert
+#include <glibmm/miscutils.h>                      // for build_filename
+#include <math.h>                                  // for sqrt, ceil, M_PI
+#include <stdlib.h>                                // for abs
+#include <algorithm>                               // for max, min, min_element
+#include <cstring>                                 // for strcpy, strlen, NULL
+#include <iomanip>                                 // for operator<<, setprecision
+#include <iostream>                                // for cerr, cout
+#include <iterator>                                // for next
+#include <limits>                                  // for numeric_limits
+#include <list>                                    // for _List_const_iterator
+#include <map>                                     // for map, _Rb_tree_iterator
+#include <memory>                                  // for allocator, shared_ptr, __shared_ptr_access, __shared_ptr_access<>::element_type
+#include <string>                                  // for char_traits, string, operator+, operator<<, operator==, to_string, operator!=, basic_string
+#include <type_traits>                             // for __decay_and_strip<>::__type
+#include <utility>                                 // for pair, make_pair
+#include <vector>                                  // for vector
+#include "available_drills.hpp"                    // for AvailableDrill, AvailableDrills
+#include "boost/container/detail/std_fwd.hpp"      // for pair
+#include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, basic_format, str, format
+#include "boost/geometry.hpp"                      // for point_xy, svg_mapper
+#include "boost/none.hpp"                          // for none
+#include "boost/type_index/type_index_facade.hpp"  // for operator==
+#include "common.hpp"                              // for workSide, CUSTOM
+extern "C" {
+#include "gerbv.h"                                 // for gerbv_net_t, gerbv_drill_list_t, gerbv_fileinfo_t, gerbv_project_t, gerbv_create_project, gerbv_destroy_project, gerbv_open_layer_from_filename, gerbv_image_t, gerbv_drill_stats_t
+}
+#include "mill.hpp"                                // for Cutter, Driller
+#include "tsp_solver.hpp"                          // for tsp_solver
+#include "units.hpp"                               // for Length, Unit, flatten, operator<<, CLIMB, UnitBase, MillFeedDirection
 
 using std::ofstream;
 using std::cout;

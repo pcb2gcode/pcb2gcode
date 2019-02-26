@@ -23,26 +23,27 @@
 #ifndef DRILL_H
 #define DRILL_H
 
-#include <exception>                                // for exception
+
 extern "C" {
-#include <gerbv.h>                                  // for gerbv_project_t
+#include <gerbv.h>                        // for gerbv_project_t
 }
-#include <map>                                      // for map
-#include <memory>                                   // for shared_ptr
-#include <ostream>                                  // for ostringstream
-#include <string>                                   // for string, operator<<
-#include <vector>                                   // for vector
-#include "available_drills.hpp"                     // for AvailableDrill
-#include "boost/exception/exception.hpp"            // for exception
-#include "boost/optional/optional.hpp"              // for optional
-#include "boost/program_options/variables_map.hpp"  // for variables_map
-#include "boost/units/detail/one.hpp"               // for operator>
-#include "geometry.hpp"                             // for ilinesegments
-#include "tile.hpp"                                 // for Tiling, Tiling::T...
-#include "unique_codes.hpp"                         // for uniqueCodes
-#include "units.hpp"                                // for Length, parse_unit
-class Cutter;
-class Driller;
+#include <exception>                      // for exception
+#include <map>                            // for map
+#include <memory>                         // for shared_ptr
+#include <ostream>                        // for ostringstream, basic_ostream, basic_ostream<>::__ostream_type, ofstream
+#include <string>                         // for string, operator<<, basic_string
+#include <vector>                         // for vector
+#include "available_drills.hpp"           // for AvailableDrill
+#include "boost/exception/exception.hpp"  // for exception
+#include "boost/optional/optional.hpp"    // for optional
+#include "boost/program_options.hpp"      // for variables_map
+#include "boost/units/detail/one.hpp"     // for operator>
+#include "geometry.hpp"                   // for ilinesegments, icoordpair, box_type_fp, icoords, ilinesegment, ivalue_t
+#include "tile.hpp"                       // for Tiling, Tiling::TileInfo
+#include "unique_codes.hpp"               // for uniqueCodes
+#include "units.hpp"                      // for Length, parse_unit, units_parse_exception, MillFeedDirection
+class Cutter;  // lines 44-44
+class Driller;  // lines 45-45
 
 class drill_exception: virtual std::exception, virtual boost::exception
 {
