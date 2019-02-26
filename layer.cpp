@@ -19,12 +19,14 @@
  */
 
 #include "layer.hpp"
+#include <memory>    // for shared_ptr, __shared_ptr_access, dynamic_pointer...
+#include <vector>    // for vector
+#include "core.hpp"  // for Core
+#include "mill.hpp"  // for Cutter
+class RoutingMill;
 
-#include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
-
-#include <vector>
 using std::vector;
 
 /******************************************************************************/

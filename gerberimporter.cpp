@@ -17,44 +17,49 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <algorithm>
-#include <utility>
+#include "gerberimporter.hpp"
+#include <math.h>                              // for atan2, cos, round, sin
+#include <stdlib.h>                            // for abs, NULL, size_t
+#include <string.h>                            // for strcpy, strlen
+#include <algorithm>                           // for copy, max, copy_backward
+#include <forward_list>                        // for forward_list
+#include <initializer_list>                    // for initializer_list
+#include <iostream>                            // for operator<<, endl, basi...
+#include <iterator>                            // for next, prev, make_move_...
+#include <list>                                // for list
+#include <map>                                 // for map, map<>::mapped_type
+#include <memory>                              // for allocator_traits<>::va...
+#include <set>                                 // for set
+#include <string>                              // for string
+#include <tuple>                               // for tie, operator<, tuple
+#include <utility>                             // for pair, swap
+#include <vector>                              // for vector
+#include "bg_helpers.hpp"                      // for operator+, operator-
+#include "boost/geometry.hpp"                  // for ring, multi_polygon
+#include "boost/iterator/iterator_facade.hpp"  // for operator++, operator!=
+#include "cairomm/context.h"                   // for Context
+#include "cairomm/refptr.h"                    // for RefPtr
+#include "cairomm/surface.h"                   // for ImageSurface, Surface
+#include "eulerian_paths.hpp"                  // for get_eulerian_paths
+#include "gdk/gdkcolor.h"                      // for _GdkColor
+extern "C" {
+#include "gerbv.h"
+}
+#include "merge_near_points.hpp"               // for merge_near_points
+
 using std::pair;
 using std::reverse;
 using std::swap;
-
-#include <iostream>
 using std::cerr;
 using std::endl;
-
-#include <string>
 using std::string;
-
-#include <vector>
 using std::vector;
-
-#include <cstdint>
-#include <list>
-#include <iterator>
 using std::list;
 using std::next;
 using std::make_move_iterator;
-
-#include <memory>
 using std::unique_ptr;
-
-#include <forward_list>
 using std::forward_list;
-
-#include <map>
 using std::map;
-
-#include <boost/format.hpp>
-
-#include "gerberimporter.hpp"
-#include "eulerian_paths.hpp"
-#include "bg_helpers.hpp"
-#include "merge_near_points.hpp"
 
 namespace bg = boost::geometry;
 
