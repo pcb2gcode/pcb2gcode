@@ -23,7 +23,7 @@
 #ifndef DRILL_H
 #define DRILL_H
 
-#include <bits/exception.h>                         // for exception
+#include <exception>                                // for exception
 extern "C" {
 #include <gerbv.h>                                  // for gerbv_project_t
 }

@@ -23,7 +23,7 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include <bits/exception.h>               // for exception
+#include <exception>                      // for exception
 #include <gdkmm/pixbuf.h>                 // for Pixbuf
 #include <glib.h>                         // for guint
 #include <glib/gtypes.h>                  // for guint32

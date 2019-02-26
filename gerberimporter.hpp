@@ -20,7 +20,7 @@
 #ifndef GERBERIMPORTER_H
 #define GERBERIMPORTER_H
 
-#include <bits/exception.h>  // for exception
+#include <exception>         // for exception
 extern "C" {
 #include <gerbv.h>
 }
