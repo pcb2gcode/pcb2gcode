@@ -20,12 +20,10 @@
 #ifndef OUTLINE_BRIDGES_HPP
 #define OUTLINE_BRIDGES_HPP
 
-#include <vector>
-
-#include <memory>
-
-#include "geometry.hpp"
-#include "mill.hpp"
+#include <stddef.h>      // for size_t
+#include <memory>        // for shared_ptr
+#include <vector>        // for vector
+#include "geometry.hpp"  // for icoords
 
 namespace outline_bridges {
 

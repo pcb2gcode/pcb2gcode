@@ -21,21 +21,31 @@
  */
 
 #include "options.hpp"
-#include "config.h"
-
+#include <stddef.h>                                         // for size_t
+#include <iostream>                                         // for cerr
+#include <istream>                                          // for ios_base:...
 #include <fstream>
-#include <list>
-#include <boost/exception/all.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/variant.hpp>
-#include "units.hpp"
-#include "available_drills.hpp"
+#include <limits>                                           // for numeric_l...
+#include <memory>                                           // for allocator
+#include <stdexcept>                                        // for logic_error
+#include <string>                                           // for operator+
+#include <vector>                                           // for vector
+#include "available_drills.hpp"                             // for Available...
+#include "boost/any.hpp"                                    // for any
+#include "boost/detail/basic_pointerbuf.hpp"                // for basic_poi...
+#include "boost/lexical_cast/bad_lexical_cast.hpp"          // for bad_lexic...
+#include "boost/move/utility_core.hpp"                      // for move
+#include "boost/program_options.hpp"
+#include "boost/type_index/type_index_facade.hpp"           // for operator==
+#include "boost/units/detail/one.hpp"                       // for operator>
+#include "boost/variant/detail/variant_io.hpp"              // for operator<<
+#include "boost/variant/variant.hpp"                        // for variant
+#include "common.hpp"                                       // for Software
+#include "config.h"                                         // for PACKAGE_S...
+#include "units.hpp"                                        // for Length, Unit
 
-#include <string>
 using std::string;
 using std::to_string;
-
-#include <iostream>
 using std::cerr;
 using std::endl;
 

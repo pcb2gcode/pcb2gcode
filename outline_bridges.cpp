@@ -18,11 +18,11 @@
  */
 
 #include "outline_bridges.hpp"
-
-#include <boost/assign/list_of.hpp>
-#include <boost/geometry/algorithms/distance.hpp>
-#include <cmath>
-#include <queue>
+#include <algorithm>                           // for sort
+#include <queue>                               // for priority_queue
+#include <utility>                             // for pair, make_pair
+#include "boost/container/detail/std_fwd.hpp"  // for pair
+#include "boost/geometry.hpp"                  // for distance
 
 using std::vector;
 using std::pair;

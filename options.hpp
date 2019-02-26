@@ -21,7 +21,7 @@
 #ifndef OPTIONS_HPP
 #define OPTIONS_HPP
 
-#include <bits/exception.h>                               // for exception
+#include <exception>                                      // for exception
 #include <string>                                         // for string
 #include "boost/core/noncopyable.hpp"                     // for noncopyable
 #include "boost/program_options/errors.hpp"               // for program_opt...
