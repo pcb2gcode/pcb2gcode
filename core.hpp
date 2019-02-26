@@ -20,11 +20,13 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include <memory>
-#include <vector>
-#include <string>
-#include "geometry.hpp"
-#include "mill.hpp"
+#include <stddef.h>      // for size_t
+#include <memory>        // for shared_ptr
+#include <string>        // for string
+#include <vector>        // for vector
+#include "geometry.hpp"  // for icoords, ivalue_t
+class Cutter;
+class RoutingMill;
 
 class Core {
  public:
