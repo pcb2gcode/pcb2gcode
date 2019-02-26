@@ -1,6 +1,6 @@
 [
 #manually include:
-{ include: ["@\"boost/geometry/(?geometries/).*\"", private, "\"boost/geometry.hpp\"", public ] },
+{ include: ["@\"boost/geometry/(?!geometries/).*\"", private, "\"boost/geometry.hpp\"", public ] },
 { include: ["@\"boost/format/.*\"", private, "\"boost/format.hpp\"", public ] },
 { include: ["@\"boost/program_options/.*\"", private, "\"boost/program_options.hpp\"", public ] },
 { include: ["<ext/alloc_traits.h>", private, "<memory>", public ] },
