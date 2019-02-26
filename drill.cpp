@@ -20,49 +20,47 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
+#include "drill.hpp"
+#include <glib.h>                                    // for g_assert
+#include <glibmm/miscutils.h>                        // for build_filename
+#include <math.h>                                    // for sqrt, ceil, M_PI
+#include <stdlib.h>                                  // for abs
+#include <algorithm>                                 // for min, max, min_el...
+#include <cstring>                                   // for strcpy, strlen
+#include <iomanip>                                   // for operator<<, setp...
+#include <iostream>                                  // for operator<<, basi...
+#include <iterator>                                  // for next
+#include <limits>                                    // for numeric_limits
+#include <list>                                      // for _List_const_iter...
+#include <map>                                       // for map, _Rb_tree_it...
+#include <memory>                                    // for allocator, share...
+#include <string>                                    // for char_traits, string
+#include <type_traits>                               // for __decay_and_stri...
+#include <utility>                                   // for pair, make_pair
+#include <vector>                                    // for vector
+#include "available_drills.hpp"                      // for AvailableDrill
+#include "boost/format.hpp"                          // for format
+#include "boost/geometry.hpp"                        // for point_xy, svg_ma...
+#include "boost/none.hpp"                            // for none
+#include "common.hpp"                                // for workSide, CUSTOM
+#include "gerbv.h"                                   // for gerbv_net_t, ger...
+#include "mill.hpp"                                  // for Cutter, Driller
+#include "tsp_solver.hpp"                            // for tsp_solver
+#include "units.hpp"                                 // for Length, Unit
+
 using std::ofstream;
-
-#include <cstring>
-
-#include <iostream>
 using std::cout;
 using std::endl;
 using std::flush;
-
-#include <vector>
 using std::vector;
-
-#include <sstream>
 using std::stringstream;
-
-#include <memory>
 using std::shared_ptr;
-
-#include <numeric>
-#include <iomanip>
 using std::setprecision;
 using std::fixed;
-
-#include <boost/format.hpp>
 using boost::format;
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <string>
 using std::string;
-
-#include <map>
 using std::map;
-
-#include "drill.hpp"
-#include "tsp_solver.hpp"
-#include "common.hpp"
-#include "units.hpp"
-#include "available_drills.hpp"
-
-#include <utility>
 using std::pair;
 using std::make_pair;
 using std::max;
