@@ -20,18 +20,18 @@
 #include "voronoi.hpp"
 #include <stdlib.h>                                 // for size_t, abs, NULL
 #include <algorithm>                                // for upper_bound, max
-#include <iostream>                                 // for cerr, cout, endl
+#include <iostream>                                 // for cerr, cout, endl, size_t
 #include <iterator>                                 // for distance
 #include <list>                                     // for list
 #include <map>                                      // for map
-#include <memory>                                   // for __alloc_traits<>:...
+#include <memory>                                   // for __alloc_traits<>::value_type, allocator_traits<>::value_type
 #include <vector>                                   // for vector
 #include "boost/core/enable_if.hpp"                 // for enable_if_c<>::type
-#include "boost/geometry.hpp"                       // for scale_transformer
+#include "boost/geometry.hpp"                       // for scale_transformer, point_xy, convert, transform, covered_by, append, area, expand, return_envelope, polygon, polygon<>::inner_container_type, polygon<>::ring_type, ring
 #include "boost/polygon/point_data.hpp"             // for point_data
 #include "boost/polygon/segment_concept.hpp"        // for low, high
 #include "boost/polygon/voronoi.hpp"                // for insert
-#include "boost/polygon/voronoi_geometry_type.hpp"  // for SOURCE_CATEGORY_S...
+#include "boost/polygon/voronoi_geometry_type.hpp"  // for SOURCE_CATEGORY_SEGMENT_START_POINT
 #include "voronoi_visual_utils.hpp"                 // for voronoi_visual_utils
 
 using std::cerr;
