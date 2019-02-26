@@ -1,13 +1,13 @@
 #ifndef PATH_FINDING_H
 #define PATH_FINDING_H
 
-#include <boost/optional.hpp>
-
-#include "geometry.hpp"
+#include <functional>                   // for function
+#include <memory>                       // for shared_ptr
+#include "boost/optional/optional.hpp"  // for optional
+#include "geometry.hpp"                 // for point_type_fp, coordinate_typ...
+namespace path_finding { class PathFindingSurface; }  // lines 10-10
 
 namespace path_finding {
-
-class PathFindingSurface;
 
 struct GiveUp {};
 

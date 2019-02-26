@@ -1,17 +1,30 @@
-#include <vector>
-using std::vector;
-
-#include <unordered_map>
-using std::unordered_map;
-
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/astar_search.hpp>
-#include <boost/optional.hpp>
-
 #include "path_finding.hpp"
+#include <algorithm>                                     // for max, min, sort
+#include <boost/graph/astar_search.hpp>                  // for astar_heuris...
+#include <cstddef>                                       // for size_t, ptrd...
+#include <tuple>                                         // for tie, operator<
+#include <type_traits>                                   // for __decay_and_...
+#include <unordered_map>                                 // for unordered_map
+#include <utility>                                       // for make_pair, pair
+#include <vector>                                        // for vector
+#include "bg_helpers.hpp"                                // for buffer, oper...
+#include "boost/concept_check.hpp"                       // for function_req...
+#include "boost/geometry.hpp"                            // for polygon, cov...
+#include "boost/graph/graph_concepts.hpp"                // for IncidenceGra...
+#include "boost/graph/graph_traits.hpp"                  // for disallow_par...
+#include "boost/graph/named_function_params.hpp"         // for bgl_named_pa...
+#include "boost/iterator/iterator_facade.hpp"            // for operator++
+#include "boost/move/utility_core.hpp"                   // for move
+#include "boost/none.hpp"                                // for none
+#include "boost/operators.hpp"                           // for operator!=
+#include "boost/property_map/function_property_map.hpp"  // for function_pro...
+#include "boost/property_map/property_map.hpp"           // for typed_identi...
+#include "geometry.hpp"                                  // for multi_polygo...
+namespace path_finding { class OutEdgeIteratorImpl; }  // lines 178-178
+namespace path_finding { class VertexIteratorImpl; }  // lines 179-179
 
-#include "geometry.hpp"
-#include "bg_helpers.hpp"
+using std::vector;
+using std::unordered_map;
 
 namespace path_finding {
 
@@ -174,9 +187,6 @@ class PathSurface {
 struct path_surface_traversal_catetory:
     public boost::vertex_list_graph_tag,
     public boost::incidence_graph_tag {};
-
-class OutEdgeIteratorImpl;
-class VertexIteratorImpl;
 
 } // namespace path_finding
 
