@@ -23,19 +23,23 @@
 #ifndef SURFACE_H
 #define SURFACE_H
 
-#include <memory>
-#include <vector>
-
-#include <boost/noncopyable.hpp>
-
-#include <glibmm/refptr.h>
-#include <gdkmm/pixbuf.h>
-#include <glibmm/ustring.h>
-
-#include "geometry.hpp"
-#include "mill.hpp"
-#include "gerberimporter.hpp"
-#include "core.hpp"
+#include <bits/exception.h>               // for exception
+#include <gdkmm/pixbuf.h>                 // for Pixbuf
+#include <glib.h>                         // for guint
+#include <glib/gtypes.h>                  // for guint32
+#include <glibmm/refptr.h>                // for RefPtr
+#include <memory>                         // for shared_ptr
+#include <string>                         // for string
+#include <utility>                        // for pair
+#include <vector>                         // for vector
+#include "boost/core/noncopyable.hpp"     // for noncopyable
+#include "boost/exception/exception.hpp"  // for exception
+#include "cairomm/refptr.h"               // for RefPtr
+#include "cairomm/surface.h"              // for ImageSurface
+#include "core.hpp"                       // for Core
+#include "geometry.hpp"                   // for ivalue_t, icoords
+class RasterLayerImporter;
+class RoutingMill;
 
 struct surface_exception: virtual std::exception, virtual boost::exception
 {

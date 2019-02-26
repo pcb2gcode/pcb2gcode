@@ -21,21 +21,35 @@
  */
 
 #include "surface.hpp"
+#include <glibmm/miscutils.h>                  // for build_filename
+#include <math.h>                              // for fabs, sqrt
+#include <stdio.h>                             // for fprintf, stderr
+#include <stdlib.h>                            // for rand
+#include <algorithm>                           // for copy, max, copy_backward
+#include <iostream>                            // for operator<<, basic_ostr...
+#include <list>                                // for _List_const_iterator
+#include <memory>                              // for __shared_ptr_access<>:...
+#include <stack>                               // for stack
+#include <stdexcept>                           // for logic_error
+#include <string>                              // for string, char_traits
+#include <vector>                              // for vector
+#include "boost/container/detail/std_fwd.hpp"  // for pair
+#include "boost/format.hpp"                    // for basic_altstringbuf<>::...
+#include "boost/geometry.hpp"                  // for simplify
+#include "boost/move/utility_core.hpp"         // for move
+#include "boost/optional/optional.hpp"         // for get_pointer
+#include "cairomm/enums.h"                     // for FORMAT_ARGB32
+#include "gdkmm/pixbuf.h"                      // for Pixbuf, COLORSPACE_RGB
+#include "glibmm/refptr.h"                     // for RefPtr
+#include "importer.hpp"                        // for RasterLayerImporter
+#include "mill.hpp"                            // for Isolator, Cutter, Rout...
+#include "tsp_solver.hpp"                      // for tsp_solver
+
 using std::pair;
-
-#include "tsp_solver.hpp"
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <memory>
 using std::dynamic_pointer_cast;
 using std::shared_ptr;
-
-#include <string>
 using std::string;
-
-#include <vector>
 using std::vector;
 
 // color definitions for the ARGB32 format used

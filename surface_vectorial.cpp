@@ -17,48 +17,54 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
-#include <limits>
+#include "surface_vectorial.hpp"
+#include <ext/alloc_traits.h>                        // for __alloc_traits<>...
+#include <glibmm/miscutils.h>                        // for build_filename
+#include <stdlib.h>                                  // for rand, srand, size_t
+#include <algorithm>                                 // for copy, max, copy_...
+#include <cmath>                                     // for ceil
+#include <deque>                                     // for operator!=, oper...
+#include <fstream>                                   // for operator<<, basi...
+#include <initializer_list>                          // for initializer_list
+#include <iostream>                                  // for cerr
+#include <iterator>                                  // for next, prev
+#include <limits>                                    // for numeric_limits
+#include <list>                                      // for _List_const_iter...
+#include <memory>                                    // for __shared_ptr_acc...
+#include <set>                                       // for set
+#include <stdexcept>                                 // for logic_error
+#include <string>                                    // for operator+, string
+#include <tuple>                                     // for tie, operator<
+#include <utility>                                   // for pair, make_pair
+#include <vector>                                    // for vector
+#include "bg_helpers.hpp"                            // for operator&, buffer
+#include "boost/format.hpp"                          // for basic_altstringb...
+#include "boost/iterator/iterator_facade.hpp"        // for operator++, oper...
+#include "boost/none.hpp"                            // for none
+#include "eulerian_paths.hpp"                        // for get_eulerian_paths
+#include "importer.hpp"                              // for VectorialLayerIm...
+#include "merge_near_points.hpp"                     // for merge_near_points
+#include "mill.hpp"                                  // for RoutingMill, Iso...
+#include "path_finding.hpp"                          // for create_path_find...
+#include "segmentize.hpp"                            // for segmentize
+#include "tsp_solver.hpp"                            // for tsp_solver
+#include "units.hpp"                                 // for MillFeedDirection
+#include "voronoi.hpp"                               // for Voronoi
+namespace path_finding { class PathFindingSurface; }
+
 using std::numeric_limits;
-
-#include <string>
 using std::string;
-
-#include <memory>
 using std::make_shared;
 using std::shared_ptr;
 using std::unique_ptr;
-
-#include <vector>
 using std::vector;
-
-#include <algorithm>
-#include <iostream>
-#include <cmath>
 using std::cerr;
 using std::endl;
-
-#include <utility>
 using std::pair;
 using std::make_pair;
-
-#include <boost/format.hpp>
-#include <boost/optional.hpp>
 using boost::optional;
 using boost::make_optional;
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include "tsp_solver.hpp"
-#include "surface_vectorial.hpp"
-#include "eulerian_paths.hpp"
-#include "segmentize.hpp"
-#include "bg_helpers.hpp"
-#include "units.hpp"
-#include "path_finding.hpp"
-#include "merge_near_points.hpp"
-
 using std::max;
 using std::max_element;
 using std::next;
