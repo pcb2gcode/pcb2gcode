@@ -82,9 +82,17 @@
 { include: ["@[\"<]boost/geometry/io/wkt/read.hpp[\">]", private, "\"boost/geometry.hpp\"", public ] },
 { include: ["@[\"<]boost/geometry/io/wkt/write.hpp[\">]", private, "\"boost/geometry.hpp\"", public ] },
 
+{ include: ["@[\"<]boost/program_options/options_description.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/positional_options.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/parsers.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/variables_map.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/cmdline.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/errors.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/option.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/value_semantic.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
+{ include: ["@[\"<]boost/program_options/version.hpp[\">]", private, "\"boost/program_options.hpp\"", public ] },
 
 { include: ["@\"boost/format/.*\"", private, "\"boost/format.hpp\"", public ] },
-{ include: ["@\"boost/program_options/.*\"", private, "\"boost/program_options.hpp\"", public ] },
 { include: ["<ext/alloc_traits.h>", private, "<memory>", public ] },
 { include: ["<bits/exception.h>", private, "<exception>", public ] }
 ]
