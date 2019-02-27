@@ -1,8 +1,24 @@
 #ifndef AVAILABLE_DRILLS_HPP
 #define AVAILABLE_DRILLS_HPP
 
-#include "units.hpp"
-#include <boost/program_options.hpp>
+#include <stdlib.h>                                          // for abs
+#include <iostream>                                          // for operator<<, ostream, istream, basic_ostream, endl, cerr
+#include <iterator>                                          // for istreambuf_iterator, operator!=, operator==
+#include <limits>                                            // for numeric_limits
+#include <string>                                            // for string, operator+, char_traits
+#include <utility>                                           // for swap
+#include <vector>                                            // for vector
+#include "boost/algorithm/string/classification.hpp"         // for is_any_of
+#include "boost/algorithm/string/detail/classification.hpp"  // for is_any_ofF
+#include "boost/algorithm/string/split.hpp"                  // for split
+#include "boost/iterator/iterator_facade.hpp"                // for operator!=
+#include "boost/none.hpp"                                    // for none
+#include "boost/optional/optional.hpp"                       // for optional
+#include "boost/program_options.hpp"                         // for invalid_option_value, program_options
+#include "boost/type_index/type_index_facade.hpp"            // for operator==
+#include "boost/units/detail/one.hpp"                        // for operator>
+#include "units.hpp"                                         // for Length, units_parse_exception, operator<<, parse_unit, Unit, UnitBase, CommaSeparated
+
 namespace po = boost::program_options;
 
 class AvailableDrill {

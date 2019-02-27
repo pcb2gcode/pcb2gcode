@@ -20,7 +20,6 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #include "drill.hpp"
 #include <glib.h>                                  // for g_assert
 #include <glibmm/miscutils.h>                      // for build_filename
@@ -42,9 +41,9 @@
 #include "available_drills.hpp"                    // for AvailableDrill, AvailableDrills
 #include "boost/container/detail/std_fwd.hpp"      // for pair
 #include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, basic_format, str, format
-#include "boost/geometry.hpp"                      // for point_xy, svg_mapper
+#include "boost/geometry.hpp"                      // for svg_mapper
+#include "boost/geometry/geometries/point_xy.hpp"  // for point_xy
 #include "boost/none.hpp"                          // for none
-#include "boost/type_index/type_index_facade.hpp"  // for operator==
 #include "common.hpp"                              // for workSide, CUSTOM
 extern "C" {
 #include "gerbv.h"                                 // for gerbv_net_t, gerbv_drill_list_t, gerbv_fileinfo_t, gerbv_project_t, gerbv_create_project, gerbv_destroy_project, gerbv_open_layer_from_filename, gerbv_image_t, gerbv_drill_stats_t
@@ -52,6 +51,7 @@ extern "C" {
 #include "mill.hpp"                                // for Cutter, Driller
 #include "tsp_solver.hpp"                          // for tsp_solver
 #include "units.hpp"                               // for Length, Unit, flatten, operator<<, CLIMB, UnitBase, MillFeedDirection
+
 
 using std::ofstream;
 using std::cout;
