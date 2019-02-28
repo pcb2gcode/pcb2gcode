@@ -621,7 +621,7 @@
 { include: ["@[\"<]boost/program_options/value_semantic.hpp[\">]", private, "<boost/program_options.hpp>", public ] },
 { include: ["@[\"<]boost/program_options/version.hpp[\">]", private, "<boost/program_options.hpp>", public ] },
 
-{ include: ["@\"boost/format/.*>", private, "<boost/format.hpp>", public ] },
+{ include: ["@[\"<]boost/format/.*[\">]", private, "<boost/format.hpp>", public ] },
 { include: ["<ext/alloc_traits.h>", private, "<memory>", public ] },
 { include: ["<bits/exception.h>", private, "<exception>", public ] }
 ]
