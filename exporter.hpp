@@ -30,10 +30,11 @@
 #include "geometry.hpp"
 #include "board.hpp"
 
-class Exporter: public boost::noncopyable {
+class Exporter : private boost::noncopyable {
  public:
   Exporter(std::shared_ptr<Board> board) {}
   virtual void export_all(boost::program_options::variables_map&) = 0;
+  virtual ~Exporter() {}
 };
 
 #endif // EXPORTER_H

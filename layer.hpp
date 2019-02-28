@@ -30,7 +30,7 @@
 #include "surface.hpp"
 #include "mill.hpp"
 
-class Layer: boost::noncopyable {
+class Layer : private boost::noncopyable {
  public:
   Layer(const std::string& name, std::shared_ptr<Core> surface,
         std::shared_ptr<RoutingMill> manufacturer, bool backside);

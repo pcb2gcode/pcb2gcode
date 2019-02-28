@@ -38,6 +38,7 @@ class Core {
   virtual void add_mask(std::shared_ptr<Core>) = 0;
 
   virtual std::vector<size_t> get_bridges(std::shared_ptr<Cutter> cutter, std::shared_ptr<icoords> toolpath);
+  virtual ~Core() {}
 };
 
 #endif // IMPORTER_H
