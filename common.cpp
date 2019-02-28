@@ -18,9 +18,8 @@
  */
 
 #include "common.hpp"
-#include "boost/format.hpp"                        // for format
-#include "boost/type_index/type_index_facade.hpp"  // for operator==
-#include "units.hpp"                               // for AUTO, BACK, BoardSide
+#include "boost/format.hpp"  // for format
+#include "units.hpp"         // for AUTO, BACK, BoardSide, FRONT
 
 using boost::format;
 using std::string;

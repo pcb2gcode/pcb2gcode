@@ -1,11 +1,13 @@
-#include <stddef.h>                            // for size_t
-#include <map>                                 // for _Rb_tree_iterator, map
-#include <tuple>                               // for tie, operator<, tuple
-#include <utility>                             // for pair
-#include <vector>                              // for vector
-#include "boost/container/detail/std_fwd.hpp"  // for pair
-#include "boost/geometry.hpp"                  // for point_xy, linestring
-#include "geometry.hpp"                        // for point_type_fp, coordin...
+#include <stddef.h>                                               // for size_t
+#include <map>                                                    // for _Rb_tree_iterator, map, map<>::mapped_type
+#include <tuple>                                                  // for tie, operator<, tuple
+#include <utility>                                                // for pair
+#include <vector>                                                 // for vector
+#include "boost/container/detail/std_fwd.hpp"                     // for pair
+#include "boost/geometry.hpp"                                     // for linestring, comparable_distance
+#include "boost/geometry/algorithms/detail/equals/interface.hpp"  // for equals
+#include "boost/geometry/geometries/point_xy.hpp"                 // for point_xy
+#include "geometry.hpp"                                           // for point_type_fp, coordinate_type_fp, multi_linestring_type_fp, linestring_type_fp
 
 using std::vector;
 using std::pair;

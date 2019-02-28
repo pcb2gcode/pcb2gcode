@@ -17,41 +17,44 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #include "surface_vectorial.hpp"
-#include <glibmm/miscutils.h>                  // for build_filename
-#include <stdlib.h>                            // for rand, srand, abs
-#include <algorithm>                           // for max, copy, reverse_copy
-#include <cmath>                               // for ceil
-#include <fstream>                             // for operator<<, basic_ostream
-#include <initializer_list>                    // for initializer_list
-#include <iostream>                            // for cerr
-#include <iterator>                            // for next, prev
-#include <limits>                              // for numeric_limits
-#include <list>                                // for _List_const_iterator
-#include <memory>                              // for __shared_ptr_access<>:...
-#include <set>                                 // for set
-#include <stdexcept>                           // for logic_error
-#include <string>                              // for operator+, string, cha...
-#include <tuple>                               // for tie, operator<, tuple
-#include <utility>                             // for pair, make_pair
-#include <vector>                              // for vector
-#include "bg_helpers.hpp"                      // for operator&, buffer, ope...
-#include "boost/container/detail/std_fwd.hpp"  // for pair
-#include "boost/format.hpp"                    // for basic_altstringbuf<>::...
-#include "boost/move/utility_core.hpp"         // for move
-#include "boost/none.hpp"                      // for none
-#include "boost/polygon/point_data.hpp"        // for point_data
-#include "boost/polygon/segment_data.hpp"      // for segment_data
-#include "eulerian_paths.hpp"                  // for get_eulerian_paths
-#include "importer.hpp"                        // for VectorialLayerImporter
-#include "merge_near_points.hpp"               // for merge_near_points
-#include "mill.hpp"                            // for RoutingMill, Isolator
-#include "path_finding.hpp"                    // for create_path_finding_su...
-#include "segmentize.hpp"                      // for segmentize
-#include "tsp_solver.hpp"                      // for tsp_solver
-#include "units.hpp"                           // for MillFeedDirection, CON...
-#include "voronoi.hpp"                         // for Voronoi
-namespace path_finding { class PathFindingSurface; }  // lines 53-53
+#include <glibmm/miscutils.h>                                         // for build_filename
+#include <stdlib.h>                                                   // for rand, srand, abs
+#include <algorithm>                                                  // for max, copy, reverse_copy, equal, move_backward, rotate_copy, max_element
+#include <cmath>                                                      // for ceil
+#include <fstream>                                                    // for operator<<, basic_ostream, ostream, endl, ofstream
+#include <initializer_list>                                           // for initializer_list
+#include <iostream>                                                   // for cerr
+#include <iterator>                                                   // for next, prev
+#include <limits>                                                     // for numeric_limits
+#include <list>                                                       // for _List_const_iterator
+#include <memory>                                                     // for __shared_ptr_access<>::element_type, __alloc_traits<>::value_type, shared_ptr, __shared_ptr_access, allocator, dynamic_pointer_cast, unique_ptr, make_shared, allocator_traits<>::value_type
+#include <set>                                                        // for set
+#include <stdexcept>                                                  // for logic_error
+#include <string>                                                     // for operator+, string, char_traits, operator<<, to_string, basic_string
+#include <tuple>                                                      // for tie, operator<, tuple
+#include <utility>                                                    // for pair, make_pair
+#include <vector>                                                     // for vector
+#include "bg_helpers.hpp"                                             // for operator&, buffer, operator+, operator-
+#include "boost/container/detail/std_fwd.hpp"                         // for pair
+#include "boost/format.hpp"                                           // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, basic_format, str, format
+#include "boost/geometry/algorithms/detail/equals/interface.hpp"      // for equals
+#include "boost/geometry/algorithms/detail/intersects/interface.hpp"  // for intersects
+#include "boost/move/utility_core.hpp"                                // for move
+#include "boost/none.hpp"                                             // for none
+#include "boost/polygon/polygon.hpp"                                  // for point_data, segment_data
+#include "eulerian_paths.hpp"                                         // for get_eulerian_paths
+#include "importer.hpp"                                               // for VectorialLayerImporter
+#include "merge_near_points.hpp"                                      // for merge_near_points
+#include "mill.hpp"                                                   // for RoutingMill, Isolator, Cutter
+#include "path_finding.hpp"                                           // for create_path_finding_surface, find_path, PathLimiter, GiveUp
+#include "segmentize.hpp"                                             // for segmentize
+#include "tsp_solver.hpp"                                             // for tsp_solver
+#include "units.hpp"                                                  // for MillFeedDirection, CONVENTIONAL, CLIMB, ANY
+#include "voronoi.hpp"                                                // for Voronoi
+namespace path_finding { class PathFindingSurface; }  // lines 54-54
+
 
 using std::numeric_limits;
 using std::string;

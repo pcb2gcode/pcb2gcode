@@ -21,9 +21,10 @@
 #ifndef MILL_H
 #define MILL_H
 
-#include <stdint.h>
-#include <string.h>
-#include <vector>
+#include <string.h>  // for size_t
+#include <string>    // for string
+#include <utility>   // for pair
+#include <vector>    // for vector
 
 /******************************************************************************/
 /*

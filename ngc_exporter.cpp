@@ -34,7 +34,6 @@
 #include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, str, format
 #include "boost/none.hpp"                          // for none
 #include "boost/program_options.hpp"               // for variable_value, variables_map
-#include "boost/type_index/type_index_facade.hpp"  // for operator==
 #include "common.hpp"                              // for workSide, CUSTOM
 #include "layer.hpp"                               // for Layer
 #include "mill.hpp"                                // for RoutingMill, Cutter, Isolator

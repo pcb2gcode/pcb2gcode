@@ -1,25 +1,27 @@
 #include "path_finding.hpp"
-#include <algorithm>                                     // for max, sort
-#include <boost/graph/astar_search.hpp>                  // for astar_heuris...
-#include <cstddef>                                       // for size_t, ptrd...
-#include <tuple>                                         // for tie, operator<
-#include <type_traits>                                   // for __decay_and_...
-#include <unordered_map>                                 // for unordered_map
-#include <utility>                                       // for make_pair, pair
-#include <vector>                                        // for vector
-#include "bg_helpers.hpp"                                // for buffer, oper...
-#include "boost/concept_check.hpp"                       // for function_req...
-#include "boost/geometry.hpp"                            // for polygon, cov...
-#include "boost/graph/graph_concepts.hpp"                // for IncidenceGra...
-#include "boost/graph/graph_traits.hpp"                  // for disallow_par...
-#include "boost/graph/named_function_params.hpp"         // for bgl_named_pa...
-#include "boost/none.hpp"                                // for none
-#include "boost/operators.hpp"                           // for operator!=
-#include "boost/property_map/function_property_map.hpp"  // for function_pro...
-#include "boost/property_map/property_map.hpp"           // for typed_identi...
-#include "geometry.hpp"                                  // for multi_polygo...
-namespace path_finding { class OutEdgeIteratorImpl; }  // lines 23-23
-namespace path_finding { class VertexIteratorImpl; }  // lines 24-24
+#include <algorithm>                                                  // for max, sort, unique
+#include <boost/graph/astar_search.hpp>                               // for astar_heuristic<>::Vertex, astar_search, astar_heuristic, default_astar_visitor
+#include <cstddef>                                                    // for size_t, ptrdiff_t
+#include <tuple>                                                      // for tie, operator<, operator==, tuple
+#include <type_traits>                                                // for __decay_and_strip<>::__type
+#include <unordered_map>                                              // for unordered_map, operator!=, _Node_iterator, _Node_iterator_base, unordered_map<>::const_iterator
+#include <utility>                                                    // for make_pair, pair
+#include <vector>                                                     // for vector
+#include "bg_helpers.hpp"                                             // for buffer, operator-
+#include "boost/concept_check.hpp"                                    // for function_requires
+#include "boost/geometry.hpp"                                         // for polygon, distance, ring, append, reverse, polygon<>::inner_container_type, polygon<>::ring_type
+#include "boost/geometry/algorithms/detail/covered_by/interface.hpp"  // for covered_by
+#include "boost/geometry/algorithms/detail/equals/interface.hpp"      // for equals
+#include "boost/graph/graph_concepts.hpp"                             // for IncidenceGraphConcept, VertexListGraphConcept
+#include "boost/graph/graph_traits.hpp"                               // for disallow_parallel_edge_tag, graph_traits (ptr only), incidence_graph_tag, undirected_tag, vertex_list_graph_tag, vertex_property_type (ptr only)
+#include "boost/graph/named_function_params.hpp"                      // for bgl_named_params<>::self, bgl_named_params, weight_map
+#include "boost/none.hpp"                                             // for none
+#include "boost/operators.hpp"                                        // for operator!=, operator++, forward_iterator_helper
+#include "boost/property_map/function_property_map.hpp"               // for function_property_map, make_function_property_map
+#include "boost/property_map/property_map.hpp"                        // for typed_identity_property_map
+#include "geometry.hpp"                                               // for multi_polygon_type_fp, linestring_type_fp, point_type_fp, coordinate_type_fp
+namespace path_finding { class OutEdgeIteratorImpl; }  // lines 21-21
+namespace path_finding { class VertexIteratorImpl; }  // lines 22-22
 
 using std::vector;
 using std::unordered_map;

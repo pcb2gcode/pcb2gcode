@@ -20,20 +20,21 @@
 #ifndef SURFACE_VECTORIAL_H
 #define SURFACE_VECTORIAL_H
 
-#include <stddef.h>                     // for size_t
-#include <fstream>                      // for operator<<, ofstream
-#include <memory>                       // for shared_ptr, unique_ptr
-#include <string>                       // for string
-#include <utility>                      // for pair
-#include <vector>                       // for vector
-#include "boost/core/noncopyable.hpp"   // for noncopyable
-#include "boost/geometry.hpp"           // for svg_mapper, point_xy
-#include "boost/optional/optional.hpp"  // for optional
-#include "core.hpp"                     // for Core
-#include "geometry.hpp"                 // for box_type_fp, polygon_type_fp
-#include "units.hpp"                    // for MillFeedDirection
-class RoutingMill;
-class VectorialLayerImporter;
+#include <stddef.h>                                // for size_t
+#include <fstream>                                 // for ofstream
+#include <memory>                                  // for shared_ptr, unique_ptr
+#include <string>                                  // for string
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector
+#include <boost/core/noncopyable.hpp>              // for noncopyable
+#include <boost/geometry.hpp>                      // for svg_mapper
+#include <boost/geometry/geometries/point_xy.hpp>  // for point_xy
+#include "core.hpp"                                // for Core
+#include "geometry.hpp"                            // for box_type_fp, polygon_type_fp, coordinate_type_fp, ivalue_t, linestring_type_fp, multi_polygon_type_fp, multi_linestring_type_fp, icoords, point_type_fp
+#include "units.hpp"                               // for MillFeedDirection
+class RoutingMill;  // lines 35-35
+class VectorialLayerImporter;  // lines 36-36
+namespace boost { template <class T> class optional; }
 
 /******************************************************************************/
 /*

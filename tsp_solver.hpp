@@ -20,13 +20,19 @@
 #ifndef TSP_HPP
 #define TSP_HPP
 
-#include <vector>
-#include <list>
-#include <memory>
-
-#include <boost/optional.hpp>
-
-#include "geometry.hpp"
+#include <stdlib.h>                                // for abs
+#include <algorithm>                               // for reverse
+#include <iterator>                                // for next
+#include <list>                                    // for list
+#include <memory>                                  // for shared_ptr, __shared_ptr_access, swap
+#include <utility>                                 // for swap
+#include <vector>                                  // for vector
+#include "boost/container/detail/std_fwd.hpp"      // for pair
+#include "boost/geometry.hpp"                      // for linestring
+#include "boost/geometry/geometries/point_xy.hpp"  // for point_xy
+#include "boost/none.hpp"                          // for none
+#include "boost/optional/optional.hpp"             // for make_optional, optional
+#include "geometry.hpp"                            // for ilinesegment, icoordpair, icoords
 
 class tsp_solver {
  private:
