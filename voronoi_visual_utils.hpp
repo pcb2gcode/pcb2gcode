@@ -10,14 +10,11 @@
 #ifndef BOOST_POLYGON_VORONOI_VISUAL_UTILS
 #define BOOST_POLYGON_VORONOI_VISUAL_UTILS
 
-#include <stack>
-#include <vector>
-#include <cmath>
+#include <boost/polygon/polygon.hpp>  // for low, x, y, high, geometry_concept, gtl_if, gtl_and, is_point_concept, is_segment_concept
+#include <stack>                      // for stack
+#include <vector>                     // for vector
 
-#include <boost/polygon/isotropy.hpp>
-#include <boost/polygon/point_concept.hpp>
-#include <boost/polygon/segment_concept.hpp>
-#include <boost/polygon/rectangle_concept.hpp>
+#include "boost/core/enable_if.hpp"   // for enable_if
 
 namespace boost {
 namespace polygon {

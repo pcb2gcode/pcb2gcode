@@ -20,22 +20,37 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>                    // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, basic_format, format
+#include <boost/geometry.hpp>                  // for simplify
+#include <glibmm/miscutils.h>                  // for build_filename
+#include <math.h>                              // for fabs, sqrt
+#include <stdio.h>                             // for fprintf, stderr
+#include <stdlib.h>                            // for rand
+#include <algorithm>                           // for copy, copy_backward, max
+#include <iostream>                            // for operator<<, basic_ostream::operator<<, basic_ostream, stringstream, basic_ostream<>::__ostream_type, basic_ios::imbue, basic_ios, basic_ios::clear, basic_streambuf, endl, cerr, cout, ostream
+#include <list>                                // for _List_const_iterator, list
+#include <memory>                              // for __shared_ptr_access<>::element_type, shared_ptr, __shared_ptr_access, dynamic_pointer_cast, allocator_traits<>::value_type
+#include <stack>                               // for stack
+#include <stdexcept>                           // for logic_error
+#include <string>                              // for string, char_traits, operator+
+#include <vector>                              // for vector
+
+#include "boost/container/detail/std_fwd.hpp"  // for pair
+#include "boost/move/utility_core.hpp"         // for move
+#include "boost/optional/optional.hpp"         // for get_pointer
+#include "cairomm/enums.h"                     // for FORMAT_ARGB32
+#include "gdkmm/pixbuf.h"                      // for Pixbuf, COLORSPACE_RGB
+#include "glibmm/refptr.h"                     // for RefPtr
+#include "importer.hpp"                        // for RasterLayerImporter
+#include "mill.hpp"                            // for Isolator, Cutter, RoutingMill
 #include "surface.hpp"
+#include "tsp_solver.hpp"                      // for tsp_solver
+
 using std::pair;
-
-#include "tsp_solver.hpp"
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <memory>
 using std::dynamic_pointer_cast;
 using std::shared_ptr;
-
-#include <string>
 using std::string;
-
-#include <vector>
 using std::vector;
 
 // color definitions for the ARGB32 format used
@@ -60,7 +75,6 @@ void Surface::make_the_surface(unsigned int width, unsigned int height)
                     Cairo::FORMAT_ARGB32, width, height, pixbuf->get_rowstride());
 }
 
-#include <iostream>
 using std::cerr;
 using std::endl;
 
@@ -111,7 +125,6 @@ void Surface::render(shared_ptr<RasterLayerImporter> importer)
         fill_outline();
 }
 
-#include <iostream>
 using std::cout;
 using std::endl;
 using std::list;
@@ -282,8 +295,6 @@ std::vector<std::pair<int, int> > Surface::fill_all_components()
 
     return components;
 }
-
-#include <stack>
 
 /******************************************************************************/
 /*
@@ -682,8 +693,6 @@ void Surface::add_mask(shared_ptr<Core> mask_surface)
     else
         throw std::logic_error("Can't cast Core to Surface");
 }
-
-#include <boost/format.hpp>
 
 /******************************************************************************/
 /*

@@ -17,16 +17,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>                        // for format
+
 #include "common.hpp"
+#include "units.hpp"                               // for AUTO, BACK, BoardSide, FRONT
 
-#include <fstream>
-#include <boost/algorithm/string.hpp>
-
-#include <boost/format.hpp>
 using boost::format;
 using std::string;
-
-#include "units.hpp"
 
 bool workSide( const boost::program_options::variables_map &options, string type )
 {

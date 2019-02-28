@@ -17,25 +17,27 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string/replace.hpp>      // for replace_all_copy
+#include <boost/format.hpp>                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, format, operator<<, str, basic_format, all_error_bits, too_few_args_bit, too_many_args_bit
+#include <boost/geometry.hpp>                      // for box, distance, expand, make_inverse, return_envelope
+#include <boost/geometry/geometries/point_xy.hpp>  // for point_xy
+#include <stdlib.h>                                // for abs
+#include <cmath>                                   // for ceil, floor
+#include <memory>                                  // for allocator, __shared_ptr_access<>::element_type, shared_ptr, __shared_ptr_access
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector, vector<>::const_iterator
+
 #include "autoleveller.hpp"
+#include "boost/optional/optional.hpp"             // for get_pointer
+#include "unique_codes.hpp"                        // for uniqueCodes
+#include "units.hpp"                               // for Unit, Length, Velocity
 
-#include <cmath>
-#include <limits>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/geometry/algorithms/distance.hpp>
-
-#include <boost/format.hpp>
-#include <memory>
-#include <vector>
 using boost::format;
 using std::shared_ptr;
 using std::vector;
 using std::endl;
 using std::to_string;
 using std::string;
-
-#include "units.hpp"
 
 const string autoleveller::callSubRepeat[] = {
  "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",

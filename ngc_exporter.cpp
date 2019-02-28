@@ -20,39 +20,41 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, str, basic_format, format
+#include <boost/program_options.hpp>               // for variable_value, variables_map
+#include <glibmm/miscutils.h>                      // for build_filename
+#include <cmath>                                   // for ceil
+#include <iostream>                                // for cout, cerr
+#include <memory>                                  // for shared_ptr, allocator, __shared_ptr_access, __shared_ptr_access<>::element_type, dynamic_pointer_cast, allocator_traits<>::value_type, __alloc_traits<>::value_type
+#include <stdexcept>                               // for logic_error
+#include <string>                                  // for char_traits, string, operator+, operator<<, operator==, to_string, basic_string
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector, vector<>::iterator
+
+#include "autoleveller.hpp"                        // for autoleveller
+#include "board.hpp"                               // for Board
+#include "boost/none.hpp"                          // for none
+#include "common.hpp"                              // for workSide, CUSTOM
+#include "layer.hpp"                               // for Layer
+#include "mill.hpp"                                // for RoutingMill, Cutter, Isolator
 #include "ngc_exporter.hpp"
-#include "options.hpp"
-#include <boost/algorithm/string.hpp>
-#include <iostream>
+#include "options.hpp"                             // for ERR_INVALIDPARAMETER, options
+#include "units.hpp"                               // for Length, Unit, operator<<
+
 using std::cerr;
 using std::flush;
 using std::ios_base;
 using std::left;
-#include <string>
 using std::to_string;
 using std::string;
 using std::cout;
 using std::endl;
-
-#include <vector>
 using std::vector;
-
-#include <cmath>
 using std::ceil;
-
-#include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
-
-#include <iomanip>
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <boost/format.hpp>
 using boost::format;
-
-#include "units.hpp"
 
 /******************************************************************************/
 /*

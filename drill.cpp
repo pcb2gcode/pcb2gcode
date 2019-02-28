@@ -20,48 +20,53 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
+#include <boost/format.hpp>                          // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, basic_format, str, format
+#include <boost/geometry.hpp>                        // for svg_mapper
+#include <glib.h>                                    // for g_assert
+#include <glibmm/miscutils.h>                        // for build_filename
+#include <math.h>                                    // for sqrt, ceil, M_PI
+#include <stdlib.h>                                  // for abs
+#include <algorithm>                                 // for min, min_element, max
+#include <cstring>                                   // for strcpy, strlen, NULL
+#include <iostream>                                  // for cerr, cout
+#include <iterator>                                  // for next
+#include <limits>                                    // for numeric_limits
+#include <list>                                      // for _List_const_iterator
+#include <map>                                       // for map, _Rb_tree_iterator
+#include <memory>                                    // for allocator, shared_ptr, __shared_ptr_access, __shared_ptr_access<>::element_type
+#include <string>                                    // for char_traits, string, operator<<, operator+, operator==, to_string, operator!=, basic_string
+#include <type_traits>                               // for __decay_and_strip<>::__type
+#include <utility>                                   // for pair, make_pair
+#include <vector>                                    // for vector
+
+#include "available_drills.hpp"                      // for AvailableDrill, AvailableDrills
+#include "boost/container/detail/std_fwd.hpp"        // for pair
+#include "boost/geometry/geometries/point_xy.hpp"    // for point_xy
+#include "boost/none.hpp"                            // for none
+#include "common.hpp"                                // for workSide, CUSTOM
+#include "drill.hpp"
+
+extern "C" {
+#include "gerbv.h"                                   // for gerbv_net_t, gerbv_drill_list_t, gerbv_fileinfo_t, gerbv_project_t, gerbv_create_project, gerbv_destroy_project, gerbv_open_layer_from_filename, gerbv_image_t, gerbv_drill_stats_t
+}
+#include "mill.hpp"                                  // for Cutter, Driller
+#include "tsp_solver.hpp"                            // for tsp_solver
+#include "units.hpp"                                 // for Length, Unit, flatten, operator<<, CLIMB, UnitBase, MillFeedDirection
+
+
 using std::ofstream;
-
-#include <cstring>
-
-#include <iostream>
 using std::cout;
 using std::endl;
 using std::flush;
-
-#include <vector>
 using std::vector;
-
-#include <sstream>
 using std::stringstream;
-
-#include <memory>
 using std::shared_ptr;
-
-#include <numeric>
-#include <iomanip>
 using std::setprecision;
 using std::fixed;
-
-#include <boost/format.hpp>
 using boost::format;
-
-#include <glibmm/miscutils.h>
 using Glib::build_filename;
-
-#include <string>
 using std::string;
-
-#include <map>
 using std::map;
-
-#include "drill.hpp"
-#include "tsp_solver.hpp"
-#include "common.hpp"
-#include "units.hpp"
-#include "available_drills.hpp"
-
 using std::pair;
 using std::make_pair;
 using std::max;

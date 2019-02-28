@@ -20,20 +20,16 @@
 #ifndef EXPORTER_H
 #define EXPORTER_H
 
-#include <vector>
-#include <string>
-#include <memory>
-
-#include <boost/noncopyable.hpp>
-#include <boost/program_options.hpp>
-
-#include "geometry.hpp"
-#include "board.hpp"
+#include <memory>                      // for shared_ptr
+#include "boost/core/noncopyable.hpp"  // for noncopyable
+class Board;
+namespace boost { namespace program_options { class variables_map; } }
 
 class Exporter: public boost::noncopyable {
  public:
   Exporter(std::shared_ptr<Board> board) {}
   virtual void export_all(boost::program_options::variables_map&) = 0;
+  virtual ~Exporter() {}
 };
 
 #endif // EXPORTER_H

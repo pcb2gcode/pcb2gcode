@@ -20,13 +20,18 @@
 #ifndef GERBERIMPORTER_H
 #define GERBERIMPORTER_H
 
-#include <string>
-#include <iostream>
-#include "importer.hpp"
 
+#include <exception>         // for exception
+#include <gdk/gdk.h>         // for GdkColor
 extern "C" {
-#include <gerbv.h>
+#include <gerbv.h>           // for GERBV_RENDER_TYPE_CAIRO_NORMAL, gerbv_pr...
 }
+#include <glib.h>            // for gdouble, guint
+#include <string>            // for string
+#include "geometry.hpp"      // for multi_polygon_type_fp
+#include "importer.hpp"      // for RasterLayerImporter, VectorialLayerImporter
+namespace Cairo { class ImageSurface; }  // lines 32-32
+namespace Cairo { template <class T_CppObject> class RefPtr; }  // lines 33-33
 
 class gerber_exception: public std::exception {};
 

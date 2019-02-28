@@ -1,10 +1,11 @@
-#include <vector>
-#include <map>
+#include <boost/polygon/polygon.hpp>  // for segment_data, point_data, intersect_segments
+#include <stddef.h>                   // for size_t
+#include <algorithm>                  // for max, min, sort, unique
+#include <memory>                     // for allocator_traits<>::value_type
+#include <utility>                    // for pair, make_pair
+#include <vector>                     // for vector
 
-#include "geometry.hpp"
-#include <boost/polygon/isotropy.hpp>
-#include <boost/polygon/segment_concept.hpp>
-#include <boost/polygon/segment_utils.hpp>
+#include "geometry.hpp"               // for segment_type_p
 
 namespace segmentize {
 // Returns the sign of the input as -1,0,1 for negative/zero/positive.

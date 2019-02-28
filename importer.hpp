@@ -20,21 +20,19 @@
 #ifndef IMPORTER_H
 #define IMPORTER_H
 
-#include <memory>
-#include <glibmm/ustring.h>
-
-#include <glibmm/refptr.h>
-#include <cairomm/cairomm.h>
-#include <gdk/gdkcairo.h>
-
-#include <boost/exception/all.hpp>
-
-#include "geometry.hpp"
-#include "geometry.hpp"
-
+#include <gdk/gdk.h>     // for GdkColor
 extern "C" {
-#include <gerbv.h>
+#include <gerbv.h>       // for GERBV_RENDER_TYPE_CAIRO_NORMAL, gerbv_render_types_t
 }
+#include <glib.h>        // for gdouble, guint
+
+#include "gdkmm/color.h"  // for GdkColor
+#include "geometry.hpp"  // for multi_polygon_type_fp
+
+namespace Cairo {
+class ImageSurface;
+template <class T_CppObject> class RefPtr;
+}  // namespace Cairo
 
 /******************************************************************************/
 /*

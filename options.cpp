@@ -20,22 +20,27 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "options.hpp"
-#include "config.h"
 
+#include <boost/units/unit.hpp>                             // for operator>
+#include <stddef.h>                                         // for size_t
 #include <fstream>
-#include <list>
-#include <boost/exception/all.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/variant.hpp>
-#include "units.hpp"
-#include "available_drills.hpp"
+#include <limits>                                           // for numeric_limits
+#include <stdexcept>                                        // for logic_error, runtime_error
+#include <string>                                           // for operator+, string, basic_string, allocator, char_traits, operator<<, to_string
+#include <vector>                                           // for vector
 
-#include <string>
+#include "available_drills.hpp"                             // for AvailableDrills, operator>>, operator<<
+#include "boost/any.hpp"                                    // for any
+#include "boost/lexical_cast/bad_lexical_cast.hpp"          // for bad_lexical_cast
+#include "boost/program_options/detail/parsers.hpp"         // for parse_command_line, basic_command_line_parser::basic_command_line_parser<charT>, basic_command_line_parser::extra_parser, basic_command_line_parser::options, basic_command_line_parser::run, basic_command_line_parser::style
+#include "boost/variant/variant.hpp"                        // for variant
+#include "common.hpp"                                       // for Software
+#include "config.h"                                         // for PACKAGE_STRING
+#include "options.hpp"
+#include "units.hpp"                                        // for Length, Unit, operator>>, units_parse_exception, Velocity, Percent, CommaSeparated, Rpm, Time, BoardSide, operator<<, MillFeedDirection, parse_unit, operator*, ANY, AUTO, UnitBase
+
 using std::string;
 using std::to_string;
-
-#include <iostream>
 using std::cerr;
 using std::endl;
 

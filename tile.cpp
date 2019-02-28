@@ -16,15 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
+#include <boost/format.hpp>                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, operator<<, basic_format, format, str
+
+#include "boost/optional/optional.hpp"             // for get_pointer
+#include "boost/type_index/type_index_facade.hpp"  // for operator==
 #include "tile.hpp"
 
-#include <iostream>
+class uniqueCodes;  // lines 24-24
 
-#include <boost/format.hpp>
 using boost::format;
-
-#include "units.hpp"
 
 Tiling::Tiling( TileInfo tileInfo, double cfactor, int tileVar ) :
     tileInfo( tileInfo ), cfactor( cfactor ), tileVar(tileVar) {}

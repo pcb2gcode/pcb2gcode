@@ -18,14 +18,14 @@
  */
 
 #include "core.hpp"
+#include <iostream>             // for operator<<, basic_ostream, basic_ostr...
+#include "mill.hpp"             // for Cutter
+#include "outline_bridges.hpp"  // for makeBridges
 
-#include <iostream>
 using std::cerr;
 using std::endl;
 using std::vector;
 using std::shared_ptr;
-
-#include "outline_bridges.hpp"
 
 vector<size_t> Core::get_bridges(shared_ptr<Cutter> cutter, shared_ptr<icoords> toolpath) {
   auto bridges = outline_bridges::makeBridges(

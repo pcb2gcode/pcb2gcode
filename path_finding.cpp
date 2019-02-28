@@ -1,17 +1,34 @@
-#include <vector>
-using std::vector;
+#include <boost/geometry.hpp>                                         // for polygon, distance, ring, append, reverse, polygon<>::inner_container_type, polygon<>::ring_type
+#include <boost/graph/astar_search.hpp>                               // for astar_heuristic<>::Vertex, astar_search, astar_heuristic, default_astar_visitor
+#include <algorithm>                                                  // for max, copy, copy_backward, min, sort, unique
+#include <cstddef>                                                    // for size_t, ptrdiff_t
+#include <tuple>                                                      // for tie, operator<, operator==, tuple
+#include <type_traits>                                                // for __decay_and_strip<>::__type
+#include <unordered_map>                                              // for unordered_map, operator!=, _Node_iterator, _Node_iterator_base, unordered_map<>::const_iterator
+#include <utility>                                                    // for make_pair, pair
+#include <vector>                                                     // for vector
 
-#include <unordered_map>
-using std::unordered_map;
-
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/astar_search.hpp>
-#include <boost/optional.hpp>
-
+#include "bg_helpers.hpp"                                             // for buffer, operator-
+#include "boost/concept_check.hpp"                                    // for function_requires
+#include "boost/geometry/algorithms/detail/covered_by/interface.hpp"  // for covered_by
+#include "boost/geometry/algorithms/detail/equals/interface.hpp"      // for equals
+#include "boost/graph/graph_concepts.hpp"                             // for IncidenceGraphConcept, VertexListGraphConcept
+#include "boost/graph/graph_traits.hpp"                               // for disallow_parallel_edge_tag, graph_traits (ptr only), incidence_graph_tag, undirected_tag, vertex_list_graph_tag, vertex_property_type (ptr only)
+#include "boost/graph/named_function_params.hpp"                      // for bgl_named_params<>::self, bgl_named_params, weight_map
+#include "boost/none.hpp"                                             // for none
+#include "boost/operators.hpp"                                        // for operator!=, operator++, forward_iterator_helper
+#include "boost/property_map/function_property_map.hpp"               // for function_property_map, make_function_property_map
+#include "boost/property_map/property_map.hpp"                        // for typed_identity_property_map
+#include "geometry.hpp"                                               // for multi_polygon_type_fp, linestring_type_fp, point_type_fp, coordinate_type_fp
 #include "path_finding.hpp"
 
-#include "geometry.hpp"
-#include "bg_helpers.hpp"
+namespace path_finding {
+class OutEdgeIteratorImpl;
+class VertexIteratorImpl;
+}  // namespace path_finding
+
+using std::vector;
+using std::unordered_map;
 
 namespace path_finding {
 
@@ -100,9 +117,7 @@ class PathSurface {
  public:
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
               PathLimiter path_limiter)
-      : path_limiter(path_limiter),
-        begin(begin),
-        end(end) {
+      : path_limiter(path_limiter) {
     total_keep_in_grown.clear();
     for (const auto& poly : base->total_keep_in_grown) {
       if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
@@ -169,8 +184,6 @@ class PathSurface {
   const PathLimiter path_limiter;
  private:
   mutable std::unordered_map<size_t, bool> in_surface_memo;
-  const point_type_fp begin;
-  const point_type_fp end;
   multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;
 };
@@ -178,9 +191,6 @@ class PathSurface {
 struct path_surface_traversal_catetory:
     public boost::vertex_list_graph_tag,
     public boost::incidence_graph_tag {};
-
-class OutEdgeIteratorImpl;
-class VertexIteratorImpl;
 
 } // namespace path_finding
 

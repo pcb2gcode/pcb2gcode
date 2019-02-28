@@ -18,13 +18,17 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "layer.hpp"
+#include <memory>    // for shared_ptr, __shared_ptr_access, dynamic_pointer_cast
+#include <vector>    // for vector
 
-#include <memory>
+#include "core.hpp"  // for Core
+#include "layer.hpp"
+#include "mill.hpp"  // for Cutter
+
+class RoutingMill;
+
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
-
-#include <vector>
 using std::vector;
 
 /******************************************************************************/
@@ -39,8 +43,6 @@ Layer::Layer(const std::string& name, shared_ptr<Core> surface,
     this->surface = surface;
     this->manufacturer = manufacturer;
 }
-
-#include <iostream>
 
 /******************************************************************************/
 vector<vector<shared_ptr<icoords>>> Layer::get_toolpaths() {

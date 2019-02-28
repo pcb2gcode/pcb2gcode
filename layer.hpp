@@ -21,14 +21,14 @@
 #ifndef LAYER_H
 #define LAYER_H
 
-#include <string>
-#include <vector>
-
-#include <boost/noncopyable.hpp>
-
-#include "geometry.hpp"
-#include "surface.hpp"
-#include "mill.hpp"
+#include <stddef.h>                    // for size_t
+#include <memory>                      // for shared_ptr
+#include <string>                      // for string
+#include <vector>                      // for vector
+#include "boost/core/noncopyable.hpp"  // for noncopyable
+#include "geometry.hpp"                // for icoords
+class Core;
+class RoutingMill;
 
 class Layer: boost::noncopyable {
  public:

@@ -1,10 +1,13 @@
 #ifndef EULERIAN_PATHS_H
 #define EULERIAN_PATHS_H
 
-#include <vector>
-#include <map>
-
-#include "geometry.hpp"
+#include <stddef.h>      // for size_t
+#include <functional>    // for less
+#include <map>           // for operator==, multimap
+#include <set>           // for set
+#include <tuple>         // for tie, operator!=, operator==, tuple
+#include <vector>        // for vector
+#include "geometry.hpp"  // for point_type, point_type_fp
 
 namespace eulerian_paths {
 static inline bool operator !=(const point_type& x, const point_type& y) {

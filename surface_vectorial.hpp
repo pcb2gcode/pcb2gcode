@@ -20,30 +20,27 @@
 #ifndef SURFACE_VECTORIAL_H
 #define SURFACE_VECTORIAL_H
 
-#include <vector>
-#include <list>
-#include <forward_list>
-#include <map>
-#include <algorithm>
-
-#include <fstream>
-
-#include <memory>
-
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-
-#include "mill.hpp"
-#include "gerberimporter.hpp"
-#include "core.hpp"
-#include "voronoi.hpp"
-#include "units.hpp"
+#include <stddef.h>                                // for size_t
+#include <fstream>                                 // for ofstream
+#include <memory>                                  // for shared_ptr, unique_ptr
+#include <string>                                  // for string
+#include <utility>                                 // for pair
+#include <vector>                                  // for vector
+#include <boost/core/noncopyable.hpp>              // for noncopyable
+#include <boost/geometry.hpp>                      // for svg_mapper
+#include <boost/geometry/geometries/point_xy.hpp>  // for point_xy
+#include "core.hpp"                                // for Core
+#include "geometry.hpp"                            // for box_type_fp, polygon_type_fp, coordinate_type_fp, ivalue_t, linestring_type_fp, multi_polygon_type_fp, multi_linestring_type_fp, icoords, point_type_fp
+#include "units.hpp"                               // for MillFeedDirection
+class RoutingMill;  // lines 35-35
+class VectorialLayerImporter;  // lines 36-36
+namespace boost { template <class T> class optional; }
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class Surface_vectorial: public Core, virtual public boost::noncopyable {
+class Surface_vectorial: public Core, virtual private boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
