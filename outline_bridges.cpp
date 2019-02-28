@@ -17,12 +17,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "outline_bridges.hpp"
+#include <boost/geometry.hpp>                  // for distance
 #include <algorithm>                           // for sort
 #include <queue>                               // for priority_queue
 #include <utility>                             // for pair, make_pair
+
 #include "boost/container/detail/std_fwd.hpp"  // for pair
-#include "boost/geometry.hpp"                  // for distance
+#include "outline_bridges.hpp"
 
 using std::vector;
 using std::pair;

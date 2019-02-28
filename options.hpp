@@ -21,10 +21,12 @@
 #ifndef OPTIONS_HPP
 #define OPTIONS_HPP
 
+#include <boost/program_options.hpp>   // for options_description, program_options, variables_map
 #include <exception>                   // for exception
 #include <string>                      // for string
+
 #include "boost/core/noncopyable.hpp"  // for noncopyable
-#include "boost/program_options.hpp"   // for options_description, program_options, variables_map
+#include "exporter.hpp"                // for program_options
 
 namespace po = boost::program_options;
 

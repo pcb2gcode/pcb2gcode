@@ -21,8 +21,8 @@
 #define COMMON_H
 
 
+#include <boost/program_options.hpp>  // for variables_map
 #include <string>                     // for string
-#include "boost/program_options.hpp"  // for variables_map
 
 namespace Software {
 // This enum contains the software codes. Note that all the items (except for CUSTOM)

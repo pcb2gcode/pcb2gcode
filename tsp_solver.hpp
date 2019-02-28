@@ -20,15 +20,16 @@
 #ifndef TSP_HPP
 #define TSP_HPP
 
+#include <boost/geometry.hpp>                      // for linestring
 #include <stdlib.h>                                // for abs
-#include <algorithm>                               // for reverse
+#include <algorithm>                               // for max, reverse
 #include <iterator>                                // for next
 #include <list>                                    // for list
-#include <memory>                                  // for shared_ptr, __shared_ptr_access, swap
+#include <memory>                                  // for shared_ptr, __shared_ptr_access
 #include <utility>                                 // for swap
 #include <vector>                                  // for vector
+
 #include "boost/container/detail/std_fwd.hpp"      // for pair
-#include "boost/geometry.hpp"                      // for linestring
 #include "boost/geometry/geometries/point_xy.hpp"  // for point_xy
 #include "boost/none.hpp"                          // for none
 #include "boost/optional/optional.hpp"             // for make_optional, optional

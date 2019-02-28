@@ -18,11 +18,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "layer.hpp"
-#include <memory>    // for shared_ptr, __shared_ptr_access, dynamic_pointer...
+#include <memory>    // for shared_ptr, __shared_ptr_access, dynamic_pointer_cast
 #include <vector>    // for vector
+
 #include "core.hpp"  // for Core
+#include "layer.hpp"
 #include "mill.hpp"  // for Cutter
+
 class RoutingMill;
 
 using std::shared_ptr;

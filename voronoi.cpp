@@ -17,22 +17,24 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/geometry.hpp>                                         // for scale_transformer, convert, transform, append, area, expand, return_envelope, polygon, polygon<>::inner_container_type, polygon<>::ring_type, ring
+#include <boost/polygon/polygon.hpp>                                  // for low, high, point_data
+#include <stdlib.h>                                                   // for abs
+#include <algorithm>                                                  // for upper_bound, copy, copy_backward, max
+#include <iostream>                                                   // for cerr, cout, endl, size_t
+#include <iterator>                                                   // for distance
+#include <list>                                                       // for list
+#include <map>                                                        // for map
+#include <memory>                                                     // for __alloc_traits<>::value_type, allocator_traits<>::value_type
+#include <vector>                                                     // for vector
+
+#include "boost/core/enable_if.hpp"                                   // for enable_if_c<>::type
+#include "boost/geometry/algorithms/detail/covered_by/interface.hpp"  // for covered_by
+#include "boost/geometry/geometries/point_xy.hpp"                     // for point_xy
+#include "boost/polygon/voronoi.hpp"                                  // for insert
+#include "boost/polygon/voronoi_geometry_type.hpp"                    // for SOURCE_CATEGORY_SEGMENT_START_POINT
 #include "voronoi.hpp"
-#include <stdlib.h>                                 // for size_t, abs, NULL
-#include <algorithm>                                // for upper_bound, max
-#include <iostream>                                 // for cerr, cout, endl, size_t
-#include <iterator>                                 // for distance
-#include <list>                                     // for list
-#include <map>                                      // for map
-#include <memory>                                   // for __alloc_traits<>::value_type, allocator_traits<>::value_type
-#include <vector>                                   // for vector
-#include "boost/core/enable_if.hpp"                 // for enable_if_c<>::type
-#include "boost/geometry.hpp"                       // for scale_transformer, point_xy, convert, transform, covered_by, append, area, expand, return_envelope, polygon, polygon<>::inner_container_type, polygon<>::ring_type, ring
-#include "boost/polygon/point_data.hpp"             // for point_data
-#include "boost/polygon/segment_concept.hpp"        // for low, high
-#include "boost/polygon/voronoi.hpp"                // for insert
-#include "boost/polygon/voronoi_geometry_type.hpp"  // for SOURCE_CATEGORY_SEGMENT_START_POINT
-#include "voronoi_visual_utils.hpp"                 // for voronoi_visual_utils
+#include "voronoi_visual_utils.hpp"                                   // for voronoi_visual_utils
 
 using std::cerr;
 using std::cout;

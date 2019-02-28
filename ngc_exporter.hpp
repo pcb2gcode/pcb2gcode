@@ -23,22 +23,29 @@
 #ifndef NGCEXPORTER_H
 #define NGCEXPORTER_H
 
-#include <stddef.h>                     // for size_t
-#include <fstream>                      // for ofstream
-#include <memory>                       // for shared_ptr
-#include <string>                       // for string
-#include <vector>                       // for vector
+#include <stddef.h>          // for size_t
+#include <fstream>           // for ofstream
+#include <memory>            // for shared_ptr
+#include <string>            // for string
+#include <vector>            // for vector
+
 #include "boost/optional/optional.hpp"  // for optional
-#include "exporter.hpp"                 // for Exporter
-#include "geometry.hpp"                 // for icoords
-#include "tile.hpp"                     // for Tiling, Tiling::TileInfo
-#include "unique_codes.hpp"             // for uniqueCodes
+#include "exporter.hpp"      // for Exporter
+#include "geometry.hpp"      // for icoords
+#include "tile.hpp"          // for Tiling, Tiling::TileInfo
+#include "unique_codes.hpp"  // for uniqueCodes
+
 class Board;
 class Cutter;
 class Layer;
 class RoutingMill;
 class autoleveller;
-namespace boost { namespace program_options { class variables_map; } }
+namespace boost {
+namespace program_options {
+class variables_map;
+}  // namespace program_options
+template <class T> class optional;
+}  // namespace boost
 
 /******************************************************************************/
 /*

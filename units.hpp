@@ -1,13 +1,16 @@
 #ifndef UNITS_HPP
 #define UNITS_HPP
 
-#include <ctype.h>                                    // for isdigit, isalpha, isspace
-#include <stddef.h>                                   // for size_t
 #include <boost/lexical_cast.hpp>                     // for lexical_cast
+#include <boost/program_options.hpp>                  // for invalid_option_value
 #include <boost/units/base_units/imperial/inch.hpp>   // for inch_base_unit
 #include <boost/units/base_units/imperial/thou.hpp>   // for thou_base_unit
 #include <boost/units/base_units/metric/minute.hpp>   // for minute_base_unit
+#include <boost/units/io.hpp>                         // for operator<<
 #include <boost/units/quantity.hpp>                   // for operator*, operator/, quantity, divide_typeof_helper<>::type
+#include <boost/units/unit.hpp>                       // for operator>
+#include <ctype.h>                                    // for isdigit, isalpha, isspace
+#include <stddef.h>                                   // for size_t
 #include <cmath>                                      // for isinf
 #include <exception>                                  // for exception
 #include <initializer_list>                           // for initializer_list
@@ -15,7 +18,9 @@
 #include <iterator>                                   // for istreambuf_iterator, operator!=, operator==
 #include <string>                                     // for basic_string, string, operator==, allocator, operator+, char_traits
 #include <vector>                                     // for vector
+
 #include "boost/algorithm/string/classification.hpp"  // for is_any_of
+#include "boost/algorithm/string/detail/classification.hpp"  // for is_any_ofF
 #include "boost/algorithm/string/predicate.hpp"       // for iequals
 #include "boost/algorithm/string/split.hpp"           // for split
 #include "boost/detail/basic_pointerbuf.hpp"          // for basic_pointerbuf<>::pos_type, basic_pointerbuf<>::base_type
@@ -23,7 +28,6 @@
 #include "boost/move/utility_core.hpp"                // for move
 #include "boost/none.hpp"                             // for none
 #include "boost/optional/optional.hpp"                // for optional, make_optional
-#include "boost/program_options.hpp"                  // for invalid_option_value
 #include "boost/units/base_dimension.hpp"             // for base_dimension, base_dimension<>::dimension_type
 #include "boost/units/base_unit.hpp"                  // for base_unit<>::unit_type, base_unit
 #include "boost/units/scaled_base_unit.hpp"           // for scaled_base_unit<>::unit_type
@@ -34,7 +38,6 @@
 #include "boost/variant/static_visitor.hpp"           // for static_visitor
 #include "boost/variant/variant.hpp"                  // for variant
 #include "common.hpp"                                 // for CUSTOM, LINUXCNC, MACH3, MACH4, Software
-#include <boost/units/io.hpp>
 
 template <typename dimension_t> class UnitBase;  // lines 112-113
 

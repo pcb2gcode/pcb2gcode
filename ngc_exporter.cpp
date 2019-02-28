@@ -20,23 +20,24 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "ngc_exporter.hpp"
+#include <boost/format.hpp>                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, str, basic_format, format
+#include <boost/program_options.hpp>               // for variable_value, variables_map
 #include <glibmm/miscutils.h>                      // for build_filename
 #include <cmath>                                   // for ceil
 #include <iostream>                                // for cout, cerr
 #include <memory>                                  // for shared_ptr, allocator, __shared_ptr_access, __shared_ptr_access<>::element_type, dynamic_pointer_cast, allocator_traits<>::value_type, __alloc_traits<>::value_type
 #include <stdexcept>                               // for logic_error
-#include <string>                                  // for char_traits, string, operator+, operator<<, operator==, to_string
+#include <string>                                  // for char_traits, string, operator+, operator<<, operator==, to_string, basic_string
 #include <utility>                                 // for pair
 #include <vector>                                  // for vector, vector<>::iterator
+
 #include "autoleveller.hpp"                        // for autoleveller
 #include "board.hpp"                               // for Board
-#include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, str, format
 #include "boost/none.hpp"                          // for none
-#include "boost/program_options.hpp"               // for variable_value, variables_map
 #include "common.hpp"                              // for workSide, CUSTOM
 #include "layer.hpp"                               // for Layer
 #include "mill.hpp"                                // for RoutingMill, Cutter, Isolator
+#include "ngc_exporter.hpp"
 #include "options.hpp"                             // for ERR_INVALIDPARAMETER, options
 #include "units.hpp"                               // for Length, Unit, operator<<
 

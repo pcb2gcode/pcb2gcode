@@ -17,9 +17,12 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "tile.hpp"
-#include "boost/format.hpp"                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, operator<<, format, str
+#include <boost/format.hpp>                        // for basic_altstringbuf<>::int_type, basic_altstringbuf<>::pos_type, operator<<, basic_format, format, str
+
+#include "boost/optional/optional.hpp"             // for get_pointer
 #include "boost/type_index/type_index_facade.hpp"  // for operator==
+#include "tile.hpp"
+
 class uniqueCodes;  // lines 24-24
 
 using boost::format;

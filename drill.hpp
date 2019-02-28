@@ -25,23 +25,25 @@
 
 
 extern "C" {
+#include <boost/program_options.hpp>      // for variables_map
+#include <boost/units/unit.hpp>           // for operator>
 #include <gerbv.h>                        // for gerbv_project_t
 }
 #include <exception>                      // for exception
 #include <map>                            // for map
 #include <memory>                         // for shared_ptr
 #include <ostream>                        // for ostringstream, basic_ostream, basic_ostream<>::__ostream_type, ofstream
-#include <string>                         // for string, operator<<, basic_string
+#include <string>                         // for string, operator<<
 #include <vector>                         // for vector
+
 #include "available_drills.hpp"           // for AvailableDrill
 #include "boost/exception/exception.hpp"  // for exception
 #include "boost/optional/optional.hpp"    // for optional
-#include "boost/program_options.hpp"      // for variables_map
-#include "boost/units/detail/one.hpp"     // for operator>
 #include "geometry.hpp"                   // for ilinesegments, icoordpair, box_type_fp, icoords, ilinesegment, ivalue_t
 #include "tile.hpp"                       // for Tiling, Tiling::TileInfo
 #include "unique_codes.hpp"               // for uniqueCodes
 #include "units.hpp"                      // for Length, parse_unit, units_parse_exception, MillFeedDirection
+
 class Cutter;  // lines 44-44
 class Driller;  // lines 45-45
 

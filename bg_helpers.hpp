@@ -1,6 +1,12 @@
 #ifndef BG_HELPERS_H
 #define BG_HELPERS_H
 
+#include <boost/geometry.hpp>                  // for distance_symmetric, convert, multi_polygon, area, end_round, join_round, buffer, side_straight, multi_linestring, point_circle, intersection, length, difference, polygon<>::ring_type, return_envelope, polygon, sym_difference, union_
+#include <algorithm>                           // for max, copy
+#include <vector>                              // for vector
+
+#include "geometry.hpp"                        // for coordinate_type_fp, multi_polygon_type_fp, polygon_type_fp, ring_type_fp, linestring_type_fp, box_type_fp, multi_linestring_type_fp, polygon_type
+
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {

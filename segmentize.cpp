@@ -1,9 +1,10 @@
+#include <boost/polygon/polygon.hpp>  // for segment_data, point_data, intersect_segments
 #include <stddef.h>                   // for size_t
 #include <algorithm>                  // for max, min, sort, unique
 #include <memory>                     // for allocator_traits<>::value_type
 #include <utility>                    // for pair, make_pair
 #include <vector>                     // for vector
-#include "boost/polygon/polygon.hpp"  // for contains, segment_data, assign, intersects, point_data, intersect_segments
+
 #include "geometry.hpp"               // for segment_type_p
 
 namespace segmentize {

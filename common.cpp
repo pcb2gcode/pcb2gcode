@@ -17,9 +17,10 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>                        // for format
+
 #include "common.hpp"
-#include "boost/format.hpp"  // for format
-#include "units.hpp"         // for AUTO, BACK, BoardSide, FRONT
+#include "units.hpp"                               // for AUTO, BACK, BoardSide, FRONT
 
 using boost::format;
 using std::string;

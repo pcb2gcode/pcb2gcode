@@ -1,13 +1,10 @@
 #ifndef SEGMENTIZE_H
 #define SEGMENTIZE_H
 
-#include <vector>
-#include <map>
+#include <utility>       // for pair
+#include <vector>        // for vector
 
-#include "geometry.hpp"
-#include <boost/polygon/isotropy.hpp>
-#include <boost/polygon/segment_concept.hpp>
-#include <boost/polygon/segment_utils.hpp>
+#include "geometry.hpp"  // for segment_type_p
 
 namespace segmentize {
 

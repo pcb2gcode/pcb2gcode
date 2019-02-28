@@ -20,12 +20,12 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#include <stdint.h>                                      // for int32_t, int64_t
 #include <boost/geometry.hpp>                            // for box, linestring, multi_linestring, multi_point, multi_polygon, polygon, ring, segment, cartesian, geometry
-#include <boost/polygon/polygon.hpp>                     // for point_data, segment_data
 #include <boost/geometry/geometries/point_xy.hpp>        // for point_xy
 #include <boost/geometry/geometries/register/point.hpp>  // for BOOST_GEOMETRY_REGISTER_POINT_2D
 #include <boost/geometry/geometries/register/ring.hpp>   // for BOOST_GEOMETRY_REGISTER_RING
+#include <boost/polygon/polygon.hpp>                     // for point_data, segment_data
+#include <stdint.h>                                      // for int32_t, int64_t
 #include <utility>                                       // for pair
 #include <vector>                                        // for vector
 
