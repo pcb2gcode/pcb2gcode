@@ -149,7 +149,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, 360);
+  multi_polygon_type_fp polys = g.render(false, true, 360).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x());
@@ -197,7 +197,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(fill_closed_lines, 30);
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = bounding_box.min_corner().x();

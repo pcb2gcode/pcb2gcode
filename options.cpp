@@ -250,6 +250,8 @@ options::options()
         "In which direction should all milling occur")
        ("invert-gerbers", po::value<bool>()->default_value(false)->implicit_value(true),
         "Invert polarity of front and back gerbers, causing the milling to occur inside the shapes")
+       ("draw-gerber-lines", po::value<bool>()->default_value(false)->implicit_value(true),
+        "Draw lines in the gerber file as just lines and not as filled in shapes")
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
        ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer");

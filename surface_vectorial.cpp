@@ -42,6 +42,9 @@ using std::endl;
 using std::pair;
 using std::make_pair;
 
+#include <map>
+using std::map;
+
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 using boost::optional;
@@ -74,7 +77,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
                                      ivalue_t min_y, ivalue_t max_y,
                                      string name, string outputdir,
                                      bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
-                                     bool invert_gerbers) :
+                                     bool invert_gerbers, bool render_paths_to_shapes) :
     points_per_circle(points_per_circle),
     bounding_box(box_type_fp(point_type_fp(min_x, min_y),
                              point_type_fp(max_x, max_y))),
@@ -83,15 +86,13 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     tsp_2opt(tsp_2opt),
     fill(false),
     mill_feed_direction(mill_feed_direction),
-    invert_gerbers(invert_gerbers) {}
+    invert_gerbers(invert_gerbers),
+    render_paths_to_shapes(render_paths_to_shapes) {}
 
 void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
-  multi_polygon_type_fp vectorial_surface_not_simplified;
+  auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
 
-  vectorial_surface = make_shared<multi_polygon_type_fp>();
-  vectorial_surface_not_simplified = importer->render(fill, points_per_circle);
-
-  if (bg::intersects(vectorial_surface_not_simplified)) {
+  if (bg::intersects(vectorial_surface_not_simplified.first)) {
     cerr << "\nWarning: Geometry of layer '" << name << "' is"
         " self-intersecting. This can cause pcb2gcode to produce"
         " wildly incorrect toolpaths. You may want to check the"
@@ -99,7 +100,15 @@ void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
   }
 
   //With a very small loss of precision we can reduce memory usage and processing time
-  bg::simplify(vectorial_surface_not_simplified, *vectorial_surface, 0.0001);
+  vectorial_surface = make_shared<
+      pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>>>();
+  bg::simplify(vectorial_surface_not_simplified.first, vectorial_surface->first, 0.0001);
+  for (const auto& diameter_and_path : vectorial_surface_not_simplified.second) {
+    vectorial_surface->second[diameter_and_path.first] = multi_linestring_type_fp();
+    bg::simplify(diameter_and_path.second,
+                 vectorial_surface->second[diameter_and_path.first],
+                 0.0001);
+  }
 }
 
 // If the direction is ccw, return cw and vice versa.  If any, return any.
@@ -196,9 +205,9 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
     }
 
     if (find_contentions) {
-      if (trace_index < vectorial_surface->size()) {
+      if (trace_index < vectorial_surface->first.size()) {
         multi_polygon_type_fp temp;
-        bg_helpers::buffer(vectorial_surface->at(trace_index), temp, tool_diameter/2 - tolerance);
+        bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - tolerance);
         multi_linestring_type_fp temp2;
         for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
           temp2.push_back(ls_and_allow_reversal.first);
@@ -219,28 +228,34 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
         " and consider using a smaller milling bit.\n";
   }
   srand(1);
-  debug_image.add(*vectorial_surface, 1, true);
+  debug_image.add(vectorial_surface->first, 1, true);
+  for (const auto& diameter_and_path : vectorial_surface->second) {
+    debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
+  }
 }
 
 // A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
 vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
-  bg::unique(*vectorial_surface);
+  bg::unique(vectorial_surface->first);
+  for (auto& diameter_and_path : vectorial_surface->second) {
+    bg::unique(diameter_and_path.second);
+  }
   if (invert_gerbers) {
-    *vectorial_surface = bounding_box - *vectorial_surface;
+    vectorial_surface->first = bounding_box - vectorial_surface->first;
   }
   const auto tolerance = mill->tolerance;
   // Get the voronoi region for each trace.
-  voronoi = Voronoi::build_voronoi(*vectorial_surface, bounding_box, tolerance);
+  voronoi = Voronoi::build_voronoi(vectorial_surface->first, bounding_box, tolerance);
 
   auto isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator) {
     if (isolator->preserve_thermal_reliefs && isolator->voronoi) {
-      thermal_holes = find_thermal_reliefs(*vectorial_surface, tolerance);
+      thermal_holes = find_thermal_reliefs(vectorial_surface->first, tolerance);
     }
     const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
     vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> results(tool_count);
-    const auto trace_count = vectorial_surface->size() + thermal_holes.size(); // Includes thermal holes.
+    const auto trace_count = vectorial_surface->first.size() + thermal_holes.size(); // Includes thermal holes.
     // One for each trace or thermal hole, including all prior tools.
     vector<multi_polygon_type_fp> already_milled(trace_count);
     for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
@@ -253,9 +268,9 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
         if (tool_index < tool_count - 1) {
           // Don't force isolation.
-          if (trace_index < vectorial_surface->size()) {
+          if (trace_index < vectorial_surface->first.size()) {
             multi_polygon_type_fp temp;
-            bg_helpers::buffer(vectorial_surface->at(trace_index), temp, tool_diameter/2 - mill->tolerance);
+            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - mill->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
           }
         }
@@ -303,7 +318,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    const auto trace_count = vectorial_surface->size();
+    const auto trace_count = vectorial_surface->first.size();
     vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
@@ -685,8 +700,8 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
     optional<polygon_type_fp> current_trace = boost::none;
-    if (trace_index < vectorial_surface->size()) {
-      current_trace.emplace(vectorial_surface->at(trace_index));
+    if (trace_index < vectorial_surface->first.size()) {
+      current_trace.emplace(vectorial_surface->first.at(trace_index));
     }
     const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
     const vector<multi_polygon_type_fp> polygons =
@@ -770,7 +785,10 @@ void Surface_vectorial::save_debug_image(string message)
     svg_writer debug_image(build_filename(outputdir, filename), bounding_box);
 
     srand(1);
-    debug_image.add(*vectorial_surface, 1, true);
+    debug_image.add(vectorial_surface->first, 1, true);
+    for (const auto& diameter_and_path : vectorial_surface->second) {
+      debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
+    }
 
     ++debug_image_index;
 }
@@ -783,7 +801,10 @@ void Surface_vectorial::add_mask(shared_ptr<Core> surface) {
     mask = dynamic_pointer_cast<Surface_vectorial>(surface);
 
     if (mask) {
-      *vectorial_surface = *vectorial_surface & *(mask->vectorial_surface);
+      vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
+      for (auto& diameter_and_path : vectorial_surface->second) {
+        diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
+      }
       return;
     }
     throw std::logic_error("Can't cast Core to Surface_vectorial");
@@ -821,7 +842,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // We need to crop the area that we'll mill if it extends outside the PCB's
   // outline.  This saves time in milling.
   if (mask) {
-    masked_milling_polys = masked_milling_poly & *(mask->vectorial_surface);
+    masked_milling_polys = masked_milling_poly & mask->vectorial_surface->first;
   } else {
     // Increase the size of the bounding box to accomodate all milling.
     box_type_fp new_bounding_box;
@@ -880,7 +901,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
-      masked_expanded_milling_polys = ((mpoly & *(mask->vectorial_surface)) + path_minimum) & voronoi_polygon;
+      masked_expanded_milling_polys = ((mpoly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
     } else {
       masked_expanded_milling_polys = mpoly;
     }
@@ -938,6 +959,18 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
             str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
             opacity % r % g % b));
     }
+}
+
+void svg_writer::add(const multi_linestring_type_fp& mls, coordinate_type_fp width, double opacity, bool stroke) {
+  string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
+
+  for (const auto& ls : mls) {
+    const unsigned int r = rand() % 256;
+    const unsigned int g = rand() % 256;
+    const unsigned int b = rand() % 256;
+
+    add(ls, width, r, g, b);
+  }
 }
 
 void svg_writer::add(const linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
