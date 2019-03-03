@@ -98,7 +98,7 @@ protected:
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi) const;
   multi_linestring_type_fp post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, const std::vector<std::pair<linestring_type_fp, bool>>& toolpath) const;
-  void write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
+  void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                   coordinate_type_fp tolerance, bool find_contentions) const;
 };

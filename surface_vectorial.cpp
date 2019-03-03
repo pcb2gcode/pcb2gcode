@@ -182,11 +182,10 @@ vector<pair<linestring_type_fp, bool>> flatten_mls(const vector<vector<pair<line
   return result;
 }
 
-void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordinate_type_fp tool_diameter,
+void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp tool_diameter,
                                    const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                                    coordinate_type_fp tolerance, bool find_contentions) const {
   // Now set up the debug images, one per tool.
-  const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
   svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
   svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
   optional<svg_writer> contentions_image;
@@ -755,7 +754,8 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
-      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
+      const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
+      write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten_mls(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
       results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
@@ -779,11 +779,10 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
           linestring_type_fp temp_ls;
           bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
           ls_and_allow_reversal.first = temp_ls;
-          }
+        }
       }
-      //for (const auto& diameter_and_path : vectorial_surface->second) {
-      //  debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
-      //}
+      const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
+      write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_trace_toolpath);
       results.push_back(make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))));
     }
@@ -798,7 +797,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
-    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
+    write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten_mls(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
     return {make_pair(cutter->tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)))};
