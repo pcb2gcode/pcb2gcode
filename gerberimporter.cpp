@@ -903,5 +903,9 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
                       1/25.4, 1/25.4));
     result.swap(scaled_result);
   }
+  for (auto& path : linear_circular_paths) {
+    path.second = eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
+        path.second, vector<bool>(path.second.size(), true));
+  }
   return make_pair(result, linear_circular_paths);
 }
