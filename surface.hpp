@@ -55,7 +55,7 @@ public:
 
   void save_debug_image(std::string);
 
-  std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
+  std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
   ivalue_t get_width_in() {
     return max_x - min_x;

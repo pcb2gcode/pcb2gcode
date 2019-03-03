@@ -191,7 +191,7 @@ void Board::createLayers()
     }
 }
 
-vector<vector<shared_ptr<icoords>>> Board::get_toolpath(string layername) {
+vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Board::get_toolpath(string layername) {
   return layers[layername]->get_toolpaths();
 }
 

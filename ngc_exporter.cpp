@@ -37,6 +37,9 @@ using std::endl;
 #include <vector>
 using std::vector;
 
+#include <utility>
+using std::pair;
+
 #include <cmath>
 using std::ceil;
 
@@ -235,7 +238,7 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    vector<vector<shared_ptr<icoords>>> all_toolpaths = layer->get_toolpaths();
+    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> all_toolpaths = layer->get_toolpaths();
 
     if (all_toolpaths.size() < 1) {
       return; // Nothing to do.
@@ -297,7 +300,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;
     if (cutter) {
-      for (const auto& path : all_toolpaths[0]) {  // Cutter layer can only have one tool_diameter.
+      for (const auto& path : all_toolpaths[0].second) {  // Cutter layer can only have one tool_diameter.
         auto bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
       }
@@ -305,7 +308,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     uniqueCodes main_sub_ocodes(200);
     for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
-      const auto& toolpaths = all_toolpaths[toolpaths_index];
+      const auto& toolpaths = all_toolpaths[toolpaths_index].second;
       if (toolpaths.size() < 1) {
         continue; // Nothing to do for this mill size.
       }
@@ -323,20 +326,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
          << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;
       if (cutter) {
         of << "(MSG, Change tool bit to cutter diameter ";
-        if (bMetricoutput) {
-          of << (cutter->tool_diameter * 25.4) << "mm)" << endl;
-        } else {
-          of << cutter->tool_diameter << "in)" << endl;
-        }
       } else if (isolator) {
         of << "(MSG, Change tool bit to mill diameter ";
-        if (bMetricoutput) {
-          of << (isolator->tool_diameters_and_overlap_widths[toolpaths_index].first * 25.4) << "mm)" << endl;
-        } else {
-          of << isolator->tool_diameters_and_overlap_widths[toolpaths_index].first << "in)" << endl;
-        }
       } else {
         throw std::logic_error("Can't cast to Cutter nor Isolator.");
+      }
+      const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
+      if (bMetricoutput) {
+        of << (tool_diameter * 25.4) << "mm)" << endl;
+      } else {
+        of << tool_diameter << "in)" << endl;
       }
       of << "M6      (Tool change.)" << endl
          << "M0      (Temporary machine stop.)" << endl

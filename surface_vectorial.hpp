@@ -49,7 +49,7 @@ class Surface_vectorial: public Core, private boost::noncopyable {
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
                     bool invert_gerbers);
 
-  std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
+  std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
   void save_debug_image(std::string message);
   void enable_filling();
