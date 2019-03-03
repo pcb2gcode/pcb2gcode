@@ -27,6 +27,9 @@ using std::dynamic_pointer_cast;
 #include <vector>
 using std::vector;
 
+#include <utility>
+using std::pair;
+
 /******************************************************************************/
 /*
  */
@@ -43,7 +46,7 @@ Layer::Layer(const std::string& name, shared_ptr<Core> surface,
 #include <iostream>
 
 /******************************************************************************/
-vector<vector<shared_ptr<icoords>>> Layer::get_toolpaths() {
+vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Layer::get_toolpaths() {
   return surface->get_toolpath(manufacturer, mirrored);
 }
 

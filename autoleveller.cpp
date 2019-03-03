@@ -35,6 +35,9 @@ using std::endl;
 using std::to_string;
 using std::string;
 
+#include <utility>
+using std::pair;
+
 #include "units.hpp"
 
 const string autoleveller::callSubRepeat[] = {
@@ -100,11 +103,11 @@ string autoleveller::getVarName( int i, int j )
     return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-box_type_fp computeWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
+box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
   box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
 
   for (const auto& toolpath : toolpaths) {
-    for (const auto& linestring : toolpath) {
+    for (const auto& linestring : toolpath.second) {
       boost::geometry::expand(bounding_box,
                               boost::geometry::return_envelope<box_type_fp>(*linestring));
     }
@@ -113,7 +116,7 @@ box_type_fp computeWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths
   return bounding_box;
 }
 
-bool autoleveller::prepareWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
+bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;

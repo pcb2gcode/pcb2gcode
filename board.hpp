@@ -66,7 +66,7 @@ public:
 
     std::vector<std::string> list_layers();
     std::shared_ptr<Layer> get_layer(std::string layername);
-    std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::string layername);
+    std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
     unsigned int get_dpi();

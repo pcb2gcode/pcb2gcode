@@ -30,7 +30,7 @@ class Core {
  public:
   // Returns a vector of toolpaths.  A toolpath is a vector of linestrings.  A
   // linestring is a vector of points.  Each point is an x,y pair of doubles.
-  virtual std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(
+  virtual std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror) = 0;
   virtual void save_debug_image(std::string message) = 0;
   virtual ivalue_t get_width_in() = 0;
