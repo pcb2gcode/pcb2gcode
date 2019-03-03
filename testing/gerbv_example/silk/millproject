@@ -22,3 +22,7 @@ fill-outline=true
 zsafe=0.08
 zchange=1.0
 mill-feed-direction=any
+mill-diameters=0
+milling-overlap=-0.2mm
+invert-gerbers=true
+extra-passes=50
