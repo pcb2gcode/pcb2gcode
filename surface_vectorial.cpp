@@ -760,6 +760,39 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
       results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
     }
+    // Now process any lines that need drawing.
+    for (const auto& diameter_and_paths : vectorial_surface->second) {
+      const auto& tool_diameter = diameter_and_paths.first;
+      const auto& paths = diameter_and_paths.second;
+      // Each linestring has a bool attached to it indicating if it is reversible.
+      // true means reversal is still allowed.
+      vector<pair<linestring_type_fp, bool>> new_trace_toolpath;
+      PathFinder path_finder =
+          [&](const point_type_fp& a, const point_type_fp& b) -> optional<linestring_type_fp> {
+            if (bg::distance(a, b) < tool_diameter) {
+              linestring_type_fp ret;
+              ret.push_back(a);
+              ret.push_back(b);
+              return make_optional(ret);
+            }
+            return boost::none;
+          };
+      for (const auto& path : paths) {
+        attach_ls(path, new_trace_toolpath, MillFeedDirection::ANY, multi_polygon_type_fp(), path_finder);
+      }
+      if (mill->optimise) {
+        for (auto& ls_and_allow_reversal : new_trace_toolpath) {
+          linestring_type_fp temp_ls;
+          bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
+          ls_and_allow_reversal.first = temp_ls;
+          }
+      }
+      //for (const auto& diameter_and_path : vectorial_surface->second) {
+      //  debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
+      //}
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_trace_toolpath);
+      results.push_back(make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))));
+    }
     return results;
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
