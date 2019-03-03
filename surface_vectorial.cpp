@@ -769,12 +769,6 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       vector<pair<linestring_type_fp, bool>> new_trace_toolpath;
       PathFinder path_finder =
           [&](const point_type_fp& a, const point_type_fp& b) -> optional<linestring_type_fp> {
-            if (bg::distance(a, b) < tool_diameter) {
-              linestring_type_fp ret;
-              ret.push_back(a);
-              ret.push_back(b);
-              return make_optional(ret);
-            }
             return boost::none;
           };
       for (const auto& path : paths) {
