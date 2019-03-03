@@ -293,8 +293,10 @@ class IntegrationTests(unittest2.TestCase):
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
-  parser.add_argument('--fix', action='store_true', default=False,
-                      help='Generate expected outputs automatically')
+  parser.add_argument('--fix', action='store_true', dest='fix',
+                      help='Update expected outputs automatically')
+  parser.add_argument('--no-fix', action='store_false', dest='fix',
+                      help='Don\'t update expected outputs automatically')
   parser.add_argument('--add', action='store_true', default=False,
                       help='git add new expected outputs automatically')
   parser.add_argument('-j', type=int, default=3,
@@ -316,7 +318,7 @@ if __name__ == '__main__':
     print("Generating expected outputs...")
     output = None
     try:
-      subprocess.check_output([sys.argv[0]], stderr=subprocess.STDOUT)
+      subprocess.check_output(sys.argv + ['--no-fix'], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError, e:
       output = str(e.output)
     if not output:
