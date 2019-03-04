@@ -50,8 +50,11 @@
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, std::string outputdir, bool vectorial, bool tsp_2opt,
-          MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers);
+    Board(int dpi,
+          bool fill_outline,
+          double outline_width, std::string outputdir, bool vectorial, bool tsp_2opt,
+          MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
+          bool render_paths_to_shapes);
 
     void prepareLayer(std::string layername, std::shared_ptr<LayerImporter> importer,
                       std::shared_ptr<RoutingMill> manufacturer, bool backside);
@@ -81,6 +84,8 @@ private:
     const bool tsp_2opt;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
     const bool invert_gerbers;
+    const bool render_paths_to_shapes;
+
     ivalue_t min_x;
     ivalue_t max_x;
     ivalue_t min_y;

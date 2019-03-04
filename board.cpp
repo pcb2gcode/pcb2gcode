@@ -42,7 +42,8 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
  */
 /******************************************************************************/
 Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
-             MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers) :
+             MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
+             bool render_paths_to_shapes) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
@@ -51,7 +52,8 @@ Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir,
     vectorial(vectorial),
     tsp_2opt(tsp_2opt),
     mill_feed_direction(mill_feed_direction),
-    invert_gerbers(invert_gerbers) {}
+    invert_gerbers(invert_gerbers),
+    render_paths_to_shapes(render_paths_to_shapes) {}
 
 double Board::get_width() {
   if (layers.size() < 1) {
@@ -141,11 +143,13 @@ void Board::createLayers()
         if (!vectorial_layer_importer) {
           throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
         }
-        shared_ptr<Surface_vectorial> surface(new Surface_vectorial(30,
-                                                                    min_x, max_x,
-                                                                    min_y, max_y,
-                                                                    prepared_layer.first, outputdir, tsp_2opt,
-                                                                    mill_feed_direction, invert_gerbers));
+        shared_ptr<Surface_vectorial> surface(new Surface_vectorial(
+            30,
+            min_x, max_x,
+            min_y, max_y,
+            prepared_layer.first, outputdir, tsp_2opt,
+            mill_feed_direction, invert_gerbers,
+            render_paths_to_shapes || (prepared_layer.first == "outline")));
         if (fill) {
           surface->enable_filling();
         }

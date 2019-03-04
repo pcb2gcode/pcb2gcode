@@ -730,10 +730,15 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
 }
 
 
-// Convert the gerber file into a multi_polygon_type_fp.  If fill_closed_lines is
-// true, return all closed shapes without holes in them.  points_per_circle is
-// the number of lines to use to appoximate circles.
-multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned int points_per_circle) const {
+// Convert the gerber file into a pair of multi_polygon_type_fp and a list of
+// linear_paths.  The linear paths are a map from diamter of the tool for the
+// path to all the paths at that diameter.  If fill_closed_lines is true, return
+// all closed shapes without holes in them.  points_per_circle is the number of
+// lines to use to appoximate circles.
+pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> GerberImporter::render(
+    bool fill_closed_lines,
+    bool render_paths_to_shapes,
+    unsigned int points_per_circle) const {
   ring_type_fp region;
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
@@ -758,11 +763,13 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     multi_polygon_type_fp mpoly;
 
     if (!layers_equivalent(currentNet->layer, layers.back().first)) {
-      // About to start a new layer, render all the linear_circular_paths so far.
-      for (const auto& diameter_and_path : linear_circular_paths) {
-        layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+      if (render_paths_to_shapes) {
+        // About to start a new layer, render all the linear_circular_paths so far.
+        for (const auto& diameter_and_path : linear_circular_paths) {
+          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+        }
+        linear_circular_paths.clear();
       }
-      linear_circular_paths.clear();
       layers.resize(layers.size() + 1);
       layers.back().first = currentNet->layer;
     }
@@ -878,11 +885,13 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
       cerr << "Unrecognized interpolation mode" << endl;
     }
   }
-  // If there are any unrendered circular paths, add them to the last layer.
-  for (const auto& diameter_and_path : linear_circular_paths) {
-    layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+  if (render_paths_to_shapes) {
+    // If there are any unrendered circular paths, add them to the last layer.
+    for (const auto& diameter_and_path : linear_circular_paths) {
+      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+    }
+    linear_circular_paths.clear();
   }
-  linear_circular_paths.clear();
   auto result = generate_layers(layers, points_per_circle);
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
@@ -892,8 +901,11 @@ multi_polygon_type_fp GerberImporter::render(bool fill_closed_lines, unsigned in
     bg::transform(result, scaled_result,
                   bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
                       1/25.4, 1/25.4));
-    return scaled_result;
-  } else {
-    return result;
+    result.swap(scaled_result);
   }
+  for (auto& path : linear_circular_paths) {
+    path.second = eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
+        path.second, vector<bool>(path.second.size(), true));
+  }
+  return make_pair(result, linear_circular_paths);
 }

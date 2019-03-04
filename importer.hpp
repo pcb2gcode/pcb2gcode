@@ -29,6 +29,9 @@
 
 #include <boost/exception/all.hpp>
 
+#include <utility>
+#include <map>
+
 #include "geometry.hpp"
 #include "geometry.hpp"
 
@@ -60,7 +63,10 @@ class RasterLayerImporter : virtual public LayerImporter {
 
 class VectorialLayerImporter : virtual public LayerImporter {
  public:
-  virtual multi_polygon_type_fp render(bool fill_closed_lines, unsigned int points_per_circle = 30) const = 0;
+  virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
+      bool fill_closed_lines,
+      bool render_paths_to_shapes,
+      unsigned int points_per_circle = 30) const = 0;
 };
 
 #endif // IMPORTER_H
