@@ -30,11 +30,17 @@ using std::vector;
 #include <utility>
 using std::pair;
 
+#include "outline_bridges.hpp"
+
+#include <iostream>
+using std::cerr;
+using std::endl;
+
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-Layer::Layer(const std::string& name, shared_ptr<Core> surface,
+Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
              shared_ptr<RoutingMill> manufacturer, bool backside)
 {
     this->name = name;
@@ -68,12 +74,18 @@ void Layer::add_mask(shared_ptr<Layer> mask)
     surface->add_mask(mask->surface);
 }
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-vector<size_t> Layer::get_bridges( shared_ptr<icoords> toolpath )
-{
-    return surface->get_bridges(dynamic_pointer_cast<Cutter>( manufacturer ), toolpath);
+vector<size_t> Layer::get_bridges( shared_ptr<icoords> toolpath ) {
+  auto cutter = dynamic_pointer_cast<Cutter>(manufacturer);
+  auto bridges = outline_bridges::makeBridges(
+      toolpath,
+      cutter->bridges_num,
+      cutter->bridges_width + cutter->tool_diameter );
+
+  if (bridges.size() != cutter->bridges_num) {
+    cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
+        "only " << bridges.size() << " will be created." << endl;
+  }
+
+  return bridges;
 }
 

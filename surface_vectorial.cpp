@@ -823,17 +823,12 @@ void Surface_vectorial::enable_filling() {
     fill = true;
 }
 
-void Surface_vectorial::add_mask(shared_ptr<Core> surface) {
-    mask = dynamic_pointer_cast<Surface_vectorial>(surface);
-
-    if (mask) {
-      vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
-      for (auto& diameter_and_path : vectorial_surface->second) {
-        diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
-      }
-      return;
-    }
-    throw std::logic_error("Can't cast Core to Surface_vectorial");
+void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
+  mask = surface;
+  vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
+  for (auto& diameter_and_path : vectorial_surface->second) {
+    diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
+  }
 }
 
 // Might not have an input, which is when we are milling for thermal reliefs.

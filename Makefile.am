@@ -11,8 +11,6 @@ pcb2gcode_SOURCES = \
     bg_helpers.hpp \
     common.hpp \
     common.cpp \
-    core.hpp \
-    core.cpp \
     drill.hpp \
     drill.cpp \
     eulerian_paths.hpp \

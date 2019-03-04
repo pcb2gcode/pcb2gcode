@@ -36,7 +36,6 @@
 
 #include "mill.hpp"
 #include "gerberimporter.hpp"
-#include "core.hpp"
 #include "voronoi.hpp"
 #include "units.hpp"
 
@@ -44,7 +43,7 @@
 /*
  */
 /******************************************************************************/
-class Surface_vectorial: public Core, private boost::noncopyable {
+class Surface_vectorial: private boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
@@ -54,7 +53,7 @@ class Surface_vectorial: public Core, private boost::noncopyable {
       std::shared_ptr<RoutingMill> mill, bool mirror);
   void save_debug_image(std::string message);
   void enable_filling();
-  void add_mask(std::shared_ptr<Core> surface);
+  void add_mask(std::shared_ptr<Surface_vectorial> surface);
   void render(std::shared_ptr<VectorialLayerImporter> importer);
 
   inline ivalue_t get_width_in() {
