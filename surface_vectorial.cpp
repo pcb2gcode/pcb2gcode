@@ -234,105 +234,6 @@ void Surface_vectorial::write_svgs(size_t tool_index, size_t tool_count, coordin
   }
 }
 
-// A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
-vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial::get_toolpath(
-    shared_ptr<RoutingMill> mill, bool mirror) {
-  bg::unique(vectorial_surface->first);
-  for (auto& diameter_and_path : vectorial_surface->second) {
-    bg::unique(diameter_and_path.second);
-  }
-  if (invert_gerbers) {
-    vectorial_surface->first = bounding_box - vectorial_surface->first;
-  }
-  const auto tolerance = mill->tolerance;
-  // Get the voronoi region for each trace.
-  voronoi = Voronoi::build_voronoi(vectorial_surface->first, bounding_box, tolerance);
-
-  auto isolator = dynamic_pointer_cast<Isolator>(mill);
-  if (isolator) {
-    if (isolator->preserve_thermal_reliefs && isolator->voronoi) {
-      thermal_holes = find_thermal_reliefs(vectorial_surface->first, tolerance);
-    }
-    const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
-    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> results(tool_count);
-    const auto trace_count = vectorial_surface->first.size() + thermal_holes.size(); // Includes thermal holes.
-    // One for each trace or thermal hole, including all prior tools.
-    vector<multi_polygon_type_fp> already_milled(trace_count);
-    for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
-      const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
-      const auto tool_diameter = tool.first;
-      vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
-
-      for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-        multi_polygon_type_fp already_milled_shrunk;
-        bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
-        if (tool_index < tool_count - 1) {
-          // Don't force isolation.
-          if (trace_index < vectorial_surface->first.size()) {
-            multi_polygon_type_fp temp;
-            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - mill->tolerance);
-            already_milled_shrunk = already_milled_shrunk + temp;
-          }
-        }
-        auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
-                                                      already_milled_shrunk);
-        if (invert_gerbers) {
-          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
-          vector<pair<linestring_type_fp, bool>> temp;
-          for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
-            multi_linestring_type_fp temp_mls;
-            temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
-            for (const auto& ls : temp_mls) {
-              temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
-            }
-          }
-          new_trace_toolpath.swap(temp);
-        }
-        if (mill->optimise) {
-          for (auto& ls_and_allow_reversal : new_trace_toolpath) {
-            linestring_type_fp temp_ls;
-            bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
-            ls_and_allow_reversal.first = temp_ls;
-          }
-        }
-        new_trace_toolpaths[trace_index] = new_trace_toolpath;
-        if (tool_index + 1 == tool_count) {
-          // No point in updating the already_milled.
-          continue;
-        }
-        multi_linestring_type_fp combined_trace_toolpath;
-        combined_trace_toolpath.reserve(new_trace_toolpath.size());
-        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
-          combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
-        }
-        multi_polygon_type_fp new_trace_toolpath_bufferred;
-        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
-        already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
-      }
-      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
-      auto new_toolpath = flatten_mls(new_trace_toolpaths);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
-      results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
-    }
-    return results;
-  }
-  auto cutter = dynamic_pointer_cast<Cutter>(mill);
-  if (cutter) {
-    const auto trace_count = vectorial_surface->first.size();
-    vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
-
-    for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-      const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
-      new_trace_toolpaths[trace_index] = new_trace_toolpath;
-    }
-    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
-    auto new_toolpath = flatten_mls(new_trace_toolpaths);
-    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
-    return {make_pair(cutter->tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)))};
-  }
-  throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
-}
-
 // Returns a minimal number of toolpaths that include all the milling in the
 // oroginal toolpaths.  Each path is traversed once.  First paths are
 // directional, second are bidi.  In the pair, the first is directional and the
@@ -777,6 +678,105 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     }
 
     return toolpath;
+}
+
+// A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
+vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial::get_toolpath(
+    shared_ptr<RoutingMill> mill, bool mirror) {
+  bg::unique(vectorial_surface->first);
+  for (auto& diameter_and_path : vectorial_surface->second) {
+    bg::unique(diameter_and_path.second);
+  }
+  if (invert_gerbers) {
+    vectorial_surface->first = bounding_box - vectorial_surface->first;
+  }
+  const auto tolerance = mill->tolerance;
+  // Get the voronoi region for each trace.
+  voronoi = Voronoi::build_voronoi(vectorial_surface->first, bounding_box, tolerance);
+
+  auto isolator = dynamic_pointer_cast<Isolator>(mill);
+  if (isolator) {
+    if (isolator->preserve_thermal_reliefs && isolator->voronoi) {
+      thermal_holes = find_thermal_reliefs(vectorial_surface->first, tolerance);
+    }
+    const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
+    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> results(tool_count);
+    const auto trace_count = vectorial_surface->first.size() + thermal_holes.size(); // Includes thermal holes.
+    // One for each trace or thermal hole, including all prior tools.
+    vector<multi_polygon_type_fp> already_milled(trace_count);
+    for (size_t tool_index = 0; tool_index < tool_count; tool_index++) {
+      const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
+      const auto tool_diameter = tool.first;
+      vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
+
+      for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+        multi_polygon_type_fp already_milled_shrunk;
+        bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
+        if (tool_index < tool_count - 1) {
+          // Don't force isolation.
+          if (trace_index < vectorial_surface->first.size()) {
+            multi_polygon_type_fp temp;
+            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - mill->tolerance);
+            already_milled_shrunk = already_milled_shrunk + temp;
+          }
+        }
+        auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
+                                                      already_milled_shrunk);
+        if (invert_gerbers) {
+          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
+          vector<pair<linestring_type_fp, bool>> temp;
+          for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+            multi_linestring_type_fp temp_mls;
+            temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
+            for (const auto& ls : temp_mls) {
+              temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
+            }
+          }
+          new_trace_toolpath.swap(temp);
+        }
+        if (mill->optimise) {
+          for (auto& ls_and_allow_reversal : new_trace_toolpath) {
+            linestring_type_fp temp_ls;
+            bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
+            ls_and_allow_reversal.first = temp_ls;
+          }
+        }
+        new_trace_toolpaths[trace_index] = new_trace_toolpath;
+        if (tool_index + 1 == tool_count) {
+          // No point in updating the already_milled.
+          continue;
+        }
+        multi_linestring_type_fp combined_trace_toolpath;
+        combined_trace_toolpath.reserve(new_trace_toolpath.size());
+        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+          combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
+        }
+        multi_polygon_type_fp new_trace_toolpath_bufferred;
+        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
+        already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
+      }
+      write_svgs(tool_index, tool_count, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
+      auto new_toolpath = flatten_mls(new_trace_toolpaths);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
+      results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
+    }
+    return results;
+  }
+  auto cutter = dynamic_pointer_cast<Cutter>(mill);
+  if (cutter) {
+    const auto trace_count = vectorial_surface->first.size();
+    vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
+
+    for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
+      const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
+      new_trace_toolpaths[trace_index] = new_trace_toolpath;
+    }
+    write_svgs(0, 1, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
+    auto new_toolpath = flatten_mls(new_trace_toolpaths);
+    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
+    return {make_pair(cutter->tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)))};
+  }
+  throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
 void Surface_vectorial::save_debug_image(string message)
