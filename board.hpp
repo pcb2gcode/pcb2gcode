@@ -51,7 +51,7 @@ class Board
 public:
     Board(int dpi,
           bool fill_outline,
-          double outline_width, std::string outputdir, bool vectorial, bool tsp_2opt,
+          std::string outputdir, bool tsp_2opt,
           MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
           bool render_paths_to_shapes);
 
@@ -77,9 +77,7 @@ private:
     ivalue_t margin;
     const unsigned int dpi;
     const bool fill_outline;
-    const double outline_width;
     const std::string outputdir;
-    const bool vectorial;
     const bool tsp_2opt;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
     const bool invert_gerbers;

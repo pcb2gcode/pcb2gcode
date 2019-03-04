@@ -262,11 +262,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         new Board(
             vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
-            vm["fill-outline"].as<bool>() ?
-                vm["outline-width"].as<Length>().asInch(unit) :
-                INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>(),
             vm["tsp-2opt"].as<bool>(),
             vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
             vm["invert-gerbers"].as<bool>(),

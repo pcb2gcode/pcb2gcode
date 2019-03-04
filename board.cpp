@@ -41,15 +41,13 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, double outline_width, string outputdir, bool vectorial, bool tsp_2opt,
+Board::Board(int dpi, bool fill_outline, string outputdir, bool tsp_2opt,
              MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
              bool render_paths_to_shapes) :
     margin(0.0),
     dpi(dpi),
     fill_outline(fill_outline),
-    outline_width(outline_width),
     outputdir(outputdir),
-    vectorial(vectorial),
     tsp_2opt(tsp_2opt),
     mill_feed_direction(mill_feed_direction),
     invert_gerbers(invert_gerbers),
