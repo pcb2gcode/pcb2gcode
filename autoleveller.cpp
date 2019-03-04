@@ -123,10 +123,10 @@ bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<
     int temp;
 
     workarea = computeWorkarea(toolpaths);
-    workarea.min_corner().x(workarea.min_corner().x() - xoffset - quantization_error);
-    workarea.min_corner().y(workarea.min_corner().y() - yoffset - quantization_error);
-    workarea.max_corner().x(workarea.max_corner().x() - xoffset + quantization_error);
-    workarea.max_corner().y(workarea.max_corner().y() - yoffset + quantization_error);
+    workarea.min_corner().x(workarea.min_corner().x() - xoffset);
+    workarea.min_corner().y(workarea.min_corner().y() - yoffset);
+    workarea.max_corner().x(workarea.max_corner().x() - xoffset);
+    workarea.max_corner().y(workarea.max_corner().y() - yoffset);
 
     workareaLenX = ( workarea.max_corner().x() - workarea.min_corner().x() ) * cfactor + 
                    tileInfo.boardWidth * cfactor * ( tileInfo.tileX - 1 );
@@ -306,15 +306,24 @@ void autoleveller::footerNoIf( std::ofstream &of )
     }
 }
 
+template <typename T>
+static inline T clamp(const T& x, const T& min_x, const T& max_x) {
+  return std::max(min_x, std::min(x, max_x));
+}
+
 string autoleveller::interpolatePoint ( icoordpair point )
 {
-    int xminindex;
-    int yminindex;
+    unsigned int xminindex;
+    unsigned int yminindex;
     double x_minus_x0_rel;
     double y_minus_y0_rel;
 
-    xminindex = floor ( ( point.first - startPointX ) / XProbeDist );
-    yminindex = floor ( ( point.second - startPointY ) / YProbeDist );
+    xminindex = floor((point.first - startPointX) / XProbeDist);
+    xminindex = clamp(xminindex, 0U, numXPoints - 1);
+
+    yminindex = floor((point.second - startPointY) / YProbeDist);
+    yminindex = clamp(yminindex, 0U, numYPoints - 1);
+
     x_minus_x0_rel = ( point.first - startPointX - xminindex * XProbeDist ) / XProbeDist;
     y_minus_y0_rel = ( point.second - startPointY - yminindex * YProbeDist ) / YProbeDist;
 
