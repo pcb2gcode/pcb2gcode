@@ -41,11 +41,10 @@ typedef pair<string, shared_ptr<Layer> > layer_t;
 /*
  */
 /******************************************************************************/
-Board::Board(int dpi, bool fill_outline, string outputdir, bool tsp_2opt,
+Board::Board(bool fill_outline, string outputdir, bool tsp_2opt,
              MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
              bool render_paths_to_shapes) :
     margin(0.0),
-    dpi(dpi),
     fill_outline(fill_outline),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),
@@ -65,10 +64,6 @@ double Board::get_height() {
     return 0;
   }
   return layers.begin()->second->surface->get_height_in();
-}
-
-unsigned int Board::get_dpi() {
-  return dpi;
 }
 
 void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {

@@ -276,7 +276,6 @@ options::options()
        ("optimise", po::value<bool>()->default_value(true)->implicit_value(true),
         "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")
        ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
-       ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
        ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
        ("path-finding-limit", po::value<size_t>()->default_value(0), "Use path finding for up to this many steps in the search (more is slower but makes a faster gcode path)")
@@ -349,19 +348,6 @@ static void check_generic_parameters(po::variables_map const& vm)
     double unit;      //factor for imperial/metric conversion
 
     unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
-
-    //---------------------------------------------------------------------------
-    //Check dpi parameter:
-
-    if (vm["dpi"].as<int>() < 100)
-    {
-        cerr << "Warning: very low DPI value." << endl;
-    }
-    else if (vm["dpi"].as<int>() > 10000)
-    {
-        cerr << "Warning: very high DPI value, processing may take extremely long"
-             << endl;
-    }
 
     //---------------------------------------------------------------------------
     //Check spinup(down)-time parameters:

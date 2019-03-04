@@ -260,7 +260,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     shared_ptr<Board> board(
         new Board(
-            vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
             outputdir,
             vm["tsp-2opt"].as<bool>(),

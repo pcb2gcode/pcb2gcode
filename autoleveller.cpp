@@ -57,7 +57,7 @@ boost::format silent_format(const string &f_string)
 }
 
 autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
-                            uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
+                            uniqueCodes *globalVars, double xoffset, double yoffset,
                             const struct Tiling::TileInfo tileInfo ) :
     input_unitconv( options["metric"].as<bool>() ? 1.0/25.4 : 1),
     output_unitconv( options["metricoutput"].as<bool>() ? 25.4 : 1),
@@ -75,7 +75,6 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( options["software"].as<Software::Software>() ),
-    quantization_error( quantization_error * cfactor ),
     xoffset( xoffset ),
     yoffset( yoffset ),
     g01InterpolatedNum( ocodes->getUniqueCode() ),
@@ -120,7 +119,6 @@ bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
-    int temp;
 
     workarea = computeWorkarea(toolpaths);
     workarea.min_corner().x(workarea.min_corner().x() - xoffset);
@@ -136,27 +134,22 @@ bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<
     startPointX = workarea.min_corner().x() * cfactor;
     startPointY = workarea.min_corner().y() * cfactor;
 
-    temp = ceil(workareaLenX / XProbeDistRequired);    //We need at least 2 probe points
-    if( temp > 1 )
-        numXPoints = temp + 1;
-    else
-        numXPoints = 2;
+    numXPoints = ceil(workareaLenX / XProbeDistRequired) + 1;
+    numXPoints = std::max(2U, numXPoints); //We need at least 2 probe points
 
-    temp = ceil(workareaLenY / YProbeDistRequired);    //We need at least 2 probe points
-    if( temp > 1 )
-        numYPoints = temp + 1;
-    else
-        numYPoints = 2;
+    numYPoints = ceil(workareaLenY / YProbeDistRequired) + 1;    //We need at least 2 probe points
+    numYPoints = std::max(2U, numYPoints); //We need at least 2 probe points
 
     XProbeDist = workareaLenX / ( numXPoints - 1 );
     YProbeDist = workareaLenY / ( numYPoints - 1 );
     averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
 
-    if( ( software == Software::LINUXCNC && numXPoints * numYPoints > 4501 ) ||
-            ( software != Software::LINUXCNC && numXPoints * numYPoints > 500 ) )
-        return false;
-    else
-        return true;
+    if((software == Software::LINUXCNC && numXPoints * numYPoints > 4501) ||
+       (software != Software::LINUXCNC && numXPoints * numYPoints > 500)) {
+      return false;
+    } else {
+      return true;
+    }
 }
 
 void autoleveller::header( std::ofstream &of )

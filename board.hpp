@@ -49,8 +49,7 @@
 class Board
 {
 public:
-    Board(int dpi,
-          bool fill_outline,
+    Board(bool fill_outline,
           std::string outputdir, bool tsp_2opt,
           MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
           bool render_paths_to_shapes);
@@ -71,11 +70,9 @@ public:
     std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
-    unsigned int get_dpi();
 
 private:
     ivalue_t margin;
-    const unsigned int dpi;
     const bool fill_outline;
     const std::string outputdir;
     const bool tsp_2opt;

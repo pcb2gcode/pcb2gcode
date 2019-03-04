@@ -57,15 +57,9 @@ using boost::format;
 
 #include "units.hpp"
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : Exporter(board), dpi(board->get_dpi()), 
-      quantization_error( 2.0 / dpi ), ocodes(1), globalVars(100)
-{
-    this->board = board;
+    : Exporter(board), ocodes(1), globalVars(100) {
+  this->board = board;
 }
 
 /******************************************************************************/
@@ -127,7 +121,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         boost::optional<autoleveller> leveller = boost::none;
         if ((options["al-front"].as<bool>() && layername == "front") ||
             (options["al-back"].as<bool>() && layername == "back")) {
-          leveller.emplace(options, &ocodes, &globalVars, quantization_error,
+          leveller.emplace(options, &ocodes, &globalVars,
                            xoffset, yoffset, tileInfo);
         }
 
