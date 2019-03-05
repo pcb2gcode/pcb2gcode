@@ -75,6 +75,6 @@ available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp
 gerberimporter_tests_LDFLAGS = $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
-autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp
+autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
 
 TESTS = $(check_PROGRAMS)

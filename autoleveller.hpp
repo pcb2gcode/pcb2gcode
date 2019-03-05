@@ -36,6 +36,7 @@
 #include "unique_codes.hpp"
 #include "common.hpp"
 #include "tile.hpp"
+#include "options.hpp"
 
 class autoleveller
 {
@@ -48,7 +49,7 @@ public:
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
     // All the arguments must be in inches
-    bool prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>>& toolpaths);
+    void prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>>& toolpaths);
 
     // header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
     // only the probe calls for the other softwares)

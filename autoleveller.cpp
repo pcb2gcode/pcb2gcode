@@ -115,7 +115,7 @@ box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, vector<shared_
   return bounding_box;
 }
 
-bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
+void autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
@@ -144,11 +144,10 @@ bool autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<
     YProbeDist = workareaLenY / ( numYPoints - 1 );
     averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
 
-    if((software == Software::LINUXCNC && numXPoints * numYPoints > 4501) ||
-       (software != Software::LINUXCNC && numXPoints * numYPoints > 500)) {
-      return false;
-    } else {
-      return true;
+    if (requiredProbePoints() > maxProbePoints()) {
+      options::maybe_throw(std::string("Required number of probe points (") + std::to_string(requiredProbePoints()) +
+                           ") exceeds the maximum number (" + std::to_string(maxProbePoints()) + "). "
+                           "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
     }
 }
 

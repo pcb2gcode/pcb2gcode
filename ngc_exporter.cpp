@@ -279,12 +279,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if (leveller) {
-      if(!leveller->prepareWorkarea(all_toolpaths)) {
-        options::maybe_throw(std::string("Required number of probe points (") + std::to_string(leveller->requiredProbePoints()) +
-                             ") exceeds the maximum number (" + std::to_string(leveller->maxProbePoints()) + "). "
-                             "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
-      }
-
+      leveller->prepareWorkarea(all_toolpaths);
       leveller->header(of);
     }
 
