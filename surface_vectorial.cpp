@@ -89,7 +89,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     invert_gerbers(invert_gerbers),
     render_paths_to_shapes(render_paths_to_shapes) {}
 
-void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
+void Surface_vectorial::render(shared_ptr<GerberImporter> importer) {
   auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
 
   if (bg::intersects(vectorial_surface_not_simplified.first)) {

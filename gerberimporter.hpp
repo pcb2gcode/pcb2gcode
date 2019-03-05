@@ -22,9 +22,12 @@
 
 #include <string>
 #include <iostream>
-#include "importer.hpp"
 #include <utility>
 #include <map>
+
+#include <cairomm/cairomm.h>
+
+#include "geometry.hpp"
 
 extern "C" {
 #include <gerbv.h>
@@ -40,7 +43,7 @@ class gerber_exception: public std::exception {};
  different file formats and gerber dialects.
  */
 /******************************************************************************/
-class GerberImporter: public RasterLayerImporter, public VectorialLayerImporter {
+class GerberImporter {
 public:
     GerberImporter();
   bool load_file(const std::string& path);

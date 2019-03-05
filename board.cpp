@@ -66,7 +66,7 @@ double Board::get_height() {
   return layers.begin()->second->surface->get_height_in();
 }
 
-void Board::prepareLayer(string layername, shared_ptr<LayerImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {
+void Board::prepareLayer(string layername, shared_ptr<GerberImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {
   // see comment for prep_t in board.hpp
   prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
 }
@@ -128,13 +128,9 @@ void Board::createLayers()
     // board size calculated. create layers
     for (const auto& prepared_layer : prepared_layers) {
       // prepare the surface
-      shared_ptr<LayerImporter> importer = get<0>(prepared_layer.second);
+      shared_ptr<GerberImporter> importer = get<0>(prepared_layer.second);
       const bool fill = fill_outline && prepared_layer.first == "outline";
 
-      auto vectorial_layer_importer = dynamic_pointer_cast<VectorialLayerImporter>(importer);
-      if (!vectorial_layer_importer) {
-        throw std::logic_error("Can't cast LayerImporter to VectorialLayerImporter!");
-      }
       shared_ptr<Surface_vectorial> surface(new Surface_vectorial(
           30,
           min_x, max_x,
@@ -145,7 +141,7 @@ void Board::createLayers()
       if (fill) {
         surface->enable_filling();
       }
-      surface->render(vectorial_layer_importer);
+      surface->render(importer);
       shared_ptr<Layer> layer(new Layer(prepared_layer.first,
                                         surface,
                                         get<1>(prepared_layer.second),

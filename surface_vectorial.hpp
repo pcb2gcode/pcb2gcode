@@ -54,7 +54,7 @@ class Surface_vectorial: private boost::noncopyable {
   void save_debug_image(std::string message);
   void enable_filling();
   void add_mask(std::shared_ptr<Surface_vectorial> surface);
-  void render(std::shared_ptr<VectorialLayerImporter> importer);
+  void render(std::shared_ptr<GerberImporter> importer);
 
   inline ivalue_t get_width_in() {
     return bounding_box.max_corner().x() - bounding_box.min_corner().x();
