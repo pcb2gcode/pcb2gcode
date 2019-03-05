@@ -166,14 +166,9 @@ protected:
     // interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
     // The result of the interpolation is saved in the parameter number RESULT_VAR
     std::string interpolatePoint ( icoordpair point );
-
-    // numOfSubsegments returns the right number of subsegments in order to approximate the line in the
-    // best way possible
-    unsigned int numOfSubsegments ( icoordpair point );
-
-    // splitSegment splits the segment between lastPoint and point in n subsegments, and returns the
-    // icoords (aka std::vector<icoordpair>) containing them
-    icoords splitSegment ( const icoordpair point, const unsigned int n );
 };
+
+icoords partition_segment(const icoordpair& source, const icoordpair& dest,
+                         const icoordpair& grid_zero, const icoordpair& grid_width);
 
 #endif // AUTOLEVELLER_H
