@@ -74,29 +74,33 @@ install:
     fi
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      pushd ~ &&
       for i in {1..5}; do
         wget -T5 -t1 -O "boost_${BOOST}.tar.bz2" "https://sourceforge.net/projects/boost/files/boost/`echo ${BOOST} | tr _ .`/boost_${BOOST}.tar.bz2/download" && break;
       done &&
       tar xjf "boost_${BOOST}.tar.bz2" &&
       pushd boost_${BOOST} &&
-      export BOOST_DIR="$PWD/../boost" &&
+      export BOOST_DIR="$HOME/boost" &&
       ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR} &&
       chronic ./b2 install &&
+      popd &&
       popd
     fi
   - >
     if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
-      mkdir .local &&
-      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$PWD/.local/lib/pkgconfig &&
+      mkdir -p $HOME/.local &&
+      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig &&
+      pushd ~
       git clone git://git.geda-project.org/gerbv.git &&
       pushd gerbv &&
       git checkout 061240c &&
       chronic sh autogen.sh &&
-      CFLAGS=-std=gnu99 chronic ./configure --disable-update-desktop-database --prefix=$PWD/../.local &&
+      CFLAGS=-std=gnu99 chronic ./configure --disable-update-desktop-database --prefix=${HOME}/.local &&
       chronic make -j 2 &&
       chronic make install &&
       popd &&
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/gerbv/src/.libs;
+      popd &&
+      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib;
     fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
@@ -123,7 +127,7 @@ script:
   - pushd testing/gerbv_example/ || travis_terminate 1
   - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
   - >
-    if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # This is too slow to do on coverage builds.
+    if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
       ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
     fi || travis_terminate 1
   - popd || travis_terminate 1
@@ -134,5 +138,5 @@ script:
 after_success:
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E "^${PWD}/(boost|gerbv|.local)/.*" -E ".*_tests.cpp";
+      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E ".*_tests.cpp";
     fi
