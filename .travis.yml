@@ -134,5 +134,5 @@ script:
 after_success:
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      coveralls --gcov gcov-7 --gcov-options '\-lpr' -E "^${PWD}/(boost|gerbv|.local)/.*" -E ".*_tests.cpp";
+      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E "^${PWD}/(boost|gerbv|.local)/.*" -E ".*_tests.cpp";
     fi
