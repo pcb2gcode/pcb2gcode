@@ -76,7 +76,7 @@ install:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       pushd ~ &&
       for i in {1..5}; do
-        wget -T5 -t1 -O "boost_${BOOST}.tar.bz2" "https://sourceforge.net/projects/boost/files/boost/`echo ${BOOST} | tr _ .`/boost_${BOOST}.tar.bz2/download" && break;
+        wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://sourceforge.net/projects/boost/files/boost/`echo ${BOOST} | tr _ .`/boost_${BOOST}.tar.bz2/download" && break;
       done &&
       tar xjf "boost_${BOOST}.tar.bz2" &&
       pushd boost_${BOOST} &&
