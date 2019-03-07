@@ -36,19 +36,20 @@
 #include "unique_codes.hpp"
 #include "common.hpp"
 #include "tile.hpp"
+#include "options.hpp"
 
 class autoleveller
 {
 public:
     // The constructor just initialize the common parameters variables (parameters are in inches)
     autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes, 
-                  uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
+                  uniqueCodes *globalVars, double xoffset, double yoffset,
                   const struct Tiling::TileInfo tileInfo );
 
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
     // All the arguments must be in inches
-    bool prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>>& toolpaths);
+    void prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>>& toolpaths);
 
     // header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
     // only the probe calls for the other softwares)
@@ -113,7 +114,6 @@ public:
     const std::string probeOn;
     const std::string probeOff;
     const Software::Software software;
-    const double quantization_error;
     const double xoffset;
     const double yoffset;
 

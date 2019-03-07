@@ -11,13 +11,10 @@ pcb2gcode_SOURCES = \
     bg_helpers.hpp \
     common.hpp \
     common.cpp \
-    core.hpp \
-    core.cpp \
     drill.hpp \
     drill.cpp \
     eulerian_paths.hpp \
     exporter.hpp \
-    Fixed.hpp \
     geometry.hpp \
     gerberimporter.hpp \
     gerberimporter.cpp \
@@ -33,8 +30,6 @@ pcb2gcode_SOURCES = \
     path_finding.cpp \
     segmentize.hpp \
     segmentize.cpp \
-    surface.hpp \
-    surface.cpp \
     surface_vectorial.hpp \
     surface_vectorial.cpp \
     tile.hpp \
@@ -79,6 +74,6 @@ available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp
 gerberimporter_tests_LDFLAGS = $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
-autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp
+autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
 
 TESTS = $(check_PROGRAMS)

@@ -70,8 +70,6 @@ protected:
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
     bool bZchangeG53;
-    const unsigned int dpi;
-    const double quantization_error;
 
     bool bTile;
 

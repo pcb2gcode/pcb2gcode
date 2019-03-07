@@ -132,12 +132,8 @@ void options::parse(int argc, const char** argv) {
         {
             tolerance = instance().vm["g64"].as<double>();
         }
-        else
-        {
-            if (instance().vm["vectorial"].as<bool>())
-                tolerance = 0.0004 * cfactor;
-            else
-                tolerance = 2.0 / instance().vm["dpi"].as<int>() * cfactor;
+        else {
+          tolerance = 0.0004 * cfactor;
         }
 
         string tolerance_str = "--tolerance=" + to_string(tolerance);
@@ -227,7 +223,7 @@ options::options()
    milling_options.add_options()
        ("front", po::value<string>(),"front side RS274-X .gbr")
        ("back", po::value<string>(), "back side RS274-X .gbr")
-       ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions (requires --vectorial)")
+       ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions")
        ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
         "  Distance between the PCB traces and the end mill path; usually half the isolation width")
        ("mill-diameters", po::value<std::vector<CommaSeparated<Length>>>()->default_value({{Length(0)}})
@@ -261,7 +257,6 @@ options::options()
    outline_options.add_options()
        ("outline", po::value<string>(), "pcb outline polygon RS274-X .gbr")
        ("fill-outline", po::value<bool>()->default_value(true)->implicit_value(true), "accept a contour instead of a polygon as outline (enabled by default)")
-       ("outline-width", po::value<Length>()->default_value(parse_unit<Length>("1.5mm")), "width of the outline, used only when vectorial is disabled")
        ("cutter-diameter", po::value<Length>(), "diameter of the end mill used for cutting out the PCB")
        ("zcut", po::value<Length>(), "PCB cutting depth in inches")
        ("cut-feed", po::value<Velocity>(), "PCB cutting feed in [i/m] or [mm/m]")
@@ -281,7 +276,6 @@ options::options()
        ("optimise", po::value<bool>()->default_value(true)->implicit_value(true),
         "Reduce output file size by up to 40% while accepting a little loss of precision (enabled by default).")
        ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
-       ("dpi", po::value<int>()->default_value(1000), "virtual photoplot resolution")
        ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
        ("path-finding-limit", po::value<size_t>()->default_value(0), "Use path finding for up to this many steps in the search (more is slower but makes a faster gcode path)")
@@ -356,19 +350,6 @@ static void check_generic_parameters(po::variables_map const& vm)
     unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
 
     //---------------------------------------------------------------------------
-    //Check dpi parameter:
-
-    if (vm["dpi"].as<int>() < 100)
-    {
-        cerr << "Warning: very low DPI value." << endl;
-    }
-    else if (vm["dpi"].as<int>() > 10000)
-    {
-        cerr << "Warning: very high DPI value, processing may take extremely long"
-             << endl;
-    }
-
-    //---------------------------------------------------------------------------
     //Check spinup(down)-time parameters:
 
     if (vm["spinup-time"].as<Time>().asMillisecond(1) < 0) {
@@ -418,9 +399,8 @@ static void check_generic_parameters(po::variables_map const& vm)
     //---------------------------------------------------------------------------
     //Check svg parameter:
 
-    if (vm.count("svg"))
-    {
-        cerr << "--svg is deprecated and has no effect anymore, use --vectorial to generate SVGs.\n";
+    if (vm.count("svg")) {
+      cerr << "--svg is deprecated and has no effect anymore, use --vectorial to generate SVGs.\n";
     }
 
     //---------------------------------------------------------------------------
@@ -510,10 +490,8 @@ static void check_milling_parameters(po::variables_map const& vm)
         cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
       }
 
-      if (vm["voronoi"].as<bool>()) {
-        if (!vm["vectorial"].as<bool>()) {
-          options::maybe_throw("Error: --voronoi requires --vectorial.", ERR_VORONOINOVECTORIAL);
-        }
+      if (!vm["vectorial"].as<bool>()) {
+        options::maybe_throw("Error: --vectorial is mandatory", ERR_INVALIDPARAMETER);
       }
       if (!vm.count("mill-diameters")) {
         options::maybe_throw("Error: no --mill-diameters specified.", ERR_NOOFFSET);
@@ -615,24 +593,6 @@ static void check_cutting_parameters(po::variables_map const& vm) {
   if (vm.count("outline") ||
       (vm.count("drill") &&
        (vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity())))) {
-    if (vm["fill-outline"].as<bool>() && !vm["vectorial"].as<bool>()) {
-      if (!vm.count("outline-width")) {
-        options::maybe_throw("Error: For outline filling, a width (--outline-width) has to be specified.", ERR_NOOUTLINEWIDTH);
-      } else {
-        double outline_width = vm["outline-width"].as<Length>().asInch(unit);
-        if (outline_width < 0) {
-          options::maybe_throw("Error: Specified outline width is less than zero!", ERR_NEGATIVEOUTLINEWIDTH);
-        } else if (outline_width == 0) {
-          options::maybe_throw("Error. Specified outline width is zero!", ERR_ZEROOUTLINEWIDTH);
-        } else {
-          if (outline_width >= 0.4) {
-            cerr << "Warning: You specified an outline-width of "
-                 << vm["outline-width"].as<Length>() << "!\n";
-          }
-        }
-      }
-    }
-
     if (!vm.count("zcut")) {
       options::maybe_throw("Error: Board cutting depth (--zcut) not specified.", ERR_NOZCUT);
     } else if (vm["zcut"].as<Length>().asInch(unit) > 0) {
@@ -678,11 +638,6 @@ static void check_cutting_parameters(po::variables_map const& vm) {
 
     if (vm["bridges"].as<Length>().asInch(unit) < 0) {
       options::maybe_throw("Error: negative bridge value.", ERR_NEGATIVEBRIDGE);
-    }
-
-    if (vm["bridges"].as<Length>().asInch(unit) > 0 && !vm["optimise"].as<bool>() &&
-        !vm["vectorial"].as<bool>()) {
-      options::maybe_throw("Error: \"bridges\" requires either \"optimise\" or \"vectorial\".", ERR_BRIDGENOOPTIMISE);
     }
 
     if (vm.count("cut-front")) {

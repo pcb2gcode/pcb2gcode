@@ -89,7 +89,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     invert_gerbers(invert_gerbers),
     render_paths_to_shapes(render_paths_to_shapes) {}
 
-void Surface_vectorial::render(shared_ptr<VectorialLayerImporter> importer) {
+void Surface_vectorial::render(shared_ptr<GerberImporter> importer) {
   auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
 
   if (bg::intersects(vectorial_surface_not_simplified.first)) {
@@ -823,17 +823,12 @@ void Surface_vectorial::enable_filling() {
     fill = true;
 }
 
-void Surface_vectorial::add_mask(shared_ptr<Core> surface) {
-    mask = dynamic_pointer_cast<Surface_vectorial>(surface);
-
-    if (mask) {
-      vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
-      for (auto& diameter_and_path : vectorial_surface->second) {
-        diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
-      }
-      return;
-    }
-    throw std::logic_error("Can't cast Core to Surface_vectorial");
+void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
+  mask = surface;
+  vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
+  for (auto& diameter_and_path : vectorial_surface->second) {
+    diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
+  }
 }
 
 // Might not have an input, which is when we are milling for thermal reliefs.

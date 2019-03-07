@@ -48,7 +48,6 @@ using Glib::ustring;
 using Glib::build_filename;
 
 #include "gerberimporter.hpp"
-#include "surface.hpp"
 #include "ngc_exporter.hpp"
 #include "board.hpp"
 #include "drill.hpp"
@@ -261,13 +260,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     shared_ptr<Board> board(
         new Board(
-            vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
-            vm["fill-outline"].as<bool>() ?
-                vm["outline-width"].as<Length>().asInch(unit) :
-                INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>(),
             vm["tsp-2opt"].as<bool>(),
             vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
             vm["invert-gerbers"].as<bool>(),
