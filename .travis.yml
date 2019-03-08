@@ -70,7 +70,8 @@ install:
       brew install boost@1.60 &&
       brew install gtkmm gerbv moreutils &&
       brew install librsvg &&
-      export BOOST_DIR="/usr/local/opt/boost@1.60";
+      export BOOST_DIR="/usr/local/opt/boost@1.60" &&
+      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/usr/local/opt/libffi/lib/pkgconfig";
     fi
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
