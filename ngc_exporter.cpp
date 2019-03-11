@@ -229,10 +229,44 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
   }
 }
 
+// This makes an ofstream with the filename provided when data is first
+// written. If no data is written, no file is created.
+class maybe_ofstream {
+ public:
+  maybe_ofstream(const string& filename) : filename(filename) {}
+  boost::optional<std::ios_base::fmtflags> setf(std::ios_base::fmtflags fmtfl) {
+    if (of) {
+      return of->setf(fmtfl);
+    }
+    return boost::none;
+  }
+  boost::optional<std::streamsize> precision (std::streamsize prec) {
+    if (of) {
+      return of->precision(prec);
+    }
+    return boost::none;
+  }
+  std::ofstream& get_of() {
+    if (!of) {
+      of.emplace();
+      of->open(filename);
+    }
+    return *of;
+  }
+  void close() {
+    if (!of) {
+      of->close();
+    }
+  }
+ private:
+  const string filename;
+  boost::optional<std::ofstream> of;
+};
+
 template <typename rhs_t>
-    static vector<shared_ptr<std::ofstream>>& operator<<(vector<shared_ptr<std::ofstream>>& out, const rhs_t& rhs) {
+    static vector<shared_ptr<maybe_ofstream>>& operator<<(vector<shared_ptr<maybe_ofstream>>& out, const rhs_t& rhs) {
   for (auto of : out) {
-    *of << rhs;
+    of->get_of() << rhs;
   }
   return out;
 }
@@ -250,29 +284,26 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     globalVars.getUniqueCode();
 
     // open output files
-    std::map<string, vector<shared_ptr<std::ofstream>>> of;
+    std::map<string, vector<shared_ptr<maybe_ofstream>>> of;
     if (false) {// TODO: mill->split_output_files) {
       size_t period_pos = of_name.rfind(".");
       if (period_pos == string::npos) {
         period_pos = of_name.size();
       }
       if (leveller) {
-        auto new_of = make_shared<std::ofstream>();
-        new_of->open(of_name.substr(0, period_pos) + "_autoleveller" + of_name.substr(period_pos));
+        auto new_of = make_shared<maybe_ofstream>(of_name.substr(0, period_pos) + "_autoleveller" + of_name.substr(period_pos));
         of["autoleveller"].push_back(new_of);
         of["all"].push_back(new_of);
       }
       for (size_t i = 0; i < all_toolpaths.size(); i++) {
         auto bit = all_toolpaths[i];
-        auto new_of = make_shared<std::ofstream>();
-        new_of->open(of_name.substr(0, period_pos) + "_" + to_string(bit.first) + of_name.substr(period_pos));
+        auto new_of = make_shared<maybe_ofstream>(of_name.substr(0, period_pos) + "_" + to_string(bit.first) + of_name.substr(period_pos));
         of[to_string(i)].push_back(new_of);
         of["all"].push_back(new_of);
         of["all_bits"].push_back(new_of);
       }
     } else {
-      auto new_of = make_shared<std::ofstream>();
-      new_of->open(of_name);
+      auto new_of = make_shared<maybe_ofstream>(of_name);
       of["all"] = {new_of};
       of["all_bits"] = {new_of};
       of["autoleveller"] = {new_of};
@@ -318,7 +349,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     if (leveller) {
       leveller->prepareWorkarea(all_toolpaths);
       for (const auto& of_current: of["autoleveller"]) {
-        leveller->header(*of_current);
+        leveller->header(of_current->get_of());
       }
     }
 
@@ -373,7 +404,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
           << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << '\n';
 
       for (const auto& of_current : of[to_string(toolpaths_index)]) {
-        tiling.header(*of_current);
+        tiling.header(of_current->get_of());
       }
 
       for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
@@ -402,9 +433,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
              */
             for (const auto& of_current : of[to_string(toolpaths_index)]) {
               if (cutter) {
-                cutter_milling(*of_current, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
+                cutter_milling(of_current->get_of(), cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
               } else {
-                isolation_milling(*of_current, mill, path, leveller, xoffsetTot, yoffsetTot);
+                isolation_milling(of_current->get_of(), mill, path, leveller, xoffsetTot, yoffsetTot);
               }
             }
           }
@@ -412,12 +443,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       }
 
       for (const auto& of_current : of[to_string(toolpaths_index)]) {
-        tiling.footer(*of_current);
+        tiling.footer(of_current->get_of());
       }
     }
     if (leveller) {
       for (const auto& of_current : of["autoleveller"]) {
-        leveller->footer(*of_current);
+        leveller->footer(of_current->get_of());
       }
     }
     of["all"] << "M9 ( Coolant off. )" << '\n'
