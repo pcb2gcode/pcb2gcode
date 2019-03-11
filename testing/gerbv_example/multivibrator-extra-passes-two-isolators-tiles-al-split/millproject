@@ -37,3 +37,5 @@ al-y=10mm
 software=linuxcnc
 al-probefeed=1mm/s
 al-probecode=G38.2
+
+split-mill-output-files=true
