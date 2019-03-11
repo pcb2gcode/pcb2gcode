@@ -133,6 +133,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             vm["post-milling-gcode"].as<vector<string>>(), "\n");
         isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
+        isolator->split_output_files = vm["split-mill-output-files"].as<bool>();
     }
 
     shared_ptr<Cutter> cutter(new Cutter());

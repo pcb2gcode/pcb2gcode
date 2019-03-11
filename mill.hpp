@@ -59,7 +59,7 @@ class RoutingMill: public Mill {
   size_t path_finding_limit;
   double g0_vertical_speed;
   double g0_horizontal_speed;
-
+  bool split_output_files;
 };
 
 /******************************************************************************/

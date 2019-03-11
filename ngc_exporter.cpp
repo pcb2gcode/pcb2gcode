@@ -285,7 +285,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     // open output files
     std::map<string, vector<shared_ptr<maybe_ofstream>>> of;
-    if (false) {// TODO: mill->split_output_files) {
+    if (mill->split_output_files) {
       size_t period_pos = of_name.rfind(".");
       if (period_pos == string::npos) {
         period_pos = of_name.size();
