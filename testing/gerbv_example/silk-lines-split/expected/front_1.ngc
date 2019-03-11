@@ -1,0 +1,124 @@
+( pcb2gcode 2.0.0 )
+( Software-independent Gcode )
+
+G94 ( Inches per minute feed rate. )
+G20 ( Units == INCHES. )
+
+G90 ( Absolute coordinates. )
+G00 S12000 ( RPM spindle speed. )
+G64 P0.00040 ( set maximum deviation from commanded toolpath )
+G01 F360.00000 ( Feedrate. )
+
+
+G00 Z1.00000 (Retract to tool change height)
+T1
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to mill diameter 0.00472in)
+M6      (Tool change.)
+M0      (Temporary machine stop.)
+M3 ( Spindle on clockwise. )
+G04 P1.00000 (Wait for spindle to get up to speed)
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X3.35674 Y-3.15723 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X3.35674 Y-3.15723
+G01 X3.34007 Y-3.16701
+G01 X3.32554 Y-3.17975
+G01 X3.31367 Y-3.19500
+G01 X3.30487 Y-3.21221
+G01 X3.29946 Y-3.23076
+G01 X3.29764 Y-3.25000
+G01 X3.29946 Y-3.26924
+G01 X3.30487 Y-3.28779
+G01 X3.31367 Y-3.30500
+G01 X3.32554 Y-3.32024
+G01 X3.34007 Y-3.33299
+G01 X3.35674 Y-3.34277
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X3.44420 Y-3.34150 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X3.44420 Y-3.34150
+G01 X3.45942 Y-3.33244
+G01 X3.47283 Y-3.32087
+G01 X3.47283 Y-3.17913
+G01 X3.45942 Y-3.16756
+G01 X3.44420 Y-3.15850
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X3.84764 Y-2.75236 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X3.84764 Y-2.75236
+G01 X3.84764 Y-2.65000
+G01 X3.95236 Y-2.65000
+G01 X3.95236 Y-2.75236
+G01 X3.84764 Y-2.75236
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X3.84764 Y-2.60000 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X3.84764 Y-2.60000
+G01 X3.84764 Y-2.54764
+G01 X3.90000 Y-2.54764
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X4.35674 Y-3.15723 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X4.35674 Y-3.15723
+G01 X4.34007 Y-3.16701
+G01 X4.32554 Y-3.17975
+G01 X4.31367 Y-3.19500
+G01 X4.30487 Y-3.21221
+G01 X4.29946 Y-3.23076
+G01 X4.29764 Y-3.25000
+G01 X4.29946 Y-3.26924
+G01 X4.30487 Y-3.28779
+G01 X4.31367 Y-3.30500
+G01 X4.32554 Y-3.32024
+G01 X4.34007 Y-3.33299
+G01 X4.35674 Y-3.34277
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X4.44420 Y-3.34150 ( rapid move to begin. )
+G01 F180.00000
+G01 Z-0.04000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F360.00000
+G01 X4.44420 Y-3.34150
+G01 X4.45942 Y-3.33244
+G01 X4.47283 Y-3.32087
+G01 X4.47283 Y-3.17913
+G01 X4.45942 Y-3.16756
+G01 X4.44420 Y-3.15850
+
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z1.000 ( retract )
+
+M5 ( Spindle off. )
+G04 P1.000000
+M9 ( Coolant off. )
+M2 ( Program end. )
+
