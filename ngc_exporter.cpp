@@ -297,10 +297,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       }
       for (size_t i = 0; i < all_toolpaths.size(); i++) {
         auto bit = all_toolpaths[i];
-        auto new_of = make_shared<maybe_ofstream>(of_name.substr(0, period_pos) + "_" + to_string(bit.first) + of_name.substr(period_pos));
-        of[to_string(i)].push_back(new_of);
-        of["all"].push_back(new_of);
-        of["all_bits"].push_back(new_of);
+        if (bit.second.size() > 0) {
+          auto new_of = make_shared<maybe_ofstream>(of_name.substr(0, period_pos) + "_" + to_string(i) + of_name.substr(period_pos));
+          of[to_string(i)].push_back(new_of);
+          of["all"].push_back(new_of);
+          of["all_bits"].push_back(new_of);
+        }
       }
     } else {
       auto new_of = make_shared<maybe_ofstream>(of_name);

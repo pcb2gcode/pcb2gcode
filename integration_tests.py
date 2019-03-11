@@ -66,6 +66,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "sharp_corner_2",
                   "silk",
                   "silk-lines",
+                  "silk-lines-split",
                   "slots-milldrill",
                   "slots-with-drill",
                   "slots-with-drill-and-milldrill",
