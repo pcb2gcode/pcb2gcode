@@ -1,5 +1,6 @@
 ( pcb2gcode 2.0.0 )
 ( Software-independent Gcode )
+( This file uses bit size: 0.00590551in )
 
 G94 ( Inches per minute feed rate. )
 G20 ( Units == INCHES. )

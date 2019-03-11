@@ -296,7 +296,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
         of["all"].push_back(new_of);
       }
       for (size_t i = 0; i < all_toolpaths.size(); i++) {
-        auto bit = all_toolpaths[i];
+        const auto& bit = all_toolpaths[i];
         if (bit.second.size() > 0) {
           auto new_of = make_shared<maybe_ofstream>(of_name.substr(0, period_pos) + "_" + to_string(i) + of_name.substr(period_pos));
           of[to_string(i)].push_back(new_of);
@@ -323,6 +323,39 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
         of["all"] << "( Gcode for " << tileInfo.software << " )\n";
     else
         of["all"] << "( Software-independent Gcode )\n";
+
+    if (mill->split_output_files) {
+      for (size_t i = 0; i < all_toolpaths.size(); i++) {
+        const auto& bit = all_toolpaths[i];
+        const auto current_of = of.find(to_string(i));
+        if (current_of != of.cend()) {
+          const auto& tool_diameter = bit.first;
+          current_of->second << "( This file uses bit size: ";
+          if (bMetricoutput) {
+            current_of->second << (tool_diameter * 25.4) << "mm";
+          } else {
+            current_of->second << tool_diameter << "in";
+          }
+          current_of->second << " )\n";
+        }
+      }
+    } else {
+      of["all"] << "( This file uses bit sizes:";
+      for (size_t i = 0; i < all_toolpaths.size(); i++) {
+        const auto& bit = all_toolpaths[i];
+        const auto& tool_diameter = bit.first;
+        if (bit.second.size() > 0) {
+          of["all"] << " [";
+          if (bMetricoutput) {
+            of["all"] << (tool_diameter * 25.4) << "mm";
+          } else {
+            of["all"] << tool_diameter << "in";
+          }
+          of["all"] << "]";
+        }
+      }
+      of["all"] << " )\n";
+    }
 
     for (const auto& of_current : of["all"]) {
       of_current->setf(ios_base::fixed);      //write floating-point values in fixed-point notation

@@ -1,5 +1,6 @@
 ( pcb2gcode 2.0.0 )
 ( Software-independent Gcode )
+( This file uses bit sizes: [0mm] )
 
 G94 ( Millimeters per minute feed rate. )
 G21 ( Units == Millimeters. )
