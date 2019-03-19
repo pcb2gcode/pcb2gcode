@@ -1,6 +1,6 @@
 ( pcb2gcode 2.0.0 )
 ( Gcode for linuxcnc )
-( This file uses bit size: 0.00787402in )
+( This file uses bit sizes: [0.00787402in] )
 
 G94 ( Inches per minute feed rate. )
 G20 ( Units == INCHES. )
