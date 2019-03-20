@@ -365,12 +365,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                          to_string(mill->spindown_time) + "\n");
 
       // Start the new tool.
-      current_of
-          << '\n'
-          << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << '\n'
-          << "T" << toolpaths_index << '\n'
-          << "M5      (Spindle stop.)" << '\n'
-          << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << '\n';
+      current_of << '\n'
+                 << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << '\n'
+                 << "T" << toolpaths_index << '\n'
+                 << "M5      (Spindle stop.)" << '\n'
+                 << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << '\n';
       if (cutter) {
         current_of << "(MSG, Change tool bit to cutter diameter ";
       } else if (isolator) {
