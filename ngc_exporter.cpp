@@ -353,7 +353,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     uniqueCodes main_sub_ocodes(200);
     for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
-      std::ofstream& current_of = *of_bits[toolpaths_index];
+      std::ofstream& of = *of_bits[toolpaths_index];
       const auto& toolpaths = all_toolpaths[toolpaths_index].second;
       if (toolpaths.size() < 1) {
         continue; // Nothing to do for this mill size.
@@ -365,31 +365,30 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                          to_string(mill->spindown_time) + "\n");
 
       // Start the new tool.
-      current_of << '\n'
-                 << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << '\n'
-                 << "T" << toolpaths_index << '\n'
-                 << "M5      (Spindle stop.)" << '\n'
-                 << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << '\n';
+      of << '\n'
+         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << '\n'
+         << "T" << toolpaths_index << '\n'
+         << "M5      (Spindle stop.)" << '\n'
+         << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << '\n';
       if (cutter) {
-        current_of << "(MSG, Change tool bit to cutter diameter ";
+        of << "(MSG, Change tool bit to cutter diameter ";
       } else if (isolator) {
-        current_of << "(MSG, Change tool bit to mill diameter ";
+        of << "(MSG, Change tool bit to mill diameter ";
       } else {
         throw std::logic_error("Can't cast to Cutter nor Isolator.");
       }
       const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
       if (bMetricoutput) {
-        current_of << (tool_diameter * 25.4) << "mm)" << '\n';
+        of << (tool_diameter * 25.4) << "mm)" << '\n';
       } else {
-        current_of << tool_diameter << "in)" << '\n';
+        of << tool_diameter << "in)" << '\n';
       }
-      current_of
-          << "M6      (Tool change.)" << '\n'
-          << "M0      (Temporary machine stop.)" << '\n'
-          << "M3 ( Spindle on clockwise. )" << '\n'
-          << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << '\n';
+      of << "M6      (Tool change.)" << '\n'
+         << "M0      (Temporary machine stop.)" << '\n'
+         << "M3 ( Spindle on clockwise. )" << '\n'
+         << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << '\n';
 
-      tiling.header(current_of);
+      tiling.header(of);
 
       for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
         double yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -397,7 +396,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
           double xoffsetTot = xoffset - ( i % 2 ? tileInfo.forXNum - j - 1 : j ) * tileInfo.boardWidth;
 
           if( tileInfo.enabled && tileInfo.software == Software::CUSTOM )
-            current_of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
+            of << "( Piece #" << j + 1 + i * tileInfo.forXNum << ", position [" << j << ";" << i << "] )\n\n";
 
           // contours
           for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
@@ -407,32 +406,32 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
             }
 
             // retract, move to the starting point of the next contour
-            current_of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-            current_of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << '\n' << '\n';
-            current_of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
+            of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+            of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << '\n' << '\n';
+            of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
                << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
             /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
              * i know this is partially repetitive, but this way it's easier to read
              */
             if (cutter) {
-              cutter_milling(current_of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
+              cutter_milling(of, cutter, path, all_bridges[path_index], xoffsetTot, yoffsetTot);
             } else {
-              isolation_milling(current_of, mill, path, leveller, xoffsetTot, yoffsetTot);
+              isolation_milling(of, mill, path, leveller, xoffsetTot, yoffsetTot);
             }
           }
         }
       }
 
-      tiling.footer(current_of);
+      tiling.footer(of);
     }
     if (leveller) {
       leveller->footer(*of_autoleveller);
     }
-    for (auto& current_of : of_all) {
-      *current_of << "M9 ( Coolant off. )" << '\n'
-                  << "M2 ( Program end. )" << '\n' << '\n';
-      current_of->close();
+    for (auto& of : of_all) {
+      *of << "M9 ( Coolant off. )" << '\n'
+          << "M2 ( Program end. )" << '\n' << '\n';
+      of->close();
     }
 }
 
