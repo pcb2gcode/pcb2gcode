@@ -58,9 +58,6 @@ using Glib::build_filename;
 #include <boost/version.hpp>
 
 void do_pcb2gcode(int argc, const char* argv[]) {
-    Glib::init();
-    Gdk::wrap_init();
-
     options::parse(argc, argv);      //parse the command line parameters
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
@@ -315,8 +312,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cout << "not specified.\n";
     }
 
-    Tiling::TileInfo *tileInfo = NULL;
-
     cout << "Processing input files... " << flush;
     board->createLayers();
     cout << "DONE.\n";
@@ -334,9 +329,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       }
 
       exporter->export_all(vm);
-
-      tileInfo = new Tiling::TileInfo;
-      *tileInfo = exporter->getTileInfo();
     }
 
     //---------------------------------------------------------------------------
