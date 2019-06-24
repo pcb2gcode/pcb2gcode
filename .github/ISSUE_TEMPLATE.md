@@ -2,7 +2,7 @@ Please fill this out:
 
 pcb2gcode version (run pcb2gcode --version to see this):
 
-What did you try (include command-line arguments):
+What did you try (**include command-line arguments**):
 
 What happenned:
 
