@@ -7,14 +7,14 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=g++-4.8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=g++-4.8 BOOST=1_66_0
 
     - os: linux
@@ -22,7 +22,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=g++-7 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
@@ -30,7 +30,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils', 'valgrind']
       env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - os: linux
@@ -38,21 +38,21 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=g++-7 BOOST=1_66_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=clang++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -135,6 +135,12 @@ script:
   - lcov --directory . -z || true #Ignore errors
   - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j 2 check || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
+  - pushd testing/gerbv_example/example_board_al_linuxcnc || travis_terminate 1
+  - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode
+    fi || travis_terminate 1
+  - popd || travis_terminate 1
 
 after_success:
   - >
