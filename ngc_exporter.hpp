@@ -55,6 +55,9 @@ public:
     }
 
 protected:
+  void write_header(const std::shared_ptr<Layer>& layer, std::ofstream& of,
+                    const boost::optional<autoleveller>& leveller,
+                    const std::vector<double>& tool_diameters);
   void export_layer(std::shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
   void cutter_milling(std::ofstream& of, std::shared_ptr<Cutter> cutter, std::shared_ptr<icoords> path,
                       const std::vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot);

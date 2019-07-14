@@ -46,6 +46,7 @@ using std::ceil;
 #include <memory>
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
+using std::make_shared;
 
 #include <iomanip>
 
@@ -228,11 +229,65 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
   }
 }
 
+void NGC_Exporter::write_header(const shared_ptr<Layer>& layer, std::ofstream& of,
+                                const boost::optional<autoleveller>& leveller,
+                                const vector<double>& tool_diameters) {
+  shared_ptr<RoutingMill> mill = layer->get_manufacturer();
+
+  // write header to .ngc file
+  for ( string s : header ) {
+    of << "( " << s << " )\n";
+  }
+
+  if( leveller || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
+    of << "( Gcode for " << tileInfo.software << " )\n";
+  else
+    of << "( Software-independent Gcode )\n";
+
+  of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
+  of.precision(5);               //Set floating-point decimal precision
+
+  of << "( This file uses bit sizes:";
+  for (const auto& tool_diameter : tool_diameters) {
+    of << " [";
+    if (bMetricoutput) {
+      of << (tool_diameter * 25.4) << "mm";
+    } else {
+      of << tool_diameter << "in";
+    }
+    of << "]";
+  }
+  of << " )\n";
+
+  of << "\n" << preamble;       //insert external preamble
+
+  if (bMetricoutput) {
+    of << "G94 ( Millimeters per minute feed rate. )\n"
+       << "G21 ( Units == Millimeters. )\n\n";
+  } else {
+    of << "G94 ( Inches per minute feed rate. )\n"
+       << "G20 ( Units == INCHES. )\n\n";
+  }
+
+  of << "G90 ( Absolute coordinates. )\n"
+     << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
+
+  if (mill->explicit_tolerance) {
+    of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
+  }
+
+  of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
+}
 
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> all_toolpaths = layer->get_toolpaths();
+
+    all_toolpaths.erase(std::remove_if(all_toolpaths.begin(), all_toolpaths.end(),
+                                       [](const pair<coordinate_type_fp, vector<shared_ptr<icoords>>>& path) {
+                                         return path.second.size() == 0;
+                                       }), all_toolpaths.cend());
 
     if (all_toolpaths.size() < 1) {
       return; // Nothing to do.
@@ -241,46 +296,47 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     globalVars.getUniqueCode();
     globalVars.getUniqueCode();
 
-    // open output file
-    std::ofstream of;
-    of.open(of_name.c_str());
-
-    // write header to .ngc file
-    for ( string s : header )
-    {
-        of << "( " << s << " )\n";
-    }
-
-    if( leveller || ( tileInfo.enabled && tileInfo.software != Software::CUSTOM ) )
-        of << "( Gcode for " << tileInfo.software << " )\n";
-    else
-        of << "( Software-independent Gcode )\n";
-
-    of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
-    of.precision(5);              //Set floating-point decimal precision
-
-    of << "\n" << preamble;       //insert external preamble
-
-    if (bMetricoutput) {
-      of << "G94 ( Millimeters per minute feed rate. )\n"
-         << "G21 ( Units == Millimeters. )\n\n";
+    // open output files
+    shared_ptr<std::ofstream> of_autoleveller;
+    vector<shared_ptr<std::ofstream>> of_bits;
+    vector<shared_ptr<std::ofstream>> of_all;
+    if (mill->split_output_files) {
+      size_t period_pos = of_name.rfind(".");
+      if (period_pos == string::npos) {
+        period_pos = of_name.size();
+      }
+      if (leveller) {
+        of_autoleveller = make_shared<std::ofstream>(of_name.substr(0, period_pos) + "_autoleveller" + of_name.substr(period_pos));
+        of_all.push_back(of_autoleveller);
+      }
+      for (size_t i = 0; i < all_toolpaths.size(); i++) {
+        of_bits.push_back(make_shared<std::ofstream>(of_name.substr(0, period_pos) + "_" + to_string(i) + of_name.substr(period_pos)));
+        of_all.push_back(of_bits.back());
+      }
     } else {
-      of << "G94 ( Inches per minute feed rate. )\n"
-         << "G20 ( Units == INCHES. )\n\n";
+      of_autoleveller = make_shared<std::ofstream>(of_name);
+      for (size_t i = 0; i < all_toolpaths.size(); i++) {
+        of_bits.push_back(of_autoleveller);
+      }
+      of_all.push_back(of_autoleveller);
     }
 
-    of << "G90 ( Absolute coordinates. )\n"
-       << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
-
-    if (mill->explicit_tolerance) {
-      of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
+    if (mill->split_output_files) {
+      for (size_t i = 0; i < all_toolpaths.size(); i++) {
+        write_header(layer, *of_bits[i], leveller, {all_toolpaths[i].first});
+      }
+      write_header(layer, *of_autoleveller, leveller, {});
+    } else {
+      vector<double> tool_diameters;
+      for (const auto& path : all_toolpaths) {
+        tool_diameters.push_back(path.first);
+      }
+      write_header(layer, *of_autoleveller, leveller, tool_diameters);
     }
-
-    of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if (leveller) {
       leveller->prepareWorkarea(all_toolpaths);
-      leveller->header(of);
+      leveller->header(*of_autoleveller);
     }
 
     shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
@@ -297,6 +353,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     uniqueCodes main_sub_ocodes(200);
     for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
+      std::ofstream& of = *of_bits[toolpaths_index];
       const auto& toolpaths = all_toolpaths[toolpaths_index].second;
       if (toolpaths.size() < 1) {
         continue; // Nothing to do for this mill size.
@@ -308,11 +365,11 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
                          to_string(mill->spindown_time) + "\n");
 
       // Start the new tool.
-      of << endl
-         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
-         << "T" << toolpaths_index << endl
-         << "M5      (Spindle stop.)" << endl
-         << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;
+      of << '\n'
+         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << '\n'
+         << "T" << toolpaths_index << '\n'
+         << "M5      (Spindle stop.)" << '\n'
+         << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << '\n';
       if (cutter) {
         of << "(MSG, Change tool bit to cutter diameter ";
       } else if (isolator) {
@@ -322,16 +379,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       }
       const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
       if (bMetricoutput) {
-        of << (tool_diameter * 25.4) << "mm)" << endl;
+        of << (tool_diameter * 25.4) << "mm)" << '\n';
       } else {
-        of << tool_diameter << "in)" << endl;
+        of << tool_diameter << "in)" << '\n';
       }
-      of << "M6      (Tool change.)" << endl
-         << "M0      (Temporary machine stop.)" << endl
-         << "M3 ( Spindle on clockwise. )" << endl
-         << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << endl;
+      of << "M6      (Tool change.)" << '\n'
+         << "M0      (Temporary machine stop.)" << '\n'
+         << "M3 ( Spindle on clockwise. )" << '\n'
+         << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << '\n';
 
-      tiling.header( of );
+      tiling.header(of);
 
       for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
         double yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -350,7 +407,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
             // retract, move to the starting point of the next contour
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-            of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << endl << endl;
+            of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << '\n' << '\n';
             of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
                << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
@@ -366,16 +423,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
         }
       }
 
-      tiling.footer( of );
+      tiling.footer(of);
     }
     if (leveller) {
-      leveller->footer(of);
+      leveller->footer(*of_autoleveller);
     }
-    of << "M9 ( Coolant off. )" << endl
-       << "M2 ( Program end. )" << endl << endl;
-
-
-    of.close();
+    for (auto& of : of_all) {
+      *of << "M9 ( Coolant off. )" << '\n'
+          << "M2 ( Program end. )" << '\n' << '\n';
+      of->close();
+    }
 }
 
 /******************************************************************************/

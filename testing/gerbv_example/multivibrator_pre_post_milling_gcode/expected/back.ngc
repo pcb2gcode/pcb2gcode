@@ -1,5 +1,6 @@
 ( pcb2gcode 2.0.0 )
 ( Software-independent Gcode )
+( This file uses bit sizes: [0.00000in] )
 
 ( preamble-text line1 )
 ( preamble-text line2 )

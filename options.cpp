@@ -249,6 +249,7 @@ options::options()
        ("draw-gerber-lines", po::value<bool>()->default_value(false)->implicit_value(true),
         "Draw lines in the gerber file as just lines and not as filled in shapes")
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
+       ("split-mill-output-files", po::value<bool>()->default_value(false)->implicit_value(true), "split mill output files, one per mill diameter")
        ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
        ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer");
    cfg_options.add(milling_options);

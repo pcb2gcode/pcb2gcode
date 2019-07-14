@@ -1,0 +1,82 @@
+( pcb2gcode 2.0.0 )
+( Gcode for linuxcnc )
+( This file uses bit sizes: )
+
+G94 ( Inches per minute feed rate. )
+G20 ( Units == INCHES. )
+
+G90 ( Absolute coordinates. )
+G00 S12000 ( RPM spindle speed. )
+G64 P0.00040 ( set maximum deviation from commanded toolpath )
+G01 F360.00000 ( Feedrate. )
+
+o1 sub ( G01 with Z-correction subroutine )
+    #3 = [ #5211 - #107 ] ( x-tile offset [minus the initial offset] )
+    #4 = [ #5212 - #108 ] ( y-tile offset [minus the initial offset] )
+    #5 = [ FIX[ [ #1 - -8.74626 + #3 ] / 0.37343 ] ] ( Lower left point X index )
+    #6 = [ FIX[ [ #2 - -3.42184 + #4 ] / 0.34510 ] ] ( Lower left point Y index )
+    #7 = [ #5 * 8 + [ #6 + 1 ] + 500 ] ( Upper left point parameter number )
+    #8 = [ [ #5 + 1 ] *8 + [ #6 + 1 ] + 500 ] ( Upper right point parameter number )
+    #9 = [ #5 * 8 + #6 + 500 ] ( Lower left point parameter number )
+    #10 = [ [ #5 + 1 ] * 8 + #6 + 500 ] ( Lower right point parameter number )
+    #11 = [ [ #2 + #4 - -3.42184 - #6 * 0.34510 ] / 0.34510 ] ( Distance between the point and the left border of the rectangle, normalized to 1 )
+    #12 = [ [ #1 + #3 - -8.74626 - #5 * 0.37343 ] / 0.37343 ] ( Distance between the point and the bottom border of the rectangle, normalized to 1 ) 
+    #13 = [ ##9 + [ ##7 - ##9 ] * #11 ] ( Linear interpolation of the x-min elements )
+    #14 = [ ##10 + [ ##8 - ##10 ] * #11 ] ( Linear interpolation of the x-max elements )
+    #15 = [ #13 + [ #14 - #13 ] * #12 ] ( Linear interpolation of previously interpolated points )
+    G01 X#1 Y#2 Z[-0.04000+#15]
+o1 endsub
+
+o2 sub ( Y probe subroutine )
+    G0 Z0.080 ( Move to probe height )
+    X[#101 * 0.37343 + -8.74626] Y[#102 * 0.34510 + -3.42184] ( Move to the current probe point )
+    G38.2 Z-0.1 F2.362205 ( Probe it )
+    #[#101 * 8 + #102 + 500] = #5063 ( Save the probe in the correct parameter )
+    #102 = [#102 + #103] ( Increment/decrement by 1 the Y counter )
+o2 endsub
+
+o3 sub ( X probe subroutine )
+    o4 repeat [#104]
+        o2 call
+    o4 endrepeat
+    #104 = 8
+    #103 = [0 - #103]
+    #102 = [#102 + #103]
+    #101 = [#101 + 1] ( Increment by 1 the X counter )
+o3 endsub
+
+#107 = #5211
+#108 = #5212
+
+(MSG, Attach the probe tool)
+M0 ( Temporary machine stop. )
+G0 Z0.080 ( Move Z to safe height )
+G0 X-8.74626 Y-3.42184 ( Move XY to start point )
+G0 Z0.080 ( Move Z to probe height )
+(PROBEOPEN RawProbeLog.txt) ( Record all probes in RawProbeLog.txt )
+G38.2 Z-0.1 F2.362205 ( Z-probe )
+#500 = 0 ( Probe point [0, 0] is our reference )
+G10 L20 P0 Z0 ( Set the current Z as zero-value )
+
+( We now start the real probing: move the Z axis to the probing height, move to )
+( the probing XY position, probe it and save the result, parameter #5063, )
+( in a numbered parameter; we will make 16 probes on the X-axis and )
+( 8 probes on the Y-axis, for a grand total of 128 probes )
+
+#101 = 0 ( X iterator )
+#102 = 1 ( Y iterator )
+#103 = 1 ( UP or DOWN increment )
+#104 = 7 ( number of Y points; the 1st Y row can be done one time less )
+o5 repeat [16]
+    o3 call
+o5 endrepeat
+
+G0 Z0.080 ( Move Z to safe height )
+(PROBECLOSE) ( Close the probe log file )
+( Probing has ended, each Z-coordinate will be corrected with a bilinear interpolation )
+(MSG, Detach the probe tool)
+M0 ( Temporary machine stop. )
+
+M9 ( Coolant off. )
+M2 ( Program end. )
+
