@@ -7,39 +7,41 @@ matrix:
       compiler: gcc
       addons:
         apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-6', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-6 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-6', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-6 BOOST=1_66_0
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-4.8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
+      env: COMPILER=g++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
+      env: COMPILER=g++ BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-4.8 BOOST=1_66_0
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-7 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
-      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-7 BOOST=1_66_0
+      env: COMPILER=g++ BOOST=1_66_0
 
     - os: linux
       compiler: clang
