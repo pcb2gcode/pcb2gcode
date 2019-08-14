@@ -142,5 +142,5 @@ script:
 after_success:
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E ".*_tests.cpp";
+      coveralls --verbose --gcov gcov-8 --gcov-options '\-lpr' -E ".*_tests.cpp";
     fi
