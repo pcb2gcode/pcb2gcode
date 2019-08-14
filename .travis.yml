@@ -115,6 +115,7 @@ install:
     done &&
     tar xjf "parallel-latest.tar.bz2" &&
     export CXX="$COMPILER"
+  - $CXX --version
 
 script:
   - autoreconf -fvi || travis_terminate 1
