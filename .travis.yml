@@ -7,39 +7,41 @@ matrix:
       compiler: gcc
       addons:
         apt:
+          sources: ['ubuntu-toolchain-r-test']
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-4.8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
+      env: COMPILER=g++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
+          sources: ['ubuntu-toolchain-r-test']
           packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-4.8 BOOST=1_66_0
+      env: COMPILER=g++ BOOST=1_66_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-7 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
-      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
+      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
-      env: COMPILER=g++-7 BOOST=1_66_0
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-8 BOOST=1_66_0
 
     - os: linux
       compiler: clang
@@ -113,6 +115,7 @@ install:
     done &&
     tar xjf "parallel-latest.tar.bz2" &&
     export CXX="$COMPILER"
+  - $CXX --version
 
 script:
   - autoreconf -fvi || travis_terminate 1
@@ -139,5 +142,5 @@ script:
 after_success:
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E ".*_tests.cpp";
+      coveralls --verbose --gcov gcov-8 --gcov-options '\-lpr' -E ".*_tests.cpp";
     fi
