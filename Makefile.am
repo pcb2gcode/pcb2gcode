@@ -1,6 +1,6 @@
 SUBDIRS = man
 
-bin_PROGRAMS = pcb2gcode
+bin_PROGRAMS = pcb2gcode wkt_to_svg
 
 pcb2gcode_SOURCES = \
     autoleveller.hpp \
@@ -46,6 +46,9 @@ pcb2gcode_SOURCES = \
     voronoi_visual_utils.hpp \
     config.h \
     main.cpp
+
+wkt_to_svg_SOURCES = \
+    wkt_to_svg.cpp
 
 ACLOCAL_AMFLAGS = -I m4
 
