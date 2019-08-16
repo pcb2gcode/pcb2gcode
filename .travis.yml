@@ -7,52 +7,54 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
-      env: COMPILER=g++-4.8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
-      env: COMPILER=g++-4.8 BOOST=1_66_0
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
-      env: COMPILER=g++-7 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++ BOOST=1_66_0
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils', 'valgrind']
-      env: COMPILER=g++-7 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: gcc
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
-      env: COMPILER=g++-7 BOOST=1_66_0
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
+      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
+      env: COMPILER=g++-8 BOOST=1_66_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=clang++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint', 'valgrind']
+          packages: ['libgtkmm-2.4-dev', 'gerbv', 'moreutils', 'autopoint']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -113,6 +115,7 @@ install:
     done &&
     tar xjf "parallel-latest.tar.bz2" &&
     export CXX="$COMPILER"
+  - $CXX --version
 
 script:
   - autoreconf -fvi || travis_terminate 1
@@ -135,15 +138,9 @@ script:
   - lcov --directory . -z || true #Ignore errors
   - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j 2 check || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
-  - pushd testing/gerbv_example/example_board_al_linuxcnc || travis_terminate 1
-  - >
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode
-    fi || travis_terminate 1
-  - popd || travis_terminate 1
 
 after_success:
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
-      coveralls --verbose --gcov gcov-7 --gcov-options '\-lpr' -E ".*_tests.cpp";
+      coveralls --verbose --gcov gcov-8 --gcov-options '\-lpr' -E ".*_tests.cpp";
     fi

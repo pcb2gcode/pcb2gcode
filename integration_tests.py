@@ -64,6 +64,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multi_outline",
                   "sharp_corner",
                   "sharp_corner_2",
+                  "sharp_corner_big_isolation_width",
                   "silk",
                   "silk-lines",
                   "slots-milldrill",
@@ -183,7 +184,7 @@ class IntegrationTests(unittest2.TestCase):
             else:
               f.write(line)
 
-  def pcb2gcode_one_directory(self, input_path, args=[], exit_code=0):
+  def pcb2gcode_one_directory(self, input_path, cwd, args=[], exit_code=0):
     """Run pcb2gcode once in one directory.
 
     Current working directory remains unchanged at the end.
@@ -191,7 +192,6 @@ class IntegrationTests(unittest2.TestCase):
     input_path: Where to run pcb2gcode
     Returns the path to the output files created.
     """
-    cwd = os.getcwd()
     pcb2gcode = os.path.join(cwd, "pcb2gcode")
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
@@ -266,7 +266,7 @@ class IntegrationTests(unittest2.TestCase):
         all_diffs += difflib.unified_diff(data0, data1, '"' + os.path.join(left_prefix, f) + '"', '"' + os.path.join(right_prefix, f) + '"')
     return ''.join(all_diffs)
 
-  def run_one_directory(self, input_path, expected_output_path, test_prefix, args=[], exit_code=0):
+  def run_one_directory(self, input_path, cwd, expected_output_path, test_prefix, args=[], exit_code=0):
     """Run pcb2gcode on a directory and return the diff as a string.
 
     Returns an empty string if there is no mismatch.
@@ -275,7 +275,7 @@ class IntegrationTests(unittest2.TestCase):
     expected_output_path: Path to expected outputs
     test_prefix: Strin to prepend to all filenamess
     """
-    actual_output_path = self.pcb2gcode_one_directory(input_path, args, exit_code)
+    actual_output_path = self.pcb2gcode_one_directory(input_path, cwd, args, exit_code)
     if exit_code:
       return ""
     diff_text = self.compare_directories(expected_output_path, actual_output_path,
@@ -284,13 +284,12 @@ class IntegrationTests(unittest2.TestCase):
     shutil.rmtree(actual_output_path)
     return diff_text
 
-  def do_test_one(self, test_case):
-    cwd = os.getcwd()
+  def do_test_one(self, test_case, cwd):
     test_prefix = os.path.join(test_case.input_path, "expected")
     input_path = os.path.join(cwd, test_case.input_path)
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
     print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
-    diff_text = self.run_one_directory(input_path, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
+    diff_text = self.run_one_directory(input_path, cwd, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
     self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 if __name__ == '__main__':
@@ -308,9 +307,10 @@ if __name__ == '__main__':
   args = parser.parse_args()
   if args.tests:
     TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
+  cwd = os.getcwd()
   def add_test_case(t):
     def test_method(self):
-      self.do_test_one(t)
+      self.do_test_one(t, cwd)
     setattr(IntegrationTests, 'test_' + t.name, test_method)
     test_method.__name__ = 'test_' + t.name
     test_method.__doc__ = str(test_case)

@@ -1,9 +1,8 @@
-back=multivibrator-B.Cu.gbr
-drill=multivibrator.drl
-outline=multivibrator-Edge.Cuts.gbr
+back=sharp_corner-B.Cu.gbr
+outline=sharp_corner-Edge.Cuts.gbr
 
-mill-diameters=0.2mm,0.1mm
-extra-passes=1
+mill-diameters=3mm,0.1mm
+isolation-width=15mm
 vectorial=true
 mill-feed=360 in/min
 mill-speed=200rotations/second
@@ -26,4 +25,3 @@ zcut=-0.13mm
 fill-outline=true
 zsafe=0.08
 zchange=1.0
-zchange-absolute=true
