@@ -309,7 +309,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
       // Start the new tool.
       of << endl
-         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
+         << (bZchangeG53 ? "G53 " : "") << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
          << "T" << toolpaths_index << endl
          << "M5      (Spindle stop.)" << endl
          << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;

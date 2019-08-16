@@ -10,7 +10,7 @@ G64 P0.00040 ( set maximum deviation from commanded toolpath )
 G01 F360.00000 ( Feedrate. )
 
 
-G00 Z1.00000 (Retract to tool change height)
+G53 G00 Z1.00000 (Retract to tool change height)
 T0
 M5      (Spindle stop.)
 G04 P1.00000 (Wait for spindle to stop)
@@ -1483,12 +1483,12 @@ G01 X-4.39720 Y-3.25257
 G01 X-4.39585 Y-3.24550
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G53 G00 Z1.000 ( retract )
 
 M5 ( Spindle off. )
 G04 P1.000000
 
-G00 Z1.00000 (Retract to tool change height)
+G53 G00 Z1.00000 (Retract to tool change height)
 T1
 M5      (Spindle stop.)
 G04 P1.00000 (Wait for spindle to stop)
@@ -1738,7 +1738,7 @@ G01 X-4.31772 Y-2.86772
 G01 X-4.31838 Y-2.86772
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G53 G00 Z1.000 ( retract )
 
 M5 ( Spindle off. )
 G04 P1.000000
