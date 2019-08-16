@@ -1,6 +1,8 @@
 #ifndef BG_HELPERS_H
 #define BG_HELPERS_H
 
+#include "eulerian_paths.hpp"
+
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {
@@ -112,6 +114,9 @@ static inline multi_polygon_type_fp operator&(const bg::model::polygon<point_typ
   return ret;
 }
 
+template <typename polygon_type_t, typename rhs_t>
+static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
+                                                                 const rhs_t& rhs);
 namespace bg_helpers {
 
 // The below implementations of buffer are similar to bg::buffer but
@@ -163,6 +168,20 @@ static inline void buffer(polygon_type_fp const & geometry_in, multi_polygon_typ
 }
 
 template<typename CoordinateType>
+static inline void buffer(linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+  if (expand_by == 0) {
+    geometry_out.clear();
+  } else {
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+  }
+}
+
+template<typename CoordinateType>
 static inline multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
   multi_polygon_type_fp geometry_out;
   buffer(geometry_in, geometry_out, expand_by);
@@ -182,12 +201,28 @@ static inline void buffer(polygon_type const & geometry_in, multi_polygon_type_f
 
 template<typename CoordinateType>
 static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
-  bg::buffer(geometry_in, geometry_out,
-             bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
-             bg::strategy::buffer::side_straight(),
-             bg::strategy::buffer::join_round(points_per_circle),
-             bg::strategy::buffer::end_round(points_per_circle),
-             bg::strategy::buffer::point_circle(points_per_circle));
+  if (expand_by == 0) {
+    geometry_out.clear();
+    return;
+  }
+  // bg::buffer of multilinestring is broken in boost.  Converting the
+  // multilinestring to non-intersecting paths seems to help.
+  std::vector<std::pair<linestring_type_fp, bool>> path_to_simplify;
+  for (const auto& ls : geometry_in) {
+    // Always reversible because we're just going to buffer it, so always pair
+    // with true.
+    path_to_simplify.push_back(std::make_pair(ls, true));
+  }
+  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(path_to_simplify);
+  geometry_out.clear();
+  if (expand_by == 0) {
+    return;
+  }
+  for (const auto& ls : mls) {
+    multi_polygon_type_fp buf;
+    buffer(ls, buf, expand_by);
+    geometry_out = geometry_out + buf;
+  }
 }
 
 template<typename CoordinateType>
