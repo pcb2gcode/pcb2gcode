@@ -249,6 +249,7 @@ class eulerian_paths {
   std::set<point_t, point_less_than_p> all_start_vertices;
 }; //class eulerian_paths
 
+// Visible for testing only.
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
     multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths, const std::vector<bool>& allow_reversals) {
   return eulerian_paths<point_t, linestring_t, multi_linestring_t, point_less_than_p>(
