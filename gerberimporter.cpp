@@ -693,14 +693,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
     }
   }
   // This converts the many small line segments into the longest paths possible.
-  std::vector<std::pair<linestring_type_fp, bool>> path_to_simplify;
-  for (const auto& ls : paths) {
-    // Always reversible because we're just going to buffer it, so always pair
-    // with true.
-    path_to_simplify.push_back(std::make_pair(ls, true));
-  }
-  multi_linestring_type_fp euler_paths =
-      eulerian_paths::make_eulerian_paths(path_to_simplify);
+  multi_linestring_type_fp euler_paths = eulerian_paths::make_eulerian_paths(paths, true);
   multi_polygon_type_fp ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
@@ -904,8 +897,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     result.swap(scaled_result);
   }
   for (auto& path : linear_circular_paths) {
-    path.second = eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-        path.second, vector<bool>(path.second.size(), true));
+    path.second = eulerian_paths::make_eulerian_paths(path.second, true);
   }
   return make_pair(result, linear_circular_paths);
 }

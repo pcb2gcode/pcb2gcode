@@ -256,10 +256,11 @@ template <typename point_t, typename linestring_t, typename multi_linestring_t, 
 }
 
 // Returns a minimal number of toolpaths that include all the milling in the
-// oroginal toolpaths.  Each path is traversed once.  First paths are
-// directional, second are bidi.  In the pair, the first is directional and the
-// second is bidi.
+// oroginal toolpaths.  Each path is traversed once.  Each path has a bool
+// indicating if the path is reversible.
 multi_linestring_type_fp make_eulerian_paths(const std::vector<std::pair<linestring_type_fp, bool>>& toolpaths);
+
+multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
 
 }; // namespace eulerian_paths
 #endif //EULERIAN_PATHS_H
