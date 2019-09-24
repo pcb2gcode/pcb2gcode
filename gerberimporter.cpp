@@ -718,12 +718,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
   if (euler_paths.size() > 0) {
     // This converts the long paths into a shape with thickness equal to the specified diameter.
     multi_polygon_type_fp new_ovals;
-    bg::buffer(euler_paths, new_ovals,
-               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
+    bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
     ovals = ovals + new_ovals;
   }
   return ovals;
