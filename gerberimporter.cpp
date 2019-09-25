@@ -693,9 +693,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
     }
   }
   // This converts the many small line segments into the longest paths possible.
-  multi_linestring_type_fp euler_paths =
-      eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-          new_paths, vector<bool>(new_paths.size(), true));
+  multi_linestring_type_fp euler_paths = eulerian_paths::make_eulerian_paths(paths, true);
   multi_polygon_type_fp ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
@@ -718,12 +716,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
   if (euler_paths.size() > 0) {
     // This converts the long paths into a shape with thickness equal to the specified diameter.
     multi_polygon_type_fp new_ovals;
-    bg::buffer(euler_paths, new_ovals,
-               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(diameter / 2),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
+    bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
     ovals = ovals + new_ovals;
   }
   return ovals;
@@ -904,8 +897,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     result.swap(scaled_result);
   }
   for (auto& path : linear_circular_paths) {
-    path.second = eulerian_paths::get_eulerian_paths<point_type_fp, linestring_type_fp, multi_linestring_type_fp, PointLessThan>(
-        path.second, vector<bool>(path.second.size(), true));
+    path.second = eulerian_paths::make_eulerian_paths(path.second, true);
   }
   return make_pair(result, linear_circular_paths);
 }

@@ -207,13 +207,7 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
   }
   // bg::buffer of multilinestring is broken in boost.  Converting the
   // multilinestring to non-intersecting paths seems to help.
-  std::vector<std::pair<linestring_type_fp, bool>> path_to_simplify;
-  for (const auto& ls : geometry_in) {
-    // Always reversible because we're just going to buffer it, so always pair
-    // with true.
-    path_to_simplify.push_back(std::make_pair(ls, true));
-  }
-  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(path_to_simplify);
+  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true);
   geometry_out.clear();
   if (expand_by == 0) {
     return;
