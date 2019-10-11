@@ -51,7 +51,8 @@ m4/lt~obsolete.m4
 m4/test-driver
 man/Makefile
 man/Makefile.in
-pcb2gcode
+/pcb2gcode
+/wkt_to_svg
 stamp-h1
 testing/gerbv_example/*/old
 testing/gerbv_example/*/new
