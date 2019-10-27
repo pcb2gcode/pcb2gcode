@@ -70,4 +70,12 @@ multi_linestring_type_fp make_eulerian_paths(const vector<pair<linestring_type_f
       PointLessThan>(segments_as_linestrings, allow_reversals);
 }
 
+multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible) {
+  std::vector<std::pair<linestring_type_fp, bool>> path_to_simplify;
+  for (const auto& ls : paths) {
+    path_to_simplify.push_back(std::make_pair(ls, reversible));
+  }
+  return make_eulerian_paths(path_to_simplify);
+}
+
 }; // namespace eulerian_paths

@@ -240,6 +240,7 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
+  test_one("overlapping_lines.gbr",       0.006);
   test_one("levels.gbr",                  0.0007);
   test_one("levels_step_and_repeat.gbr",  0.006);
   test_one("code22_lower_left_line.gbr",  0.008);

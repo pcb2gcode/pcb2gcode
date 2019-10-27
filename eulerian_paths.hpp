@@ -249,6 +249,7 @@ class eulerian_paths {
   std::set<point_t, point_less_than_p> all_start_vertices;
 }; //class eulerian_paths
 
+// Visible for testing only.
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
     multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths, const std::vector<bool>& allow_reversals) {
   return eulerian_paths<point_t, linestring_t, multi_linestring_t, point_less_than_p>(
@@ -256,10 +257,11 @@ template <typename point_t, typename linestring_t, typename multi_linestring_t, 
 }
 
 // Returns a minimal number of toolpaths that include all the milling in the
-// oroginal toolpaths.  Each path is traversed once.  First paths are
-// directional, second are bidi.  In the pair, the first is directional and the
-// second is bidi.
+// oroginal toolpaths.  Each path is traversed once.  Each path has a bool
+// indicating if the path is reversible.
 multi_linestring_type_fp make_eulerian_paths(const std::vector<std::pair<linestring_type_fp, bool>>& toolpaths);
+
+multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
 
 }; // namespace eulerian_paths
 #endif //EULERIAN_PATHS_H
