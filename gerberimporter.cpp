@@ -349,8 +349,7 @@ multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& mul
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers,
-                                      unsigned int points_per_circle) {
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
@@ -885,7 +884,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     }
     linear_circular_paths.clear();
   }
-  auto result = generate_layers(layers, points_per_circle);
+  auto result = generate_layers(layers);
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
