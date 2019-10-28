@@ -49,10 +49,6 @@ public:
     void export_all(boost::program_options::variables_map&);
     void set_preamble(std::string);
     void set_postamble(std::string);
-    inline Tiling::TileInfo getTileInfo()
-    {
-        return tileInfo;
-    }
 
 protected:
   void export_layer(std::shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
