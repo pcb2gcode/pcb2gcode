@@ -38,15 +38,6 @@ using std::shared_ptr;
 #include <string>
 using std::string;
 
-#include <glibmm/ustring.h>
-using Glib::ustring;
-
-#include <glibmm/init.h>
-#include <gdkmm/wrap_init.h>
-
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include "gerberimporter.hpp"
 #include "ngc_exporter.hpp"
 #include "board.hpp"
@@ -58,9 +49,6 @@ using Glib::build_filename;
 #include <boost/version.hpp>
 
 void do_pcb2gcode(int argc, const char* argv[]) {
-    Glib::init();
-    Gdk::wrap_init();
-
     options::parse(argc, argv);      //parse the command line parameters
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters

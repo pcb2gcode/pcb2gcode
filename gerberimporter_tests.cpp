@@ -10,6 +10,7 @@
 #include <librsvg-2.0/librsvg/rsvg.h>
 #include <boost/format.hpp>
 #include <cstdlib>
+#include <cairomm/cairomm.h>
 #include <string>
 using std::string;
 
@@ -40,6 +41,27 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
                                      height);
 }
 
+void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi,
+                  const double min_x, const double min_y,
+                  const GdkColor& color, const gerbv_render_types_t& renderType) {
+  gerbv_render_info_t render_info;
+
+  render_info.scaleFactorX = dpi;
+  render_info.scaleFactorY = dpi;
+  render_info.lowerLeftX = min_x;
+  render_info.lowerLeftY = min_y;
+  render_info.displayWidth = surface->get_width();
+  render_info.displayHeight = surface->get_height();
+  render_info.renderType = renderType;
+
+  g.get_project()->file[0]->color = color;
+
+  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
+  gerbv_render_layer_to_cairo_target(cr->cobj(), g.get_project()->file[0], &render_info);
+
+  /// @todo check wheter importing was successful
+}
+
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
 void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
@@ -49,7 +71,7 @@ void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, dou
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
                    ((OLD_COLOR >>  8) & 0xff) * 0x101,
                    ((OLD_COLOR      ) & 0xff) * 0x101};
-  g.render(cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
+  cairo_render(g, cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
 string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {

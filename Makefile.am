@@ -61,7 +61,7 @@ GERBV_VERSION = `pkg-config --modversion libgerbv`
 AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS) $(CODE_COVERAGE_CPPFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\"
 AM_CXXFLAGS = $(CODE_COVERAGE_CXXFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -DGERBV_VERSION=\"$(GERBV_VERSION)\"
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
-LIBS = $(glibmm_LIBS) $(gdkmm_LIBS) $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS)
+LIBS = $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS)
 
 EXTRA_DIST = millproject
 
@@ -76,7 +76,7 @@ tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp
-gerberimporter_tests_LDFLAGS = $(rsvg_LIBS)
+gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
 

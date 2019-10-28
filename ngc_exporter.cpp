@@ -49,9 +49,6 @@ using std::dynamic_pointer_cast;
 
 #include <iomanip>
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include <boost/format.hpp>
 using boost::format;
 
