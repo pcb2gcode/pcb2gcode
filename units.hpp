@@ -65,7 +65,7 @@ class Lexer {
       });
     try {
       return boost::lexical_cast<double>(text);
-    } catch (boost::bad_lexical_cast e) {
+    } catch (const boost::bad_lexical_cast& e) {
       throw units_parse_exception("double", text);
     }
   }
@@ -438,7 +438,7 @@ inline std::istream& operator>>(std::istream& in, boost::variant<Unit<dimension1
   try {
     unit = parse_unit<Unit<dimension1_t>>(s);
     return in;
-  } catch (boost::program_options::invalid_option_value e) { }
+  } catch (const boost::program_options::invalid_option_value& e) { }
   Unit<dimension1_t> unit2;
   unit = parse_unit<Unit<dimension2_t>>(s);
   return in;
