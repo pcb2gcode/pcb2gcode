@@ -315,8 +315,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cout << "not specified.\n";
     }
 
-    Tiling::TileInfo *tileInfo = NULL;
-
     cout << "Processing input files... " << flush;
     board->createLayers();
     cout << "DONE.\n";
@@ -334,9 +332,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       }
 
       exporter->export_all(vm);
-
-      tileInfo = new Tiling::TileInfo;
-      *tileInfo = exporter->getTileInfo();
     }
 
     //---------------------------------------------------------------------------

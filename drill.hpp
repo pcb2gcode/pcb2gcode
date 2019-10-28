@@ -140,7 +140,7 @@ private:
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
-    Tiling *tiling;
+    std::unique_ptr<Tiling> tiling;
 };
 
 #endif // DRILL_H
