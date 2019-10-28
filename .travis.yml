@@ -94,9 +94,8 @@ install:
       mkdir -p $HOME/.local &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig &&
       pushd ~
-      git clone git://git.geda-project.org/gerbv.git &&
+      git clone https://github.com/eyal0/gerbv.git &&
       pushd gerbv &&
-      git checkout 061240c &&
       chronic sh autogen.sh &&
       CFLAGS=-std=gnu99 chronic ./configure --disable-update-desktop-database --prefix=${HOME}/.local &&
       chronic make -j 2 &&
