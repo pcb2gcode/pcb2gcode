@@ -25,8 +25,6 @@
 #include <utility>
 #include <map>
 
-#include <cairomm/cairomm.h>
-
 #include "geometry.hpp"
 
 extern "C" {
@@ -45,29 +43,28 @@ class gerber_exception: public std::exception {};
 /******************************************************************************/
 class GerberImporter {
 public:
-    GerberImporter();
+  GerberImporter();
   bool load_file(const std::string& path);
-    virtual ~GerberImporter();
+  virtual ~GerberImporter();
 
-    virtual gdouble get_min_x() const;
-    virtual gdouble get_max_x() const;
-    virtual gdouble get_min_y() const;
-    virtual gdouble get_max_y() const;
+  virtual gdouble get_min_x() const;
+  virtual gdouble get_max_x() const;
+  virtual gdouble get_min_y() const;
+  virtual gdouble get_max_y() const;
 
-    virtual void render(Cairo::RefPtr<Cairo::ImageSurface> surface,
-                        const guint dpi, const double min_x,
-                        const double min_y, const GdkColor& color = { 0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFFFF },
-                        const gerbv_render_types_t& renderType = GERBV_RENDER_TYPE_CAIRO_NORMAL) const;
-    virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
-        bool fill_closed_lines,
-        bool render_paths_to_shapes,
-        unsigned int points_per_circle) const;
+  virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
+      bool fill_closed_lines,
+      bool render_paths_to_shapes,
+      unsigned int points_per_circle) const;
+  const gerbv_project_t* get_project() const {
+    return project;
+  }
 
 protected:
-    enum Side { FRONT = 0, BACK = 1 } side;
+  enum Side { FRONT = 0, BACK = 1 } side;
 
 private:
-    gerbv_project_t* project;
+  gerbv_project_t* project;
 };
 
 #endif // GERBERIMPORTER_H

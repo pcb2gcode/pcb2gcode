@@ -50,9 +50,6 @@ using std::map;
 using boost::optional;
 using boost::make_optional;
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "eulerian_paths.hpp"

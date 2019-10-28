@@ -47,9 +47,6 @@ using std::fixed;
 #include <boost/format.hpp>
 using boost::format;
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include <string>
 using std::string;
 

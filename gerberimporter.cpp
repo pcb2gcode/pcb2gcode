@@ -97,26 +97,6 @@ gdouble GerberImporter::get_max_y() const {
   return project->file[0]->image->info->max_y;
 }
 
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y,
-                            const GdkColor& color, const gerbv_render_types_t& renderType) const {
-  gerbv_render_info_t render_info;
-
-  render_info.scaleFactorX = dpi;
-  render_info.scaleFactorY = dpi;
-  render_info.lowerLeftX = min_x;
-  render_info.lowerLeftY = min_y;
-  render_info.displayWidth = surface->get_width();
-  render_info.displayHeight = surface->get_height();
-  render_info.renderType = renderType;
-
-  project->file[0]->color = color;
-
-  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
-  gerbv_render_layer_to_cairo_target(cr->cobj(), project->file[0], &render_info);
-
-  /// @todo check wheter importing was successful
-}
-
 // Draw a regular polygon with outer diameter as specified and center.  The
 // number of vertices is provided.  offset is an angle in degrees to the
 // starting vertex of the shape.
