@@ -349,8 +349,7 @@ multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& mul
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers,
-                                      unsigned int points_per_circle) {
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
@@ -685,7 +684,7 @@ struct PointLessThan {
  * If there are non-loops when fill_closed_lines is true, we'll report an
  * error.
  */
-multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines, unsigned int points_per_circle) {
+multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines) {
   multi_linestring_type_fp new_paths(paths);
   if (fill_closed_lines) {
     if (merge_near_points(new_paths, diameter) > 0) {
@@ -759,7 +758,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       if (render_paths_to_shapes) {
         // About to start a new layer, render all the linear_circular_paths so far.
         for (const auto& diameter_and_path : linear_circular_paths) {
-          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
         }
         linear_circular_paths.clear();
       }
@@ -881,11 +880,11 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
   if (render_paths_to_shapes) {
     // If there are any unrendered circular paths, add them to the last layer.
     for (const auto& diameter_and_path : linear_circular_paths) {
-      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
     }
     linear_circular_paths.clear();
   }
-  auto result = generate_layers(layers, points_per_circle);
+  auto result = generate_layers(layers);
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
