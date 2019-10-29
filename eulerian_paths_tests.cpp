@@ -2,8 +2,22 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <tuple>
+#include "geometry_int.hpp"
+
+namespace eulerian_paths {
+
+static inline bool operator !=(const point_type& x, const point_type& y) {
+  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
+}
+
+static inline bool operator ==(const point_type& x, const point_type& y) {
+  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
+}
+
+} // namespace eulerian_paths
 
 #include "eulerian_paths.hpp"
+#include "geometry_int.hpp"
 
 using std::vector;
 using namespace eulerian_paths;
@@ -44,9 +58,6 @@ BOOST_AUTO_TEST_CASE(window_pane) {
       {8,9},
       {1,4},
       {4,7},
-
-
-
       {2,5},
       {5,8},
       {3,6},

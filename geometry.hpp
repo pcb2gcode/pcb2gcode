@@ -33,7 +33,6 @@
 // This one chooses the resolution of the output (viewBox).
 #define SVG_DOTS_PER_IN 2000
 
-typedef int64_t coordinate_type;
 typedef double coordinate_type_fp;
 typedef double ivalue_t;
 
@@ -48,16 +47,6 @@ BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, sec
 // Adaptation of icoords to Boost Geometry (ring)
 BOOST_GEOMETRY_REGISTER_RING(icoords)
 
-typedef boost::geometry::model::d2::point_xy<coordinate_type> point_type;
-typedef boost::geometry::model::multi_point<point_type> multi_point_type;
-typedef boost::geometry::model::segment<point_type> segment_type;
-typedef boost::geometry::model::ring<point_type> ring_type;
-typedef boost::geometry::model::box<point_type> box_type;
-typedef boost::geometry::model::linestring<point_type> linestring_type;
-typedef boost::geometry::model::multi_linestring<linestring_type> multi_linestring_type;
-typedef boost::geometry::model::polygon<point_type> polygon_type;
-typedef boost::geometry::model::multi_polygon<polygon_type> multi_polygon_type;
-
 typedef boost::geometry::model::d2::point_xy<coordinate_type_fp> point_type_fp;
 typedef boost::geometry::model::multi_point<point_type_fp> multi_point_type_fp;
 typedef boost::geometry::model::segment<point_type_fp> segment_type_fp;
@@ -70,9 +59,7 @@ typedef boost::geometry::model::multi_polygon<polygon_type_fp> multi_polygon_typ
 
 namespace bg = boost::geometry;
 
-typedef boost::polygon::point_data<coordinate_type> point_type_p;
 typedef boost::polygon::point_data<coordinate_type_fp> point_type_fp_p;
-typedef boost::polygon::segment_data<coordinate_type> segment_type_p;
 typedef boost::polygon::segment_data<coordinate_type_fp> segment_type_fp_p;
 
 #endif
