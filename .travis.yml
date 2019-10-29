@@ -129,7 +129,6 @@ script:
     fi || travis_terminate 1
   - chronic make -j 2 || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
-  - ARGS='--bridges=0.5 --bridgesnum=2 --zbridges=-0.6 --al-front=true --al-back=true --al-probefeed=100 --al-x=15.0000 --al-y=15.0000 --tile-x=3 --tile-y=2' || travis_terminate 1
   - >
     if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
       ls | ../../parallel-*/src/parallel -j 2 --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";

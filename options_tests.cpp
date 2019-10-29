@@ -28,7 +28,7 @@ void parse(const std::string& args) {
 ErrorCodes get_error_code(const std::string& args) {
   try {
     parse(args);
-  } catch (pcb2gcode_parse_exception e) {
+  } catch (const pcb2gcode_parse_exception& e) {
     cerr << e.what() << endl;
     return e.code();
   }

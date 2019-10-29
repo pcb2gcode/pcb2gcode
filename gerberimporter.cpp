@@ -71,13 +71,9 @@ GerberImporter::~GerberImporter() {
 
 /* Returns true iff successful. */
 bool GerberImporter::load_file(const string& path) {
-  const char* cfilename = path.c_str();
-  char *filename = new char[strlen(cfilename) + 1];
-  strcpy(filename, cfilename);
-
+  gchar *filename = g_strdup(path.c_str());
   gerbv_open_layer_from_filename(project, filename);
-  delete[] filename;
-
+  g_free(filename);
   return project->file[0] != NULL;
 }
 
