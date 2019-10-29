@@ -35,11 +35,8 @@
 
 typedef int64_t coordinate_type;
 typedef double coordinate_type_fp;
-typedef int32_t value_t;
 typedef double ivalue_t;
 
-typedef std::pair<value_t, value_t> coordpair;
-typedef std::vector<coordpair> coords;
 typedef std::pair<ivalue_t, ivalue_t> icoordpair;
 typedef std::vector<icoordpair> icoords;
 typedef std::pair<icoordpair, icoordpair> ilinesegment;
