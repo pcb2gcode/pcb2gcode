@@ -17,6 +17,7 @@ pcb2gcode_SOURCES = \
     eulerian_paths.cpp \
     exporter.hpp \
     geometry.hpp \
+    geometry_int.hpp \
     gerberimporter.hpp \
     gerberimporter.cpp \
     importer.hpp \
@@ -69,7 +70,7 @@ check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
                  autoleveller_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
-eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp
+eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp
 path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp

@@ -1,7 +1,7 @@
 #include <vector>
 #include <map>
 
-#include "geometry.hpp"
+#include "geometry_int.hpp"
 #include <boost/polygon/isotropy.hpp>
 #include <boost/polygon/segment_concept.hpp>
 #include <boost/polygon/segment_utils.hpp>
