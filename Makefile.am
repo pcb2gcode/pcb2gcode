@@ -68,7 +68,7 @@ EXTRA_DIST = millproject
 
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
-                 autoleveller_tests
+                 autoleveller_tests common_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp
@@ -80,5 +80,6 @@ gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimpor
 gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
+common_tests_SOURCES = common.hpp common.cpp common_tests.cpp
 
 TESTS = $(check_PROGRAMS)
