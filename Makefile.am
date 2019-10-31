@@ -80,6 +80,6 @@ gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimpor
 gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
-common_tests_SOURCES = common.hpp common_tests.cpp
+common_tests_SOURCES = common.hpp common.cpp common_tests.cpp
 
 TESTS = $(check_PROGRAMS)

@@ -22,7 +22,6 @@
 
 #include <string>
 #include <boost/program_options.hpp>
-#include <boost/system/api_config.hpp>  // for BOOST_POSIX_API or BOOST_WINDOWS_API
 
 namespace Software {
 // This enum contains the software codes. Note that all the items (except for CUSTOM)
@@ -34,30 +33,6 @@ bool workSide( const boost::program_options::variables_map &options, std::string
 
 // Based on the explanation here:
 // https://www.geeksforgeeks.org/python-os-path-join-method/
-static inline std::string build_filename(const std::string& a, const std::string& b) {
-#ifdef BOOST_WINDOWS_API
-  static constexpr auto seperator = '\\';
-#endif
-
-#ifdef BOOST_POSIX_API
-  static constexpr auto seperator = '/';
-#endif
-
-  if (a.size() == 0 || b.front() == seperator) {
-    return b; // One side is empty.
-  }
-  if (b.size() == 0) {
-    if (a.back() != seperator) {
-      return a + seperator; // The other side is empty.
-    } else {
-      return a;
-    }
-  }
-  if (a.back() != seperator) {
-    return a + seperator + b;
-  } else {
-    return a + b;
-  }
-}
+std::string build_filename(const std::string& a, const std::string& b);
 
 #endif // COMMON_H
