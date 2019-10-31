@@ -28,20 +28,36 @@ namespace Software {
 // This enum contains the software codes. Note that all the items (except for CUSTOM)
 // must start from 0 and be consecutive, as they are used as array indexes
 enum Software { CUSTOM = -1, LINUXCNC = 0, MACH4 = 1, MACH3 = 2 };
-};
+}; // namespace Software
 
 bool workSide( const boost::program_options::variables_map &options, std::string type );
 
+// Based on the explanation here:
+// https://www.geeksforgeeks.org/python-os-path-join-method/
 static inline std::string build_filename(const std::string& a, const std::string& b) {
 #ifdef BOOST_WINDOWS_API
-  static constexpr auto seperator = "\\";
+  static constexpr auto seperator = '\\';
 #endif
 
 #ifdef BOOST_POSIX_API
-  static constexpr auto seperator = "/";
+  static constexpr auto seperator = '/';
 #endif
 
-  return a + seperator + b;
+  if (a.size() == 0 || b.front() == seperator) {
+    return b; // One side is empty.
+  }
+  if (b.size() == 0) {
+    if (a.back() != seperator) {
+      return a + seperator; // The other side is empty.
+    } else {
+      return a;
+    }
+  }
+  if (a.back() != seperator) {
+    return a + seperator + b;
+  } else {
+    return a + b;
+  }
 }
 
 #endif // COMMON_H
