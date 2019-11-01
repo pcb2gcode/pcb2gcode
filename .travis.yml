@@ -91,10 +91,12 @@ install:
       popd &&
       popd
     fi
+  - mkdir -p $HOME/.local
+  - export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib;
+  - export PATH=$HOME/.local/bin:$PATH
   - >
     if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
-      mkdir -p $HOME/.local &&
-      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig &&
       pushd ~
       git clone https://github.com/eyal0/gerbv.git &&
       pushd gerbv &&
@@ -103,8 +105,7 @@ install:
       chronic make -j ${NUM_CPUS} &&
       chronic make install &&
       popd &&
-      popd &&
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib;
+      popd
     fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
