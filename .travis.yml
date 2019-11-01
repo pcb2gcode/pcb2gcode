@@ -73,10 +73,12 @@ install:
       brew install gtkmm gerbv moreutils &&
       brew install librsvg &&
       export BOOST_DIR="/usr/local/opt/boost@1.60" &&
+      export NUM_CPUS=`sysctl -n hw.logicalcpu` &&
       export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/usr/local/opt/libffi/lib/pkgconfig";
     fi
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      export NUM_CPUS=`nproc --all` &&
       pushd ~ &&
       for i in {1..5}; do
         wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
@@ -99,7 +101,7 @@ install:
       git checkout 061240c &&
       chronic sh autogen.sh &&
       CFLAGS=-std=gnu99 chronic ./configure --disable-update-desktop-database --prefix=${HOME}/.local &&
-      chronic make -j `nproc --all` &&
+      chronic make -j ${NUM_CPUS} &&
       chronic make install &&
       popd &&
       popd &&
@@ -127,15 +129,15 @@ script:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ./configure --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
     fi || travis_terminate 1
-  - chronic make -j `nproc --all` || travis_terminate 1
+  - chronic make -j ${NUM_CPUS} || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - >
     if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
-      ls | ../../parallel-*/src/parallel -j `nproc --all` --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
+      ls | ../../parallel-*/src/parallel -j ${NUM_CPUS} --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
     fi || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
-  - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j `nproc --all` check || travis_terminate 1
+  - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j ${NUM_CPUS} check || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
 
 after_success:
