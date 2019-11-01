@@ -16,6 +16,7 @@ import termcolor
 import colour_runner.runner
 import in_place
 import xml.etree.ElementTree
+import multiprocessing
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -301,7 +302,8 @@ if __name__ == '__main__':
                       help='Don\'t update expected outputs automatically')
   parser.add_argument('--add', action='store_true', default=False,
                       help='git add new expected outputs automatically')
-  parser.add_argument('-j', type=int, default=3,
+  parser.add_argument('-j', '--jobs', type=int,
+                      default=multiprocessing.cpu_count(),
                       help='number of threads for running tests concurrently')
   parser.add_argument('--tests', type=str, default="",
                       help='regex of tests to run')
@@ -348,8 +350,8 @@ if __name__ == '__main__':
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
-    if args.j > 1:
-      suite = ConcurrentTestSuite(suite, fork_for_tests(args.j))
+    if args.jobs > 1:
+      suite = ConcurrentTestSuite(suite, fork_for_tests(args.jobs))
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
