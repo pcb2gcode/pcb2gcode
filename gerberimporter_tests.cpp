@@ -265,10 +265,10 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
   test_one("overlapping_lines.gbr",       0.006);
   test_one("levels.gbr",                  0.0007);
   test_one("levels_step_and_repeat.gbr",  0.006);
-  test_one("code22_lower_left_line.gbr",  0.008);
+  test_one("code22_lower_left_line.gbr",  0.011);
   test_one("code4_outline.gbr",           0.023);
   test_one("code5_polygon.gbr",           0.00008);
-  test_one("code21_center_line.gbr",      0.013);
+  test_one("code21_center_line.gbr",      0.015);
   test_one("polygon.gbr",                 0.017);
   test_one("wide_oval.gbr",               0.00011);
   test_one("tall_oval.gbr",               0.00006);
