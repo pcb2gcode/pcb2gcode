@@ -91,10 +91,12 @@ install:
       popd &&
       popd
     fi
+  - mkdir -p $HOME/.local
+  - export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib;
+  - export PATH=$HOME/.local/bin:$PATH
   - >
     if [ "$SKIP_GERBERIMPORTER_TESTS" != "1" ]; then
-      mkdir -p $HOME/.local &&
-      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$HOME/.local/lib/pkgconfig &&
       pushd ~
       git clone https://github.com/eyal0/gerbv.git &&
       pushd gerbv &&
@@ -103,8 +105,7 @@ install:
       chronic make -j ${NUM_CPUS} &&
       chronic make install &&
       popd &&
-      popd &&
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/.local/lib;
+      popd
     fi
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
@@ -115,7 +116,11 @@ install:
       wget -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
     done &&
     tar xjf "parallel-latest.tar.bz2" &&
-    export CXX="$COMPILER"
+    pushd parallel-* &&
+    ./configure --prefix=${HOME}/.local && make && make install &&
+    popd
+  - hash -r
+  - export CXX="$COMPILER"
   - $CXX --version
 
 script:
@@ -132,7 +137,7 @@ script:
   - pushd testing/gerbv_example/ || travis_terminate 1
   - >
     if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
-      ls | ../../parallel-*/src/parallel -j ${NUM_CPUS} --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
+      ls | parallel -j ${NUM_CPUS} --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
     fi || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
