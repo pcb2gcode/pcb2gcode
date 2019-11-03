@@ -81,11 +81,11 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       project(parse_project(options["drill"].as<string>())),
+      bMetricOutput(options["metricoutput"].as<bool>()),
       parsed_bits(parse_bits()),
       parsed_holes(parse_holes()),
       drillfront(workSide(options, "drill")),
       inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
-      bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset((options["zero-start"].as<bool>() ? min.first : 0) -
               options["x-offset"].as<Length>().asInch(inputFactor)),
@@ -704,7 +704,9 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
   map<int, drillbit> bits;
 
   for (gerbv_drill_list_t* currentDrill =
-           project->file[0]->image->drill_stats->drill_list; currentDrill; currentDrill = currentDrill->next) {
+           project->file[0]->image->drill_stats->drill_list;
+       currentDrill;
+       currentDrill = currentDrill->next) {
     drillbit curBit;
     curBit.diameter = currentDrill->drill_size;
     curBit.unit = string(currentDrill->drill_unit);
