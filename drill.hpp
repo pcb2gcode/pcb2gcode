@@ -117,6 +117,7 @@ private:
     const ivalue_t board_center_x;
 
     gerbv_project_t * const project;
+    const bool bMetricOutput;   //Flag to indicate metric output
     const std::map<int, drillbit> parsed_bits;
     const std::map<int, ilinesegments> parsed_holes;
     std::vector<std::string> header;
@@ -128,7 +129,6 @@ private:
     std::string zchange;
     const bool drillfront;
     const double inputFactor;   //Multiply unitless inputs by this value.
-    const bool bMetricOutput;   //Flag to indicate metric output
     const bool tsp_2opt;        // Perform TSP 2opt optimization on drill path.
     const double xoffset;
     const double yoffset;

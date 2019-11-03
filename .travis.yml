@@ -8,7 +8,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=g++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
@@ -16,7 +16,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=g++ BOOST=1_66_0
 
     - os: linux
@@ -24,7 +24,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-8', 'libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=g++-8 BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
@@ -32,7 +32,7 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'automake', 'moreutils']
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils']
       env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - os: linux
@@ -40,21 +40,21 @@ matrix:
       addons:
         apt:
           sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-8', 'libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=g++-8 BOOST=1_66_0
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=clang++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
     - os: linux
       compiler: clang
       addons:
         apt:
-          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint']
+          packages: ['libgtkmm-2.4-dev', 'moreutils', 'autopoint', 'libc6-dbg']
       env: COMPILER=clang++ BOOST=1_66_0
 
     - os: osx
@@ -113,6 +113,18 @@ install:
       pip install --user cpp-coveralls colour_runner unittest2 termcolor concurrencytest in_place;
     fi
   - >
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      pushd ~ &&
+      git clone git://sourceware.org/git/valgrind.git &&
+      pushd valgrind &&
+      chronic sh autogen.sh &&
+      chronic ./configure --prefix=${HOME}/.local &&
+      chronic make -j 2 &&
+      chronic make install &&
+      popd &&
+      popd
+    fi
+  - >
     for i in {1..5}; do
       wget -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
     done &&
@@ -138,7 +150,18 @@ script:
   - pushd testing/gerbv_example/ || travis_terminate 1
   - >
     if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
-      ls | parallel -j ${NUM_CPUS} --halt soon,fail=1 "pushd {}; echo 'Running on {}' ; time ../../../pcb2gcode || exit ; popd";
+      ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+        pushd {};
+        echo "Running on {}";
+        if [[ -f "no-valgrind" ]]; then
+          cat no-valgrind;
+        fi;
+        if [[ -f "no-valgrind" || "$TRAVIS_OS_NAME" != "linux" ]]; then
+          time chronic ../../../pcb2gcode || exit;
+        else
+          time chronic valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
+        fi;
+        popd';
     fi || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
