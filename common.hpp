@@ -35,4 +35,6 @@ bool workSide( const boost::program_options::variables_map &options, std::string
 // https://www.geeksforgeeks.org/python-os-path-join-method/
 std::string build_filename(const std::string& a, const std::string& b);
 
+#define UNUSED(expr) do { (void)(expr); } while (0)
+
 #endif // COMMON_H

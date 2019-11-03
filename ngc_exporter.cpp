@@ -96,7 +96,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
     yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
 
-    tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
+    tileInfo = Tiling::generateTileInfo( options, board->get_height(), board->get_width() );
 
     for ( string layername : board->list_layers() )
     {

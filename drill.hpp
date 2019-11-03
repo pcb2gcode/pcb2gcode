@@ -107,7 +107,7 @@ private:
   std::map<int, ilinesegments> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
                                          const boost::optional<Length>& min_diameter,
                                          const boost::optional<Length>& max_diameter);
-  std::map<int, drillbit> optimize_bits(bool onedrill);
+  std::map<int, drillbit> optimize_bits();
 
     void save_svg(
         const std::map<int, drillbit>& bits, const std::map<int, ilinesegments>& holes,

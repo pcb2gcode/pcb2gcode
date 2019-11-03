@@ -64,7 +64,7 @@ void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> su
 
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
+void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y,
                         Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
   GdkColor blue = {0,
@@ -74,7 +74,7 @@ void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, dou
   cairo_render(g, cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
-string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {
+string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double height) {
   std::stringstream svg_stream;
   {
     box_type_fp svg_bounding_box;
@@ -106,9 +106,9 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
 }
 
 // Convert the gerber to a boost geometry and then convert that to SVG and then rasterize to a bitmap.
-void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height,
+void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double height,
                               Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
-  string svg_string = render_svg(polys, min_x, min_y, width, height);
+  string svg_string = render_svg(polys, min_x, min_y, height);
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
@@ -179,8 +179,8 @@ void test_one(const string& gerber_file, double max_error_rate) {
   double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x());
   double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y());
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  bitmap_from_gerber(g, min_x, min_y, cairo_surface);
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
   map<uint32_t, size_t> counts = get_counts(cairo_surface);
   size_t background = 0, errors = 0, both = 0;
   for (const auto& kv : counts) {
@@ -227,7 +227,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   double max_x = bounding_box.max_corner().x();
   double max_y = bounding_box.max_corner().y();
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
   auto counts = get_counts(cairo_surface);
   size_t total = 0, marked = 0l;
   for (const auto& kv : counts) {

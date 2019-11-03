@@ -103,7 +103,7 @@ void Tiling::tileSequence( std::ofstream &of )
 }
 
 Tiling::TileInfo Tiling::generateTileInfo( const boost::program_options::variables_map& options,
-                                           uniqueCodes &ocodes, double boardHeight, double boardWidth )
+                                           double boardHeight, double boardWidth )
 {
     TileInfo tileInfo;
     
