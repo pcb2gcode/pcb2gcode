@@ -83,3 +83,6 @@ autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autolevelle
 common_tests_SOURCES = common.hpp common.cpp common_tests.cpp
 
 TESTS = $(check_PROGRAMS)
+
+@VALGRIND_CHECK_RULES@
+VALGRIND_FLAGS = --error-exitcode=127 --errors-for-leak-kinds=definite --show-leak-kinds=definite --leak-check=full
