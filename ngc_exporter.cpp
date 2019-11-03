@@ -55,9 +55,7 @@ using boost::format;
 #include "units.hpp"
 
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : Exporter(board), ocodes(1), globalVars(100) {
-  this->board = board;
-}
+    : board(board), ocodes(1), globalVars(100) {}
 
 /******************************************************************************/
 /*

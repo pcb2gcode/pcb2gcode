@@ -32,17 +32,16 @@
 
 #include "geometry.hpp"
 #include "mill.hpp"
-#include "exporter.hpp"
 #include "unique_codes.hpp"
 #include "autoleveller.hpp"
 #include "common.hpp"
+#include "board.hpp"
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class NGC_Exporter: public Exporter
-{
+class NGC_Exporter: private boost::noncopyable {
 public:
     NGC_Exporter(std::shared_ptr<Board> board);
     void add_header(std::string);
