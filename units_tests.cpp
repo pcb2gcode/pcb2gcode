@@ -8,7 +8,7 @@ namespace po = boost::program_options;
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(units_tests);
+BOOST_AUTO_TEST_SUITE(units_tests)
 
 template <typename dimension_t>
 dimension_t parse_unit(const std::string& s) {

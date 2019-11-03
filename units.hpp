@@ -554,7 +554,7 @@ inline std::ostream& operator<<(std::ostream& out, const BoardSide& boardside)
   }
   return out;
 }
-}; // namespace BoardSide
+} // namespace BoardSide
 
 namespace Software {
 
@@ -593,7 +593,7 @@ inline std::ostream& operator<<(std::ostream& out, const Software& software)
   }
   return out;
 }
-}; // namespace Software
+} // namespace Software
 
 namespace MillFeedDirection {
 enum MillFeedDirection {
@@ -618,6 +618,6 @@ inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddir
   }
   return in;
 }
-}; // namespace MillFeedDirection
+} // namespace MillFeedDirection
 
 #endif // UNITS_HPP

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(segmentize_tests);
+BOOST_AUTO_TEST_SUITE(segmentize_tests)
 
 void print_result(const vector<std::pair<segment_type_p, bool>>& result) {
   for (const auto& segment_and_allow_reversal : result) {

@@ -22,7 +22,7 @@ static inline bool operator ==(const point_type& x, const point_type& y) {
 using std::vector;
 using namespace eulerian_paths;
 
-BOOST_AUTO_TEST_SUITE(eulerian_paths_tests);
+BOOST_AUTO_TEST_SUITE(eulerian_paths_tests)
 
 struct PointLessThan {
   bool operator()(const point_type& a, const point_type& b) const {

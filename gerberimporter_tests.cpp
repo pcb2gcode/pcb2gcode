@@ -25,7 +25,7 @@ struct Fixture {
   ~Fixture() {}
 };
 
-BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
+BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture)
 
 const unsigned int dpi = 1000;
 const uint32_t BACKGROUND_COLOR = 0x00000000; // empty canvas starting color: black

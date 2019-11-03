@@ -31,7 +31,7 @@ using boost::make_optional;
 using namespace std;
 using namespace path_finding;
 
-BOOST_AUTO_TEST_SUITE(path_finding_tests);
+BOOST_AUTO_TEST_SUITE(path_finding_tests)
 
 BOOST_AUTO_TEST_CASE(simple) {
   box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));

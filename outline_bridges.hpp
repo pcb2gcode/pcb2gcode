@@ -37,6 +37,6 @@ namespace outline_bridges {
  */
 std::vector<size_t> makeBridges(std::shared_ptr<icoords> &path, size_t number, double length);
 
-}; // namespace outline_bridges
+} // namespace outline_bridges
 
 #endif

@@ -10,7 +10,7 @@ namespace po = boost::program_options;
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(options_tests);
+BOOST_AUTO_TEST_SUITE(options_tests)
 
 void parse(const std::string& args) {
   std::vector<std::string> words;
