@@ -118,6 +118,7 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
   //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
   BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+  g_object_unref(rsvg_handle);
 }
 
 const string gerber_directory = "testing/gerberimporter";
