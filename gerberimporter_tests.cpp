@@ -53,6 +53,7 @@ void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> su
   render_info.displayWidth = surface->get_width();
   render_info.displayHeight = surface->get_height();
   render_info.renderType = renderType;
+  render_info.show_cross_on_drill_holes = false;
 
   g.get_project()->file[0]->color = color;
 
