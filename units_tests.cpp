@@ -8,7 +8,7 @@ namespace po = boost::program_options;
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(units_tests);
+BOOST_AUTO_TEST_SUITE(units_tests)
 
 template <typename dimension_t>
 dimension_t parse_unit(const std::string& s) {
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(parse_velocity) {
 
 BOOST_AUTO_TEST_CASE(compare) {
   BOOST_CHECK_LT(parse_unit<Length>("3inch"),  parse_unit<Length>("4inch"));
-  BOOST_CHECK_THROW(parse_unit<Length>("3") < parse_unit<Length>("4inch"), comparison_exception);
+  BOOST_CHECK_THROW(UNUSED(parse_unit<Length>("3") < parse_unit<Length>("4inch")), comparison_exception);
   BOOST_CHECK_EQUAL(comparison_exception("foo").what(), "foo");
 }
 

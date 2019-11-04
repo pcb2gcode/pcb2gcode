@@ -35,10 +35,10 @@ class AvailableDrill {
     switch (drill_parts.size()) {
       case 3:
         positive_tolerance = parse_unit<Length>(drill_parts[2]);
-        // no break
+        // fallthrough
       case 2:
         negative_tolerance = parse_unit<Length>(drill_parts[1]);
-        // no break
+        // fallthrough
       case 1:
         diameter_ = parse_unit<Length>(drill_parts[0]);
         break;

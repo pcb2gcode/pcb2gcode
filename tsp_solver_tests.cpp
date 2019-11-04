@@ -5,7 +5,7 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(tsp_solver_tests);
+BOOST_AUTO_TEST_SUITE(tsp_solver_tests)
 
 double get_distance(const icoordpair& a, const icoordpair& b) {
   return sqrt((a.first-b.first)*(a.first-b.first) +

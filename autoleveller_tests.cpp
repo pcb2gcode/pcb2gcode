@@ -24,7 +24,7 @@ static inline std::ostream& operator<<(std::ostream& out, const icoords& points)
 }
 }
 
-BOOST_AUTO_TEST_SUITE(autoleveller_tests);
+BOOST_AUTO_TEST_SUITE(autoleveller_tests)
 
 BOOST_AUTO_TEST_CASE(ten_by_ten) {
   const auto actual = partition_segment(icoordpair(0,0),
