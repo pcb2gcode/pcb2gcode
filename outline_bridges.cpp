@@ -23,10 +23,12 @@
 #include <boost/geometry/algorithms/distance.hpp>
 #include <cmath>
 #include <queue>
+#include <set>
 
 using std::vector;
 using std::pair;
 using std::shared_ptr;
+using std::set;
 
 //This function returns the intermediate point between p0 and p1.
 //With position=0 it returns p0, with position=1 it returns p1,
@@ -37,28 +39,30 @@ icoordpair intermediatePoint(icoordpair p0, icoordpair p1, double position) {
 }
 
 /* This function takes the segments where the bridges must be built (in the form
- * of vector<pair<uint,double>>, see findLongestSegments), inserts them in the
- * path and returns an array containing the indexes of each bridge's start.
+ * of set<size_t>, see findLongestSegments), inserts them in the path and
+ * returns an array containing the indexes of each bridge's start.
  */
-vector<size_t> insertBridges(shared_ptr<icoords> path, vector<pair<size_t, double>> chosenSegments, double length) {
+vector<size_t> insertBridges(shared_ptr<icoords> path, const set<size_t>& bridges, double length) {
+  vector<size_t> chosenSegments(bridges.cbegin(), bridges.cend());
   path->reserve(path->size() + chosenSegments.size() * 2);  //Just to avoid unnecessary reallocations
   std::sort(chosenSegments.begin(), chosenSegments.end()); //Sort it (lower index -> higher index)
 
   vector<size_t> output;
   for(size_t i = 0; i < chosenSegments.size(); i++) {
     //Each time we insert a bridge all following indexes have a offset of 2, we compensate it
-    chosenSegments[i].first += 2 * i;
-    icoords temp{
-      intermediatePoint(path->at(chosenSegments[i].first),
-                        path->at(chosenSegments[i].first + 1),
-                        0.5 - (length / chosenSegments[i].second) / 2),
-      intermediatePoint(path->at(chosenSegments[i].first),
-                        path->at(chosenSegments[i].first + 1),
-                        0.5 + (length / chosenSegments[i].second) / 2)
-    };
+    auto segment_index = chosenSegments[i] + 2 * i;
+    auto segment_start = path->at(segment_index);
+    auto segment_end = path->at(segment_index + 1);
+    auto segment_length = bg::distance(segment_start, segment_end);
     //Insert the bridges in the path
-    path->insert(path->begin() + chosenSegments[i].first + 1, temp.begin(), temp.end());
-    output.push_back(chosenSegments[i].first + 1);    //Add the bridges indexes to output
+    path->insert(path->begin() + segment_index + 1,
+                 { intermediatePoint(segment_start,
+                                     segment_end,
+                                     0.5 - (length / segment_length) / 2),
+                   intermediatePoint(segment_start,
+                                     segment_end,
+                                     0.5 + (length / segment_length) / 2) });
+    output.push_back(segment_index + 1);    //Add the bridges indexes to output
   }
 
   return output;
@@ -69,7 +73,7 @@ vector<size_t> insertBridges(shared_ptr<icoords> path, vector<pair<size_t, doubl
  * return fewer than the "number" requested if not enough place can be found to
  * place bridges.
  */
-vector<pair<size_t, double>> findLongestSegments(const shared_ptr<icoords> path, size_t number, double length) {
+set<size_t> findLongestSegments(const shared_ptr<icoords> path, size_t number, double length) {
   if (number < 1) {
     return {};
   }
@@ -85,7 +89,7 @@ vector<pair<size_t, double>> findLongestSegments(const shared_ptr<icoords> path,
                       greater_2nd> distances;
 
   for (size_t i = 0; i < path->size() - 1; i++) {
-    auto current_distance = boost::geometry::distance(path->at(i), path->at(i+1));
+    auto current_distance = bg::distance(path->at(i), path->at(i+1));
     if (current_distance < length) {
       continue;
     }
@@ -97,9 +101,9 @@ vector<pair<size_t, double>> findLongestSegments(const shared_ptr<icoords> path,
     }
   }
 
-  vector<pair<size_t, double>> output;
+  set<size_t> output;
   while (!distances.empty()) {
-    output.push_back(distances.top());
+    output.insert(distances.top().first);
     distances.pop();
   }
   return output;
