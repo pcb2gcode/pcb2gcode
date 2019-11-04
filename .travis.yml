@@ -75,11 +75,19 @@ install:
       brew update &&
       brew reinstall -s libtool &&
       brew install boost@1.60 &&
-      brew install gtkmm gerbv moreutils &&
+      brew install gtkmm &&
+      brew install moreutils &&
+      brew install gettext &&
       brew install librsvg &&
+      hash -r &&
+      ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
+      ln -s `which glibtool` $HOME/.local/bin/libtool &&
+      hash -r &&
       export BOOST_DIR="/usr/local/opt/boost@1.60" &&
       export NUM_CPUS=`sysctl -n hw.logicalcpu` &&
-      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/usr/local/opt/libffi/lib/pkgconfig";
+      export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:"/usr/local/opt/libffi/lib/pkgconfig" &&
+      export CPPFLAGS_gerbv=-DQUARTZ &&
+      export PATH=/usr/local/opt/gettext/bin:$PATH;
     fi
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
@@ -96,18 +104,17 @@ install:
       popd &&
       popd
     fi
-  - >
-    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      pushd ~ &&
-      git clone https://github.com/eyal0/gerbv.git &&
-      pushd gerbv &&
-      chronic sh autogen.sh &&
-      CFLAGS=-g chronic ./configure --disable-update-desktop-database --prefix=${HOME}/.local &&
-      chronic make -j ${NUM_CPUS} &&
-      chronic make install &&
-      popd &&
-      popd
-    fi
+  # Build gerbv
+  - pushd ~
+  - git clone https://github.com/eyal0/gerbv.git
+  - pushd gerbv
+  - chronic sh autogen.sh
+  - chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+  - chronic make -j ${NUM_CPUS}
+  - chronic make install
+  - popd
+  - popd
+  # Done building gerbv
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
       pip install --user cpp-coveralls colour_runner unittest2 termcolor concurrencytest in_place;
