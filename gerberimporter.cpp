@@ -844,7 +844,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
         cerr << "D03 during circular arc mode is forbidden by the Gerber "
             "standard; skipping" << endl;
       }
-    } else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx10 ||
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
       cerr << ("Linear zoomed interpolation modes are not supported "

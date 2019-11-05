@@ -26,6 +26,7 @@
 
 #include <boost/optional.hpp>
 
+#include "common.hpp"
 #include "geometry.hpp"
 
 class tsp_solver {
@@ -35,10 +36,12 @@ class tsp_solver {
   //  icoordpair get(T _name_, Side side) { ... }
   //  icoordpair reverse(T _name_) { ... }
   static inline icoordpair get(const icoordpair& point, Side side) {
+    UNUSED(side);
     return point;
   }
 
   static inline void reverse(icoordpair& point) {
+    UNUSED(point);
     return;
   }
 

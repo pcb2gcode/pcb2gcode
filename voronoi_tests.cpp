@@ -6,7 +6,7 @@
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(voronoi_tests);
+BOOST_AUTO_TEST_SUITE(voronoi_tests)
 
 // Output SVG files for debugging.
 #define DEBUG_SVG TRUE

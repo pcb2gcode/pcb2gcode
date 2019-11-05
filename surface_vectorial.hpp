@@ -107,7 +107,7 @@ class svg_writer {
   svg_writer(std::string filename, box_type_fp bounding_box);
   template <typename multi_polygon_type_t>
       void add(const multi_polygon_type_t& geometry, double opacity, bool stroke);
-  void add(const multi_linestring_type_fp& mls, coordinate_type_fp width, double opacity, bool stroke);
+  void add(const multi_linestring_type_fp& mls, coordinate_type_fp width, bool stroke);
   void add(const std::vector<polygon_type_fp>& geometries, double opacity,
            int r = -1, int g = -1, int b = -1);
   void add(const linestring_type_fp& paths, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b);

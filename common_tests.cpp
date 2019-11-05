@@ -14,7 +14,7 @@
 
 using std::vector;
 
-BOOST_AUTO_TEST_SUITE(common_tests);
+BOOST_AUTO_TEST_SUITE(common_tests)
 
 // Add more tests by comparing to python's os.path.join
 BOOST_AUTO_TEST_CASE(build_filename_tests) {

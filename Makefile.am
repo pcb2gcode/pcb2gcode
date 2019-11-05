@@ -15,7 +15,6 @@ pcb2gcode_SOURCES = \
     drill.cpp \
     eulerian_paths.hpp \
     eulerian_paths.cpp \
-    exporter.hpp \
     geometry.hpp \
     geometry_int.hpp \
     gerberimporter.hpp \
@@ -59,7 +58,7 @@ ACLOCAL_AMFLAGS = -I m4
 GIT_VERSION = `git describe --dirty --always --tags`
 GERBV_VERSION = `pkg-config --modversion libgerbv`
 
-AM_CPPFLAGS = $(BOOST_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(gerbv_CFLAGS) $(CODE_COVERAGE_CPPFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\"
+AM_CPPFLAGS = $(BOOST_CPPFLAGS_SYSTEM) $(glibmm_CFLAGS) $(gdkmm_CFLAGS_SYSTEM) $(gerbv_CFLAGS) $(CODE_COVERAGE_CPPFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -Wall -Wpedantic -Wextra -Werror
 AM_CXXFLAGS = $(CODE_COVERAGE_CXXFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -DGERBV_VERSION=\"$(GERBV_VERSION)\"
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
 LIBS = $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS)

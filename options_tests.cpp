@@ -10,19 +10,19 @@ namespace po = boost::program_options;
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(options_tests);
+BOOST_AUTO_TEST_SUITE(options_tests)
 
 void parse(const std::string& args) {
   std::vector<std::string> words;
   boost::split(words, args, boost::is_any_of(" "), boost::token_compress_on);
-  const char* argc[words.size()];
+  std::vector<const char*> argc(words.size());
   int argv = words.size();
   for (unsigned int i = 0; i < words.size(); i++) {
     argc[i] = words[i].c_str();
   }
   cerr << endl << "Parsing: " << args << endl;
   options::get_vm().clear();
-  options::parse(argv, argc);
+  options::parse(argv, &argc[0]);
 }
 
 ErrorCodes get_error_code(const std::string& args) {
