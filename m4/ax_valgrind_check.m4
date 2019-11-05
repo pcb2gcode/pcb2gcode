@@ -199,8 +199,9 @@ endif
 VALGRIND_TESTS_ENVIRONMENT = \
 	$(TESTS_ENVIRONMENT) \
 	env VALGRIND=$(VALGRIND) \
-	G_SLICE=always-malloc,debug-blocks \
-	G_DEBUG=fatal-warnings,fatal-criticals,gc-friendly
+	G_SLICE=always-malloc,debug-blocks
+	# Remove because we have an intentional error in gerberimporter_tests.
+	# G_DEBUG=fatal-warnings,fatal-criticals,gc-friendly
 
 VALGRIND_LOG_COMPILER = \
 	$(valgrind_lt) \
