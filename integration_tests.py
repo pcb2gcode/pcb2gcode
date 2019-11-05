@@ -64,6 +64,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_xy_offset",
                   "multivibrator_xy_offset_zero_start",
                   "multi_outline",
+                  "overlapping_edge_cuts",
                   "round_pcb_3",
                   "round_pcb_4",
                   "round_pcb_5",
