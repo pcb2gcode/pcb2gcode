@@ -306,14 +306,30 @@ inline static void unsupported_polarity_throw_exception() {
   throw gerber_exception();
 }
 
-multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& multi_draws) {
+// A pair of shapes, one for adding and then a second for subtracting.
+struct mp_pair {
+  mp_pair() {}
+  mp_pair(multi_polygon_type_fp mp) : positive(mp) {}
+  multi_polygon_type_fp positive;
+  multi_polygon_type_fp negative;
+  const mp_pair operator+(const mp_pair& rhs) const {
+    mp_pair ret;
+    ret.positive = positive + rhs.positive;
+    ret.negative = negative + rhs.negative;
+    return ret;
+  }
+};
+
+// To speed up the merging, we do them in pairs so that we're mostly merging
+// equal-sized shapes.
+mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   if (multi_draws.size() == 0) {
     return multi_polygon_type_fp();
   } else if (multi_draws.size() == 1) {
     return multi_draws.front();
   }
   auto current = multi_draws.cbegin();
-  vector<multi_polygon_type_fp> new_draws;
+  vector<mp_pair> new_draws;
   if (multi_draws.size() % 2 == 1) {
     new_draws.push_back(*current);
     current++;
@@ -325,15 +341,16 @@ multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& mul
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers) {
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    const vector<multi_polygon_type_fp>& multi_draws = layer->second;
-    multi_polygon_type_fp draws = merge_multi_draws(multi_draws);
+    const vector<mp_pair>& multi_draws = layer->second;
+    mp_pair draw_pair = merge_multi_draws(multi_draws);
+    multi_polygon_type_fp draws = draw_pair.positive - draw_pair.negative;
 
     // First duplicate in the x direction.
     auto original_draw = draws;
@@ -651,7 +668,6 @@ struct PointLessThan {
   }
 };
 
-
 /* Convert paths that all need to be drawn with the same diameter into shapes.
  *
  * If fill_closed_lines is true, we'll try to find closed loops among the paths
@@ -660,7 +676,7 @@ struct PointLessThan {
  * If there are non-loops when fill_closed_lines is true, we'll report an
  * error.
  */
-multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines) {
+mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines) {
   multi_linestring_type_fp new_paths(paths);
   if (fill_closed_lines) {
     if (merge_near_points(new_paths, diameter) > 0) {
@@ -669,7 +685,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
   }
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths = eulerian_paths::make_eulerian_paths(paths, true);
-  multi_polygon_type_fp ovals;
+  mp_pair ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
       if (bg::equals(euler_path.front(), euler_path.back())) {
@@ -679,7 +695,7 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
         bg::correct(loop_poly);
         multi_polygon_type_fp loop_mpoly;
         loop_mpoly.push_back(loop_poly);
-        ovals = ovals ^ loop_mpoly;
+        ovals.positive = ovals.positive ^ loop_mpoly;
       }
     }
   }
@@ -692,7 +708,12 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
     // This converts the long paths into a shape with thickness equal to the specified diameter.
     multi_polygon_type_fp new_ovals;
     bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
-    ovals = ovals + new_ovals;
+    if (fill_closed_lines) {
+      // Assume that this are slots that were drawn as lines.
+      ovals.negative = ovals.negative + new_ovals;
+    } else {
+      ovals.positive = ovals.positive + new_ovals;
+    }
   }
   return ovals;
 }
@@ -711,7 +732,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>> layers(1);
+  vector<pair<const gerbv_layer_t *, vector<mp_pair>>> layers(1);
 
   gerbv_image_t *gerber = project->file[0]->image;
 
@@ -742,7 +763,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       layers.back().first = currentNet->layer;
     }
 
-    vector<multi_polygon_type_fp>& draws = layers.back().second;
+    vector<mp_pair>& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
