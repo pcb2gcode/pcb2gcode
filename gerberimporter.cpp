@@ -417,32 +417,42 @@ multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp exte
   return ring - rect1 - rect2;
 }
 
-// Look through ring for crossing points and snip them out of the input so that
+// Look through ls for crossing points and snip them out of the input so that
 // the return value is a series of rings such that no ring has the same point in
-// it twice.
-vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
-  for (auto start = ring.cbegin(); start != ring.cend(); start++) {
-    for (auto end = std::next(start); end != ring.cend(); end++) {
+// it twice except for the front and back.  There is also one linestring that
+// isn't a ring in the output if the input isn't a ring.
+multi_linestring_type_fp get_all_ls(const linestring_type_fp& ls) {
+  for (auto start = ls.cbegin(); start != ls.cend(); start++) {
+    for (auto end = std::next(start); end != ls.cend(); end++) {
       if (bg::equals(*start, *end)) {
-        if (start == ring.cbegin() && end == std::prev(ring.cend())) {
-          continue; // This is just the entire ring, no need to try to recurse here.
+        if (start == ls.cbegin() && end == std::prev(ls.cend())) {
+          continue; // This is just the entire ls, no need to try to recurse here.
         }
-        ring_type_fp inner_ring(start, end); // Build the ring that we've found.
-        inner_ring.push_back(inner_ring.front()); // Close the ring.
+        linestring_type_fp inner(start, end); // Build the ring that we've found.
+        inner.push_back(inner.front()); // Close the ring.
 
-        // Make a ring from the rest of the points.
-        ring_type_fp outer_ring(ring.cbegin(), start);
-        outer_ring.insert(outer_ring.end(), end, ring.cend());
+        // Connect up the rest.
+        linestring_type_fp outer(ls.cbegin(), start);
+        outer.insert(outer.cend(), end, ls.cend());
         // Recurse on outer and inner and put together.
-        vector<ring_type_fp> all_rings = get_all_rings(outer_ring);
-        vector<ring_type_fp> all_inner_rings = get_all_rings(inner_ring);
-        all_rings.insert(all_rings.end(), all_inner_rings.cbegin(), all_inner_rings.cend());
-        return all_rings;
+        auto all = get_all_ls(outer);
+        auto all_inner = get_all_ls(inner);
+        all.insert(all.cend(), all_inner.cbegin(), all_inner.cend());
+        return all;
       }
     }
   }
   // No points repeated so just return the original without recursion.
-  return vector<ring_type_fp>{ring};
+  return multi_linestring_type_fp{ls};
+}
+
+vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
+  auto mls = get_all_ls(linestring_type_fp(ring.cbegin(), ring.cend()));
+  vector<ring_type_fp> rings;
+  for (const auto& ls : mls) {
+    rings.push_back(ring_type_fp(ls.cbegin(), ls.cend()));
+  }
+  return rings;
 }
 
 multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
@@ -684,7 +694,13 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
     }
   }
   // This converts the many small line segments into the longest paths possible.
-  multi_linestring_type_fp euler_paths = eulerian_paths::make_eulerian_paths(paths, true);
+  multi_linestring_type_fp euler_paths_with_rings =
+      eulerian_paths::make_eulerian_paths(paths, true);
+  multi_linestring_type_fp euler_paths;
+  for (const auto& ls : euler_paths_with_rings) {
+    auto all_ls = get_all_ls(ls);
+    euler_paths.insert(euler_paths.cend(), all_ls.cbegin(), all_ls.cend());
+  }
   mp_pair ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
