@@ -309,13 +309,13 @@ inline static void unsupported_polarity_throw_exception() {
 // A pair of shapes, one for adding and then a second for subtracting.
 struct mp_pair {
   mp_pair() {}
-  mp_pair(multi_polygon_type_fp mp) : positive(mp) {}
-  multi_polygon_type_fp positive;
-  multi_polygon_type_fp negative;
+  mp_pair(multi_polygon_type_fp mp) : shapes(mp) {}
+  multi_polygon_type_fp filled_closed_lines;
+  multi_polygon_type_fp shapes;
   const mp_pair operator+(const mp_pair& rhs) const {
     mp_pair ret;
-    ret.positive = positive + rhs.positive;
-    ret.negative = negative + rhs.negative;
+    ret.filled_closed_lines = filled_closed_lines ^ rhs.filled_closed_lines;
+    ret.shapes = shapes + rhs.shapes;
     return ret;
   }
 };
@@ -341,7 +341,8 @@ mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers) {
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers,
+                                      multi_polygon_type_fp mp_pair::* member, bool xor_layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
@@ -350,7 +351,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
     const vector<mp_pair>& multi_draws = layer->second;
     mp_pair draw_pair = merge_multi_draws(multi_draws);
-    multi_polygon_type_fp draws = draw_pair.positive - draw_pair.negative;
+    multi_polygon_type_fp draws = draw_pair.*member;
 
     // First duplicate in the x direction.
     auto original_draw = draws;
@@ -369,8 +370,9 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
                     translate(0, stepAndRepeat.dist_Y * sr_y));
       draws = draws + translated_draws;
     }
-
-    if (polarity == GERBV_POLARITY_DARK) {
+    if (xor_layers) {
+      output = output ^ draws;
+    } else if (polarity == GERBV_POLARITY_DARK) {
       output = output + draws;
     } else if (polarity == GERBV_POLARITY_CLEAR) {
       output = output - draws;
@@ -378,7 +380,6 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
       unsupported_polarity_throw_exception();
     }
   }
-
   return output;
 }
 
@@ -711,7 +712,7 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
         bg::correct(loop_poly);
         multi_polygon_type_fp loop_mpoly;
         loop_mpoly.push_back(loop_poly);
-        ovals.positive = ovals.positive ^ loop_mpoly;
+        ovals.filled_closed_lines = ovals.filled_closed_lines ^ loop_mpoly;
       }
     }
   }
@@ -724,9 +725,9 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
       // Assume that this are slots that were drawn as lines.
       cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
            << endl;
-      ovals.negative = ovals.negative + new_ovals;
+      ovals.shapes = ovals.shapes + new_ovals;
     } else {
-      ovals.positive = ovals.positive + new_ovals;
+      ovals.shapes = ovals.shapes + new_ovals;
     }
   }
   return ovals;
@@ -895,7 +896,12 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     }
     linear_circular_paths.clear();
   }
-  auto result = generate_layers(layers);
+  auto result = generate_layers(layers, &mp_pair::filled_closed_lines, fill_closed_lines);
+  if (fill_closed_lines) {
+    result = result - generate_layers(layers, &mp_pair::shapes, false);
+  } else {
+    result = result + generate_layers(layers, &mp_pair::shapes, false);
+  }
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
