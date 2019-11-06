@@ -53,6 +53,7 @@ void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> su
   render_info.displayWidth = surface->get_width();
   render_info.displayHeight = surface->get_height();
   render_info.renderType = renderType;
+  render_info.show_cross_on_drill_holes = false;
 
   g.get_project()->file[0]->color = color;
 
@@ -117,6 +118,7 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
   //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
   BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+  g_object_unref(rsvg_handle);
 }
 
 const string gerber_directory = "testing/gerberimporter";

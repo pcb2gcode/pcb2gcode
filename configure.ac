@@ -35,6 +35,11 @@ AX_CXXFLAGS_WARN_ALL
 # Useful for measuring the coverage of the unit tests
 AX_CODE_COVERAGE
 
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_DFLT([helgrind], [off])
+AX_VALGRIND_DFLT([drd], [off])
+AX_VALGRIND_CHECK
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.

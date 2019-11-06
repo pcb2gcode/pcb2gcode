@@ -178,7 +178,7 @@ script:
     fi || travis_terminate 1
   - popd || travis_terminate 1
   - lcov --directory . -z || true #Ignore errors
-  - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j ${NUM_CPUS} check || travis_terminate 1
+  - VERBOSE=1 SKIP_GERBERIMPORTER_TESTS_PNG=1 make -j ${NUM_CPUS} check-valgrind || travis_terminate 1
   - if [ "${ENABLE_CODE_COVERAGE}" ]; then ./integration_tests.py; fi || travis_terminate 1
 
 after_success:
