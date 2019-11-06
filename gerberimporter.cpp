@@ -716,16 +716,14 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
     }
   }
   euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
-  if (fill_closed_lines && euler_paths.size() > 0) {
-    cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
-         << endl;
-  }
   if (euler_paths.size() > 0) {
     // This converts the long paths into a shape with thickness equal to the specified diameter.
     multi_polygon_type_fp new_ovals;
     bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
     if (fill_closed_lines) {
       // Assume that this are slots that were drawn as lines.
+      cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
+           << endl;
       ovals.negative = ovals.negative + new_ovals;
     } else {
       ovals.positive = ovals.positive + new_ovals;
