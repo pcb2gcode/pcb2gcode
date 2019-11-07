@@ -209,6 +209,13 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
 }
 
 template<typename CoordinateType>
+static inline multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by) {
+  multi_polygon_type_fp geometry_out;
+  buffer(geometry_in, geometry_out, expand_by);
+  return geometry_out;
+}
+
+template<typename CoordinateType>
 static inline void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     bg::convert(geometry_in, geometry_out);
