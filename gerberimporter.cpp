@@ -306,7 +306,12 @@ inline static void unsupported_polarity_throw_exception() {
   throw gerber_exception();
 }
 
-// A pair of shapes, one for adding and then a second for subtracting.
+// A pair of shapes, one from filling in closed loops, one from all the rest of
+// the shapes.  If fill_closed_lines is false, all the outputs will be in
+// shapes.  If fill_closed_lines is true, loops will be converted into shapes
+// and put into filled_closed_lines.  The rest are put into shapes.  shapes are
+// combined with addition but filled_closed_lines are combined with exclusive
+// or.
 struct mp_pair {
   mp_pair() {}
   mp_pair(multi_polygon_type_fp mp) : shapes(mp) {}
@@ -719,8 +724,7 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
   euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
   if (euler_paths.size() > 0) {
     // This converts the long paths into a shape with thickness equal to the specified diameter.
-    multi_polygon_type_fp new_ovals;
-    bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
+    auto new_ovals = bg_helpers::buffer(euler_paths, diameter / 2);
     if (fill_closed_lines) {
       // Assume that this are slots that were drawn as lines.
       cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
