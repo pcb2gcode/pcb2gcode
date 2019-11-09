@@ -63,6 +63,10 @@ AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
 
+# GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
+# we want to use the new symbol
+AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARx10,gerbv.h)
+
 # Checks for header files.
 AC_HEADER_STDC
 
