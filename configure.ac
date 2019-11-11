@@ -62,6 +62,7 @@ AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
 
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
+AC_ARG_VAR([pcb2gcode_CPPFLAGS_EXTRA], [Additional flags when compiling pcb2gcode])
 
 # Checks for header files.
 AC_HEADER_STDC
