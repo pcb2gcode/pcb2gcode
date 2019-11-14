@@ -20,6 +20,7 @@
 #ifndef GERBERIMPORTER_H
 #define GERBERIMPORTER_H
 
+#include "config.h"	// for COMPILE_VALUE_NEW_LINEARx10
 #include <string>
 #include <iostream>
 #include <utility>
