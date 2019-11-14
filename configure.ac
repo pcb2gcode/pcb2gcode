@@ -67,12 +67,7 @@ AC_ARG_VAR([pcb2gcode_CPPFLAGS_EXTRA], [Additional flags when compiling pcb2gcod
 # GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
 # we want to use the new symbol
 CFLAGS+=" ${gerbv_CFLAGS}"
-AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARx10,[#include "gerbv.h"])
-
-# GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
-# we want to use the new symbol
-CFLAGS+=" ${gerbv_CFLAGS}"
-AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARx10,[#include "gerbv.h"])
+AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
 # Checks for header files.
 AC_HEADER_STDC
