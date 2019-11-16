@@ -96,13 +96,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     const double spindown_time = vm.count("spindown-time") ?
         vm["spindown-time"].as<Time>().asMillisecond(1) : vm["spinup-time"].as<Time>().asMillisecond(1);
     shared_ptr<Isolator> isolator;
-    
-    // TODO - sanity check the following
-    // toolhead_control == false only when
-    // milldrill
-    // back with 1 tool
-    // front with 1 tool
-    // onedrill ? 
 
     if (vm.count("front") || vm.count("back"))
     {

@@ -145,6 +145,7 @@ void options::parse(int argc, const char** argv) {
                         (char**) fake_tolerance_command_line,
                         generic, style), instance().vm);
     }
+    
     fix_variables_map(instance().vm);
 
     po::notify(instance().vm);
@@ -469,6 +470,23 @@ static void check_generic_parameters(po::variables_map const& vm)
     if (vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() != MillFeedDirection::ANY &&
         vm["tsp-2opt"].as<bool>()) {
       options::maybe_throw("Error: Can't use tsp-2opt together with mill-feed-direction", ERR_INVALIDPARAMETER);
+    }
+    
+    if (!vm["toolhead-control"].as<bool>()){
+      // Toolhead control commands are omitted
+      // Need to have opted for 1 tool only in the following modes
+      if (vm.count("drill") && !vm.count("milldrill-diameter")){
+        // Must use milldrill in this mode
+        options::maybe_throw("Error: When toolhead control is omitted, milldrill must be used", ERR_ONETOOL);
+      }
+      
+      if (vm.count("back") || vm.count("front")) { 
+        const auto & tool_diameters = flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>());
+        if(tool_diameters.size() > 1){
+          // Must use exactly 1 tool in this mode  
+          options::maybe_throw("Error: When toolhead control is omitted, a single mill diameter must be specified", ERR_ONETOOL);
+        }
+      }     
     }
 }
 
