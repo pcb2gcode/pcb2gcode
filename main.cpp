@@ -38,17 +38,7 @@ using std::shared_ptr;
 #include <string>
 using std::string;
 
-#include <glibmm/ustring.h>
-using Glib::ustring;
-
-#include <glibmm/init.h>
-#include <gdkmm/wrap_init.h>
-
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include "gerberimporter.hpp"
-#include "surface.hpp"
 #include "ngc_exporter.hpp"
 #include "board.hpp"
 #include "drill.hpp"
@@ -59,9 +49,6 @@ using Glib::build_filename;
 #include <boost/version.hpp>
 
 void do_pcb2gcode(int argc, const char* argv[]) {
-    Glib::init();
-    Gdk::wrap_init();
-
     options::parse(argc, argv);      //parse the command line parameters
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
@@ -261,16 +248,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     shared_ptr<Board> board(
         new Board(
-            vm["dpi"].as<int>(),
             vm["fill-outline"].as<bool>(),
-            vm["fill-outline"].as<bool>() ?
-                vm["outline-width"].as<Length>().asInch(unit) :
-                INFINITY,
             outputdir,
-            vm["vectorial"].as<bool>(),
             vm["tsp-2opt"].as<bool>(),
             vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
-            vm["invert-gerbers"].as<bool>()));
+            vm["invert-gerbers"].as<bool>(),
+            !vm["draw-gerber-lines"].as<bool>()));
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -320,8 +303,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cout << "not specified.\n";
     }
 
-    Tiling::TileInfo *tileInfo = NULL;
-
     cout << "Processing input files... " << flush;
     board->createLayers();
     cout << "DONE.\n";
@@ -339,9 +320,6 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       }
 
       exporter->export_all(vm);
-
-      tileInfo = new Tiling::TileInfo;
-      *tileInfo = exporter->getTileInfo();
     }
 
     //---------------------------------------------------------------------------
@@ -429,7 +407,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 int main(int argc, const char* argv[]) {
   try {
     do_pcb2gcode(argc, argv);
-  } catch (pcb2gcode_parse_exception e) {
+  } catch (const pcb2gcode_parse_exception& e) {
     cerr << e.what() << endl;
     return e.code();
   }

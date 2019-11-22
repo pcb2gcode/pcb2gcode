@@ -46,7 +46,7 @@ public:
     void header( std::ofstream &of );
     void footer( std::ofstream &of );
     static TileInfo generateTileInfo( const boost::program_options::variables_map& options,
-                                      uniqueCodes &ocodes, double boardHeight, double boardWidth );
+                                      double boardHeight, double boardWidth );
 
     inline void setGCodeEnd( std::string _gCodeEnd )
     {

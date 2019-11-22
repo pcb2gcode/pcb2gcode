@@ -32,27 +32,22 @@
 
 #include "geometry.hpp"
 #include "mill.hpp"
-#include "exporter.hpp"
 #include "unique_codes.hpp"
 #include "autoleveller.hpp"
 #include "common.hpp"
+#include "board.hpp"
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-class NGC_Exporter: public Exporter
-{
+class NGC_Exporter: private boost::noncopyable {
 public:
     NGC_Exporter(std::shared_ptr<Board> board);
     void add_header(std::string);
     void export_all(boost::program_options::variables_map&);
     void set_preamble(std::string);
     void set_postamble(std::string);
-    inline Tiling::TileInfo getTileInfo()
-    {
-        return tileInfo;
-    }
 
 protected:
   void export_layer(std::shared_ptr<Layer> layer, std::string of_name, boost::optional<autoleveller> leveller);
@@ -70,8 +65,6 @@ protected:
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
     bool bZchangeG53;
-    const unsigned int dpi;
-    const double quantization_error;
 
     bool bTile;
 

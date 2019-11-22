@@ -7,7 +7,6 @@ outline=A64-OlinuXino_Rev_D-Edge.Cuts.gbr
 
 extra-passes=0
 offset=0.001
-vectorial=false #Vectorial is broken in boost 1.56 for this complicated project
 mill-feed=360
 mill-speed=12000
 voronoi=false

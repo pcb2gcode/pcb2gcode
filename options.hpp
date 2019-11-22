@@ -114,7 +114,7 @@ class pcb2gcode_parse_exception : public std::exception {
 /*
  */
 /******************************************************************************/
-class options: boost::noncopyable
+class options : private boost::noncopyable
 {
 
 public:

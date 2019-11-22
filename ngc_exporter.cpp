@@ -37,6 +37,9 @@ using std::endl;
 #include <vector>
 using std::vector;
 
+#include <utility>
+using std::pair;
+
 #include <cmath>
 using std::ceil;
 
@@ -46,24 +49,13 @@ using std::dynamic_pointer_cast;
 
 #include <iomanip>
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include <boost/format.hpp>
 using boost::format;
 
 #include "units.hpp"
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : Exporter(board), dpi(board->get_dpi()), 
-      quantization_error( 2.0 / dpi ), ocodes(1), globalVars(100)
-{
-    this->board = board;
-}
+    : board(board), ocodes(1), globalVars(100) {}
 
 /******************************************************************************/
 /*
@@ -102,7 +94,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
     yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
 
-    tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
+    tileInfo = Tiling::generateTileInfo( options, board->get_height(), board->get_width() );
 
     for ( string layername : board->list_layers() )
     {
@@ -124,7 +116,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         boost::optional<autoleveller> leveller = boost::none;
         if ((options["al-front"].as<bool>() && layername == "front") ||
             (options["al-back"].as<bool>() && layername == "back")) {
-          leveller.emplace(options, &ocodes, &globalVars, quantization_error,
+          leveller.emplace(options, &ocodes, &globalVars,
                            xoffset, yoffset, tileInfo);
         }
 
@@ -235,7 +227,7 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    vector<vector<shared_ptr<icoords>>> all_toolpaths = layer->get_toolpaths();
+    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> all_toolpaths = layer->get_toolpaths();
 
     if (all_toolpaths.size() < 1) {
       return; // Nothing to do.
@@ -282,12 +274,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     of << "G01 F" << mill->feed * cfactor << " ( Feedrate. )\n\n";
 
     if (leveller) {
-      if(!leveller->prepareWorkarea(all_toolpaths)) {
-        options::maybe_throw(std::string("Required number of probe points (") + std::to_string(leveller->requiredProbePoints()) +
-                             ") exceeds the maximum number (" + std::to_string(leveller->maxProbePoints()) + "). "
-                             "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
-      }
-
+      leveller->prepareWorkarea(all_toolpaths);
       leveller->header(of);
     }
 
@@ -297,7 +284,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;
     if (cutter) {
-      for (const auto& path : all_toolpaths[0]) {  // Cutter layer can only have one tool_diameter.
+      for (const auto& path : all_toolpaths[0].second) {  // Cutter layer can only have one tool_diameter.
         auto bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
       }
@@ -305,7 +292,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     uniqueCodes main_sub_ocodes(200);
     for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
-      const auto& toolpaths = all_toolpaths[toolpaths_index];
+      const auto& toolpaths = all_toolpaths[toolpaths_index].second;
       if (toolpaths.size() < 1) {
         continue; // Nothing to do for this mill size.
       }
@@ -317,26 +304,22 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
       // Start the new tool.
       of << endl
-         << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
+         << (bZchangeG53 ? "G53 " : "") << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
          << "T" << toolpaths_index << endl
          << "M5      (Spindle stop.)" << endl
          << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;
       if (cutter) {
         of << "(MSG, Change tool bit to cutter diameter ";
-        if (bMetricoutput) {
-          of << (cutter->tool_diameter * 25.4) << "mm)" << endl;
-        } else {
-          of << cutter->tool_diameter << "in)" << endl;
-        }
       } else if (isolator) {
         of << "(MSG, Change tool bit to mill diameter ";
-        if (bMetricoutput) {
-          of << (isolator->tool_diameters_and_overlap_widths[toolpaths_index].first * 25.4) << "mm)" << endl;
-        } else {
-          of << isolator->tool_diameters_and_overlap_widths[toolpaths_index].first << "in)" << endl;
-        }
       } else {
         throw std::logic_error("Can't cast to Cutter nor Isolator.");
+      }
+      const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
+      if (bMetricoutput) {
+        of << (tool_diameter * 25.4) << "mm)" << endl;
+      } else {
+        of << tool_diameter << "in)" << endl;
       }
       of << "M6      (Tool change.)" << endl
          << "M0      (Temporary machine stop.)" << endl

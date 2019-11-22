@@ -10,6 +10,7 @@
 #include <librsvg-2.0/librsvg/rsvg.h>
 #include <boost/format.hpp>
 #include <cstdlib>
+#include <cairomm/cairomm.h>
 #include <string>
 using std::string;
 
@@ -24,7 +25,7 @@ struct Fixture {
   ~Fixture() {}
 };
 
-BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture);
+BOOST_FIXTURE_TEST_SUITE(gerberimporter_tests, Fixture)
 
 const unsigned int dpi = 1000;
 const uint32_t BACKGROUND_COLOR = 0x00000000; // empty canvas starting color: black
@@ -40,19 +41,41 @@ Cairo::RefPtr<Cairo::ImageSurface> create_cairo_surface(double width, double hei
                                      height);
 }
 
+void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi,
+                  const double min_x, const double min_y,
+                  const GdkColor& color, const gerbv_render_types_t& renderType) {
+  gerbv_render_info_t render_info;
+
+  render_info.scaleFactorX = dpi;
+  render_info.scaleFactorY = dpi;
+  render_info.lowerLeftX = min_x;
+  render_info.lowerLeftY = min_y;
+  render_info.displayWidth = surface->get_width();
+  render_info.displayHeight = surface->get_height();
+  render_info.renderType = renderType;
+  render_info.show_cross_on_drill_holes = false;
+
+  g.get_project()->file[0]->color = color;
+
+  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
+  gerbv_render_layer_to_cairo_target(cr->cobj(), g.get_project()->file[0], &render_info);
+
+  /// @todo check wheter importing was successful
+}
+
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y, double width, double height,
+void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y,
                         Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
   GdkColor blue = {0,
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
                    ((OLD_COLOR >>  8) & 0xff) * 0x101,
                    ((OLD_COLOR      ) & 0xff) * 0x101};
-  g.render(cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
+  cairo_render(g, cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
-string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height) {
+string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double height) {
   std::stringstream svg_stream;
   {
     box_type_fp svg_bounding_box;
@@ -84,9 +107,9 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
 }
 
 // Convert the gerber to a boost geometry and then convert that to SVG and then rasterize to a bitmap.
-void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double width, double height,
+void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double height,
                               Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
-  string svg_string = render_svg(polys, min_x, min_y, width, height);
+  string svg_string = render_svg(polys, min_x, min_y, height);
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
@@ -95,6 +118,7 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, 
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
   //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
   BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+  g_object_unref(rsvg_handle);
 }
 
 const string gerber_directory = "testing/gerberimporter";
@@ -149,7 +173,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, 360);
+  multi_polygon_type_fp polys = g.render(false, true, 360).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x());
@@ -157,8 +181,8 @@ void test_one(const string& gerber_file, double max_error_rate) {
   double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x());
   double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y());
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  bitmap_from_gerber(g, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  bitmap_from_gerber(g, min_x, min_y, cairo_surface);
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
   map<uint32_t, size_t> counts = get_counts(cairo_surface);
   size_t background = 0, errors = 0, both = 0;
   for (const auto& kv : counts) {
@@ -197,7 +221,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(fill_closed_lines, 30);
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   double min_x = bounding_box.min_corner().x();
@@ -205,7 +229,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   double max_x = bounding_box.max_corner().x();
   double max_y = bounding_box.max_corner().y();
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_x-min_x, max_y-min_y, cairo_surface);
+  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
   auto counts = get_counts(cairo_surface);
   size_t total = 0, marked = 0l;
   for (const auto& kv : counts) {
@@ -240,12 +264,13 @@ BOOST_AUTO_TEST_CASE(all_gerbers) {
     return;
   }
 
+  test_one("overlapping_lines.gbr",       0.006);
   test_one("levels.gbr",                  0.0007);
   test_one("levels_step_and_repeat.gbr",  0.006);
-  test_one("code22_lower_left_line.gbr",  0.008);
+  test_one("code22_lower_left_line.gbr",  0.011);
   test_one("code4_outline.gbr",           0.023);
   test_one("code5_polygon.gbr",           0.00008);
-  test_one("code21_center_line.gbr",      0.013);
+  test_one("code21_center_line.gbr",      0.015);
   test_one("polygon.gbr",                 0.017);
   test_one("wide_oval.gbr",               0.00011);
   test_one("tall_oval.gbr",               0.00006);

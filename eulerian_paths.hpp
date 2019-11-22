@@ -7,13 +7,6 @@
 #include "geometry.hpp"
 
 namespace eulerian_paths {
-static inline bool operator !=(const point_type& x, const point_type& y) {
-  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
-}
-
-static inline bool operator ==(const point_type& x, const point_type& y) {
-  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
-}
 
 static inline bool operator !=(const point_type_fp& x, const point_type_fp& y) {
   return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
@@ -24,7 +17,7 @@ static inline bool operator ==(const point_type_fp& x, const point_type_fp& y) {
 }
 
 // Made public for testing.
-static bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
+static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
   if (out_edges > in_edges + bidi_edges) {
     // Even with all the in and bidi paths, we would still need a path that starts here.
     return true;
@@ -249,11 +242,19 @@ class eulerian_paths {
   std::set<point_t, point_less_than_p> all_start_vertices;
 }; //class eulerian_paths
 
+// Visible for testing only.
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
     multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths, const std::vector<bool>& allow_reversals) {
   return eulerian_paths<point_t, linestring_t, multi_linestring_t, point_less_than_p>(
       paths, allow_reversals).get();
 }
 
-}; // namespace eulerian_paths
+// Returns a minimal number of toolpaths that include all the milling in the
+// oroginal toolpaths.  Each path is traversed once.  Each path has a bool
+// indicating if the path is reversible.
+multi_linestring_type_fp make_eulerian_paths(const std::vector<std::pair<linestring_type_fp, bool>>& toolpaths);
+
+multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
+
+} // namespace eulerian_paths
 #endif //EULERIAN_PATHS_H

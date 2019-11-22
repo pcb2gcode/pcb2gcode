@@ -35,6 +35,9 @@ using std::endl;
 using std::to_string;
 using std::string;
 
+#include <utility>
+using std::pair;
+
 #include "units.hpp"
 
 const string autoleveller::callSubRepeat[] = {
@@ -54,7 +57,7 @@ boost::format silent_format(const string &f_string)
 }
 
 autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
-                            uniqueCodes *globalVars, double quantization_error, double xoffset, double yoffset,
+                            uniqueCodes *globalVars, double xoffset, double yoffset,
                             const struct Tiling::TileInfo tileInfo ) :
     input_unitconv( options["metric"].as<bool>() ? 1.0/25.4 : 1),
     output_unitconv( options["metricoutput"].as<bool>() ? 25.4 : 1),
@@ -72,7 +75,6 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     probeOn( boost::replace_all_copy(options["al-probe-on"].as<string>(), "@", "\n") ),
     probeOff( boost::replace_all_copy(options["al-probe-off"].as<string>(), "@", "\n") ),
     software( options["software"].as<Software::Software>() ),
-    quantization_error( quantization_error * cfactor ),
     xoffset( xoffset ),
     yoffset( yoffset ),
     g01InterpolatedNum( ocodes->getUniqueCode() ),
@@ -100,11 +102,11 @@ string autoleveller::getVarName( int i, int j )
     return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-box_type_fp computeWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
+box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
   box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
 
   for (const auto& toolpath : toolpaths) {
-    for (const auto& linestring : toolpath) {
+    for (const auto& linestring : toolpath.second) {
       boost::geometry::expand(bounding_box,
                               boost::geometry::return_envelope<box_type_fp>(*linestring));
     }
@@ -113,17 +115,16 @@ box_type_fp computeWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths
   return bounding_box;
 }
 
-bool autoleveller::prepareWorkarea(const vector<vector<shared_ptr<icoords>>>& toolpaths) {
+void autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
-    int temp;
 
     workarea = computeWorkarea(toolpaths);
-    workarea.min_corner().x(workarea.min_corner().x() - xoffset - quantization_error);
-    workarea.min_corner().y(workarea.min_corner().y() - yoffset - quantization_error);
-    workarea.max_corner().x(workarea.max_corner().x() - xoffset + quantization_error);
-    workarea.max_corner().y(workarea.max_corner().y() - yoffset + quantization_error);
+    workarea.min_corner().x(workarea.min_corner().x() - xoffset);
+    workarea.min_corner().y(workarea.min_corner().y() - yoffset);
+    workarea.max_corner().x(workarea.max_corner().x() - xoffset);
+    workarea.max_corner().y(workarea.max_corner().y() - yoffset);
 
     workareaLenX = ( workarea.max_corner().x() - workarea.min_corner().x() ) * cfactor + 
                    tileInfo.boardWidth * cfactor * ( tileInfo.tileX - 1 );
@@ -133,27 +134,21 @@ bool autoleveller::prepareWorkarea(const vector<vector<shared_ptr<icoords>>>& to
     startPointX = workarea.min_corner().x() * cfactor;
     startPointY = workarea.min_corner().y() * cfactor;
 
-    temp = ceil(workareaLenX / XProbeDistRequired);    //We need at least 2 probe points
-    if( temp > 1 )
-        numXPoints = temp + 1;
-    else
-        numXPoints = 2;
+    numXPoints = ceil(workareaLenX / XProbeDistRequired) + 1;
+    numXPoints = std::max(2U, numXPoints); //We need at least 2 probe points
 
-    temp = ceil(workareaLenY / YProbeDistRequired);    //We need at least 2 probe points
-    if( temp > 1 )
-        numYPoints = temp + 1;
-    else
-        numYPoints = 2;
+    numYPoints = ceil(workareaLenY / YProbeDistRequired) + 1;    //We need at least 2 probe points
+    numYPoints = std::max(2U, numYPoints); //We need at least 2 probe points
 
     XProbeDist = workareaLenX / ( numXPoints - 1 );
     YProbeDist = workareaLenY / ( numYPoints - 1 );
     averageProbeDist = ( XProbeDist + YProbeDist ) / 2;
 
-    if( ( software == Software::LINUXCNC && numXPoints * numYPoints > 4501 ) ||
-            ( software != Software::LINUXCNC && numXPoints * numYPoints > 500 ) )
-        return false;
-    else
-        return true;
+    if (requiredProbePoints() > maxProbePoints()) {
+      options::maybe_throw(std::string("Required number of probe points (") + std::to_string(requiredProbePoints()) +
+                           ") exceeds the maximum number (" + std::to_string(maxProbePoints()) + "). "
+                           "Reduce either al-x or al-y.", ERR_INVALIDPARAMETER);
+    }
 }
 
 void autoleveller::header( std::ofstream &of )
@@ -303,15 +298,24 @@ void autoleveller::footerNoIf( std::ofstream &of )
     }
 }
 
+template <typename T>
+static inline T clamp(const T& x, const T& min_x, const T& max_x) {
+  return std::max(min_x, std::min(x, max_x));
+}
+
 string autoleveller::interpolatePoint ( icoordpair point )
 {
-    int xminindex;
-    int yminindex;
+    unsigned int xminindex;
+    unsigned int yminindex;
     double x_minus_x0_rel;
     double y_minus_y0_rel;
 
-    xminindex = floor ( ( point.first - startPointX ) / XProbeDist );
-    yminindex = floor ( ( point.second - startPointY ) / YProbeDist );
+    xminindex = floor((point.first - startPointX) / XProbeDist);
+    xminindex = clamp(xminindex, 0U, numXPoints - 1);
+
+    yminindex = floor((point.second - startPointY) / YProbeDist);
+    yminindex = clamp(yminindex, 0U, numYPoints - 1);
+
     x_minus_x0_rel = ( point.first - startPointX - xminindex * XProbeDist ) / XProbeDist;
     y_minus_y0_rel = ( point.second - startPointY - yminindex * YProbeDist ) / YProbeDist;
 
@@ -323,23 +327,78 @@ string autoleveller::interpolatePoint ( icoordpair point )
                 y_minus_y0_rel % x_minus_x0_rel );
 }
 
+static inline icoordpair operator+(const icoordpair& a, const icoordpair& b) {
+  return icoordpair(a.first + b.first, a.second + b.second);
+}
+
+static inline icoordpair operator-(const icoordpair& a, const icoordpair& b) {
+  return icoordpair(a.first - b.first, a.second - b.second);
+}
+
+static inline icoordpair operator*(const icoordpair& a, const icoordpair& b) {
+  return icoordpair(a.first * b.first, a.second * b.second);
+}
+
+static inline icoordpair operator/(const icoordpair& a, const icoordpair& b) {
+  return icoordpair(a.first / b.first, a.second / b.second);
+}
+
+static inline icoordpair operator*(const icoordpair& a, const double& b) {
+  return icoordpair(a.first * b, a.second * b);
+}
+
+static inline icoordpair floor(const icoordpair& a) {
+  return icoordpair(floor(a.first), floor(a.second));
+}
+
+icoords partition_segment(const icoordpair& source, const icoordpair& dest,
+                         const icoordpair& grid_zero, const icoordpair& grid_width) {
+  if (source == dest) {
+    return {dest};
+  }
+  double current_progress = 0;
+  icoords points;
+  while (current_progress != 1) {
+    const auto current = source + (dest - source) * current_progress;
+    points.push_back(current);
+
+    const auto current_index = floor((current - grid_zero) / grid_width);
+    double best_progress = 1;
+    for (const auto& index_delta : {-1,0,1,2}) {
+      const auto new_point = (current_index + icoordpair(index_delta, index_delta)) * grid_width + grid_zero;
+      const auto new_progress = (new_point - source) / (dest - source);
+      if (new_progress.first > current_progress && new_progress.first < best_progress) {
+        // This step gets us closer to the end yet moves the least amount in that direction.
+        best_progress = new_progress.first;
+      }
+      if (new_progress.second > current_progress && new_progress.second < best_progress) {
+        // This step gets us closer to the end yet moves the least amount in that direction.
+        best_progress = new_progress.second;
+      }
+    }
+    current_progress = best_progress;
+  }
+  points.push_back(dest);
+  return points;
+}
+
 string autoleveller::addChainPoint ( icoordpair point )
 {
     string outputStr;
     icoords subsegments;
     icoords::const_iterator i;
 
-    subsegments = splitSegment( point, numOfSubsegments( point ) );
+    subsegments = partition_segment(lastPoint, point, icoordpair(startPointX, startPointY), icoordpair(XProbeDist, YProbeDist));
 
-    if( software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3 )
-        for( i = subsegments.begin(); i != subsegments.end(); i++ )
-            outputStr += str( silent_format( callSub2[software] ) % g01InterpolatedNum % i->first % i->second );
-    else
-        for( i = subsegments.begin(); i != subsegments.end(); i++ )
-        {
-            outputStr += interpolatePoint( *i );
-            outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+#4]\n" ) % i->first % i->second );
-        }
+    if (software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3) {
+      for( i = subsegments.begin() + 1; i != subsegments.end(); i++ )
+        outputStr += str( silent_format( callSub2[software] ) % g01InterpolatedNum % i->first % i->second );
+    } else {
+      for(i = subsegments.begin() + 1; i != subsegments.end(); i++) {
+        outputStr += interpolatePoint( *i );
+        outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+#4]\n" ) % i->first % i->second );
+      }
+    }
 
     lastPoint = point;
     return outputStr;
@@ -351,29 +410,4 @@ string autoleveller::g01Corrected ( icoordpair point )
         return str( silent_format( callSub2[software] ) % g01InterpolatedNum % point.first % point.second );
     else
         return interpolatePoint( point ) + "G01 Z[" + zwork + "+#" + returnVar + "]\n";
-}
-
-unsigned int autoleveller::numOfSubsegments ( icoordpair point )
-{
-
-    if( std::abs( lastPoint.first - point.first ) <= quantization_error )	//The two points are X-aligned
-        return ceil( boost::geometry::distance( lastPoint, point ) / YProbeDist );
-
-    else if( std::abs( lastPoint.second - point.second ) <= quantization_error )	//The two points are Y-aligned
-        return ceil( boost::geometry::distance( lastPoint, point ) / XProbeDist );
-
-    else	//The two points aren't aligned
-        return ceil( boost::geometry::distance( lastPoint, point ) / averageProbeDist );
-}
-
-icoords autoleveller::splitSegment ( const icoordpair point, const unsigned int n )
-{
-    icoords splittedSegment;
-
-    for( unsigned int i = 1; i <= n; i++ )
-        splittedSegment.push_back( icoordpair( lastPoint.first + ( point.first - lastPoint.first ) * i / n,
-                                               lastPoint.second + ( point.second - lastPoint.second ) * i / n ) );
-
-    return splittedSegment;
-
 }

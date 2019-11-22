@@ -32,7 +32,6 @@
 #include <memory>
 #include <tuple>
 #include "geometry.hpp"
-#include "surface.hpp"
 #include "surface_vectorial.hpp"
 #include "layer.hpp"
 
@@ -50,10 +49,12 @@
 class Board
 {
 public:
-    Board(int dpi, bool fill_outline, double outline_width, std::string outputdir, bool vectorial, bool tsp_2opt,
-          MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers);
+    Board(bool fill_outline,
+          std::string outputdir, bool tsp_2opt,
+          MillFeedDirection::MillFeedDirection mill_feed_direction, bool invert_gerbers,
+          bool render_paths_to_shapes);
 
-    void prepareLayer(std::string layername, std::shared_ptr<LayerImporter> importer,
+    void prepareLayer(std::string layername, std::shared_ptr<GerberImporter> importer,
                       std::shared_ptr<RoutingMill> manufacturer, bool backside);
     void set_margins(double margins) { margin = margins;	}
     ivalue_t get_width();
@@ -66,21 +67,19 @@ public:
 
     std::vector<std::string> list_layers();
     std::shared_ptr<Layer> get_layer(std::string layername);
-    std::vector<std::vector<std::shared_ptr<icoords>>> get_toolpath(std::string layername);
+    std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
-    unsigned int get_dpi();
 
 private:
     ivalue_t margin;
-    const unsigned int dpi;
     const bool fill_outline;
-    const double outline_width;
     const std::string outputdir;
-    const bool vectorial;
     const bool tsp_2opt;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
     const bool invert_gerbers;
+    const bool render_paths_to_shapes;
+
     ivalue_t min_x;
     ivalue_t max_x;
     ivalue_t min_y;
@@ -95,7 +94,7 @@ private:
      * prep_t tuples, whose signature must basically match the construction
      * signature of Layer.
      */
-    typedef std::tuple<std::shared_ptr<LayerImporter>, std::shared_ptr<RoutingMill>, bool> prep_t;
+    typedef std::tuple<std::shared_ptr<GerberImporter>, std::shared_ptr<RoutingMill>, bool> prep_t;
     std::map<std::string, prep_t> prepared_layers;
     std::map<std::string, std::shared_ptr<Layer> > layers;
 };

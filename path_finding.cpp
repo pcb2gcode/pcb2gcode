@@ -122,7 +122,7 @@ class PathSurface {
     return all_vertices[index];
   }
 
-  const size_t points_num() const {
+  size_t points_num() const {
     return all_vertices.size();
   }
 
