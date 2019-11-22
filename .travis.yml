@@ -5,6 +5,7 @@ cache:
   directories:
     - ~/gerbv
     - ~/boost
+    - ~/valgrind
 
 matrix:
   include:
@@ -141,11 +142,15 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       pushd ~ &&
-      git clone git://sourceware.org/git/valgrind.git &&
+      if [ -z "$(ls -A valgrind)" ]; then
+        git clone git://sourceware.org/git/valgrind.git &&
+        pushd valgrind &&
+        chronic sh autogen.sh &&
+        chronic ./configure --prefix=${HOME}/.local &&
+        chronic make -j ${NUM_CPUS} &&
+        popd
+      fi
       pushd valgrind &&
-      chronic sh autogen.sh &&
-      chronic ./configure --prefix=${HOME}/.local &&
-      chronic make -j 2 &&
       chronic make install &&
       popd &&
       popd
