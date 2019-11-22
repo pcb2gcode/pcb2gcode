@@ -35,14 +35,33 @@ matrix:
           packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils']
       env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
-    - os: linux
+    - dist: xenial
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty']
-          # TODO: These should really be the snapshots packages, but they are currently
-          # broken. Remove the '-9' once they get fixed (see issue #642 for more info)
-          packages: ['g++-7', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'moreutils', 'ninja-build', 'llvm-9-dev', 'llvm-9-tools', 'libclang-9-dev', 'clang-9']
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - g++-7
+            - libgtkmm-2.4-dev
+            - lcov
+            - ggcov
+            - autopoint
+            - moreutils
+            - ninja-build
+            # TODO: These should really be the snapshots packages, but they are
+            # currently broken. Remove the version suffix once they get fixed
+            # (see iwyu issue #642 for more info)
+            - llvm-10-dev
+            - llvm-10-tools
+            - libclang-10-dev
+            - clang-10
+            # TODO: This is required for lit-cpuid, which is exported from
+            # LLVMConfig.cmake, but shipped with LLDB.
+            - lldb-10
       env: COMPILER=g++-7 BOOST=1_66_0 IWYU=1
 
     - os: linux
@@ -165,16 +184,21 @@ install:
       pushd iwyu &&
       git clone --depth=50 --branch=master https://github.com/include-what-you-use/include-what-you-use.git include-what-you-use/include-what-you-use &&
       pushd include-what-you-use/include-what-you-use &&
+      # Install a supported cmake version (>= 3.4.3)
       wget -O cmake.sh https://cmake.org/files/v3.10/cmake-3.10.0-Linux-x86_64.sh &&
       sudo sh cmake.sh --skip-license --exclude-subdir --prefix=/usr/local &&
+      # Extract the version number from the most-recently installed LLVM
       VERSION=`ls -t /usr/lib/ | grep '^llvm-' | head -n 1 | sed -E 's/llvm-(.+)/\1/'` &&
+      # Absolute paths to LLVM's root and bin directory
       ROOT_PATH=`llvm-config-$VERSION --prefix` &&
       BIN_PATH=`llvm-config-$VERSION --bindir` &&
+      # TODO: Remove these hacky fixups
       (cd $ROOT_PATH/lib && sudo ln -rsf libclang-cpp.so.1 libclang-cpp-$VERSION.so.1) &&
       mkdir build &&
       pushd build &&
       cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
       ninja &&
+      CTEST_OUTPUT_ON_FAILURE=1 ninja test &&
       ninja install &&
       export IWYU_BIN="${PWD}/bin/include-what-you-use -Xiwyu --mapping_file=${PCB2GCODE_DIR}/pcb2gcode-iwyu.imp" &&
       popd &&
