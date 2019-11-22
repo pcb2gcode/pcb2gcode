@@ -36,7 +36,6 @@ matrix:
       env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
 
     - dist: xenial
-      compiler: gcc
       addons:
         apt:
           sources:
