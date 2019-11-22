@@ -1,6 +1,10 @@
 language: cpp
 sudo: false
 
+cache:
+  directories:
+    - ~/gerbv
+
 matrix:
   include:
     - os: linux
@@ -107,11 +111,16 @@ install:
     fi
   # Build gerbv
   - pushd ~
-  - git clone https://github.com/eyal0/gerbv.git
+  - >
+    if [ -z "$(ls -A gerbv)" ]; then
+      git clone https://github.com/eyal0/gerbv.git &&
+      pushd gerbv &&
+      chronic sh autogen.sh &&
+      chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local &&
+      chronic make -j ${NUM_CPUS} &&
+      popd
+    fi
   - pushd gerbv
-  - chronic sh autogen.sh
-  - chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
-  - chronic make -j ${NUM_CPUS}
   - chronic make install
   - popd
   - popd
