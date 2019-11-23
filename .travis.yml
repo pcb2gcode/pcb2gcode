@@ -31,36 +31,12 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils']
-      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
-
-    - dist: xenial
-      addons:
-        apt:
           sources:
             - ubuntu-toolchain-r-test
             - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - g++-7
-            - libgtkmm-2.4-dev
-            - lcov
-            - ggcov
-            - autopoint
-            - moreutils
-            - ninja-build
-            # TODO: These should really be the snapshots packages, but they are
-            # currently broken. Remove the version suffix once they get fixed
-            # (see iwyu issue #642 for more info)
-            - llvm-10-dev
-            - llvm-10-tools
-            - libclang-10-dev
-            - clang-10
-            # TODO: This is required for lit-cpuid, which is exported from
-            # LLVMConfig.cmake, but shipped with LLDB.
-            - lldb-10
-      env: COMPILER=g++-7 BOOST=1_66_0 IWYU=1
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils', 'ninja-build', 'llvm-10-dev', 'llvm-10-tools', 'libclang-10-dev', 'clang-10', 'lldb-10']
+      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage" IWYU=1
 
     - os: linux
       compiler: gcc

@@ -1,5 +1,5 @@
 [
 #manually include:
-{ include: ["@\"boost/geometry/.*\"", private, "\"boost/geometry.hpp\"", public ] },
-{ include: ["@\"boost/format/.*\"", private, "\"boost/format.hpp\"", public ] }
+{ include: ["@<boost/geometry/.*>", private, "<boost/geometry.hpp>", public ] },
+{ include: ["@<boost/format/.*>", private, "<boost/format.hpp>", public ] }
 ]
