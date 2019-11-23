@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Setup paths
       run: |
-        apt-get install coreutils
+        sudo apt-get install coreutils
         mkdir -p $HOME/.local/bin
         mkdir -p $HOME/.local/lib/pkgconfig
         export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
