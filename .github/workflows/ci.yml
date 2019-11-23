@@ -80,6 +80,9 @@ jobs:
         hash -r
         export CXX="$COMPILER"
         $CXX --version
-    - autoreconf -fvi
-    - ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR"
-    - make -j ${NUM_CPUS}
+    - name: pcb2gcode autoreconf
+      run: autoreconf -fvi
+    - name: pcb2gcode configure
+      run: ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR"
+    - name: pcb2gcode make
+      run: make -j ${NUM_CPUS}
