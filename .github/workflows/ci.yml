@@ -29,9 +29,9 @@ jobs:
         done
         tar xjf "boost_${BOOST}.tar.bz2"
         pushd boost_${BOOST}
-        chronic ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
-        chronic ./b2
-        chronic ./b2 install
+        ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
+        ./b2
+        ./b2 install
         popd
         popd
     - name: Install gerbv
@@ -41,10 +41,10 @@ jobs:
         pushd ~
         git clone https://github.com/eyal0/gerbv.git
         pushd gerbv
-        chronic sh autogen.sh
-        chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
-        chronic make -j ${NUM_CPUS}
-        chronic make install
+        sh autogen.sh
+        ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+        make -j ${NUM_CPUS}
+        make install
         popd
         popd
     - name: Pip install coverage libraries
@@ -55,10 +55,10 @@ jobs:
         pushd ~
         git clone git://sourceware.org/git/valgrind.git
         pushd valgrind
-        chronic sh autogen.sh
-        chronic ./configure --prefix=${HOME}/.local
-        chronic make -j 2
-        chronic make install
+        sh autogen.sh
+        ./configure --prefix=${HOME}/.local
+        make -j 2
+        make install
         popd
         popd
     - name: Install parallel
@@ -71,9 +71,9 @@ jobs:
         pushd parallel
         tar xjf "../parallel-latest.tar.bz2"
         pushd parallel-*
-        chronic ./configure --prefix=${HOME}/.local
-        chronic make
-        chronic make install
+        ./configure --prefix=${HOME}/.local
+        make
+        make install
         popd
         popd
         popd
