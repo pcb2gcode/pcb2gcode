@@ -29,8 +29,7 @@ jobs:
         done
         tar xjf "boost_${BOOST}.tar.bz2"
         pushd boost_${BOOST}
-        export BOOST_DIR="$HOME/boost"
-        chronic ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR}
+        chronic ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
         chronic ./b2
         chronic ./b2 install
         popd
