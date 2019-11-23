@@ -35,6 +35,7 @@ jobs:
     - name: Install gerbv
       run: |
         sudo apt-get install autopoint
+        sudo apt-get install libgtkmm-2.4-dev
         pushd ~
         git clone https://github.com/eyal0/gerbv.git
         pushd gerbv
