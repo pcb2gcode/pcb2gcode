@@ -62,3 +62,24 @@ jobs:
         chronic make install
         popd
         popd
+    - name: Install parallel
+      run: |
+        pushd ~
+        for i in {1..5}; do
+          wget -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
+        done
+        tar xjf "parallel-latest.tar.bz2"
+        pushd parallel-*
+        chronic ./configure --prefix=${HOME}/.local
+        chronic make
+        chronic make install
+        popd
+        popd
+    - name: Finalize setup
+      run: |
+        hash -r
+        export CXX="$COMPILER"
+        $CXX --version
+    - autoreconf -fvi
+    - ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR"
+    - make -j ${NUM_CPUS}
