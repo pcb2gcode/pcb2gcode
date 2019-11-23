@@ -1,6 +1,6 @@
 [
 #manually include:
 { include: ["@<boost/geometry/.*>", private, "<boost/geometry.hpp>", public ] },
-{ include: ["@<boost/format/.*>", private, "<boost/format.hpp>", public ] }
+{ include: ["@<boost/format/.*>", private, "<boost/format.hpp>", public ] },
 { include: ["@<boost/program_options/.*>", private, "<boost/program_options.hpp>", public ] }
 ]
