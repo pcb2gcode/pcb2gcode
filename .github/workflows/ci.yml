@@ -30,7 +30,7 @@ jobs:
         tar xjf "boost_${BOOST}.tar.bz2"
         pushd boost_${BOOST}
         ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
-        ./b2
+        ./b2 -j ${NUM_CPUS}
         ./b2 install
         popd
         popd
