@@ -37,7 +37,7 @@ jobs:
         pushd ~
         git clone https://github.com/eyal0/gerbv.git
         pushd gerbv
-        chronic sh autogen.sh
+        sh autogen.sh
         ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
         make -j ${NUM_CPUS}
         make install
