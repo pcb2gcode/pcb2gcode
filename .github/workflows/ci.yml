@@ -84,6 +84,10 @@ jobs:
       run: autoreconf -fvi
     - name: pcb2gcode configure
       run: >-
-        ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules || cat config.log
+        ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror
+        --disable-dependency-tracking
+        --disable-silent-rules
+        --enable-static-boost
+        || cat config.log
     - name: pcb2gcode make
       run: make -j ${NUM_CPUS}
