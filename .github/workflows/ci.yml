@@ -28,6 +28,7 @@ jobs:
         pushd boost_${BOOST}
         export BOOST_DIR="$HOME/boost"
         ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR}
-        chronic ./b2 install
+        ./b2
+        ./b2 install
         popd
         popd
