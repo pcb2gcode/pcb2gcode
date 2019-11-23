@@ -43,7 +43,6 @@ matrix:
             - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main'
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
-            - g++-7
             - libgtkmm-2.4-dev
             - lcov
             - ggcov
@@ -60,7 +59,7 @@ matrix:
             # TODO: This is required for lit-cpuid, which is exported from
             # LLVMConfig.cmake, but shipped with LLDB.
             - lldb-10
-      env: COMPILER=g++-7 BOOST=1_66_0 IWYU=1
+      env: COMPILER=g++ BOOST=1_66_0 IWYU=1
 
     - os: linux
       compiler: gcc
