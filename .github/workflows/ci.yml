@@ -17,6 +17,9 @@ jobs:
         export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
         export PATH=$HOME/.local/bin:$PATH
         export NUM_CPUS=`nproc --all`
+    - name: apt-get chronic
+      run: |
+        sudo apt-get install chronic
     - name: Install boost
       run: |
         export BOOST=1_66_0
@@ -27,9 +30,9 @@ jobs:
         tar xjf "boost_${BOOST}.tar.bz2"
         pushd boost_${BOOST}
         export BOOST_DIR="$HOME/boost"
-        ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR}
-        ./b2
-        ./b2 install
+        chronic ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR}
+        chronic ./b2
+        chronic ./b2 install
         popd
         popd
     - name: Install gerbv
@@ -39,10 +42,10 @@ jobs:
         pushd ~
         git clone https://github.com/eyal0/gerbv.git
         pushd gerbv
-        sh autogen.sh
-        ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
-        make -j ${NUM_CPUS}
-        make install
+        chronic sh autogen.sh
+        chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+        chronic make -j ${NUM_CPUS}
+        chronic make install
         popd
         popd
     - name: Pip install coverage libraries
@@ -53,9 +56,9 @@ jobs:
         pushd ~
         git clone git://sourceware.org/git/valgrind.git
         pushd valgrind
-        sh autogen.sh
-        ./configure --prefix=${HOME}/.local
-        make -j 2
-        make install
+        chronic sh autogen.sh
+        chronic ./configure --prefix=${HOME}/.local
+        chronic make -j 2
+        chronic make install
         popd
         popd
