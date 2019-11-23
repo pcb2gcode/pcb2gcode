@@ -19,14 +19,15 @@ jobs:
         export NUM_CPUS=`nproc --all`
     - name: Install boost
       run: |
-        pushd ~ &&
+        export BOOST=1_66_0
+        pushd ~
         for i in {1..5}; do
           wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
-        done &&
-        tar xjf "boost_${BOOST}.tar.bz2" &&
-        pushd boost_${BOOST} &&
-        export BOOST_DIR="$HOME/boost" &&
-        ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR} &&
-        chronic ./b2 install &&
-        popd &&
+        done
+        tar xjf "boost_${BOOST}.tar.bz2"
+        pushd boost_${BOOST}
+        export BOOST_DIR="$HOME/boost"
+        ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR}
+        chronic ./b2 install
+        popd
         popd
