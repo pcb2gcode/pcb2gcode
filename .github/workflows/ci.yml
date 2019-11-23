@@ -32,3 +32,28 @@ jobs:
         ./b2 install
         popd
         popd
+    - name: Install gerbv
+      run: |
+        pushd ~
+        git clone https://github.com/eyal0/gerbv.git
+        pushd gerbv
+        chronic sh autogen.sh
+        ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+        make -j ${NUM_CPUS}
+        make install
+        popd
+        popd
+    - name: Pip install coverage libraries
+      run: |
+        pip install --user cpp-coveralls colour_runner unittest2 termcolor concurrencytest in_place
+    - name: Install valgrind
+      run: |
+        pushd ~
+        git clone git://sourceware.org/git/valgrind.git
+        pushd valgrind
+        sh autogen.sh
+        ./configure --prefix=${HOME}/.local
+        make -j 2
+        make install
+        popd
+        popd
