@@ -107,6 +107,7 @@ install:
       brew install moreutils &&
       brew install gettext &&
       brew install librsvg &&
+      brew upgrade wget &&
       hash -r &&
       ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
       ln -s `which glibtool` $HOME/.local/bin/libtool &&
