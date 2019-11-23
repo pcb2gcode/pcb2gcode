@@ -12,6 +12,7 @@ jobs:
     - name: Setup paths
       run: |
         sudo apt-get install coreutils
+        hash -r
         mkdir -p $HOME/.local/bin
         mkdir -p $HOME/.local/lib/pkgconfig
         export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
