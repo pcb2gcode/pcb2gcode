@@ -34,6 +34,7 @@ jobs:
         popd
     - name: Install gerbv
       run: |
+        sudo apt-get install autopoint
         pushd ~
         git clone https://github.com/eyal0/gerbv.git
         pushd gerbv
