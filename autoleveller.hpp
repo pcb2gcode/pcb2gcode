@@ -26,17 +26,21 @@
 //Fixed probe fail depth (in mm, string)
 #define FIXED_FAIL_DEPTH_MM "-3"
 
+#include <boost/program_options.hpp>
+#include <boost/program_options/variables_map.hpp>
 #include <string>
 #include <fstream>
 #include <vector>
 #include <memory>
-#include <boost/program_options.hpp>
+#include <utility>
 
 #include "geometry.hpp"
 #include "unique_codes.hpp"
 #include "common.hpp"
 #include "tile.hpp"
 #include "options.hpp"
+
+class uniqueCodes;
 
 class autoleveller
 {

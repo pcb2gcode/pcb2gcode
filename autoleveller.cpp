@@ -17,17 +17,21 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "autoleveller.hpp"
-
-#include <cmath>
-#include <limits>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/geometry/algorithms/distance.hpp>
-
 #include <boost/format.hpp>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/container/detail/std_fwd.hpp>
+#include <boost/geometry.hpp>
+#include <boost/type_index/type_index_facade.hpp>
+#include <cmath>
 #include <memory>
 #include <vector>
+#include <algorithm>
+#include <initializer_list>
+
+#include "autoleveller.hpp"
+#include "options.hpp"
+#include "unique_codes.hpp"
+
 using boost::format;
 using std::shared_ptr;
 using std::vector;
@@ -36,6 +40,7 @@ using std::to_string;
 using std::string;
 
 #include <utility>
+
 using std::pair;
 
 #include "units.hpp"
