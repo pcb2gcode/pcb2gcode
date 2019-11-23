@@ -81,8 +81,6 @@ jobs:
     - name: Finalize setup
       run: |
         hash -r
-        export CXX="$COMPILER"
-        $CXX --version
     - name: pcb2gcode autoreconf
       run: autoreconf -fvi
     - name: pcb2gcode configure
