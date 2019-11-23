@@ -19,7 +19,7 @@ jobs:
         export NUM_CPUS=`nproc --all`
     - name: apt-get chronic
       run: |
-        sudo apt-get install chronic
+        sudo apt-get install moreutils
     - name: Install boost
       run: |
         export BOOST=1_66_0
