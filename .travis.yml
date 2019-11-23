@@ -216,11 +216,12 @@ script:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
     fi || travis_terminate 1
-  - make -j ${NUM_CPUS} || travis_terminate 1
   - >
     if [[ "${IWYU}" ]]; then
-      make -k CXX="${IWYU_BIN}"; travis_terminate 0;
+      make -k CXX="${IWYU_BIN}" || travis_terminate 1;
+      travis_terminate 0;
     fi
+  - make -j ${NUM_CPUS} || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - >
     if [[ ! "${ENABLE_CODE_COVERAGE}" ]]; then  # We don't want to count this in coverage because there are no tests.
