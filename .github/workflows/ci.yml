@@ -84,6 +84,6 @@ jobs:
     - name: pcb2gcode autoreconf
       run: autoreconf -fvi
     - name: pcb2gcode configure
-      run: ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR"
+      run: ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="${HOME}/.local"
     - name: pcb2gcode make
       run: make -j ${NUM_CPUS}
