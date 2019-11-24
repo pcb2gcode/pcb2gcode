@@ -1,6 +1,12 @@
 language: cpp
 sudo: false
 
+cache:
+  directories:
+    - ~/gerbv
+    - ~/boost
+    - ~/valgrind
+
 matrix:
   include:
     - os: linux
@@ -94,24 +100,37 @@ install:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       export NUM_CPUS=`nproc --all` &&
       pushd ~ &&
-      for i in {1..5}; do
-        wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
-      done &&
-      tar xjf "boost_${BOOST}.tar.bz2" &&
+      if [ -z "$(ls -A boost)" ]; then
+        pushd boost &&
+        for i in {1..5}; do
+          wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
+        done &&
+        tar xjf "boost_${BOOST}.tar.bz2" &&
+        pushd boost_${BOOST} &&
+        ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local &&
+        chronic ./b2 &&
+        popd &&
+        popd
+      fi &&
+      pushd boost &&
       pushd boost_${BOOST} &&
-      export BOOST_DIR="$HOME/boost" &&
-      ./bootstrap.sh --with-libraries=program_options --prefix=${BOOST_DIR} &&
       chronic ./b2 install &&
+      popd &&
       popd &&
       popd
     fi
   # Build gerbv
   - pushd ~
-  - git clone https://github.com/eyal0/gerbv.git
+  - >
+    if [ -z "$(ls -A gerbv)" ]; then
+      git clone https://github.com/eyal0/gerbv.git &&
+      pushd gerbv &&
+      chronic sh autogen.sh &&
+      chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local &&
+      chronic make -j ${NUM_CPUS} &&
+      popd
+    fi
   - pushd gerbv
-  - chronic sh autogen.sh
-  - chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
-  - chronic make -j ${NUM_CPUS}
   - chronic make install
   - popd
   - popd
@@ -123,11 +142,15 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       pushd ~ &&
-      git clone git://sourceware.org/git/valgrind.git &&
+      if [ -z "$(ls -A valgrind)" ]; then
+        git clone git://sourceware.org/git/valgrind.git &&
+        pushd valgrind &&
+        chronic sh autogen.sh &&
+        chronic ./configure --prefix=${HOME}/.local &&
+        chronic make -j ${NUM_CPUS} &&
+        popd
+      fi
       pushd valgrind &&
-      chronic sh autogen.sh &&
-      chronic ./configure --prefix=${HOME}/.local &&
-      chronic make -j 2 &&
       chronic make install &&
       popd &&
       popd
@@ -158,7 +181,7 @@ script:
     fi || travis_terminate 1
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
+      ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="${HOME}/.local" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
     fi || travis_terminate 1
   - make -j ${NUM_CPUS} || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
