@@ -108,7 +108,7 @@ install:
         tar xjf "boost_${BOOST}.tar.bz2" &&
         pushd boost_${BOOST} &&
         ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local &&
-        chronic ./b2 &&
+        chronic ./b2 -j ${NUM_CPUS} &&
         popd &&
         popd
       fi &&
