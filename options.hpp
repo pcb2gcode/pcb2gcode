@@ -27,11 +27,11 @@
 #include <memory>
 #include <stdexcept>
 
-namespace po = boost::program_options;
-
 #include <boost/noncopyable.hpp>
 #include <istream>
 #include <string>                      // for string
+
+namespace po = boost::program_options;
 
 enum ErrorCodes {
     ERR_OK = 0,
