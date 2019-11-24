@@ -3,9 +3,7 @@ sudo: false
 
 cache:
   directories:
-    - ~/gerbv
-    - ~/boost
-    - ~/valgrind
+    - ~/.local
 
 matrix:
   include:
@@ -99,8 +97,9 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       export NUM_CPUS=`nproc --all` &&
-      pushd ~ &&
-      if [ -z "$(ls -A boost)" ]; then
+      if [ ! -d "~/.local/include/boost" ]; then
+        pushd ~ &&
+        mkdir -p boost &&
         pushd boost &&
         for i in {1..5}; do
           wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
@@ -109,31 +108,25 @@ install:
         pushd boost_${BOOST} &&
         ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local &&
         chronic ./b2 -j ${NUM_CPUS} &&
+        chronic ./b2 install &&
+        popd &&
         popd &&
         popd
-      fi &&
-      pushd boost &&
-      pushd boost_${BOOST} &&
-      chronic ./b2 install &&
-      popd &&
-      popd &&
-      popd
+      fi
     fi
   # Build gerbv
-  - pushd ~
   - >
-    if [ -z "$(ls -A gerbv)" ]; then
+    if ! gerbv --version; then
+      pushd ~
       git clone --depth=1 https://github.com/eyal0/gerbv.git &&
       pushd gerbv &&
       chronic sh autogen.sh &&
       chronic ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local &&
       chronic make -j ${NUM_CPUS} &&
+      chronic make install &&
+      popd &&
       popd
     fi
-  - pushd gerbv
-  - chronic make install
-  - popd
-  - popd
   # Done building gerbv
   - >
     if [ "${ENABLE_CODE_COVERAGE}" ]; then
@@ -141,19 +134,17 @@ install:
     fi
   - >
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
-      pushd ~ &&
-      if [ -z "$(ls -A valgrind)" ]; then
+      if ! valgrind --version; then
+        pushd ~ &&
         git clone --depth=1 git://sourceware.org/git/valgrind.git &&
         pushd valgrind &&
         chronic sh autogen.sh &&
         chronic ./configure --prefix=${HOME}/.local &&
         chronic make -j ${NUM_CPUS} &&
+        chronic make install &&
+        popd &&
         popd
       fi
-      pushd valgrind &&
-      chronic make install &&
-      popd &&
-      popd
     fi
   # Install parallel.
   - pushd ~
