@@ -23,12 +23,11 @@
 
 #include <bits/exception.h>            // for exception
 #include <boost/core/noncopyable.hpp>  // for noncopyable
+#include <boost/noncopyable.hpp>
 #include <boost/program_options.hpp>   // for options_description, program_o...
+#include <istream>
 #include <memory>
 #include <stdexcept>
-
-#include <boost/noncopyable.hpp>
-#include <istream>
 #include <string>                      // for string
 
 namespace po = boost::program_options;

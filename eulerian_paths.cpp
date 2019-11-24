@@ -1,17 +1,16 @@
-#include <boost/container/detail/std_fwd.hpp>  // for pair
-#include <boost/geometry.hpp>                  // for linestring
-#include <boost/polygon/polygon.hpp>           // for point_data, segment_data
-#include <algorithm>                           // for copy, max
-#include <initializer_list>                    // for initializer_list
-#include <memory>                              // for allocator_traits<>::va...
-#include <utility>                             // for pair, make_pair
-#include <vector>                              // for vector
+#include <boost/geometry.hpp>         // for linestring
+#include <boost/polygon/polygon.hpp>  // for point_data, segment_data
+#include <algorithm>                  // for copy, max
+#include <initializer_list>           // for initializer_list
+#include <memory>                     // for allocator_traits<>::value_type
+#include <utility>                    // for pair, make_pair
+#include <vector>                     // for vector
 
 #include "eulerian_paths.hpp"
-#include "geometry.hpp"                        // for linestring_type_fp
-#include "geometry_int.hpp"                    // for segment_type_p, point_...
-#include "merge_near_points.hpp"               // for merge_near_points
-#include "segmentize.hpp"                      // for segmentize
+#include "geometry.hpp"               // for linestring_type_fp, point_type_fp
+#include "geometry_int.hpp"           // for segment_type_p, point_type_p
+#include "merge_near_points.hpp"      // for merge_near_points
+#include "segmentize.hpp"             // for segmentize
 
 namespace eulerian_paths {
 

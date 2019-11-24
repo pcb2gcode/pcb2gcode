@@ -20,34 +20,33 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/container/detail/std_fwd.hpp>  // for pair
-#include <boost/format.hpp>                    // for basic_altstringbuf<>::...
-#include <boost/geometry.hpp>                  // for point_xy, svg_mapper
-#include <boost/none.hpp>                      // for none
-#include <glib.h>                              // for g_assert
-#include <math.h>                              // for sqrt, ceil, M_PI
-#include <stdlib.h>                            // for abs
-#include <algorithm>                           // for max, copy, min, min_el...
-#include <cstring>                             // for strcpy, strlen, NULL
-#include <iomanip>                             // for operator<<, setprecision
-#include <iostream>                            // for cerr, cout
-#include <iterator>                            // for next
-#include <limits>                              // for numeric_limits
-#include <list>                                // for _List_const_iterator
-#include <map>                                 // for map, _Rb_tree_iterator
-#include <memory>                              // for allocator, shared_ptr
-#include <string>                              // for string, char_traits
-#include <type_traits>                         // for __decay_and_strip<>::_...
-#include <utility>                             // for pair, make_pair
-#include <vector>                              // for vector
+#include <boost/format.hpp>      // for basic_altstringbuf<>::int_type, basi...
+#include <boost/geometry.hpp>    // for point_xy, svg_mapper
+#include <boost/none.hpp>        // for none
+#include <glib.h>                // for g_assert
+#include <math.h>                // for sqrt, ceil, M_PI
+#include <stdlib.h>              // for abs
+#include <algorithm>             // for max, min, min_element
+#include <cstring>               // for strcpy, strlen, NULL
+#include <iomanip>               // for operator<<, setprecision
+#include <iostream>              // for cerr, cout
+#include <iterator>              // for next
+#include <limits>                // for numeric_limits
+#include <list>                  // for _List_const_iterator
+#include <map>                   // for map, _Rb_tree_iterator
+#include <memory>                // for allocator, shared_ptr, __shared_ptr_...
+#include <string>                // for string, char_traits, operator+, oper...
+#include <type_traits>           // for __decay_and_strip<>::__type
+#include <utility>               // for pair, make_pair
+#include <vector>                // for vector
 
-#include "available_drills.hpp"                // for AvailableDrill, Availa...
-#include "common.hpp"                          // for build_filename, workSide
+#include "available_drills.hpp"  // for AvailableDrill, AvailableDrills
+#include "common.hpp"            // for build_filename, workSide, CUSTOM
 #include "drill.hpp"
-#include "gerbv.h"                             // for gerbv_net_t, gerbv_dri...
-#include "mill.hpp"                            // for Cutter, Driller
-#include "tsp_solver.hpp"                      // for tsp_solver
-#include "units.hpp"                           // for Length, Unit, flatten
+#include "gerbv.h"               // for gerbv_net_t, gerbv_drill_list_t, ger...
+#include "mill.hpp"              // for Cutter, Driller
+#include "tsp_solver.hpp"        // for tsp_solver
+#include "units.hpp"             // for Length, Unit, flatten, operator<<
 
 
 
