@@ -205,7 +205,7 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
     // drills_to_do has pairs where is pair is the inclusive range of
     // drill holes that still need to be made.  We try to drill in a
     // way so that the pressure on the drill is balanced.
-    vector<pair<int, int>> drills_to_do;
+    vector<std::pair<int, int>> drills_to_do;
     // drill the start point
     drills_to_do.push_back(std::make_pair(0, 0));
     if (drill_count > 1) {
@@ -722,7 +722,7 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
     curBit.unit = string(currentDrill->drill_unit);
     curBit.drill_count = currentDrill->drill_count;
 
-    bits.insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
+    bits.insert(std::pair<int, drillbit>(currentDrill->drill_num, curBit));
   }
   return bits;
 }
