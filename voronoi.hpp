@@ -20,18 +20,19 @@
 #ifndef VORONOI_H
 #define VORONOI_H
 
-#include <boost/cstdint.hpp>                        // for int64_t
+#include <boost/cstdint.hpp>          // for int64_t
 #include <boost/polygon/detail/voronoi_ctypes.hpp>  // for extended_int, ext...
+#include <boost/polygon/polygon.hpp>  // for extended_int, extended_exponent...
 #include <boost/polygon/voronoi.hpp>
 #include <boost/polygon/voronoi_builder.hpp>        // for voronoi_builder
 #include <boost/polygon/voronoi_diagram.hpp>        // for voronoi_diagram
-#include <stddef.h>                                 // for size_t
-#include <stdint.h>                                 // for int64_t
+#include <stddef.h>                   // for size_t
+#include <stdint.h>                   // for int64_t
 #include <memory>
-#include <vector>                                   // for vector
+#include <vector>                     // for vector
 
-#include "geometry.hpp"                             // for box_type_fp, coor...
-#include "geometry_int.hpp"                         // for coordinate_type
+#include "geometry.hpp"               // for box_type_fp, coordinate_type_fp
+#include "geometry_int.hpp"           // for coordinate_type, segment_type_p
 
 namespace boost { namespace polygon { namespace detail {
 template <typename T> struct voronoi_ctype_traits;

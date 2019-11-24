@@ -44,7 +44,6 @@ using std::string;
 #include <boost/algorithm/string/join.hpp>               // for join
 #include <boost/algorithm/string/replace.hpp>            // for replace_all
 #include <boost/iterator/iterator_traits.hpp>            // for iterator_val...
-#include <boost/move/utility_core.hpp>                   // for move
 #include <boost/none.hpp>                                // for none
 #include <boost/optional/optional.hpp>                   // for optional
 #include <boost/program_options.hpp>                     // for variables_map

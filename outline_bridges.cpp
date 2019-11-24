@@ -17,14 +17,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/container/detail/std_fwd.hpp>  // for pair
-#include <boost/geometry.hpp>                  // for distance
-#include <algorithm>                           // for sort
-#include <iterator>                            // for next
-#include <limits>                              // for numeric_limits
-#include <map>                                 // for _Rb_tree_const_iterator
-#include <set>                                 // for set
-#include <utility>                             // for pair
+#include <boost/geometry.hpp>  // for distance
+#include <algorithm>           // for copy, sort, max
+#include <iterator>            // for next
+#include <limits>              // for numeric_limits
+#include <map>                 // for _Rb_tree_const_iterator, map, map<>::m...
+#include <set>                 // for set
+#include <utility>             // for pair
 
 #include "outline_bridges.hpp"
 

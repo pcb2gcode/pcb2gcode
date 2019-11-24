@@ -17,55 +17,56 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/geometry.hpp>     // for multi_polygon, ring, polygon, dista...
-#include <math.h>                 // for atan2, cos, round, sin, ceil
-#include <stdlib.h>               // for abs, NULL, size_t
-#include <algorithm>              // for copy, max, min, remove_if, reverse
-#include <initializer_list>       // for initializer_list
-#include <tuple>                  // for tie, operator<, tuple
-#include <utility>                // for pair, make_pair, swap
+#include <boost/geometry.hpp>                  // for multi_polygon, ring
+#include <math.h>                              // for atan2, cos, round, sin
+#include <stdlib.h>                            // for abs, NULL, size_t
+#include <algorithm>                           // for copy, max, min, remove_if
+#include <initializer_list>                    // for initializer_list
+#include <stack>                               // for swap
+#include <tuple>                               // for tie, operator<, tuple
+#include <utility>                             // for pair, make_pair
 
 using std::pair;
 using std::reverse;
 using std::swap;
 
-#include <iostream>               // for operator<<, endl, basic_ostream, cerr
+#include <iostream>                            // for operator<<, endl, basi...
 
 using std::cerr;
 using std::endl;
 
-#include <string>                 // for string
+#include <string>                              // for string
 
 using std::string;
 
-#include <vector>                 // for vector
+#include <vector>                              // for vector
 
 using std::vector;
 
-#include <iterator>               // for next, prev, make_move_iterator
-#include <list>                   // for list
+#include <iterator>                            // for next, prev, make_move_...
+#include <list>                                // for list
 
 using std::list;
 using std::next;
 using std::make_move_iterator;
 
-#include <memory>                 // for allocator_traits<>::value_type, uni...
+#include <memory>                              // for allocator_traits<>::va...
 
 using std::unique_ptr;
 
-#include <forward_list>           // for forward_list
+#include <forward_list>                        // for forward_list
 
 using std::forward_list;
 
-#include <map>                    // for map, map<>::mapped_type, _Rb_tree_c...
+#include <map>                                 // for map, map<>::mapped_type
 
 using std::map;
 
-#include "bg_helpers.hpp"         // for operator+, operator-, operator^
-#include "eulerian_paths.hpp"     // for make_eulerian_paths
+#include "bg_helpers.hpp"                      // for operator+, operator-
+#include "eulerian_paths.hpp"                  // for make_eulerian_paths
 #include "gerberimporter.hpp"
-#include "gerbv.h"                // for gerbv_net_t, gerbv_aperture_t, gerb...
-#include "merge_near_points.hpp"  // for merge_near_points
+#include "gerbv.h"                             // for gerbv_net_t, gerbv_ape...
+#include "merge_near_points.hpp"               // for merge_near_points
 
 namespace bg = boost::geometry;
 

@@ -20,50 +20,28 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <algorithm>                           // for max, min, min_element
+#include <algorithm>                           // for max, copy, min, min_el...
 #include <cstring>                             // for strcpy, strlen, NULL
-#include <iostream>                            // for operator<<, basic_ostream
+#include <iostream>                            // for cerr, cout
 #include <iterator>                            // for next
 #include <limits>                              // for numeric_limits
 #include <list>                                // for _List_const_iterator
 #include <type_traits>                         // for __decay_and_strip<>::_...
 
-using std::cout;
-using std::endl;
-using std::flush;
-
 #include <vector>                              // for vector
-
-using std::vector;
-
-using std::stringstream;
-
 #include <memory>                              // for allocator, shared_ptr
 
-using std::shared_ptr;
-
 #include <iomanip>                             // for operator<<, setprecision
-
-using std::setprecision;
-using std::fixed;
-
-#include <boost/container/detail/std_fwd.hpp>  // for pair
 #include <boost/format.hpp>                    // for basic_altstringbuf<>::...
 #include <boost/geometry.hpp>                  // for point_xy, svg_mapper
 #include <boost/none.hpp>                      // for none
 #include <glib.h>                              // for g_assert
-#include <math.h>                              // for sqrt, ceil, abs, M_PI
-
-using boost::format;
+#include <math.h>                              // for sqrt, ceil, M_PI
+#include <stdlib.h>                            // for abs
 
 #include <string>                              // for string, char_traits
 
-using std::string;
-
 #include <map>                                 // for map, _Rb_tree_iterator
-
-using std::map;
-
 #include <utility>                             // for pair, make_pair
 
 #include "available_drills.hpp"                // for AvailableDrill, Availa...
@@ -74,6 +52,26 @@ using std::map;
 #include "tsp_solver.hpp"                      // for tsp_solver
 #include "units.hpp"                           // for Length, Unit, flatten
 
+
+
+using std::cout;
+using std::endl;
+using std::flush;
+
+using std::shared_ptr;
+
+using std::vector;
+
+using std::stringstream;
+
+using std::setprecision;
+using std::fixed;
+
+using boost::format;
+using std::string;
+
+
+using std::map;
 using std::pair;
 using std::make_pair;
 using std::max;
