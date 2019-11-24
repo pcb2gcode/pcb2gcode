@@ -21,6 +21,8 @@
  */
 
 #include <boost/any.hpp>                            // for any
+#include <boost/detail/basic_pointerbuf.hpp>        // for basic_pointerbuf<...
+#include <boost/lexical_cast/bad_lexical_cast.hpp>  // for bad_lexical_cast
 #include <boost/units/detail/one.hpp>               // for operator>
 #include <boost/variant/detail/variant_io.hpp>      // for operator<<
 #include <boost/variant/variant.hpp>                // for variant
@@ -31,7 +33,6 @@
 #include <stdexcept>                                // for logic_error, runt...
 #include <string>                                   // for string, basic_string
 #include <vector>                                   // for vector
-#include <fstream>
 
 #include "available_drills.hpp"                     // for AvailableDrills
 #include "common.hpp"                               // for Software

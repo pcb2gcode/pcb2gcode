@@ -20,29 +20,26 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <algorithm>                           // for max, copy, min, min_el...
-#include <cstring>                             // for strcpy, strlen, NULL
-#include <iostream>                            // for cerr, cout
-#include <iterator>                            // for next
-#include <limits>                              // for numeric_limits
-#include <list>                                // for _List_const_iterator
-#include <type_traits>                         // for __decay_and_strip<>::_...
-
-#include <vector>                              // for vector
-#include <memory>                              // for allocator, shared_ptr
-
-#include <iomanip>                             // for operator<<, setprecision
+#include <boost/container/detail/std_fwd.hpp>  // for pair
 #include <boost/format.hpp>                    // for basic_altstringbuf<>::...
 #include <boost/geometry.hpp>                  // for point_xy, svg_mapper
 #include <boost/none.hpp>                      // for none
 #include <glib.h>                              // for g_assert
 #include <math.h>                              // for sqrt, ceil, M_PI
 #include <stdlib.h>                            // for abs
-
-#include <string>                              // for string, char_traits
-
+#include <algorithm>                           // for max, copy, min, min_el...
+#include <cstring>                             // for strcpy, strlen, NULL
+#include <iomanip>                             // for operator<<, setprecision
+#include <iostream>                            // for cerr, cout
+#include <iterator>                            // for next
+#include <limits>                              // for numeric_limits
+#include <list>                                // for _List_const_iterator
 #include <map>                                 // for map, _Rb_tree_iterator
+#include <memory>                              // for allocator, shared_ptr
+#include <string>                              // for string, char_traits
+#include <type_traits>                         // for __decay_and_strip<>::_...
 #include <utility>                             // for pair, make_pair
+#include <vector>                              // for vector
 
 #include "available_drills.hpp"                // for AvailableDrill, Availa...
 #include "common.hpp"                          // for build_filename, workSide

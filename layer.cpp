@@ -18,26 +18,27 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <memory>                 // for shared_ptr, __shared_ptr_access
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <memory>                              // for shared_ptr, __shared_p...
 
 #include "layer.hpp"
-#include "mill.hpp"               // for Cutter, RoutingMill (ptr only)
-#include "surface_vectorial.hpp"  // for Surface_vectorial
+#include "mill.hpp"                            // for Cutter, RoutingMill (p...
+#include "surface_vectorial.hpp"               // for Surface_vectorial
 
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 
-#include <vector>                 // for vector
+#include <vector>                              // for vector
 
 using std::vector;
 
-#include <utility>                // for pair
+#include <utility>                             // for pair
 
 using std::pair;
 
-#include <iostream>               // for operator<<, basic_ostream, basic_os...
+#include <iostream>                            // for operator<<, basic_ostream
 
-#include "outline_bridges.hpp"    // for makeBridges
+#include "outline_bridges.hpp"                 // for makeBridges
 
 using std::cerr;
 using std::endl;

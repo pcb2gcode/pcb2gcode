@@ -17,6 +17,7 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/container/detail/std_fwd.hpp>  // for pair
 #include <boost/geometry.hpp>                  // for multi_polygon, ring
 #include <math.h>                              // for atan2, cos, round, sin
 #include <stdlib.h>                            // for abs, NULL, size_t
