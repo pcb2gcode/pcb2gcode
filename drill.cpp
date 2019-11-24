@@ -20,45 +20,54 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
-using std::ofstream;
+#include <boost/format.hpp>      // for basic_altstringbuf<>::int_type, basi...
+#include <boost/geometry.hpp>    // for point_xy, svg_mapper
+#include <boost/none.hpp>        // for none
+#include <glib.h>                // for g_assert
+#include <math.h>                // for sqrt, ceil, M_PI
+#include <stdlib.h>              // for abs
+#include <algorithm>             // for max, min, min_element
+#include <cstring>               // for strcpy, strlen, NULL
+#include <iomanip>               // for operator<<, setprecision
+#include <iostream>              // for cerr, cout
+#include <iterator>              // for next
+#include <limits>                // for numeric_limits
+#include <list>                  // for _List_const_iterator
+#include <map>                   // for map, _Rb_tree_iterator
+#include <memory>                // for allocator, shared_ptr, __shared_ptr_...
+#include <string>                // for string, char_traits, operator+, oper...
+#include <type_traits>           // for __decay_and_strip<>::__type
+#include <utility>               // for pair, make_pair
+#include <vector>                // for vector
 
-#include <cstring>
+#include "available_drills.hpp"  // for AvailableDrill, AvailableDrills
+#include "common.hpp"            // for build_filename, workSide, CUSTOM
+#include "drill.hpp"
+#include "gerbv.h"               // for gerbv_net_t, gerbv_drill_list_t, ger...
+#include "mill.hpp"              // for Cutter, Driller
+#include "tsp_solver.hpp"        // for tsp_solver
+#include "units.hpp"             // for Length, Unit, flatten, operator<<
 
-#include <iostream>
+
+
 using std::cout;
 using std::endl;
 using std::flush;
 
-#include <vector>
-using std::vector;
-
-#include <sstream>
-using std::stringstream;
-
-#include <memory>
 using std::shared_ptr;
 
-#include <numeric>
-#include <iomanip>
+using std::vector;
+
+using std::stringstream;
+
 using std::setprecision;
 using std::fixed;
 
-#include <boost/format.hpp>
 using boost::format;
-
-#include <string>
 using std::string;
 
-#include <map>
+
 using std::map;
-
-#include "drill.hpp"
-#include "tsp_solver.hpp"
-#include "common.hpp"
-#include "units.hpp"
-#include "available_drills.hpp"
-
 using std::pair;
 using std::make_pair;
 using std::max;
@@ -195,7 +204,7 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
     // drills_to_do has pairs where is pair is the inclusive range of
     // drill holes that still need to be made.  We try to drill in a
     // way so that the pressure on the drill is balanced.
-    vector<pair<int, int>> drills_to_do;
+    vector<std::pair<int, int>> drills_to_do;
     // drill the start point
     drills_to_do.push_back(std::make_pair(0, 0));
     if (drill_count > 1) {
@@ -668,7 +677,7 @@ void ExcellonProcessor::save_svg(
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
-    ofstream svg_out (build_filename(of_dir, of_name));
+    std::ofstream svg_out (build_filename(of_dir, of_name));
     bg::svg_mapper<point_type_fp> mapper (svg_out, viewBox_width, viewBox_height, svg_dimensions);
 
     mapper.add(board_dimensions);
@@ -712,7 +721,7 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
     curBit.unit = string(currentDrill->drill_unit);
     curBit.drill_count = currentDrill->drill_count;
 
-    bits.insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
+    bits.insert(std::pair<int, drillbit>(currentDrill->drill_num, curBit));
   }
   return bits;
 }

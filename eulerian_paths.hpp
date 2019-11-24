@@ -1,10 +1,15 @@
 #ifndef EULERIAN_PATHS_H
 #define EULERIAN_PATHS_H
 
-#include <vector>
-#include <map>
+#include <stddef.h>      // for size_t
+#include <functional>    // for less
+#include <map>           // for operator==, multimap
+#include <set>           // for set
+#include <tuple>         // for tie, operator!=, operator==, tuple
+#include <utility>       // for pair
+#include <vector>        // for vector
 
-#include "geometry.hpp"
+#include "geometry.hpp"  // for point_type_fp, linestring_type_fp, multi_lin...
 
 namespace eulerian_paths {
 

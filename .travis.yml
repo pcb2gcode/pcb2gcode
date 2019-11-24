@@ -31,9 +31,12 @@ matrix:
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test']
-          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils']
-      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage"
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages: ['g++-8', 'libgtkmm-2.4-dev', 'lcov', 'ggcov', 'autopoint', 'libc6-dbg', 'automake', 'moreutils', 'ninja-build', 'llvm-10-dev', 'llvm-10-tools', 'libclang-10-dev', 'clang-10', 'lldb-10']
+      env: COMPILER=g++-8 BOOST=1_66_0 ENABLE_CODE_COVERAGE="--enable-code-coverage" IWYU=1
 
     - os: linux
       compiler: gcc
@@ -66,6 +69,7 @@ matrix:
       env: COMPILER=clang++ BOOST=1_60_0 SKIP_GERBERIMPORTER_TESTS=1
 
 install:
+  - export PCB2GCODE_DIR=$PWD
   - mkdir -p $HOME/.local/bin
   - mkdir -p $HOME/.local/lib/pkgconfig
   - export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
@@ -149,6 +153,34 @@ install:
   - hash -r
   - export CXX="$COMPILER"
   - $CXX --version
+  - >
+    if [[ "${IWYU}" ]]; then
+      mkdir iwyu &&
+      pushd iwyu &&
+      git clone --depth=50 --branch=master https://github.com/include-what-you-use/include-what-you-use.git include-what-you-use/include-what-you-use &&
+      pushd include-what-you-use/include-what-you-use &&
+      # Install a supported cmake version (>= 3.4.3)
+      wget -O cmake.sh https://cmake.org/files/v3.10/cmake-3.10.0-Linux-x86_64.sh &&
+      sudo sh cmake.sh --skip-license --exclude-subdir --prefix=/usr/local &&
+      # Extract the version number from the most-recently installed LLVM
+      VERSION=`ls -t /usr/lib/ | grep '^llvm-' | head -n 1 | sed -E 's/llvm-(.+)/\1/'` &&
+      # Absolute paths to LLVM's root and bin directory
+      ROOT_PATH=`llvm-config-$VERSION --prefix` &&
+      BIN_PATH=`llvm-config-$VERSION --bindir` &&
+      # TODO: Remove these hacky fixups
+      (cd $ROOT_PATH/lib && sudo ln -rsf libclang-cpp.so.1 libclang-cpp-$VERSION.so.1) &&
+      sudo touch $ROOT_PATH/lib/libExampleIRTransforms.a &&
+      mkdir build &&
+      pushd build &&
+      cmake -GNinja -DCMAKE_PREFIX_PATH=$ROOT_PATH -DCMAKE_C_COMPILER=$BIN_PATH/clang -DCMAKE_CXX_COMPILER=$BIN_PATH/clang++ -DCMAKE_INSTALL_PREFIX=./ ../ &&
+      ninja &&
+      CTEST_OUTPUT_ON_FAILURE=1 ninja test &&
+      ninja install &&
+      export IWYU_BIN="${PWD}/bin/include-what-you-use -Xiwyu --mapping_file=${PCB2GCODE_DIR}/pcb2gcode-iwyu.imp" &&
+      popd &&
+      popd &&
+      popd
+    fi
 
 script:
   - autoreconf -fvi || travis_terminate 1
@@ -160,6 +192,11 @@ script:
     if [ "$TRAVIS_OS_NAME" == "linux" ]; then
       ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror --disable-dependency-tracking --disable-silent-rules --with-boost="$BOOST_DIR" --enable-static-boost "${ENABLE_CODE_COVERAGE}";
     fi || travis_terminate 1
+  - >
+    if [[ "${IWYU}" ]]; then
+      make -k CXX="${IWYU_BIN}" || travis_terminate 1;
+      travis_terminate 0;
+    fi
   - make -j ${NUM_CPUS} || travis_terminate 1
   - pushd testing/gerbv_example/ || travis_terminate 1
   - >

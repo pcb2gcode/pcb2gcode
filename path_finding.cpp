@@ -1,17 +1,31 @@
-#include <vector>
+#include <algorithm>                                     // for sort, unique
+#include <cstddef>                                       // for size_t, ptrd...
+#include <tuple>                                         // for tie, operator<
+#include <type_traits>                                   // for __decay_and_...
+#include <utility>                                       // for make_pair, pair
+#include <vector>                                        // for vector
+
 using std::vector;
 
-#include <unordered_map>
+#include <unordered_map>                                 // for unordered_map
+
 using std::unordered_map;
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/astar_search.hpp>
-#include <boost/optional.hpp>
+#include <boost/concept_check.hpp>                       // for function_req...
+#include <boost/geometry.hpp>                            // for polygon, cov...
+#include <boost/graph/astar_search.hpp>                  // for astar_heuris...
+#include <boost/graph/graph_concepts.hpp>                // for IncidenceGra...
+#include <boost/graph/graph_traits.hpp>                  // for disallow_par...
+#include <boost/graph/named_function_params.hpp>         // for bgl_named_pa...
+#include <boost/move/utility_core.hpp>                   // for move
+#include <boost/none.hpp>                                // for none
+#include <boost/operators.hpp>                           // for operator!=
+#include <boost/property_map/function_property_map.hpp>  // for function_pro...
+#include <boost/property_map/property_map.hpp>           // for typed_identi...
 
+#include "bg_helpers.hpp"                                // for buffer, oper...
+#include "geometry.hpp"                                  // for multi_polygo...
 #include "path_finding.hpp"
-
-#include "geometry.hpp"
-#include "bg_helpers.hpp"
 
 namespace path_finding {
 

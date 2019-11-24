@@ -17,17 +17,20 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/algorithm/string/replace.hpp>  // for replace_all_copy
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <boost/format.hpp>                    // for basic_altstringbuf<>::...
+#include <boost/geometry.hpp>                  // for box, point_xy, expand
+#include <algorithm>                           // for max, min
+#include <cmath>                               // for floor, ceil
+#include <initializer_list>                    // for initializer_list
+#include <memory>                              // for allocator, __shared_pt...
+#include <vector>                              // for vector, vector<>::cons...
+
 #include "autoleveller.hpp"
+#include "options.hpp"                         // for ERR_INVALIDPARAMETER
+#include "unique_codes.hpp"                    // for uniqueCodes
 
-#include <cmath>
-#include <limits>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/geometry/algorithms/distance.hpp>
-
-#include <boost/format.hpp>
-#include <memory>
-#include <vector>
 using boost::format;
 using std::shared_ptr;
 using std::vector;
@@ -35,10 +38,11 @@ using std::endl;
 using std::to_string;
 using std::string;
 
-#include <utility>
+#include <utility>                             // for pair, operator==
+
 using std::pair;
 
-#include "units.hpp"
+#include "units.hpp"                           // for Unit, Length, Velocity
 
 const string autoleveller::callSubRepeat[] = {
  "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",

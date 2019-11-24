@@ -20,12 +20,13 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <memory>
+#include <iostream>                                      // for operator<<
+#include <iterator>                                      // for istreambuf_i...
+#include <limits>                                        // for numeric_limits
+#include <memory>                                        // for shared_ptr
+#include <utility>                                       // for pair, make_pair
+#include <vector>                                        // for vector
 
-#include <vector>
 using std::vector;
 
 using std::cout;
@@ -35,18 +36,34 @@ using std::flush;
 using std::fstream;
 using std::shared_ptr;
 
-#include <string>
+#include <string>                                        // for string, basi...
+
 using std::string;
 
-#include "gerberimporter.hpp"
-#include "ngc_exporter.hpp"
-#include "board.hpp"
-#include "drill.hpp"
-#include "options.hpp"
-#include "units.hpp"
+#include <boost/algorithm/string/erase.hpp>              // for erase_all
+#include <boost/algorithm/string/join.hpp>               // for join
+#include <boost/algorithm/string/replace.hpp>            // for replace_all
+#include <boost/iterator/iterator_traits.hpp>            // for iterator_val...
+#include <boost/none.hpp>                                // for none
+#include <boost/optional/optional.hpp>                   // for optional
+#include <boost/program_options.hpp>                     // for variables_map
+#include <boost/units/detail/one.hpp>                    // for operator>
+#include <boost/variant/detail/apply_visitor_unary.hpp>  // for apply_visitor
+#include <boost/variant/static_visitor.hpp>              // for static_visit...
+#include <boost/variant/variant.hpp>                     // for variant
+#include <boost/version.hpp>                             // for BOOST_VERSION
+#include <stddef.h>                                      // for size_t
 
-#include <boost/algorithm/string.hpp>
-#include <boost/version.hpp>
+#include "board.hpp"                                     // for Board
+#include "common.hpp"                                    // for workSide
+#include "config.h"                                      // for PACKAGE_STRING
+#include "drill.hpp"                                     // for ExcellonProc...
+#include "geometry.hpp"                                  // for icoordpair
+#include "gerberimporter.hpp"                            // for GerberImporter
+#include "mill.hpp"                                      // for Cutter, Isol...
+#include "ngc_exporter.hpp"                              // for NGC_Exporter
+#include "options.hpp"                                   // for options, ERR...
+#include "units.hpp"                                     // for Unit, Length
 
 void do_pcb2gcode(int argc, const char* argv[]) {
     options::parse(argc, argv);      //parse the command line parameters

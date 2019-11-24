@@ -1,9 +1,15 @@
-#include "geometry.hpp"
+#include <boost/geometry.hpp>  // for point_xy, linestring, comparable_distance
+#include <stddef.h>            // for size_t
+#include <map>                 // for _Rb_tree_iterator, map, map<>::mapped_...
+#include <tuple>               // for tie, operator<, tuple
+#include <vector>              // for vector
 
-#include <vector>
+#include "geometry.hpp"        // for point_type_fp, coordinate_type_fp, mul...
+
 using std::vector;
 
-#include <utility>
+#include <utility>             // for pair
+
 using std::pair;
 
 struct PointLessThan {

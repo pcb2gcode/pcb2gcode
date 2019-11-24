@@ -1,9 +1,16 @@
-#include "geometry.hpp"
+#include <iostream>                                 // for ios_base::failure
+#include <string>                                   // for string
 
-#include <string>
+#include "geometry.hpp"                             // for multi_linestring_...
+
 using std::string;
 
-#include <boost/format.hpp>
+#include <bits/exception.h>                         // for exception
+#include <boost/detail/basic_pointerbuf.hpp>        // for basic_pointerbuf<...
+#include <boost/format.hpp>                         // for basic_altstringbu...
+#include <boost/geometry.hpp>                       // for read_wkt, svg_mapper
+#include <boost/lexical_cast/bad_lexical_cast.hpp>  // for bad_lexical_cast
+#include <string.h>                                 // for strncmp
 
 int main() {
   box_type_fp bounding_box;

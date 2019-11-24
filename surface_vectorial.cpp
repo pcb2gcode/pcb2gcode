@@ -17,46 +17,63 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
-#include <limits>
+#include <fstream>             // for char_traits, operator<<, basic_ostream
+#include <functional>          // for function
+#include <iterator>            // for next, prev
+#include <limits>              // for numeric_limits
+#include <list>                // for _List_const_iterator
+#include <stdexcept>           // for logic_error
+
 using std::numeric_limits;
 
-#include <string>
+#include <string>              // for operator+, string, to_string, operator<<
+
 using std::string;
 
-#include <memory>
+#include <memory>              // for shared_ptr, __shared_ptr_access, alloc...
+
 using std::make_shared;
 using std::shared_ptr;
 using std::unique_ptr;
 
-#include <vector>
+#include <vector>              // for vector
+
 using std::vector;
 
-#include <algorithm>
-#include <iostream>
-#include <cmath>
+#include <algorithm>           // for max, copy, reverse_copy, move_backward
+#include <cmath>               // for ceil
+#include <iostream>            // for cerr
+
 using std::cerr;
 using std::endl;
 
-#include <utility>
+#include <utility>             // for pair, make_pair
+
 using std::pair;
 using std::make_pair;
 
-#include <map>
+#include <map>                 // for map, map<>::mapped_type
+
 using std::map;
 
-#include <boost/format.hpp>
-#include <boost/optional.hpp>
+#include <boost/format.hpp>    // for basic_altstringbuf<>::int_type, basic_...
+#include <boost/none.hpp>      // for none
+#include <ext/alloc_traits.h>  // for __alloc_traits<>::value_type
+#include <stdlib.h>            // for rand, srand, size_t, abs
+
 using boost::optional;
 using boost::make_optional;
 
-#include "tsp_solver.hpp"
+#include "bg_helpers.hpp"      // for operator&, buffer, operator+, operator-
+#include "common.hpp"          // for build_filename, UNUSED
+#include "eulerian_paths.hpp"  // for make_eulerian_paths
+#include "gerberimporter.hpp"  // for GerberImporter
+#include "mill.hpp"            // for RoutingMill, Isolator, Cutter
+#include "path_finding.hpp"    // for create_path_finding_surface, find_path
 #include "surface_vectorial.hpp"
-#include "eulerian_paths.hpp"
-#include "bg_helpers.hpp"
-#include "units.hpp"
-#include "path_finding.hpp"
-#include "merge_near_points.hpp"
+#include "tsp_solver.hpp"      // for tsp_solver
+#include "units.hpp"           // for MillFeedDirection, CONVENTIONAL, ANY
+#include "voronoi.hpp"         // for Voronoi
 
 using std::max;
 using std::max_element;
