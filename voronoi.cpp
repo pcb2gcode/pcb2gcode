@@ -17,20 +17,34 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
- #include <iostream>
+#include <boost/core/enable_if.hpp>                 // for enable_if_c<>::type
+#include <boost/geometry.hpp>                       // for scale_transformer
+#include <boost/polygon/point_data.hpp>             // for point_data
+#include <boost/polygon/segment_concept.hpp>        // for low, high
+#include <boost/polygon/voronoi.hpp>                // for insert
+#include <boost/polygon/voronoi_geometry_type.hpp>  // for SOURCE_CATEGORY_S...
+#include <ext/alloc_traits.h>                       // for __alloc_traits<>:...
+#include <stdlib.h>                                 // for size_t, abs, NULL
+#include <iostream>                                 // for cerr, cout, endl
+#include <iterator>                                 // for distance
+#include <memory>                                   // for allocator_traits<...
+
  using std::cerr;
  using std::cout;
  using std::endl;
 
+#include <algorithm>                                // for upper_bound, max
+#include <list>                                     // for list
+#include <map>                                      // for map
+
 #include "voronoi.hpp"
-#include "voronoi_visual_utils.hpp"
-#include <list>
-#include <map>
-#include <algorithm>
+#include "voronoi_visual_utils.hpp"                 // for voronoi_visual_utils
+
 using std::list;
 using std::map;
 
-#include <vector>
+#include <vector>                                   // for vector
+
 using std::vector;
 
 // For use when we have to convert from float to long and back.

@@ -20,24 +20,30 @@
 #ifndef SURFACE_VECTORIAL_H
 #define SURFACE_VECTORIAL_H
 
-#include <vector>
-#include <list>
-#include <forward_list>
-#include <map>
-#include <utility>
-#include <algorithm>
-
-#include <fstream>
-
-#include <memory>
-
+#include <boost/core/noncopyable.hpp>   // for noncopyable
+#include <boost/geometry.hpp>           // for svg_mapper, point_xy
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
+#include <boost/optional/optional.hpp>  // for optional
+#include <stddef.h>                     // for size_t
+#include <algorithm>
+#include <forward_list>
+#include <fstream>                      // for ofstream
+#include <list>
+#include <map>                          // for map
+#include <memory>                       // for shared_ptr, unique_ptr
+#include <string>                       // for string
+#include <utility>                      // for pair
+#include <vector>                       // for vector
 
-#include "mill.hpp"
+#include "geometry.hpp"                 // for coordinate_type_fp, box_type_fp
 #include "gerberimporter.hpp"
+#include "mill.hpp"
+#include "units.hpp"                    // for MillFeedDirection
 #include "voronoi.hpp"
-#include "units.hpp"
+
+class GerberImporter;
+class RoutingMill;
 
 /******************************************************************************/
 /*

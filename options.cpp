@@ -20,22 +20,31 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "options.hpp"
-#include "config.h"
-
+#include <boost/any.hpp>                            // for any
+#include <boost/lexical_cast/bad_lexical_cast.hpp>  // for bad_lexical_cast
+#include <boost/units/detail/one.hpp>               // for operator>
+#include <boost/variant/detail/variant_io.hpp>      // for operator<<
+#include <boost/variant/variant.hpp>                // for variant
+#include <stddef.h>                                 // for size_t
+#include <istream>                                  // for ios_base::failure
+#include <limits>                                   // for numeric_limits
+#include <memory>                                   // for allocator
+#include <stdexcept>                                // for logic_error, runt...
+#include <string>                                   // for string, basic_string
+#include <vector>                                   // for vector
 #include <fstream>
-#include <list>
-#include <boost/exception/all.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/variant.hpp>
-#include "units.hpp"
-#include "available_drills.hpp"
 
-#include <string>
+#include "available_drills.hpp"                     // for AvailableDrills
+#include "common.hpp"                               // for Software
+#include "config.h"                                 // for PACKAGE_STRING
+#include "options.hpp"
+#include "units.hpp"                                // for Length, Unit, ope...
+
 using std::string;
 using std::to_string;
 
-#include <iostream>
+#include <iostream>                                 // for cerr
+
 using std::cerr;
 using std::endl;
 

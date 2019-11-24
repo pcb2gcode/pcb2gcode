@@ -21,16 +21,17 @@
 #ifndef OPTIONS_HPP
 #define OPTIONS_HPP
 
+#include <bits/exception.h>            // for exception
+#include <boost/core/noncopyable.hpp>  // for noncopyable
+#include <boost/program_options.hpp>   // for options_description, program_o...
+#include <memory>
 #include <stdexcept>
 
-#include <memory>
-#include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
 #include <boost/noncopyable.hpp>
-
 #include <istream>
-#include <string>
+#include <string>                      // for string
 
 enum ErrorCodes {
     ERR_OK = 0,

@@ -20,16 +20,18 @@
 #ifndef GERBERIMPORTER_H
 #define GERBERIMPORTER_H
 
-#include "config.h"	// for COMPILE_VALUE_NEW_LINEARX10
-#include <string>
 #include <iostream>
-#include <utility>
-#include <map>
+#include <map>               // for map
+#include <string>            // for string
+#include <utility>           // for pair
 
-#include "geometry.hpp"
+#include "config.h"          // for COMPILE_VALUE_NEW_LINEARX10
+#include "geometry.hpp"      // for coordinate_type_fp, multi_linestring_typ...
 
 extern "C" {
-#include <gerbv.h>
+#include <bits/exception.h>  // for exception
+#include <gerbv.h>           // for gerbv_project_t
+#include <glib.h>            // for gdouble
 
 // This depends on GERBV_INTERPOLATION_LINEARX10 not being the first item
 // in the enum.

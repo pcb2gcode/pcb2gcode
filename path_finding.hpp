@@ -2,8 +2,11 @@
 #define PATH_FINDING_H
 
 #include <boost/optional.hpp>
+#include <boost/optional/optional.hpp>  // for optional
+#include <functional>                   // for function
+#include <memory>                       // for shared_ptr
 
-#include "geometry.hpp"
+#include "geometry.hpp"                 // for point_type_fp, coordinate_typ...
 
 namespace path_finding {
 

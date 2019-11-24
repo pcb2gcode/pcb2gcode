@@ -18,21 +18,33 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <math.h>                              // for ceil, INFINITY
+#include <algorithm>                           // for max, min
+#include <memory>                              // for shared_ptr, __shared_p...
+
 #include "board.hpp"
-#include <memory>
+#include "gerberimporter.hpp"                  // for GerberImporter
+#include "layer.hpp"                           // for Layer
+#include "mill.hpp"                            // for Isolator, Cutter, Rout...
+#include "surface_vectorial.hpp"               // for Surface_vectorial
+
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 
-#include <string>
+#include <string>                              // for string, basic_string
+
 using std::string;
 
 using std::get;
 using std::static_pointer_cast;
 
-#include <utility>
+#include <utility>                             // for pair, make_pair
+
 using std::pair;
 
-#include <vector>
+#include <vector>                              // for vector
+
 using std::vector;
 
 typedef pair<string, shared_ptr<Layer> > layer_t;

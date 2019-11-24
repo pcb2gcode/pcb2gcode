@@ -20,46 +20,60 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fstream>
-using std::ofstream;
+#include <algorithm>                           // for max, min, min_element
+#include <cstring>                             // for strcpy, strlen, NULL
+#include <iostream>                            // for operator<<, basic_ostream
+#include <iterator>                            // for next
+#include <limits>                              // for numeric_limits
+#include <list>                                // for _List_const_iterator
+#include <type_traits>                         // for __decay_and_strip<>::_...
 
-#include <cstring>
-
-#include <iostream>
 using std::cout;
 using std::endl;
 using std::flush;
 
-#include <vector>
+#include <vector>                              // for vector
+
 using std::vector;
 
-#include <sstream>
 using std::stringstream;
 
-#include <memory>
+#include <memory>                              // for allocator, shared_ptr
+
 using std::shared_ptr;
 
-#include <numeric>
-#include <iomanip>
+#include <iomanip>                             // for operator<<, setprecision
+
 using std::setprecision;
 using std::fixed;
 
-#include <boost/format.hpp>
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <boost/format.hpp>                    // for basic_altstringbuf<>::...
+#include <boost/geometry.hpp>                  // for point_xy, svg_mapper
+#include <boost/none.hpp>                      // for none
+#include <glib.h>                              // for g_assert
+#include <math.h>                              // for sqrt, ceil, abs, M_PI
+
 using boost::format;
 
-#include <string>
+#include <string>                              // for string, char_traits
+
 using std::string;
 
-#include <map>
+#include <map>                                 // for map, _Rb_tree_iterator
+
 using std::map;
 
-#include "drill.hpp"
-#include "tsp_solver.hpp"
-#include "common.hpp"
-#include "units.hpp"
-#include "available_drills.hpp"
+#include <utility>                             // for pair, make_pair
 
-#include <utility>
+#include "available_drills.hpp"                // for AvailableDrill, Availa...
+#include "common.hpp"                          // for build_filename, workSide
+#include "drill.hpp"
+#include "gerbv.h"                             // for gerbv_net_t, gerbv_dri...
+#include "mill.hpp"                            // for Cutter, Driller
+#include "tsp_solver.hpp"                      // for tsp_solver
+#include "units.hpp"                           // for Length, Unit, flatten
+
 using std::pair;
 using std::make_pair;
 using std::max;
@@ -669,7 +683,7 @@ void ExcellonProcessor::save_svg(
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
-    ofstream svg_out (build_filename(of_dir, of_name));
+    std::ofstream svg_out (build_filename(of_dir, of_name));
     bg::svg_mapper<point_type_fp> mapper (svg_out, viewBox_width, viewBox_height, svg_dimensions);
 
     mapper.add(board_dimensions);

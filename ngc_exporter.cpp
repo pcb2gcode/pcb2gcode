@@ -20,39 +20,53 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>                            // for cout, cerr
+#include <stdexcept>                           // for logic_error
+
+#include "autoleveller.hpp"                    // for autoleveller
+#include "board.hpp"                           // for Board
+#include "common.hpp"                          // for workSide, build_filename
+#include "layer.hpp"                           // for Layer
+#include "mill.hpp"                            // for RoutingMill, Cutter
 #include "ngc_exporter.hpp"
-#include "options.hpp"
-#include <boost/algorithm/string.hpp>
-#include <iostream>
+
 using std::cerr;
 using std::flush;
 using std::ios_base;
 using std::left;
-#include <string>
+#include <string>                              // for string, char_traits
+
 using std::to_string;
 using std::string;
 using std::cout;
 using std::endl;
 
-#include <vector>
+#include <vector>                              // for vector, vector<>::iter...
+
 using std::vector;
 
-#include <utility>
+#include <utility>                             // for pair
+
 using std::pair;
 
-#include <cmath>
+#include <cmath>                               // for ceil
+
 using std::ceil;
 
-#include <memory>
+#include <memory>                              // for shared_ptr, allocator
+
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 
-#include <iomanip>
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <boost/format.hpp>                    // for basic_altstringbuf<>::...
+#include <boost/move/utility_core.hpp>         // for move
+#include <boost/none.hpp>                      // for none
+#include <boost/program_options.hpp>           // for variable_value, variab...
 
-#include <boost/format.hpp>
 using boost::format;
 
-#include "units.hpp"
+#include "units.hpp"                           // for Length, Unit, operator<<
 
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
     : board(board), ocodes(1), globalVars(100) {}

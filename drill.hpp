@@ -23,28 +23,38 @@
 #ifndef DRILL_H
 #define DRILL_H
 
-#include <map>
-#include <string>
 #include <list>
-#include <vector>
-#include <memory>
+#include <map>                            // for map
+#include <memory>                         // for shared_ptr, unique_ptr
+#include <ostream>                        // for ostringstream, basic_ostream
+#include <string>                         // for string, operator<<, basic_s...
+#include <vector>                         // for vector
 
 extern "C" {
-#include <gerbv.h>
+#include <bits/exception.h>               // for exception
+#include <boost/exception/exception.hpp>  // for exception
+#include <boost/optional/optional.hpp>    // for optional
+#include <boost/program_options.hpp>      // for variables_map
+#include <boost/units/detail/one.hpp>     // for operator>
+#include <gerbv.h>                        // for gerbv_project_t
 }
 
-#include "geometry.hpp"
-
 #include <boost/exception/all.hpp>
+
+#include "geometry.hpp"                   // for ilinesegments, icoordpair
+
 class drill_exception: virtual std::exception, virtual boost::exception
 {
 };
 
+#include "available_drills.hpp"           // for AvailableDrill
 #include "mill.hpp"
-#include "tile.hpp"
-#include "unique_codes.hpp"
-#include "units.hpp"
-#include "available_drills.hpp"
+#include "tile.hpp"                       // for Tiling, Tiling::TileInfo
+#include "unique_codes.hpp"               // for uniqueCodes
+#include "units.hpp"                      // for Length, parse_unit, units_p...
+
+class Cutter;
+class Driller;
 
 /******************************************************************************/
 /*

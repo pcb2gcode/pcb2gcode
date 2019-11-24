@@ -18,21 +18,28 @@
  * along with pcb2gcode.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "layer.hpp"
+#include <boost/container/detail/std_fwd.hpp>  // for pair
+#include <memory>                              // for shared_ptr, __shared_p...
 
-#include <memory>
+#include "layer.hpp"
+#include "mill.hpp"                            // for Cutter, RoutingMill (p...
+#include "surface_vectorial.hpp"               // for Surface_vectorial
+
 using std::shared_ptr;
 using std::dynamic_pointer_cast;
 
-#include <vector>
+#include <vector>                              // for vector
+
 using std::vector;
 
-#include <utility>
+#include <utility>                             // for pair
+
 using std::pair;
 
-#include "outline_bridges.hpp"
+#include <iostream>                            // for operator<<, basic_ostream
 
-#include <iostream>
+#include "outline_bridges.hpp"                 // for makeBridges
+
 using std::cerr;
 using std::endl;
 
@@ -48,8 +55,6 @@ Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
     this->surface = surface;
     this->manufacturer = manufacturer;
 }
-
-#include <iostream>
 
 /******************************************************************************/
 vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Layer::get_toolpaths() {

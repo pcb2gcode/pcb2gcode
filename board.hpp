@@ -22,20 +22,25 @@
 #define BOARD_H
 
 #include <stdint.h>
-
-#include <stdexcept>
-#include <sstream>
-
 #include <iostream>
-#include <map>
-#include <vector>
-#include <memory>
-#include <tuple>
-#include "geometry.hpp"
-#include "surface_vectorial.hpp"
-#include "layer.hpp"
+#include <map>           // for map
+#include <memory>        // for shared_ptr
+#include <sstream>
+#include <stdexcept>
+#include <string>        // for string
+#include <tuple>         // for tuple
+#include <utility>       // for pair
+#include <vector>        // for vector
 
+#include "geometry.hpp"  // for ivalue_t, coordinate_type_fp, icoords
+#include "layer.hpp"
 #include "mill.hpp"
+#include "surface_vectorial.hpp"
+#include "units.hpp"     // for MillFeedDirection
+
+class GerberImporter;
+class Layer;
+class RoutingMill;
 
 /******************************************************************************/
 /*

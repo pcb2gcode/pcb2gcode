@@ -26,19 +26,19 @@
 //Fixed probe fail depth (in mm, string)
 #define FIXED_FAIL_DEPTH_MM "-3"
 
-#include <boost/program_options.hpp>
+#include <boost/program_options.hpp>  // for variables_map
 #include <boost/program_options/variables_map.hpp>
-#include <string>
-#include <fstream>
-#include <vector>
-#include <memory>
-#include <utility>
+#include <fstream>                    // for ofstream
+#include <memory>                     // for shared_ptr
+#include <string>                     // for string
+#include <utility>                    // for pair
+#include <vector>                     // for vector
 
-#include "geometry.hpp"
-#include "unique_codes.hpp"
-#include "common.hpp"
-#include "tile.hpp"
+#include "common.hpp"                 // for LINUXCNC, Software
+#include "geometry.hpp"               // for icoordpair, icoords, coordinate...
 #include "options.hpp"
+#include "tile.hpp"                   // for Tiling, Tiling::TileInfo
+#include "unique_codes.hpp"
 
 class uniqueCodes;
 
