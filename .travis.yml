@@ -85,8 +85,8 @@ install:
       brew install librsvg &&
       brew upgrade wget &&
       hash -r &&
-      ln -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
-      ln -s `which glibtool` $HOME/.local/bin/libtool &&
+      ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize &&
+      ln -f -s `which glibtool` $HOME/.local/bin/libtool &&
       hash -r &&
       export BOOST_DIR="/usr/local/opt/boost@1.60" &&
       export NUM_CPUS=`sysctl -n hw.logicalcpu` &&
