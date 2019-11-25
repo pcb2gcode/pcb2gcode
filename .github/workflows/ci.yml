@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Display env
+      run: env
     - uses: actions/checkout@v1
     - name: Setup paths
       run: |
