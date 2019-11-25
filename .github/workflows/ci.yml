@@ -20,14 +20,12 @@ jobs:
           - os: macos-latest
             compiler: 'g++-8'
         include:
-          - gerberimporter_tests: true
-          - code_coverage: false
           - os: ubuntu-latest
             boost: 1_66_0
             compiler: g++-8
             code_coverage: true
           - boost: 1_66_0
-            gerberimporter_tests: false
+            skip_gerberimporter_tests: true
     runs-on: ${{ matrix.os }}
 
     steps:
