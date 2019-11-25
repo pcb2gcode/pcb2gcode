@@ -95,6 +95,6 @@ jobs:
         --disable-dependency-tracking
         --disable-silent-rules
         --enable-static-boost
-        || cat config.log && false
+        || (cat config.log && false)
     - name: pcb2gcode make
       run: make -j ${NUM_CPUS}
