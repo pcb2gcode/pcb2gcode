@@ -1,6 +1,10 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
   build:
@@ -34,6 +38,7 @@ jobs:
         ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
         ./b2 -j ${NUM_CPUS}
         ./b2 install
+        echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
         popd
         popd
     - name: Install gerbv
