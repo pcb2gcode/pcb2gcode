@@ -13,9 +13,9 @@ jobs:
       run: |
         mkdir -p $HOME/.local/bin
         mkdir -p $HOME/.local/lib/pkgconfig
-        export PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH
-        export LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH
-        export PATH=$HOME/.local/bin:$PATH
+        echo "::set-env name=PKG_CONFIG_PATH=$(echo $HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH)"
+        echo "::set-env name=LD_LIBRARY_PATH=$(echo $HOME/.local/lib:$LD_LIBRARY_PATH)"
+        echo "::set-env name=PATH::$(echo $HOME/.local/bin:$PATH)"
         echo "::set-env name=NUM_CPUS::$(nproc --all)"
     - name: apt-get chronic
       run: |
