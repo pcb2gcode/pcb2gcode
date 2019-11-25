@@ -107,7 +107,7 @@ private:
   std::map<int, ilinesegments> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
                                          const boost::optional<Length>& min_diameter,
                                          const boost::optional<Length>& max_diameter);
-  std::map<int, drillbit> optimize_bits(bool onedrill);
+  std::map<int, drillbit> optimize_bits();
 
     void save_svg(
         const std::map<int, drillbit>& bits, const std::map<int, ilinesegments>& holes,
@@ -117,6 +117,7 @@ private:
     const ivalue_t board_center_x;
 
     gerbv_project_t * const project;
+    const bool bMetricOutput;   //Flag to indicate metric output
     const std::map<int, drillbit> parsed_bits;
     const std::map<int, ilinesegments> parsed_holes;
     std::vector<std::string> header;
@@ -128,7 +129,6 @@ private:
     std::string zchange;
     const bool drillfront;
     const double inputFactor;   //Multiply unitless inputs by this value.
-    const bool bMetricOutput;   //Flag to indicate metric output
     const bool tsp_2opt;        // Perform TSP 2opt optimization on drill path.
     const double xoffset;
     const double yoffset;
@@ -140,7 +140,7 @@ private:
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
-    Tiling *tiling;
+    std::unique_ptr<Tiling> tiling;
 };
 
 #endif // DRILL_H

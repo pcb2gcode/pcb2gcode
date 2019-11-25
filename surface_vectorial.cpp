@@ -50,9 +50,6 @@ using std::map;
 using boost::optional;
 using boost::make_optional;
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "eulerian_paths.hpp"
@@ -225,7 +222,7 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
   srand(1);
   debug_image.add(vectorial_surface->first, 1, true);
   for (const auto& diameter_and_path : vectorial_surface->second) {
-    debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
+    debug_image.add(diameter_and_path.second, diameter_and_path.first, true);
   }
 }
 
@@ -432,7 +429,6 @@ bool attach_ls(const linestring_type_fp& ls,
 void attach_ls(const linestring_type_fp& ls,
                vector<pair<linestring_type_fp, bool>>& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
-               const multi_polygon_type_fp& already_milled_shrunk,
                const PathFinder& path_finder) {
   if (bg::equals(ls.front(), ls.back())) {
     // This path is actually a ring so we can use attach_ring which can connect
@@ -478,7 +474,7 @@ void attach_ring(const ring_type_fp& ring,
   }
   ring_paths = eulerian_paths::make_eulerian_paths(ring_paths_with_direction); // Rejoin those paths as possible.
   for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
-    attach_ls(ring_path, toolpaths, dir, already_milled_shrunk, path_finder);
+    attach_ls(ring_path, toolpaths, dir, path_finder);
   }
 }
 
@@ -709,10 +705,12 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       vector<pair<linestring_type_fp, bool>> new_trace_toolpath;
       PathFinder path_finder =
           [&](const point_type_fp& a, const point_type_fp& b) -> optional<linestring_type_fp> {
+            UNUSED(a);
+            UNUSED(b);
             return boost::none;
           };
       for (const auto& path : paths) {
-        attach_ls(path, new_trace_toolpath, MillFeedDirection::ANY, multi_polygon_type_fp(), path_finder);
+        attach_ls(path, new_trace_toolpath, MillFeedDirection::ANY, path_finder);
       }
       if (mill->optimise) {
         for (auto& ls_and_allow_reversal : new_trace_toolpath) {
@@ -753,7 +751,7 @@ void Surface_vectorial::save_debug_image(string message)
     srand(1);
     debug_image.add(vectorial_surface->first, 1, true);
     for (const auto& diameter_and_path : vectorial_surface->second) {
-      debug_image.add(diameter_and_path.second, diameter_and_path.first, 1, true);
+      debug_image.add(diameter_and_path.second, diameter_and_path.first, true);
     }
 
     ++debug_image_index;
@@ -922,7 +920,7 @@ void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool 
     }
 }
 
-void svg_writer::add(const multi_linestring_type_fp& mls, coordinate_type_fp width, double opacity, bool stroke) {
+void svg_writer::add(const multi_linestring_type_fp& mls, coordinate_type_fp width, bool stroke) {
   string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
   for (const auto& ls : mls) {

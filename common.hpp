@@ -27,8 +27,14 @@ namespace Software {
 // This enum contains the software codes. Note that all the items (except for CUSTOM)
 // must start from 0 and be consecutive, as they are used as array indexes
 enum Software { CUSTOM = -1, LINUXCNC = 0, MACH4 = 1, MACH3 = 2 };
-};
+} // namespace Software
 
 bool workSide( const boost::program_options::variables_map &options, std::string type );
+
+// Based on the explanation here:
+// https://www.geeksforgeeks.org/python-os-path-join-method/
+std::string build_filename(const std::string& a, const std::string& b);
+
+#define UNUSED(expr) do { (void)(expr); } while (0)
 
 #endif // COMMON_H

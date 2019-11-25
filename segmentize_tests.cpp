@@ -1,17 +1,19 @@
 #define BOOST_TEST_MODULE segmentize tests
 #include <boost/test/included/unit_test.hpp>
 
+#include <inttypes.h>
+
 #include "segmentize.hpp"
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(segmentize_tests);
+BOOST_AUTO_TEST_SUITE(segmentize_tests)
 
 void print_result(const vector<std::pair<segment_type_p, bool>>& result) {
   for (const auto& segment_and_allow_reversal : result) {
     const auto& s = segment_and_allow_reversal.first;
     const auto& allow_reversal = segment_and_allow_reversal.second;
-    printf("%ld %ld %ld %ld: %d\n", s.low().x(), s.low().y(), s.high().x(), s.high().y(), allow_reversal);
+    printf("%" PRId64 " %" PRId64 " %" PRId64 " %" PRId64 ": %d\n", s.low().x(), s.low().y(), s.high().x(), s.high().y(), allow_reversal);
   }
 }
 

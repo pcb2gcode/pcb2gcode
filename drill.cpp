@@ -47,9 +47,6 @@ using std::fixed;
 #include <boost/format.hpp>
 using boost::format;
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include <string>
 using std::string;
 
@@ -84,11 +81,11 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                         point_type_fp(max.first, max.second)),
       board_center_x((min.first + max.first) / 2),
       project(parse_project(options["drill"].as<string>())),
+      bMetricOutput(options["metricoutput"].as<bool>()),
       parsed_bits(parse_bits()),
       parsed_holes(parse_holes()),
       drillfront(workSide(options, "drill")),
       inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
-      bMetricOutput(options["metricoutput"].as<bool>()),
       tsp_2opt(options["tsp-2opt"].as<bool>()),
       xoffset((options["zero-start"].as<bool>() ? min.first : 0) -
               options["x-offset"].as<Length>().asInch(inputFactor)),
@@ -100,7 +97,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
       available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
       ocodes(1),
       globalVars(100),
-      tileInfo(Tiling::generateTileInfo(options, ocodes, max.second - min.second, max.first - min.first)) {
+      tileInfo(Tiling::generateTileInfo(options, max.second - min.second, max.first - min.first)) {
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricOutput ? 25.4 : 1;
 
@@ -121,7 +118,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 
     preamble += "G90       (Absolute coordinates.)\n";
 
-    tiling = new Tiling( tileInfo, cfactor, ocodes.getUniqueCode() );
+    tiling = std::unique_ptr<Tiling>(new Tiling(tileInfo, cfactor, ocodes.getUniqueCode()));
 }
 
 /******************************************************************************/
@@ -256,7 +253,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "\nM9      (Coolant off.)\n"
                          "M2      (Program end.)\n\n");
 
-    map<int, drillbit> bits = optimize_bits(onedrill);
+    map<int, drillbit> bits = optimize_bits();
     const map<int, ilinesegments> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
 
     //open output file
@@ -748,7 +745,9 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
   map<int, drillbit> bits;
 
   for (gerbv_drill_list_t* currentDrill =
-           project->file[0]->image->drill_stats->drill_list; currentDrill; currentDrill = currentDrill->next) {
+           project->file[0]->image->drill_stats->drill_list;
+       currentDrill;
+       currentDrill = currentDrill->next) {
     drillbit curBit;
     curBit.diameter = currentDrill->drill_size;
     curBit.unit = string(currentDrill->drill_unit);
@@ -860,7 +859,7 @@ map<int, ilinesegments> ExcellonProcessor::optimize_holes(
 /*
  */
 /******************************************************************************/
-map<int, drillbit> ExcellonProcessor::optimize_bits(bool onedrill) {
+map<int, drillbit> ExcellonProcessor::optimize_bits() {
   map<int, drillbit> bits(parsed_bits);
     // If there is a list of available bits, round the holes to the nearest
     // available bit.

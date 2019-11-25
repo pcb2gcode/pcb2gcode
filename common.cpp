@@ -26,6 +26,8 @@
 using boost::format;
 using std::string;
 
+#include <boost/system/api_config.hpp>  // for BOOST_POSIX_API or BOOST_WINDOWS_API
+
 #include "units.hpp"
 
 bool workSide( const boost::program_options::variables_map &options, string type )
@@ -50,4 +52,32 @@ bool workSide( const boost::program_options::variables_map &options, string type
                     return false;   // back only
         }
     }
+}
+
+// Based on the explanation here:
+// https://www.geeksforgeeks.org/python-os-path-join-method/
+string build_filename(const string& a, const string& b) {
+#ifdef BOOST_WINDOWS_API
+  static constexpr auto seperator = '\\';
+#endif
+
+#ifdef BOOST_POSIX_API
+  static constexpr auto seperator = '/';
+#endif
+
+  if (a.size() == 0 || b.front() == seperator) {
+    return b;
+  }
+  if (b.size() == 0) {
+    if (a.back() != seperator) {
+      return a + seperator;
+    } else {
+      return a;
+    }
+  }
+  if (a.back() != seperator) {
+    return a + seperator + b;
+  } else {
+    return a + b;
+  }
 }

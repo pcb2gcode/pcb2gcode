@@ -1,0 +1,12 @@
+zsafe=.05
+zwork=0.008
+zchange=1.6
+cutter-diameter=0.02
+offset=0.01
+mill-speed=24000
+mill-feed=20
+outline=Edge.Cuts.gbr
+zcut=-0.08
+cut-feed=0.04
+cut-speed=24000
+cut-infeed=0.04

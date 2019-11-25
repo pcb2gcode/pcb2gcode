@@ -7,7 +7,7 @@ namespace po = boost::program_options;
 
 using namespace std;
 
-BOOST_AUTO_TEST_SUITE(available_drills_tests);
+BOOST_AUTO_TEST_SUITE(available_drills_tests)
 
 AvailableDrills string_to_available_drills(const string& text) {
   stringstream ss(text);

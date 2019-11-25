@@ -78,4 +78,4 @@ multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_f
   return make_eulerian_paths(path_to_simplify);
 }
 
-}; // namespace eulerian_paths
+} // namespace eulerian_paths

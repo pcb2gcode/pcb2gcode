@@ -71,13 +71,9 @@ GerberImporter::~GerberImporter() {
 
 /* Returns true iff successful. */
 bool GerberImporter::load_file(const string& path) {
-  const char* cfilename = path.c_str();
-  char *filename = new char[strlen(cfilename) + 1];
-  strcpy(filename, cfilename);
-
+  gchar *filename = g_strdup(path.c_str());
   gerbv_open_layer_from_filename(project, filename);
-  delete[] filename;
-
+  g_free(filename);
   return project->file[0] != NULL;
 }
 
@@ -95,26 +91,6 @@ gdouble GerberImporter::get_min_y() const {
 
 gdouble GerberImporter::get_max_y() const {
   return project->file[0]->image->info->max_y;
-}
-
-void GerberImporter::render(Cairo::RefPtr<Cairo::ImageSurface> surface, const guint dpi, const double min_x, const double min_y,
-                            const GdkColor& color, const gerbv_render_types_t& renderType) const {
-  gerbv_render_info_t render_info;
-
-  render_info.scaleFactorX = dpi;
-  render_info.scaleFactorY = dpi;
-  render_info.lowerLeftX = min_x;
-  render_info.lowerLeftY = min_y;
-  render_info.displayWidth = surface->get_width();
-  render_info.displayHeight = surface->get_height();
-  render_info.renderType = renderType;
-
-  project->file[0]->color = color;
-
-  Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
-  gerbv_render_layer_to_cairo_target(cr->cobj(), project->file[0], &render_info);
-
-  /// @todo check wheter importing was successful
 }
 
 // Draw a regular polygon with outer diameter as specified and center.  The
@@ -330,14 +306,35 @@ inline static void unsupported_polarity_throw_exception() {
   throw gerber_exception();
 }
 
-multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& multi_draws) {
+// A pair of shapes, one from filling in closed loops, one from all the rest of
+// the shapes.  If fill_closed_lines is false, all the outputs will be in
+// shapes.  If fill_closed_lines is true, loops will be converted into shapes
+// and put into filled_closed_lines.  The rest are put into shapes.  shapes are
+// combined with addition but filled_closed_lines are combined with exclusive
+// or.
+struct mp_pair {
+  mp_pair() {}
+  mp_pair(multi_polygon_type_fp mp) : shapes(mp) {}
+  multi_polygon_type_fp filled_closed_lines;
+  multi_polygon_type_fp shapes;
+  const mp_pair operator+(const mp_pair& rhs) const {
+    mp_pair ret;
+    ret.filled_closed_lines = filled_closed_lines ^ rhs.filled_closed_lines;
+    ret.shapes = shapes + rhs.shapes;
+    return ret;
+  }
+};
+
+// To speed up the merging, we do them in pairs so that we're mostly merging
+// equal-sized shapes.
+mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   if (multi_draws.size() == 0) {
     return multi_polygon_type_fp();
   } else if (multi_draws.size() == 1) {
     return multi_draws.front();
   }
   auto current = multi_draws.cbegin();
-  vector<multi_polygon_type_fp> new_draws;
+  vector<mp_pair> new_draws;
   if (multi_draws.size() % 2 == 1) {
     new_draws.push_back(*current);
     current++;
@@ -349,16 +346,17 @@ multi_polygon_type_fp merge_multi_draws(const vector<multi_polygon_type_fp>& mul
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>>& layers,
-                                      unsigned int points_per_circle) {
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers,
+                                      multi_polygon_type_fp mp_pair::* member, bool xor_layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
 
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    const vector<multi_polygon_type_fp>& multi_draws = layer->second;
-    multi_polygon_type_fp draws = merge_multi_draws(multi_draws);
+    const vector<mp_pair>& multi_draws = layer->second;
+    mp_pair draw_pair = merge_multi_draws(multi_draws);
+    multi_polygon_type_fp draws = draw_pair.*member;
 
     // First duplicate in the x direction.
     auto original_draw = draws;
@@ -377,8 +375,9 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
                     translate(0, stepAndRepeat.dist_Y * sr_y));
       draws = draws + translated_draws;
     }
-
-    if (polarity == GERBV_POLARITY_DARK) {
+    if (xor_layers) {
+      output = output ^ draws;
+    } else if (polarity == GERBV_POLARITY_DARK) {
       output = output + draws;
     } else if (polarity == GERBV_POLARITY_CLEAR) {
       output = output - draws;
@@ -386,7 +385,6 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
       unsupported_polarity_throw_exception();
     }
   }
-
   return output;
 }
 
@@ -425,32 +423,42 @@ multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp exte
   return ring - rect1 - rect2;
 }
 
-// Look through ring for crossing points and snip them out of the input so that
+// Look through ls for crossing points and snip them out of the input so that
 // the return value is a series of rings such that no ring has the same point in
-// it twice.
-vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
-  for (auto start = ring.cbegin(); start != ring.cend(); start++) {
-    for (auto end = std::next(start); end != ring.cend(); end++) {
+// it twice except for the front and back.  There is also one linestring that
+// isn't a ring in the output if the input isn't a ring.
+multi_linestring_type_fp get_all_ls(const linestring_type_fp& ls) {
+  for (auto start = ls.cbegin(); start != ls.cend(); start++) {
+    for (auto end = std::next(start); end != ls.cend(); end++) {
       if (bg::equals(*start, *end)) {
-        if (start == ring.cbegin() && end == std::prev(ring.cend())) {
-          continue; // This is just the entire ring, no need to try to recurse here.
+        if (start == ls.cbegin() && end == std::prev(ls.cend())) {
+          continue; // This is just the entire ls, no need to try to recurse here.
         }
-        ring_type_fp inner_ring(start, end); // Build the ring that we've found.
-        inner_ring.push_back(inner_ring.front()); // Close the ring.
+        linestring_type_fp inner(start, end); // Build the ring that we've found.
+        inner.push_back(inner.front()); // Close the ring.
 
-        // Make a ring from the rest of the points.
-        ring_type_fp outer_ring(ring.cbegin(), start);
-        outer_ring.insert(outer_ring.end(), end, ring.cend());
+        // Connect up the rest.
+        linestring_type_fp outer(ls.cbegin(), start);
+        outer.insert(outer.cend(), end, ls.cend());
         // Recurse on outer and inner and put together.
-        vector<ring_type_fp> all_rings = get_all_rings(outer_ring);
-        vector<ring_type_fp> all_inner_rings = get_all_rings(inner_ring);
-        all_rings.insert(all_rings.end(), all_inner_rings.cbegin(), all_inner_rings.cend());
-        return all_rings;
+        auto all = get_all_ls(outer);
+        auto all_inner = get_all_ls(inner);
+        all.insert(all.cend(), all_inner.cbegin(), all_inner.cend());
+        return all;
       }
     }
   }
   // No points repeated so just return the original without recursion.
-  return vector<ring_type_fp>{ring};
+  return multi_linestring_type_fp{ls};
+}
+
+vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
+  auto mls = get_all_ls(linestring_type_fp(ring.cbegin(), ring.cend()));
+  vector<ring_type_fp> rings;
+  for (const auto& ls : mls) {
+    rings.push_back(ring_type_fp(ls.cbegin(), ls.cend()));
+  }
+  return rings;
 }
 
 multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
@@ -676,7 +684,6 @@ struct PointLessThan {
   }
 };
 
-
 /* Convert paths that all need to be drawn with the same diameter into shapes.
  *
  * If fill_closed_lines is true, we'll try to find closed loops among the paths
@@ -685,7 +692,7 @@ struct PointLessThan {
  * If there are non-loops when fill_closed_lines is true, we'll report an
  * error.
  */
-multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines, unsigned int points_per_circle) {
+mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestring_type_fp& paths, bool fill_closed_lines) {
   multi_linestring_type_fp new_paths(paths);
   if (fill_closed_lines) {
     if (merge_near_points(new_paths, diameter) > 0) {
@@ -693,8 +700,14 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
     }
   }
   // This converts the many small line segments into the longest paths possible.
-  multi_linestring_type_fp euler_paths = eulerian_paths::make_eulerian_paths(paths, true);
-  multi_polygon_type_fp ovals;
+  multi_linestring_type_fp euler_paths_with_rings =
+      eulerian_paths::make_eulerian_paths(paths, true);
+  multi_linestring_type_fp euler_paths;
+  for (const auto& ls : euler_paths_with_rings) {
+    auto all_ls = get_all_ls(ls);
+    euler_paths.insert(euler_paths.cend(), all_ls.cbegin(), all_ls.cend());
+  }
+  mp_pair ovals;
   if (fill_closed_lines) {
     for (auto& euler_path : euler_paths) {
       if (bg::equals(euler_path.front(), euler_path.back())) {
@@ -704,20 +717,22 @@ multi_polygon_type_fp paths_to_shapes(const coordinate_type_fp& diameter, const 
         bg::correct(loop_poly);
         multi_polygon_type_fp loop_mpoly;
         loop_mpoly.push_back(loop_poly);
-        ovals = ovals ^ loop_mpoly;
+        ovals.filled_closed_lines = ovals.filled_closed_lines ^ loop_mpoly;
       }
     }
   }
   euler_paths.erase(std::remove_if(euler_paths.begin(), euler_paths.end(), [](const linestring_type_fp& l) { return l.size() == 0; }), euler_paths.end());
-  if (fill_closed_lines && euler_paths.size() > 0) {
-    cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
-         << endl;
-  }
   if (euler_paths.size() > 0) {
     // This converts the long paths into a shape with thickness equal to the specified diameter.
-    multi_polygon_type_fp new_ovals;
-    bg_helpers::buffer(euler_paths, new_ovals, diameter / 2);
-    ovals = ovals + new_ovals;
+    auto new_ovals = bg_helpers::buffer(euler_paths, diameter / 2);
+    if (fill_closed_lines) {
+      // Assume that this are slots that were drawn as lines.
+      cerr << "Found an unconnected loop while parsing a gerber file while expecting only loops"
+           << endl;
+      ovals.shapes = ovals.shapes + new_ovals;
+    } else {
+      ovals.shapes = ovals.shapes + new_ovals;
+    }
   }
   return ovals;
 }
@@ -736,7 +751,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
   unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, vector<multi_polygon_type_fp>>> layers(1);
+  vector<pair<const gerbv_layer_t *, vector<mp_pair>>> layers(1);
 
   gerbv_image_t *gerber = project->file[0]->image;
 
@@ -759,7 +774,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       if (render_paths_to_shapes) {
         // About to start a new layer, render all the linear_circular_paths so far.
         for (const auto& diameter_and_path : linear_circular_paths) {
-          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
         }
         linear_circular_paths.clear();
       }
@@ -767,7 +782,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       layers.back().first = currentNet->layer;
     }
 
-    vector<multi_polygon_type_fp>& draws = layers.back().second;
+    vector<mp_pair>& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -869,7 +884,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
         cerr << "D03 during circular arc mode is forbidden by the Gerber "
             "standard; skipping" << endl;
       }
-    } else if (currentNet->interpolation == GERBV_INTERPOLATION_x10 ||
+    } else if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx10 ||
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx01 || 
                currentNet->interpolation == GERBV_INTERPOLATION_LINEARx001 ) {
       cerr << ("Linear zoomed interpolation modes are not supported "
@@ -881,11 +896,16 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
   if (render_paths_to_shapes) {
     // If there are any unrendered circular paths, add them to the last layer.
     for (const auto& diameter_and_path : linear_circular_paths) {
-      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines, points_per_circle));
+      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
     }
     linear_circular_paths.clear();
   }
-  auto result = generate_layers(layers, points_per_circle);
+  auto result = generate_layers(layers, &mp_pair::filled_closed_lines, fill_closed_lines);
+  if (fill_closed_lines) {
+    result = result - generate_layers(layers, &mp_pair::shapes, false);
+  } else {
+    result = result + generate_layers(layers, &mp_pair::shapes, false);
+  }
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv

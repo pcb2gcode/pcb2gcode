@@ -7,13 +7,6 @@
 #include "geometry.hpp"
 
 namespace eulerian_paths {
-static inline bool operator !=(const point_type& x, const point_type& y) {
-  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
-}
-
-static inline bool operator ==(const point_type& x, const point_type& y) {
-  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
-}
 
 static inline bool operator !=(const point_type_fp& x, const point_type_fp& y) {
   return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
@@ -24,7 +17,7 @@ static inline bool operator ==(const point_type_fp& x, const point_type_fp& y) {
 }
 
 // Made public for testing.
-static bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
+static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
   if (out_edges > in_edges + bidi_edges) {
     // Even with all the in and bidi paths, we would still need a path that starts here.
     return true;
@@ -263,5 +256,5 @@ multi_linestring_type_fp make_eulerian_paths(const std::vector<std::pair<linestr
 
 multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
 
-}; // namespace eulerian_paths
+} // namespace eulerian_paths
 #endif //EULERIAN_PATHS_H

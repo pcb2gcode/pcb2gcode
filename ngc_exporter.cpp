@@ -57,18 +57,13 @@ using std::dynamic_pointer_cast;
 
 #include <iomanip>
 
-#include <glibmm/miscutils.h>
-using Glib::build_filename;
-
 #include <boost/format.hpp>
 using boost::format;
 
 #include "units.hpp"
 
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : Exporter(board), ocodes(1), globalVars(100) {
-  this->board = board;
-}
+    : board(board), ocodes(1), globalVars(100) {}
 
 /******************************************************************************/
 /*
@@ -107,7 +102,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
     yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
 
-    tileInfo = Tiling::generateTileInfo( options, ocodes, board->get_height(), board->get_width() );
+    tileInfo = Tiling::generateTileInfo( options, board->get_height(), board->get_width() );
 
     for ( string layername : board->list_layers() )
     {

@@ -26,6 +26,7 @@
 #include <memory>
 
 #include "geometry.hpp"
+#include "geometry_int.hpp"
 
 namespace boost { namespace polygon { namespace detail {
 

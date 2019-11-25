@@ -35,12 +35,15 @@ AX_CXXFLAGS_WARN_ALL
 # Useful for measuring the coverage of the unit tests
 AX_CODE_COVERAGE
 
+AX_VALGRIND_DFLT([sgcheck], [off])
+AX_VALGRIND_DFLT([helgrind], [off])
+AX_VALGRIND_DFLT([drd], [off])
+AX_VALGRIND_CHECK
+
 export LC_NUMERIC="POSIX"
 
 # Checks for libraries.
-# Don't use Boost >= 1.67 because it has broken geometry.
-# https://svn.boost.org/trac10/ticket/13645
-BOOST_REQUIRE([BOOST_VERSION >= 106000])
+BOOST_REQUIRE([1.60])
 BOOST_PROGRAM_OPTIONS
 BOOST_GEOMETRY
 BOOST_STRING_ALGO
@@ -48,13 +51,23 @@ BOOST_FORMAT
 BOOST_OPTIONAL
 BOOST_VARIANT
 
+AC_SUBST([BOOST_CPPFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(BOOST_CPPFLAGS))'])
+
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 
+AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
+
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
+AC_ARG_VAR([pcb2gcode_CPPFLAGS_EXTRA], [Additional flags when compiling pcb2gcode])
+
+# GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
+# we want to use the new symbol
+CFLAGS+=" ${gerbv_CFLAGS}"
+AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
 # Checks for header files.
 AC_HEADER_STDC

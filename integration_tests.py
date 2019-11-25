@@ -16,6 +16,7 @@ import termcolor
 import colour_runner.runner
 import in_place
 import xml.etree.ElementTree
+import multiprocessing
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -36,6 +37,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "example_board_al_custom",
                   "example_board_al_linuxcnc",
                   "invert_gerbers",
+                  "invert_gerbers_fill",
                   "KNoT-Gateway Mini Starter Board",
                   "KNoT_Thing_Starter_Board",
                   "mill_masking",
@@ -62,6 +64,11 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_xy_offset",
                   "multivibrator_xy_offset_zero_start",
                   "multi_outline",
+                  "overlapping_edge_cuts",
+                  "round_pcb_3",
+                  "round_pcb_4",
+                  "round_pcb_5",
+                  "shaped_pcb",
                   "sharp_corner",
                   "sharp_corner_2",
                   "sharp_corner_big_isolation_width",
@@ -300,7 +307,8 @@ if __name__ == '__main__':
                       help='Don\'t update expected outputs automatically')
   parser.add_argument('--add', action='store_true', default=False,
                       help='git add new expected outputs automatically')
-  parser.add_argument('-j', type=int, default=3,
+  parser.add_argument('-j', '--jobs', type=int,
+                      default=multiprocessing.cpu_count(),
                       help='number of threads for running tests concurrently')
   parser.add_argument('--tests', type=str, default="",
                       help='regex of tests to run')
@@ -347,8 +355,8 @@ if __name__ == '__main__':
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
-    if args.j > 1:
-      suite = ConcurrentTestSuite(suite, fork_for_tests(args.j))
+    if args.jobs > 1:
+      suite = ConcurrentTestSuite(suite, fork_for_tests(args.jobs))
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
