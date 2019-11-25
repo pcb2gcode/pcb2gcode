@@ -7,25 +7,90 @@ on:
       - master
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  build-and-test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        boost: [1_60_0, 1_66_0]
+        compiler: ['g++', 'g++-8', 'clang++']
+        exclude:
+          - os: macos-latest
+            boost: 1_66_0
+          - os: macos-latest
+            compiler: 'g++-8'
+        include:
+          - gerberimporter_tests: true
+          - code_coverage: false
+          - os: ubuntu-latest
+            boost: 1_66_0
+            compiler: g++-8
+            code_coverage: true
+          - boost: 1_66_0
+            gerberimporter_tests: false
+    runs-on: {{ matrix.os }}
 
     steps:
-    - name: Display env
-      run: env
-    - uses: actions/checkout@v1
-    - name: Setup paths
+    - name: Checkout pcb2gcode source
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Setup paths and env
       run: |
         mkdir -p $HOME/.local/bin
         mkdir -p $HOME/.local/lib/pkgconfig
-        echo "::set-env name=PKG_CONFIG_PATH::$(echo $HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH)"
-        echo "::set-env name=LD_LIBRARY_PATH::$(echo $HOME/.local/lib:$LD_LIBRARY_PATH)"
-        echo "::set-env name=PATH::$(echo $HOME/.local/bin:$PATH)"
-        echo "::set-env name=NUM_CPUS::$(nproc --all)"
+        echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
+        echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
+    - name: Linux specific setup
+      if: matrix.os == "ubuntu-latest"
+      run: |
+        echo "::set-env name=NUM_CPUS::$(sysctl -n hw.logicalcpu)"
+        pushd ~
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
+        mkdir -p boost
+        pushd boost
+        for i in {1..5}; do
+          wget -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
+        done
+        tar xjf "boost_${BOOST}.tar.bz2"
+        pushd boost_${BOOST}
+        ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
+        chronic ./b2 -j ${NUM_CPUS}
+        chronic ./b2 install
+        popd
+        popd
+        popd
+    - name: Macos specific setup
+      if: matrix.os == "macos-latest"
+      run: |
+        brew update
+        brew reinstall -s libtool
+        brew install boost@1.60 gtkmm moreutils gettext librsvg
+        brew upgrade wget
+        hash -r
+        ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize
+        ln -f -s `which glibtool` $HOME/.local/bin/libtool
+        hash -r
+        echo "::set-env name=BOOST_DIR::/usr/local/opt/boost@1.60"
+        echo "::set-env name=NUM_CPUS::`nproc --all`"
+        echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
+        echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
+        echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: g++-8 specific setup
+      if: matrix.compiler == "g++-8"
+      run: sudo apt-get install g++-8
+    - name: coverage specific setup
+      if: matrix.code_coverage
+      run: sudo apt-get install lcov gcov automake
+
+    - name: Display information about build environment
+      continue-on-error: true
+      run: |
+        env
+        g++ --version
+        clang++ --version
     - name: apt-get chronic
       run: |
-        sudo apt-get install moreutils
     - name: Install boost
       run: |
         export BOOST=1_66_0
