@@ -25,7 +25,7 @@ o200 sub ( Main subroutine )
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-6.96850 Y-3.60000 ( rapid move to begin. )
+G00 X-6.96850 Y-3.60000 F20.00000 ( rapid move to begin. )
 G01 Z-0.00512 F50.00000 ( plunge. )
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F100.00000
@@ -82,10 +82,10 @@ o200 call
 G92 Y[#5421-[-1.374016]]
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G0 Z1.000 ( retract )
 
 M5 ( Spindle off. )
-G04 P1.000000
+G04 P1.000
 M9 ( Coolant off. )
 M2 ( Program end. )
 
