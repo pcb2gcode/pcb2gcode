@@ -101,6 +101,10 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--tsp-2opt", "--mill-feed-direction=climb"],
                         100)] +
+              [TestCase("g64_and_tolerance",
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--g64=5", "--tolerance=123"],
+                        49)] +
               [TestCase("ignore warnings",
                         os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
                         ["--ignore-warnings"],
