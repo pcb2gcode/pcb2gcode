@@ -46,6 +46,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
         echo "::set-env name=NUM_CPUS::$((`nproc --all` * 4))"
+    - name: Set clang as default compiler
+      if: matrix.compiler == 'clang++'
+      run: |
+        echo "::set-env name=CC::`which clang`"
+        echo "::set-env name=CXX::`which clang++`"
+    - name: g++-8 specific setup
+      if: matrix.compiler == 'g++-8'
+      run: |
+        sudo apt-get install g++-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7 --slave /usr/bin/gcov gcov /usr/bin/gcov-7
+        sudo update-alternatives --set gcc /usr/bin/gcc-8
     - name: Macos specific setup
       if: matrix.os == 'macos'
       run: |
@@ -90,13 +102,6 @@ jobs:
           popd
           popd
         fi
-    - name: g++-8 specific setup
-      if: matrix.compiler == 'g++-8'
-      run: |
-        sudo apt-get install g++-8
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7 --slave /usr/bin/gcov gcov /usr/bin/gcov-7
-        sudo update-alternatives --set gcc /usr/bin/gcc-8
     - name: coverage specific setup
       if: matrix.code_coverage
       run: |
