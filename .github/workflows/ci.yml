@@ -63,11 +63,14 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
         echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
         echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: Sanitize cache key
+      id: sanitize-key
+      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}' | sed 's/+/plus/g')"
     - name: Cache .local
       uses: actions/cache@v1
       with:
         path: ~/.local
-        key: dot_local-${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}
+        key: ${{ steps.sanitize-key.outputs.key }}
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
