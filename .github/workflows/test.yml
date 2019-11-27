@@ -14,4 +14,4 @@ jobs:
       uses: actions/cache@v1
       with:
         path: ~/test
-        key: test_123
+        key: test_123++
