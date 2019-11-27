@@ -1,0 +1,17 @@
+name: test caching
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: |
+        mkdir -p ~/test
+        echo "cache test" > ~/test/test.txt
+    - name: Cache test
+      uses: actions/cache@v1
+      with:
+        path: ~/test
+        key: test_123
