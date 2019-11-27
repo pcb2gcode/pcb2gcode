@@ -10,7 +10,7 @@ jobs:
     - run: |
         mkdir -p ~/test
         echo "cache test" > ~/test/test.txt
-    - name: Cache test
+    - name: Cache test again
       uses: actions/cache@v1
       with:
         path: ~/test
