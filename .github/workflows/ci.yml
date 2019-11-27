@@ -63,23 +63,30 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
         echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
         echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: Cache .local
+      uses: actions/cache@v1
+      with:
+        path: ~/.local
+        key: dot_local-${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
         BOOST: ${{ matrix.boost }}
       run: |
-        pushd ~
-        for i in {1..5}; do
-          wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
-        done
-        tar xjf "boost_${BOOST}.tar.bz2"
-        pushd boost_${BOOST}
-        ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
-        ./b2 -j ${NUM_CPUS}
-        ./b2 install
-        echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
-        popd
-        popd
+        if [ ! -d "~/.local/include/boost" ]; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
+          done
+          tar xjf "boost_${BOOST}.tar.bz2"
+          pushd boost_${BOOST}
+          ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
+          ./b2 -j ${NUM_CPUS}
+          ./b2 install
+          echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
+          popd
+          popd
+        fi
     - name: g++-8 specific setup
       if: matrix.compiler == 'g++-8'
       run: |
@@ -107,43 +114,49 @@ jobs:
         m4 --version
     - name: Install gerbv
       run: |
-        pushd ~
-        git clone --depth=1 https://github.com/eyal0/gerbv.git
-        pushd gerbv
-        sh autogen.sh
-        ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
-        make -j ${NUM_CPUS}
-        make install
-        popd
-        popd
+        if ! gerbv --version; then
+          pushd ~
+          git clone --depth=1 https://github.com/eyal0/gerbv.git
+          pushd gerbv
+          sh autogen.sh
+          ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+          make -j ${NUM_CPUS}
+          make install
+          popd
+          popd
+        fi
     - name: Install valgrind
       if: matrix.os != 'macos'
       run: |
-        pushd ~
-        git clone --depth=1 git://sourceware.org/git/valgrind.git
-        pushd valgrind
-        sh autogen.sh
-        ./configure --prefix=${HOME}/.local
-        make -j ${NUM_CPUS}
-        make install
-        popd
-        popd
+        if ! valgrind --version; then
+          pushd ~
+          git clone --depth=1 git://sourceware.org/git/valgrind.git
+          pushd valgrind
+          sh autogen.sh
+          ./configure --prefix=${HOME}/.local
+          make -j ${NUM_CPUS}
+          make install
+          popd
+          popd
+        fi
     - name: Install parallel
       run: |
-        pushd ~
-        for i in {1..5}; do
-          wget -q -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
-        done
-        mkdir parallel
-        pushd parallel
-        tar xjf "../parallel-latest.tar.bz2"
-        pushd parallel-*
-        ./configure --prefix=${HOME}/.local
-        make
-        make install
-        popd
-        popd
-        popd
+        if ! parallel --version; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
+          done
+          mkdir parallel
+          pushd parallel
+          tar xjf "../parallel-latest.tar.bz2"
+          pushd parallel-*
+          ./configure --prefix=${HOME}/.local
+          make
+          make install
+          popd
+          popd
+          popd
+        fi
     - name: Finalize setup
       run: |
         hash -r
