@@ -229,9 +229,20 @@ jobs:
       with:
         name: lcov
         path: pcb2gcode-lcov.info
-    - name: Upload coverage
+    - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
+        parallel: true
+  finalize-coverage:
+    needs: build-and-test
+    name: Finalize coverage
+    runs-on: ubuntu-latest
+    steps:
+    - name: Finalize coverage
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
