@@ -1,0 +1,216 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}
+    strategy:
+      matrix:
+        os: [ubuntu, macos]
+        boost: [1_60_0, 1_66_0]
+        compiler: ['g++', 'g++-8', 'clang++']
+        exclude:
+          - os: macos
+            boost: 1_66_0
+          - os: macos
+            compiler: 'g++-8'
+        include:
+          - os: ubuntu
+            boost: 1_66_0
+            compiler: g++-8
+            code_coverage: "--enable-code-coverage"
+          - boost: 1_60_0
+            skip_gerberimporter_tests: "SKIP_GERBERIMPORTER_TESTS=1"
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+    - name: Checkout pcb2gcode source
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+    - name: Setup paths and env
+      run: |
+        mkdir -p $HOME/.local/bin
+        mkdir -p $HOME/.local/lib/pkgconfig
+        echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
+        echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
+        echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
+    - name: Linux specific setup
+      if: matrix.os == 'ubuntu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
+        echo "::set-env name=NUM_CPUS::`nproc --all`"
+    - name: Build and install boost
+      if: matrix.os == 'ubuntu'
+      env:
+        BOOST: ${{ matrix.boost }}
+      run: |
+        pushd ~
+        for i in {1..5}; do
+          wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
+        done
+        tar xjf "boost_${BOOST}.tar.bz2"
+        pushd boost_${BOOST}
+        ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
+        ./b2 -j ${NUM_CPUS}
+        ./b2 install
+        echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
+        popd
+        popd
+    - name: Macos specific setup
+      if: matrix.os == 'macos'
+      run: |
+        brew update
+        brew reinstall -s libtool
+        brew unlink parallel
+        brew install boost@1.60 gtkmm moreutils gettext librsvg autoconf automake pkg-config
+        brew upgrade wget
+        hash -r
+        ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize
+        ln -f -s `which glibtool` $HOME/.local/bin/libtool
+        hash -r
+        echo "::set-env name=BOOST_ROOT::/usr/local/opt/boost@1.60"
+        echo "::set-env name=NUM_CPUS::`sysctl -n hw.logicalcpu`"
+        echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
+        echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
+        echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: g++-8 specific setup
+      if: matrix.compiler == 'g++-8'
+      run: |
+        sudo apt-get install g++-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7 --slave /usr/bin/gcov gcov /usr/bin/gcov-7
+        sudo update-alternatives --set gcc /usr/bin/gcc-8
+    - name: coverage specific setup
+      if: matrix.code_coverage
+      run: |
+        sudo apt-get install libperlio-gzip-perl libjson-perl
+        pushd ~
+        git clone --depth=1 https://github.com/linux-test-project/lcov.git
+        pushd lcov
+        make PREFIX=~/.local install
+        hash -r
+        lcov --version
+    - name: Display information about build environment
+      continue-on-error: true
+      run: |
+        env
+        g++ --version
+        clang++ --version
+        pkg-config --version
+        m4 --version
+    - name: Install gerbv
+      run: |
+        pushd ~
+        git clone --depth=1 https://github.com/eyal0/gerbv.git
+        pushd gerbv
+        sh autogen.sh
+        ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${HOME}/.local
+        make -j ${NUM_CPUS}
+        make install
+        popd
+        popd
+    - name: Install valgrind
+      if: matrix.os != 'macos'
+      run: |
+        pushd ~
+        git clone --depth=1 git://sourceware.org/git/valgrind.git
+        pushd valgrind
+        sh autogen.sh
+        ./configure --prefix=${HOME}/.local
+        make -j ${NUM_CPUS}
+        make install
+        popd
+        popd
+    - name: Install parallel
+      run: |
+        pushd ~
+        for i in {1..5}; do
+          wget -q -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
+        done
+        mkdir parallel
+        pushd parallel
+        tar xjf "../parallel-latest.tar.bz2"
+        pushd parallel-*
+        ./configure --prefix=${HOME}/.local
+        make
+        make install
+        popd
+        popd
+        popd
+    - name: Finalize setup
+      run: |
+        hash -r
+    - name: Autoreconf pcb2gcode
+      run: autoreconf -fvi
+    - name: Configure pcb2gcode
+      run: >-
+        ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror
+        --disable-dependency-tracking
+        --disable-silent-rules
+        --enable-static-boost
+        ${{ matrix.code_coverage }}
+        || (cat config.log && false)
+    - name: Make pcb2gcode
+      run: make -j ${NUM_CPUS}
+    - name: Run examples
+      if: '! matrix.code_coverage'
+      run: |
+        pushd testing/gerbv_example
+        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+          pushd {};
+          echo "Running on {}";
+          if [[ -f "no-valgrind" ]]; then
+            cat no-valgrind;
+          fi;
+          if [[ -f "no-valgrind" || "${{ matrix.os }}" == "macos" ]]; then
+            time ../../../pcb2gcode || exit;
+          else
+            time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
+          fi;
+          popd'
+        popd
+    - name: Reset coverage
+      if: matrix.code_coverage
+      continue-on-error: true
+      run: lcov --directory . -z
+    - name: Run unit tests
+      if: matrix.os == 'macos'
+      env:
+        VERBOSE: 1
+        SKIP_GERBERIMPORTER_TESTS_PNG: 1
+      run: ${{ matrix.skip_gerberimporter_tests }} make -j ${NUM_CPUS} check
+    - name: Run unit tests with valgrind
+      if: matrix.os != 'macos'
+      env:
+        VERBOSE: 1
+        SKIP_GERBERIMPORTER_TESTS_PNG: 1
+      run: ${{ matrix.skip_gerberimporter_tests }} make -j ${NUM_CPUS} check-valgrind
+    - name: Run intergration tests
+      if: matrix.boost == '1_66_0'
+      run: |
+        pip install --user colour_runner unittest2 termcolor concurrencytest in_place
+        ./integration_tests.py -j ${NUM_CPUS}
+    - name: Gather coverage
+      if: matrix.code_coverage
+      run: |
+        lcov  --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
+        lcov -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
+    - name: Export coverage artifact
+      if: matrix.code_coverage
+      uses: actions/upload-artifact@v1
+      with:
+        name: lcov
+        path: pcb2gcode-lcov.info
+    - name: Upload coverage
+      if: matrix.code_coverage
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: pcb2gcode-lcov.info
