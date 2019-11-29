@@ -45,7 +45,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
-        echo "::set-env name=NUM_CPUS::$((`nproc --all` * 4))"
+        echo "::set-env name=NUM_CPUS::$((`nproc --all` * 40))"
     - name: Macos specific setup
       if: matrix.os == 'macos'
       run: |
