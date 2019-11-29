@@ -46,6 +46,18 @@ jobs:
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
         echo "::set-env name=NUM_CPUS::$((`nproc --all` * 40))"
+    - name: Set clang as default compiler
+      if: matrix.compiler == 'clang++'
+      run: |
+        echo "::set-env name=CC::`which clang`"
+        echo "::set-env name=CXX::`which clang++`"
+    - name: g++-8 specific setup
+      if: matrix.compiler == 'g++-8'
+      run: |
+        sudo apt-get install g++-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7 --slave /usr/bin/gcov gcov /usr/bin/gcov-7
+        sudo update-alternatives --set gcc /usr/bin/gcc-8
     - name: Macos specific setup
       if: matrix.os == 'macos'
       run: |
@@ -63,17 +75,20 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
         echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
         echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: Sanitize cache key
+      id: sanitize-key
+      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}' | sed 's/+/plus/g')"
     - name: Cache .local
       uses: actions/cache@v1
       with:
         path: ~/.local
-        key: dot_local-${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}
+        key: ${{ steps.sanitize-key.outputs.key }}
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
         BOOST: ${{ matrix.boost }}
       run: |
-        if [ ! -d "~/.local/include/boost" ]; then
+        if [ ! -d "${HOME}/.local/include/boost" ]; then
           pushd ~
           for i in {1..5}; do
             wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
@@ -83,17 +98,10 @@ jobs:
           ./bootstrap.sh --with-libraries=program_options --prefix=${HOME}/.local
           ./b2 -j ${NUM_CPUS}
           ./b2 install
-          echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
           popd
           popd
         fi
-    - name: g++-8 specific setup
-      if: matrix.compiler == 'g++-8'
-      run: |
-        sudo apt-get install g++-8
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70 --slave /usr/bin/g++ g++ /usr/bin/g++-7 --slave /usr/bin/gcov gcov /usr/bin/gcov-7
-        sudo update-alternatives --set gcc /usr/bin/gcc-8
+        echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
     - name: coverage specific setup
       if: matrix.code_coverage
       run: |
@@ -221,9 +229,20 @@ jobs:
       with:
         name: lcov
         path: pcb2gcode-lcov.info
-    - name: Upload coverage
+    - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
+        parallel: true
+  finalize-coverage:
+    needs: build-and-test
+    name: Finalize coverage
+    runs-on: ubuntu-latest
+    steps:
+    - name: Finalize coverage
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
