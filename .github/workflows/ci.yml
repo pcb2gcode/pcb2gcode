@@ -241,6 +241,10 @@ jobs:
     name: Finalize coverage
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout pcb2gcode source
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 2
     - name: Finalize coverage
       uses: eyal0/github-action@master
       with:
