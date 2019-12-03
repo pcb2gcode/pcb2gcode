@@ -235,3 +235,5 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
+      env:
+        NODE_COVERALLS_DEBUG: 1
