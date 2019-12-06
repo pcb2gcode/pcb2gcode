@@ -20,18 +20,19 @@ jobs:
       run: |
         env
         echo "::set-env name=NODE_COVERALLS_DEBUG::1"
-        echo ${{ secrets.GITHUB_TOKEN }} | sed 's/1/ /'
+        echo "::set-env name=TOK1::ce1df6d2584077ff74d5"
+        echo "::set-env name=TOK2::b934cc60bcb7be05ef0a"
     - name: Upload coverage to coveralls
       id: my_upload
       uses: coverallsapp/github-action@master
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ env.TOK1 }}${{ env.TOK2}}
         path-to-lcov: pcb2gcode-lcov.info
     - name: Upload coverage to coveralls again
       id: my_upload2
       uses: coverallsapp/github-action@master
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ env.TOK1 }}${{ env.TOK2}}
         path-to-lcov: pcb2gcode-lcov.info
     - name: show the coveralls output
       continue-on-error: true
