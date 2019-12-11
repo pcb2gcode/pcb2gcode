@@ -19,7 +19,7 @@ jobs:
     - name: show env twice?  no
       run: |
         env
-        echo "::set-env name=NODE_COVERALLS_DEBUG::1"
+        #echo "::set-env name=NODE_COVERALLS_DEBUG::1"
     - name: Upload coverage to coveralls
       id: my_upload
       uses: coverallsapp/github-action@master
@@ -52,4 +52,4 @@ jobs:
         COMMENTS_URL=$(cat $GITHUB_EVENT_PATH | jq -r .pull_request.comments_url)
         echo $PAYLOAD
         echo $COMMENTS_URL
-        curl -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/json" --data "$PAYLOAD" "$COMMENTS_URL" > /dev/null
+        curl -v -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -H "Content-Type: application/json" --data "$PAYLOAD" "$COMMENTS_URL"
