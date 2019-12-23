@@ -237,6 +237,7 @@ jobs:
         lcov-coverage: pcb2gcode-lcov.info
         verbosity: 5
     - name: Upload coverage.bin.gz
+      if: matrix.code_coverage
       uses: actions/upload-artifact@v1
       with:
         name: coverage.bin.gz
