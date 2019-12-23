@@ -221,8 +221,8 @@ jobs:
     - name: Gather coverage
       if: matrix.code_coverage
       run: |
-        lcov  --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
-        lcov -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
+        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
+        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
     - name: Export coverage artifact
       if: matrix.code_coverage
       uses: actions/upload-artifact@v1
