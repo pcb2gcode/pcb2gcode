@@ -236,6 +236,11 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         lcov-coverage: pcb2gcode-lcov.info
         verbosity: 5
+    - name: Upload coverage.bin.gz
+      uses: actions/upload-artifact@v1
+      with:
+        name: coverage.bin.gz
+        path: coverage.bin.gz
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: eyal0/github-action@master
