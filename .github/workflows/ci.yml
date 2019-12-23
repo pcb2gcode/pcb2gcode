@@ -229,6 +229,13 @@ jobs:
       with:
         name: lcov
         path: pcb2gcode-lcov.info
+    - name: EasyCov coverage
+      if: matrix.code_coverage
+      uses: EasyCov/EasyCov@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-coverage: pcb2gcode-lcov.info
+        verbosity: 5
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: eyal0/github-action@master
