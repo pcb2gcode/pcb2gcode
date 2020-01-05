@@ -105,6 +105,10 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--g64=5", "--tolerance=123"],
                         49)] +
+              [TestCase("negative_spinup",
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--spinup-time=-5"],
+                        52)] +
               [TestCase("ignore warnings",
                         os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
                         ["--ignore-warnings"],
