@@ -179,6 +179,9 @@ jobs:
         --enable-static-boost
         ${{ matrix.code_coverage }}
         || (cat config.log && false)
+    - name: Remove debug flags from coverage builds
+      if: matrix.code_coverage
+      run: sed -i 's/-g /-g0 /g' Makefile
     - name: Make pcb2gcode
       run: make -j ${NUM_CPUS}
     - name: Run examples
@@ -236,7 +239,6 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         lcov-coverage: pcb2gcode-lcov.info
-        verbosity: 5
     - name: Upload coverage.bin.gz
       if: matrix.code_coverage
       uses: actions/upload-artifact@v1
