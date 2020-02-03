@@ -29,7 +29,7 @@ G04 P1.00000 (Wait for spindle to get up to speed)
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.05000 Y-2.64749 ( rapid move to begin. )
+G00 X-3.05000 Y-2.64749 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -110,7 +110,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.19793 Y-2.93741 ( rapid move to begin. )
+G00 X-3.19793 Y-2.93741 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -136,7 +136,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.34447 Y-2.80928 ( rapid move to begin. )
+G00 X-3.34447 Y-2.80928 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -174,7 +174,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.45477 Y-2.88570 ( rapid move to begin. )
+G00 X-3.45477 Y-2.88570 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -211,7 +211,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.22018 Y-3.21003 ( rapid move to begin. )
+G00 X-3.22018 Y-3.21003 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -229,7 +229,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.32254 Y-3.30054 ( rapid move to begin. )
+G00 X-3.32254 Y-3.30054 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -253,7 +253,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.43751 Y-3.36824 ( rapid move to begin. )
+G00 X-3.43751 Y-3.36824 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -278,7 +278,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.51205 Y-3.25000 ( rapid move to begin. )
+G00 X-3.51205 Y-3.25000 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -306,7 +306,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.44460 Y-3.00983 ( rapid move to begin. )
+G00 X-3.44460 Y-3.00983 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -343,7 +343,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.47384 Y-3.10088 ( rapid move to begin. )
+G00 X-4.47384 Y-3.10088 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -377,7 +377,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.64278 Y-3.02176 ( rapid move to begin. )
+G00 X-4.64278 Y-3.02176 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -397,7 +397,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.82725 Y-3.34970 ( rapid move to begin. )
+G00 X-4.82725 Y-3.34970 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -415,7 +415,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.67366 Y-3.28937 ( rapid move to begin. )
+G00 X-4.67366 Y-3.28937 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -434,7 +434,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.55456 Y-3.21063 ( rapid move to begin. )
+G00 X-4.55456 Y-3.21063 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -462,7 +462,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.41979 Y-3.28924 ( rapid move to begin. )
+G00 X-4.41979 Y-3.28924 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -482,7 +482,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.26285 Y-3.16714 ( rapid move to begin. )
+G00 X-4.26285 Y-3.16714 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -540,7 +540,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.43915 Y-2.81551 ( rapid move to begin. )
+G00 X-4.43915 Y-2.81551 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -572,7 +572,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.63346 Y-2.82807 ( rapid move to begin. )
+G00 X-4.63346 Y-2.82807 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -618,7 +618,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.90000 Y-2.71010 ( rapid move to begin. )
+G00 X-4.90000 Y-2.71010 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -692,7 +692,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.61607 Y-2.84408 ( rapid move to begin. )
+G00 X-3.61607 Y-2.84408 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -785,7 +785,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.10146 Y-3.20966 ( rapid move to begin. )
+G00 X-4.10146 Y-3.20966 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -802,7 +802,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.05992 Y-3.22240 ( rapid move to begin. )
+G00 X-4.05992 Y-3.22240 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -820,7 +820,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.78947 Y-3.25232 ( rapid move to begin. )
+G00 X-3.78947 Y-3.25232 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -839,7 +839,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.76187 Y-3.22532 ( rapid move to begin. )
+G00 X-3.76187 Y-3.22532 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -858,7 +858,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.71947 Y-3.35647 ( rapid move to begin. )
+G00 X-3.71947 Y-3.35647 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -883,7 +883,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-3.78779 Y-3.35433 ( rapid move to begin. )
+G00 X-3.78779 Y-3.35433 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -910,7 +910,7 @@ G54321\n\n
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.11744 Y-3.60000 ( rapid move to begin. )
+G00 X-4.11744 Y-3.60000 F20.00000 ( rapid move to begin. )
 G01 F180.00000
 ( begin pre-milling-gcode )
 G12345
@@ -927,14 +927,14 @@ G54321\n\n
 ( end post-milling-gcode )
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G0 Z1.000 ( retract )
 
 postamble line1
 postamble line2
 postamble line3
 
 M5 ( Spindle off. )
-G04 P1.000000
+G04 P1.000
 M9 ( Coolant off. )
 M2 ( Program end. )
 

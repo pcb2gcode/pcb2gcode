@@ -121,6 +121,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             vm["post-milling-gcode"].as<vector<string>>(), "\n");
         isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
+        isolator->toolhead_control = vm["toolhead-control"].as<bool>();
     }
 
     shared_ptr<Cutter> cutter(new Cutter());
@@ -128,32 +129,33 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("outline") ||
         (vm.count("drill") &&
          vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity()))) {
-      cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
-      cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
-      cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-      cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
-      if (vm.count("cut-vertfeed"))
-        cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
-      else
-        cutter->vertfeed = cutter->feed / 2;
-      cutter->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
-      cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
-      cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
-      cutter->optimise = vm["optimise"].as<bool>();
-      cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
-      cutter->path_finding_limit = vm["path-finding-limit"].as<size_t>();
-      cutter->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
-      cutter->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
-      cutter->tolerance = tolerance;
-      cutter->explicit_tolerance = explicit_tolerance;
-      cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
-      cutter->spindown_time = spindown_time;
-      cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
-      cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
-      if (vm.count("zbridges"))
-        cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
-      else
-        cutter->bridges_height = cutter->zsafe;
+        cutter->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+        cutter->zwork = vm["zcut"].as<Length>().asInch(unit);
+        cutter->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        cutter->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
+        if (vm.count("cut-vertfeed"))
+          cutter->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
+        else
+          cutter->vertfeed = cutter->feed / 2;
+        cutter->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
+        cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
+        cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
+        cutter->optimise = vm["optimise"].as<bool>();
+        cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
+        cutter->path_finding_limit = vm["path-finding-limit"].as<size_t>();
+        cutter->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
+        cutter->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
+        cutter->tolerance = tolerance;
+        cutter->explicit_tolerance = explicit_tolerance;
+        cutter->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+        cutter->spindown_time = spindown_time;
+        cutter->bridges_num = vm["bridgesnum"].as<unsigned int>();
+        cutter->bridges_width = vm["bridges"].as<Length>().asInch(unit);
+        if (vm.count("zbridges"))
+          cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
+        else
+          cutter->bridges_height = cutter->zsafe;      
+        cutter->toolhead_control = vm["toolhead-control"].as<bool>();
     }
 
     shared_ptr<Driller> driller;
@@ -170,6 +172,9 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         driller->spindown_time = spindown_time;
         driller->zchange = vm["zchange"].as<Length>().asInch(unit);
+        driller->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
+        driller->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
+        driller->toolhead_control = vm["toolhead-control"].as<bool>();
     }
 
     //---------------------------------------------------------------------------

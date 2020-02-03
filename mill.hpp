@@ -46,6 +46,9 @@ class Mill {
   double spindown_time;
   std::string pre_milling_gcode;
   std::string post_milling_gcode;
+  double g0_vertical_speed;
+  double g0_horizontal_speed;  
+  bool toolhead_control;
 };
 
 /******************************************************************************/
@@ -57,8 +60,7 @@ class RoutingMill: public Mill {
   bool optimise;
   bool eulerian_paths;
   size_t path_finding_limit;
-  double g0_vertical_speed;
-  double g0_horizontal_speed;
+
 
 };
 
@@ -95,7 +97,7 @@ class Cutter: public RoutingMill {
  */
 /******************************************************************************/
 class Driller: public Mill
-{
+{ 
 };
 
 #endif // MILL_H

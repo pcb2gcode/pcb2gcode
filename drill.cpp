@@ -335,11 +335,23 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
                         if( nog81 )
                         {
+                            // Move to position
                             of << "G0 X"
                                << ( get_xvalue(x) - xoffsetTot ) * cfactor
-                               << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
-                            of << "G1 Z" << driller->zwork * cfactor << '\n';
-                                of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                               << " Y" << ( ( y - yoffsetTot ) * cfactor) 
+                               << " F" << driller->g0_horizontal_speed * cfactor << "\n";
+                               
+                            // Plunge into the workpiece
+                            of << "G1 Z" << driller->zwork * cfactor 
+                               << " F" << driller->feed * cfactor << '\n';
+                            
+                            // Pull the drillbit out of the workpiece
+                            of << "G1 Z0"  
+                               << " F" << driller->feed * cfactor << '\n';
+                               
+                            // Pull the drillbit back to the safe height
+                            of << "G0 Z" << driller->zsafe * cfactor 
+                               << " F" << driller->g0_vertical_speed * cfactor << '\n';
                         }
                         else
                         {
@@ -389,7 +401,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
     if (cutdiameter * 1.001 >= holediameter) { //In order to avoid a "zero radius arc" error
         // Hole is smaller than cutdiameter so just drill/zig-zag.
-        of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
+        of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << " F" << cutter->g0_horizontal_speed << '\n';
         if (slot) {
             // Start one step above Z0 for optimal entry
             of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
@@ -397,7 +409,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
             // Is there enough room for material evacuation?
             if (distance > 0.3 * cutdiameter) {
-                of << "F" << cutter->feed * cfactor << '\n';
+                of << "G1 F" << cutter->feed * cfactor << '\n';
             }
 
             double zhalfstep = cutter->zwork / stepcount / 2;
@@ -424,7 +436,11 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             of << "G1 Z" << cutter->zwork * cfactor
                << " F" << cutter->vertfeed * cfactor << '\n';
         }
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
+        
+        // Pull mill out of workpiece
+        of << "G1 Z0 F" << cutter->vertfeed * cfactor << '\n';
+        // Return mill to Z-Safe position
+        of << "G0 Z" << cutter->zsafe * cfactor << " F" << cutter->g0_vertical_speed * cfactor << "\n\n";
 
         return false;
     } else {
@@ -461,7 +477,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double stop2_targetx = stop_x + mill_y;
         double stop2_targety = stop_y - mill_x;
 
-        of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << '\n';
+        of << "G0 X" << start_targetx * cfactor << " Y" << start_targety * cfactor << " F" << cutter->g0_horizontal_speed * cfactor <<'\n';
 
         // Distribute z step depth on half circles and straight lines for slots
         double zdiff_hcircle1 = 0;
@@ -482,12 +498,15 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         // Start one step above Z0 for optimal entry
         of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
-           << " F" << cutter->vertfeed * cfactor << '\n';
+           << " F" << cutter->g0_horizontal_speed * cfactor << '\n';
+
+        double milling_feedrate = cutter->vertfeed * cfactor;
 
         // Is hole is big enough for horizontal speed?
         if (holediameter + distance > 1.1 * cutdiameter) {
-          of << "F" << cutter->feed * cfactor << '\n';
+          milling_feedrate = cutter->feed * cfactor;
         }
+        of << "G1 F" << milling_feedrate << '\n';
 
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
         for (int current_step = -1; current_step <= stepcount; current_step++) {
@@ -537,8 +556,11 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             of << "\n";
           }
         }
-
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
+        
+        // Pull mill out of the workpiece
+        of << "G1 Z0 F" << cutter->vertfeed * cfactor << '\n';
+        // Return mill to the Z-Safe position
+        of << "G0 Z" << cutter->zsafe * cfactor << " F" << cutter->g0_vertical_speed * cfactor << "\n\n";
 
         return true;
     }
@@ -553,12 +575,26 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     cout << "Exporting milldrill... " << flush;
 
     zchange << setprecision(3) << fixed << target->zchange * cfactor;
-    tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
-                         " ( All done -- retract )\n" + postamble_ext +
-                         "\nM5      (Spindle off.)\nG04 P" +
-                         to_string(target->spindown_time) +
-                        "\nM9      (Coolant off.)\n"
-                         "M2      (Program end.)\n\n");
+    
+    stringstream gcode_end;
+    gcode_end << setprecision(3) << fixed;
+    
+    if (zchange_absolute) {
+        gcode_end << "G53 ";      
+    }
+    
+    gcode_end << "G0 Z" << target->zchange * cfactor;
+    gcode_end << " ( All done -- retract )\n";
+    gcode_end << postamble_ext << '\n';
+    
+    if (target->toolhead_control){
+        gcode_end << "M5      (Spindle off.)\n";
+        gcode_end << "G04 P" << target->spindown_time << '\n';
+        gcode_end << "M9      (Coolant off.)\n";
+        gcode_end << "M2      (Program end.)\n\n";
+    }
+    
+    tiling->setGCodeEnd(gcode_end.str());
 
     map<int, drillbit> bits = parsed_bits;
     const map<int, ilinesegments> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
@@ -597,11 +633,16 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     of << " )\n\n";
 
     //preamble
-    of << preamble_ext << preamble << "S" << left << target->speed
-       << "    (RPM spindle speed.)\n" << "G01 F" << target->feed * cfactor
-       << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
-       << "G04 P" << target->spinup_time
-       << "\nG00 Z" << target->zsafe * cfactor << "\n\n";
+    of << preamble_ext << preamble;
+    
+    if(target->toolhead_control){ 
+        of << "S" << left << target->speed
+        << "    (RPM spindle speed.)\n" << "G01 F" << target->feed * cfactor
+        << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
+        << "G04 P" << target->spinup_time;
+    }
+    
+     of << "\nG00 Z" << target->zsafe * cfactor << "\n\n";
 
     tiling->header( of );
 

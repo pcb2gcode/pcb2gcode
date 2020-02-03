@@ -87,8 +87,9 @@ enum ErrorCodes {
     ERR_NEGATIVESPINUP = 52,
     ERR_NEGATIVESPINDOWN = 53,
     ERR_FALSEMIRRORABSOLUTE = 54,
+    ERR_ONETOOL = 55,
     ERR_INVALIDPARAMETER = 100,
-    ERR_UNKNOWNPARAMETER = 101
+    ERR_UNKNOWNPARAMETER = 101    
 };
 
 class pcb2gcode_parse_exception : public std::exception {
