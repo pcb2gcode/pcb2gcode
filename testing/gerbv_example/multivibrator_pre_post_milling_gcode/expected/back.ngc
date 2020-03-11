@@ -35,6 +35,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -116,6 +117,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -142,6 +144,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -180,6 +183,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -217,6 +221,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -235,6 +240,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -259,6 +265,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -284,6 +291,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -312,6 +320,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -349,6 +358,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -383,6 +393,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -403,6 +414,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -421,6 +433,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -440,6 +453,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -468,6 +482,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -488,6 +503,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -546,6 +562,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -578,6 +595,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -624,6 +642,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -698,6 +717,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -791,6 +811,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -808,6 +829,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -826,6 +848,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -845,6 +868,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -864,6 +888,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -889,6 +914,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -916,6 +942,7 @@ G01 F180.00000
 G12345
 G12345
 ( end pre-milling-gcode )
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000

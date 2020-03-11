@@ -187,34 +187,40 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
                                      boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot) {
   of << "G01 F" << mill->vertfeed * cfactor << '\n';
 
-  if (leveller) {
-    leveller->setLastChainPoint(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
-                                           (path->begin()->second - yoffsetTot) * cfactor));
-    of << leveller->g01Corrected(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
-                                            (path->begin()->second - yoffsetTot) * cfactor));
-  } else {
-    if (!mill->pre_milling_gcode.empty()) {
-      of << "( begin pre-milling-gcode )\n";
-      of << mill->pre_milling_gcode << "\n";
-      of << "( end pre-milling-gcode )\n";
-    }
-    of << "G01 Z" << mill->zwork * cfactor << "\n";
+  if (!mill->pre_milling_gcode.empty()) {
+    of << "( begin pre-milling-gcode )\n";
+    of << mill->pre_milling_gcode << "\n";
+    of << "( end pre-milling-gcode )\n";
   }
 
-  of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
-  of << "G01 F" << mill->feed * cfactor << '\n';
+  const unsigned int steps_num = ceil(-mill->zwork / mill->stepsize);
 
-  icoords::iterator iter = path->begin();
-
-  while (iter != path->end()) {
+  for (unsigned int i = 0; i < steps_num; i++) {
+    const double z = mill->zwork / steps_num * (i + 1);
+    icoords::iterator iter = path->begin();
+    of << "( Mill infeed pass " << i+1 << "/" << steps_num << " )\n";
     if (leveller) {
-      of << leveller->addChainPoint(icoordpair((iter->first - xoffsetTot) * cfactor,
-                                               (iter->second - yoffsetTot) * cfactor));
+      leveller->setLastChainPoint(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
+                                             (path->begin()->second - yoffsetTot) * cfactor));
+      of << leveller->g01Corrected(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
+                                              (path->begin()->second - yoffsetTot) * cfactor),
+                                   z * cfactor);
     } else {
-      of << "G01 X" << (iter->first - xoffsetTot) * cfactor << " Y"
-         << (iter->second - yoffsetTot) * cfactor << '\n';
+      of << "G01 Z" << z * cfactor << "\n";
     }
-    ++iter;
+    of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+    of << "G01 F" << mill->feed * cfactor << '\n';
+    while (iter != path->end()) {
+      if (leveller) {
+        of << leveller->addChainPoint(icoordpair((iter->first - xoffsetTot) * cfactor,
+                                                 (iter->second - yoffsetTot) * cfactor),
+                                      z * cfactor);
+      } else {
+        of << "G01 X" << (iter->first - xoffsetTot) * cfactor << " Y"
+           << (iter->second - yoffsetTot) * cfactor << '\n';
+      }
+      ++iter;
+    }
   }
   if (!mill->post_milling_gcode.empty()) {
     of << "( begin post-milling-gcode )\n";
@@ -390,3 +396,5 @@ void NGC_Exporter::set_postamble(string _postamble)
 {
     postamble = _postamble;
 }
+
+/* vim: set tabstop=2 : */
