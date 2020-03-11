@@ -530,7 +530,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                << " J" << (stop_y-stop_targety) * cfactor << "\n";
             // Now back to the start of the first half circle
             of << "G1 X" << start_targetx * cfactor
-               << " Y" << start_targety;
+               << " Y" << start_targety * cfactor;
             if(stepcount != current_step) {
               of << " Z" << z * cfactor;
             }
