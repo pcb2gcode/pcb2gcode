@@ -117,6 +117,10 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(EXAMPLES_PATH, "am-test"),
                         ["--spinup-time=-5"],
                         52)] +
+              [TestCase("zero_millinfeed",
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--mill-infeed=0"],
+                        55)] +
               [TestCase("ignore warnings",
                         os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
                         ["--ignore-warnings"],
