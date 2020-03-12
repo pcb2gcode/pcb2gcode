@@ -26,9 +26,6 @@ zchange=1.0
 zero-start=false
 mirror-axis=0
 
-tile-x=3
-tile-y=2
-
 al-back=true
 al-front=true
 al-x=10mm

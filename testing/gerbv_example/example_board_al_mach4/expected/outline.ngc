@@ -1,5 +1,5 @@
 ( pcb2gcode 2.0.0 )
-( Gcode for mach4 )
+( Software-independent Gcode )
 
 G94 ( Inches per minute feed rate. )
 G20 ( Units == INCHES. )
@@ -19,33 +19,6 @@ M6      (Tool change.)
 M0      (Temporary machine stop.)
 M3 ( Spindle on clockwise. )
 G04 P1.00000 (Wait for spindle to get up to speed)
-M98 P200
-G00 X2.174016
-G92 X0
-M98 P200
-G00 X2.174016
-G92 X0
-M98 P200
-G00 Y1.274016
-G92 Y0
-M98 P200
-G00 X-2.174016
-G92 X0
-M98 P200
-G00 X-2.174016
-G92 X0
-M98 P200
-G00 Y-1.274016
-G92 Y0
-
-G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
-
-M5 ( Spindle off. )
-G04 P1.000000
-
-O200 ( Main subroutine )
-
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
@@ -91,8 +64,11 @@ G01 X4.57272 Y-3.46130
 G01 X4.57104 Y-3.45576
 G01 X4.57047 Y-3.45000
 
-M99
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z1.000 ( retract )
 
+M5 ( Spindle off. )
+G04 P1.000000
 M9 ( Coolant off. )
 M2 ( Program end. )
 

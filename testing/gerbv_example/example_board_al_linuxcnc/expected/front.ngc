@@ -10,16 +10,16 @@ G64 P0.00040 ( set maximum deviation from commanded toolpath )
 G01 F360.00000 ( Feedrate. )
 
 o6 sub ( G01 with Z-correction subroutine )
-    #3 = [ #5211 - #118 ] ( x-tile offset [minus the initial offset] )
-    #4 = [ #5212 - #119 ] ( y-tile offset [minus the initial offset] )
-    #5 = [ FIX[ [ #1 - 4.68508 + #3 ] / 0.39174 ] ] ( Lower left point X index )
-    #6 = [ FIX[ [ #2 - -3.35489 + #4 ] / 0.36207 ] ] ( Lower left point Y index )
-    #7 = [ #5 * 7 + [ #6 + 1 ] + 500 ] ( Upper left point parameter number )
-    #8 = [ [ #5 + 1 ] *7 + [ #6 + 1 ] + 500 ] ( Upper right point parameter number )
-    #9 = [ #5 * 7 + #6 + 500 ] ( Lower left point parameter number )
-    #10 = [ [ #5 + 1 ] * 7 + #6 + 500 ] ( Lower right point parameter number )
-    #11 = [ [ #2 + #4 - -3.35489 - #6 * 0.36207 ] / 0.36207 ] ( Distance between the point and the left border of the rectangle, normalized to 1 )
-    #12 = [ [ #1 + #3 - 4.68508 - #5 * 0.39174 ] / 0.39174 ] ( Distance between the point and the bottom border of the rectangle, normalized to 1 ) 
+    #3 = 0 ( x-tile offset [minus the initial offset] )
+    #4 = 0 ( x-tile offset [minus the initial offset] )
+    #5 = [ FIX[ [ #1 - 4.68508 + #3 ] / 0.38396 ] ] ( Lower left point X index )
+    #6 = [ FIX[ [ #2 - -3.35489 + #4 ] / 0.29946 ] ] ( Lower left point Y index )
+    #7 = [ #5 * 4 + [ #6 + 1 ] + 500 ] ( Upper left point parameter number )
+    #8 = [ [ #5 + 1 ] *4 + [ #6 + 1 ] + 500 ] ( Upper right point parameter number )
+    #9 = [ #5 * 4 + #6 + 500 ] ( Lower left point parameter number )
+    #10 = [ [ #5 + 1 ] * 4 + #6 + 500 ] ( Lower right point parameter number )
+    #11 = [ [ #2 + #4 - -3.35489 - #6 * 0.29946 ] / 0.29946 ] ( Distance between the point and the left border of the rectangle, normalized to 1 )
+    #12 = [ [ #1 + #3 - 4.68508 - #5 * 0.38396 ] / 0.38396 ] ( Distance between the point and the bottom border of the rectangle, normalized to 1 ) 
     #13 = [ ##9 + [ ##7 - ##9 ] * #11 ] ( Linear interpolation of the x-min elements )
     #14 = [ ##10 + [ ##8 - ##10 ] * #11 ] ( Linear interpolation of the x-max elements )
     #15 = [ #13 + [ #14 - #13 ] * #12 ] ( Linear interpolation of previously interpolated points )
@@ -28,9 +28,9 @@ o6 endsub
 
 o7 sub ( Y probe subroutine )
     G0 Z0.080 ( Move to probe height )
-    X[#112 * 0.39174 + 4.68508] Y[#113 * 0.36207 + -3.35489] ( Move to the current probe point )
+    X[#112 * 0.38396 + 4.68508] Y[#113 * 0.29946 + -3.35489] ( Move to the current probe point )
     G38.2 Z-0.1 F2.362205 ( Probe it )
-    #[#112 * 7 + #113 + 500] = #5063 ( Save the probe in the correct parameter )
+    #[#112 * 4 + #113 + 500] = #5063 ( Save the probe in the correct parameter )
     #113 = [#113 + #114] ( Increment/decrement by 1 the Y counter )
 o7 endsub
 
@@ -38,14 +38,14 @@ o8 sub ( X probe subroutine )
     o9 repeat [#115]
         o7 call
     o9 endrepeat
-    #115 = 7
+    #115 = 4
     #114 = [0 - #114]
     #113 = [#113 + #114]
     #112 = [#112 + 1] ( Increment by 1 the X counter )
 o8 endsub
 
-#118 = #5211
-#119 = #5212
+#118 = 0
+#119 = 0
 
 (MSG, Attach the probe tool)
 M0 ( Temporary machine stop. )
@@ -59,14 +59,14 @@ G10 L20 P0 Z0 ( Set the current Z as zero-value )
 
 ( We now start the real probing: move the Z axis to the probing height, move to )
 ( the probing XY position, probe it and save the result, parameter #5063, )
-( in a numbered parameter; we will make 17 probes on the X-axis and )
-( 7 probes on the Y-axis, for a grand total of 119 probes )
+( in a numbered parameter; we will make 6 probes on the X-axis and )
+( 4 probes on the Y-axis, for a grand total of 24 probes )
 
 #112 = 0 ( X iterator )
 #113 = 1 ( Y iterator )
 #114 = 1 ( UP or DOWN increment )
-#115 = 6 ( number of Y points; the 1st Y row can be done one time less )
-o10 repeat [17]
+#115 = 3 ( number of Y points; the 1st Y row can be done one time less )
+o10 repeat [6]
     o8 call
 o10 endrepeat
 
@@ -86,9 +86,6 @@ M6      (Tool change.)
 M0      (Temporary machine stop.)
 M3 ( Spindle on clockwise. )
 G04 P1.00000 (Wait for spindle to get up to speed)
-
-o200 sub ( Main subroutine )
-
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
@@ -97,7 +94,7 @@ G01 F180.00000
 o6 call [4.68508] [-2.97619]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
-o6 call [4.68508] [-2.63076]
+o6 call [4.68508] [-2.75597]
 o6 call [4.68508] [-2.47619]
 o6 call [4.68657] [-2.46866]
 o6 call [4.69084] [-2.46227]
@@ -121,7 +118,6 @@ o6 call [4.95086] [-2.49417]
 o6 call [4.94695] [-2.49544]
 o6 call [4.94286] [-2.49587]
 o6 call [4.72445] [-2.49587]
-o6 call [4.72445] [-2.63076]
 o6 call [4.72445] [-2.6946]
 o6 call [4.87143] [-2.6946]
 o6 call [4.87552] [-2.69503]
@@ -140,19 +136,18 @@ o6 call [4.87943] [-2.73227]
 o6 call [4.87552] [-2.73354]
 o6 call [4.87143] [-2.73397]
 o6 call [4.72445] [-2.73397]
+o6 call [4.72445] [-2.75597]
 o6 call [4.72445] [-2.97619]
 o6 call [4.72401] [-2.98028]
 o6 call [4.72274] [-2.9842]
 o6 call [4.72069] [-2.98776]
 o6 call [4.71793] [-2.99082]
-o6 call [4.71517] [-2.99283]
 o6 call [4.7146] [-2.99324]
 o6 call [4.71084] [-2.99491]
 o6 call [4.70682] [-2.99577]
 o6 call [4.7027] [-2.99577]
 o6 call [4.69868] [-2.99491]
 o6 call [4.69492] [-2.99324]
-o6 call [4.69435] [-2.99283]
 o6 call [4.69159] [-2.99082]
 o6 call [4.68884] [-2.98776]
 o6 call [4.68678] [-2.9842]
@@ -166,11 +161,11 @@ G01 F180.00000
 o6 call [5.11365] [-2.97619]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
+o6 call [5.11365] [-2.75597]
 o6 call [5.11365] [-2.64286]
 o6 call [5.11408] [-2.63876]
 o6 call [5.11535] [-2.63485]
 o6 call [5.11741] [-2.63129]
-o6 call [5.11788] [-2.63076]
 o6 call [5.12016] [-2.62823]
 o6 call [5.12349] [-2.62581]
 o6 call [5.12725] [-2.62413]
@@ -179,13 +174,11 @@ o6 call [5.13539] [-2.62328]
 o6 call [5.13942] [-2.62413]
 o6 call [5.14318] [-2.62581]
 o6 call [5.1465] [-2.62823]
-o6 call [5.14878] [-2.63076]
 o6 call [5.14926] [-2.63129]
 o6 call [5.15132] [-2.63485]
 o6 call [5.15259] [-2.63876]
 o6 call [5.15302] [-2.66676]
 o6 call [5.16944] [-2.6507]
-o6 call [5.20928] [-2.63076]
 o6 call [5.22258] [-2.6241]
 o6 call [5.22857] [-2.62317]
 o6 call [5.27619] [-2.62317]
@@ -193,7 +186,6 @@ o6 call [5.28028] [-2.6236]
 o6 call [5.2842] [-2.62487]
 o6 call [5.28776] [-2.62693]
 o6 call [5.29082] [-2.62968]
-o6 call [5.2916] [-2.63076]
 o6 call [5.29324] [-2.63301]
 o6 call [5.29491] [-2.63677]
 o6 call [5.29577] [-2.6408]
@@ -209,19 +201,18 @@ o6 call [5.23322] [-2.66254]
 o6 call [5.19261] [-2.68284]
 o6 call [5.17332] [-2.70214]
 o6 call [5.15302] [-2.74274]
+o6 call [5.15302] [-2.75597]
 o6 call [5.15302] [-2.97619]
 o6 call [5.15259] [-2.98028]
 o6 call [5.15132] [-2.9842]
 o6 call [5.14926] [-2.98776]
 o6 call [5.1465] [-2.99082]
-o6 call [5.14374] [-2.99283]
 o6 call [5.14318] [-2.99324]
 o6 call [5.13942] [-2.99491]
 o6 call [5.13539] [-2.99577]
 o6 call [5.13127] [-2.99577]
 o6 call [5.12725] [-2.99491]
 o6 call [5.12349] [-2.99324]
-o6 call [5.12292] [-2.99283]
 o6 call [5.12016] [-2.99082]
 o6 call [5.11741] [-2.98776]
 o6 call [5.11535] [-2.9842]
@@ -235,33 +226,31 @@ G01 F180.00000
 o6 call [5.39936] [-2.88095]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
+o6 call [5.39936] [-2.75597]
 o6 call [5.39936] [-2.73809]
 o6 call [5.40029] [-2.73211]
 o6 call [5.42689] [-2.67897]
+o6 call [5.453] [-2.65285]
 o6 call [5.45516] [-2.6507]
-o6 call [5.46856] [-2.64392]
-o6 call [5.49459] [-2.63076]
 o6 call [5.50548] [-2.62525]
 o6 call [5.51125] [-2.62341]
 o6 call [5.58874] [-2.62341]
 o6 call [5.59452] [-2.62525]
-o6 call [5.60541] [-2.63076]
 o6 call [5.64484] [-2.6507]
 o6 call [5.67311] [-2.67897]
 o6 call [5.69856] [-2.72929]
 o6 call [5.7004] [-2.73506]
+o6 call [5.7004] [-2.75597]
 o6 call [5.7004] [-2.88398]
 o6 call [5.69856] [-2.88976]
 o6 call [5.67311] [-2.94008]
 o6 call [5.64484] [-2.96835]
-o6 call [5.59643] [-2.99283]
 o6 call [5.59452] [-2.9938]
 o6 call [5.58874] [-2.99564]
 o6 call [5.51429] [-2.99587]
 o6 call [5.5083] [-2.99494]
-o6 call [5.50407] [-2.99283]
-o6 call [5.46856] [-2.97506]
 o6 call [5.45516] [-2.96835]
+o6 call [5.453] [-2.96623]
 o6 call [5.42894] [-2.94249]
 o6 call [5.42525] [-2.93737]
 o6 call [5.40128] [-2.88934]
@@ -275,23 +264,25 @@ G01 F180.00000
 o6 call [5.43873] [-2.8763]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
+o6 call [5.43873] [-2.75597]
 o6 call [5.43873] [-2.74274]
+o6 call [5.453] [-2.7142]
 o6 call [5.45904] [-2.70214]
-o6 call [5.46856] [-2.69261]
 o6 call [5.47833] [-2.68284]
 o6 call [5.51893] [-2.66254]
 o6 call [5.58107] [-2.66254]
 o6 call [5.62167] [-2.68284]
 o6 call [5.64096] [-2.70214]
 o6 call [5.66127] [-2.74274]
+o6 call [5.66127] [-2.75597]
 o6 call [5.66127] [-2.8763]
 o6 call [5.64096] [-2.91691]
 o6 call [5.62167] [-2.9362]
 o6 call [5.58107] [-2.9565]
 o6 call [5.51893] [-2.9565]
 o6 call [5.47833] [-2.9362]
-o6 call [5.46856] [-2.92643]
 o6 call [5.45904] [-2.91691]
+o6 call [5.453] [-2.90485]
 o6 call [5.43873] [-2.8763]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
@@ -301,11 +292,11 @@ G01 F180.00000
 o6 call [5.87555] [-2.97619]
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
+o6 call [5.87555] [-2.75597]
 o6 call [5.87555] [-2.64286]
 o6 call [5.87598] [-2.63876]
 o6 call [5.87725] [-2.63485]
 o6 call [5.87931] [-2.63129]
-o6 call [5.87979] [-2.63076]
 o6 call [5.88207] [-2.62823]
 o6 call [5.88539] [-2.62581]
 o6 call [5.88915] [-2.62413]
@@ -314,59 +305,55 @@ o6 call [5.89729] [-2.62328]
 o6 call [5.90132] [-2.62413]
 o6 call [5.90508] [-2.62581]
 o6 call [5.90841] [-2.62823]
-o6 call [5.91069] [-2.63076]
 o6 call [5.91116] [-2.63129]
 o6 call [5.91322] [-2.63485]
 o6 call [5.91449] [-2.63876]
 o6 call [5.91492] [-2.64672]
-o6 call [5.94684] [-2.63076]
 o6 call [5.95786] [-2.62525]
 o6 call [5.96364] [-2.62341]
 o6 call [6.04113] [-2.62341]
 o6 call [6.0469] [-2.62525]
-o6 call [6.05779] [-2.63076]
 o6 call [6.09722] [-2.6507]
 o6 call [6.09963] [-2.65275]
 o6 call [6.10332] [-2.65786]
 o6 call [6.12713] [-2.70548]
 o6 call [6.12897] [-2.71125]
+o6 call [6.12901] [-2.75597]
 o6 call [6.12921] [-2.97619]
 o6 call [6.12878] [-2.98028]
 o6 call [6.12751] [-2.9842]
 o6 call [6.12545] [-2.98776]
 o6 call [6.12269] [-2.99082]
-o6 call [6.11993] [-2.99283]
 o6 call [6.11937] [-2.99324]
 o6 call [6.11561] [-2.99491]
 o6 call [6.11158] [-2.99577]
 o6 call [6.10747] [-2.99577]
 o6 call [6.10344] [-2.99491]
 o6 call [6.09968] [-2.99324]
-o6 call [6.09911] [-2.99283]
 o6 call [6.09635] [-2.99082]
 o6 call [6.0936] [-2.98776]
 o6 call [6.09154] [-2.9842]
 o6 call [6.09027] [-2.98028]
 o6 call [6.08984] [-2.97619]
+o6 call [6.08984] [-2.75597]
 o6 call [6.08984] [-2.71893]
 o6 call [6.07104] [-2.68134]
 o6 call [6.03345] [-2.66254]
 o6 call [5.97131] [-2.66254]
 o6 call [5.93071] [-2.68284]
 o6 call [5.91492] [-2.69863]
+o6 call [5.91492] [-2.75597]
 o6 call [5.91492] [-2.97619]
 o6 call [5.91449] [-2.98028]
 o6 call [5.91322] [-2.9842]
 o6 call [5.91116] [-2.98776]
 o6 call [5.90841] [-2.99082]
-o6 call [5.90565] [-2.99283]
 o6 call [5.90508] [-2.99324]
 o6 call [5.90132] [-2.99491]
 o6 call [5.89729] [-2.99577]
 o6 call [5.89318] [-2.99577]
 o6 call [5.88915] [-2.99491]
 o6 call [5.88539] [-2.99324]
-o6 call [5.88483] [-2.99283]
 o6 call [5.88207] [-2.99082]
 o6 call [5.87931] [-2.98776]
 o6 call [5.87725] [-2.9842]
@@ -383,7 +370,6 @@ G01 F360.00000
 o6 call [6.25661] [-2.6408]
 o6 call [6.25747] [-2.63677]
 o6 call [6.25914] [-2.63301]
-o6 call [6.26078] [-2.63076]
 o6 call [6.26156] [-2.62968]
 o6 call [6.26462] [-2.62693]
 o6 call [6.26818] [-2.62487]
@@ -411,7 +397,6 @@ o6 call [6.47076] [-2.6236]
 o6 call [6.47467] [-2.62487]
 o6 call [6.47824] [-2.62693]
 o6 call [6.48129] [-2.62968]
-o6 call [6.48207] [-2.63076]
 o6 call [6.48371] [-2.63301]
 o6 call [6.48539] [-2.63677]
 o6 call [6.48624] [-2.6408]
@@ -424,6 +409,7 @@ o6 call [6.47467] [-2.66084]
 o6 call [6.47076] [-2.66211]
 o6 call [6.46667] [-2.66254]
 o6 call [6.3673] [-2.66254]
+o6 call [6.3673] [-2.75597]
 o6 call [6.3673] [-2.90011]
 o6 call [6.3861] [-2.93771]
 o6 call [6.42369] [-2.9565]
@@ -440,18 +426,17 @@ o6 call [6.48539] [-2.98227]
 o6 call [6.48371] [-2.98603]
 o6 call [6.48129] [-2.98936]
 o6 call [6.47824] [-2.99212]
-o6 call [6.477] [-2.99283]
 o6 call [6.47467] [-2.99417]
 o6 call [6.47076] [-2.99544]
 o6 call [6.46667] [-2.99587]
 o6 call [6.41602] [-2.99564]
 o6 call [6.41024] [-2.9938]
-o6 call [6.4083] [-2.99283]
 o6 call [6.36262] [-2.96999]
 o6 call [6.35992] [-2.96835]
 o6 call [6.35546] [-2.96389]
 o6 call [6.33001] [-2.91356]
 o6 call [6.32817] [-2.90779]
+o6 call [6.32802] [-2.75597]
 o6 call [6.32793] [-2.66254]
 o6 call [6.2721] [-2.66211]
 o6 call [6.26818] [-2.66084]
@@ -500,21 +485,6 @@ o6 call [6.5] [-3.30492]
 o6 call [6.49711] [-3.30398]
 o6 call [6.49574] [-3.30246]
 o6 call [6.4951] [-3.30051]
-
-o200 endsub
-
-o200 call
-G92 X[#5420-[2.174016]]
-o200 call
-G92 X[#5420-[2.174016]]
-o200 call
-G92 Y[#5421-[1.274016]]
-o200 call
-G92 X[#5420-[-2.174016]]
-o200 call
-G92 X[#5420-[-2.174016]]
-o200 call
-G92 Y[#5421-[-1.274016]]
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z1.000 ( retract )

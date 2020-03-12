@@ -1,0 +1,92 @@
+( pcb2gcode 2.0.0 )
+( Gcode for linuxcnc )
+
+G94 ( Inches per minute feed rate. )
+G20 ( Units == INCHES. )
+
+G90 ( Absolute coordinates. )
+G00 S10000 ( RPM spindle speed. )
+G64 P0.00040 ( set maximum deviation from commanded toolpath )
+G01 F100.00000 ( Feedrate. )
+
+
+G00 Z1.00000 (Retract to tool change height)
+T0
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to cutter diameter 0.05906in)
+M6      (Tool change.)
+M0      (Temporary machine stop.)
+M3 ( Spindle on clockwise. )
+G04 P1.00000 (Wait for spindle to get up to speed)
+
+o200 sub ( Main subroutine )
+
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.08000 ( retract )
+
+G00 X4.57047 Y-3.45000 ( rapid move to begin. )
+G01 Z-0.00512 F50.00000 ( plunge. )
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G01 F100.00000
+G01 X4.57047 Y-2.30000
+G01 X4.57104 Y-2.29424
+G01 X4.57272 Y-2.28870
+G01 X4.57545 Y-2.28360
+G01 X4.57912 Y-2.27912
+G01 X4.58359 Y-2.27545
+G01 X4.58870 Y-2.27272
+G01 X4.59424 Y-2.27104
+G01 X4.60000 Y-2.27047
+G01 X6.50000 Y-2.27047
+G01 X6.50576 Y-2.27104
+G01 X6.51130 Y-2.27272
+G01 X6.51640 Y-2.27545
+G01 X6.52088 Y-2.27912
+G01 X6.67088 Y-2.42912
+G01 X6.67455 Y-2.43359
+G01 X6.67728 Y-2.43870
+G01 X6.67896 Y-2.44424
+G01 X6.67953 Y-2.45000
+G01 X6.67953 Y-3.45000
+G01 X6.67896 Y-3.45576
+G01 X6.67728 Y-3.46130
+G01 X6.67455 Y-3.46640
+G01 X6.67088 Y-3.47088
+G01 X6.66640 Y-3.47455
+G01 X6.66130 Y-3.47728
+G01 X6.65576 Y-3.47896
+G01 X6.65000 Y-3.47953
+G01 X4.60000 Y-3.47953
+G01 X4.59424 Y-3.47896
+G01 X4.58870 Y-3.47728
+G01 X4.58359 Y-3.47455
+G01 X4.57912 Y-3.47088
+G01 X4.57545 Y-3.46640
+G01 X4.57272 Y-3.46130
+G01 X4.57104 Y-3.45576
+G01 X4.57047 Y-3.45000
+
+o200 endsub
+
+o200 call
+G92 X[#5420-[2.174016]]
+o200 call
+G92 X[#5420-[2.174016]]
+o200 call
+G92 Y[#5421-[1.274016]]
+o200 call
+G92 X[#5420-[-2.174016]]
+o200 call
+G92 X[#5420-[-2.174016]]
+o200 call
+G92 Y[#5421-[-1.274016]]
+
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z1.000 ( retract )
+
+M5 ( Spindle off. )
+G04 P1.000000
+M9 ( Coolant off. )
+M2 ( Program end. )
+
