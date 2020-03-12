@@ -11,7 +11,7 @@ G01 F360.00000 ( Feedrate. )
 
 o1 sub ( G01 with Z-correction subroutine )
     #4 = 0 ( x-tile offset [minus the initial offset] )
-    #5 = 0 ( x-tile offset [minus the initial offset] )
+    #5 = 0 ( y-tile offset [minus the initial offset] )
     #6 = [ FIX[ [ #1 - -6.60491 + #4 ] / 0.35838 ] ] ( Lower left point X index )
     #7 = [ FIX[ [ #2 - -3.35491 + #5 ] / 0.30905 ] ] ( Lower left point Y index )
     #8 = [ #6 * 3 + [ #7 + 1 ] + 500 ] ( Upper left point parameter number )

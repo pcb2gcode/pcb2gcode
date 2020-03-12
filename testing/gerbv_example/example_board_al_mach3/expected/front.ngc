@@ -1513,7 +1513,7 @@ M5 ( Spindle off. )
 G04 P1.000000
 O6 ( G01 with Z-correction subroutine )
     #4 = 0 ( x-tile offset [minus the initial offset] )
-    #5 = 0 ( x-tile offset [minus the initial offset] )
+    #5 = 0 ( y-tile offset [minus the initial offset] )
     #6 = [ FIX[ [ #112 - 4.68508 + #4 ] / 0.38396 ] ] ( Lower left point X index )
     #7 = [ FIX[ [ #113 - -3.35489 + #5 ] / 0.29946 ] ] ( Lower left point Y index )
     #8 = [ #6 * 4 + [ #7 + 1 ] + 500 ] ( Upper left point parameter number )

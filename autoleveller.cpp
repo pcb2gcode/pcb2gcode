@@ -253,7 +253,7 @@ void autoleveller::footerNoIf(std::ofstream &of) {
         else
         {
             of << "    #4 = 0 ( x-tile offset [minus the initial offset] )\n";
-            of << "    #5 = 0 ( x-tile offset [minus the initial offset] )\n";
+            of << "    #5 = 0 ( y-tile offset [minus the initial offset] )\n";
         }
         of << "    #6 = [ FIX[ [ #" << var1[software] << " - " << startPointX << " + #4 ] / " << XProbeDist << " ] ] ( Lower left point X index )\n";
         of << "    #7 = [ FIX[ [ #" << var2[software] << " - " << startPointY << " + #5 ] / " << YProbeDist << " ] ] ( Lower left point Y index )\n";
