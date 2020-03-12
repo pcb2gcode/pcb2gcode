@@ -650,6 +650,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         if (tool_index < tool_count - 1) {
           // Don't force isolation.
           if (trace_index < vectorial_surface->first.size()) {
+            // This doesn't run for thermal holes.
             multi_polygon_type_fp temp;
             bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - mill->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
@@ -830,7 +831,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
         // This means that we are milling a thermal so we need to do all the
         // passes here.  We can't count on the passes around the input surface
         // because there is no input surface.
-        factor = double(i) + 1 - steps;
+        factor = -double(i);
       } else {
         factor = ((1-double(steps))/2 + i);
       }

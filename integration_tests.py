@@ -31,6 +31,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "am-test-extended",
                   "am-test-voronoi",
                   "am-test-voronoi-extra-passes",
+                  "am-test-voronoi-wide-extra-passes",
                   "am-test-voronoi-front",
                   "edge-cuts-inside-cuts",
                   "edge-cuts-broken-loop",
