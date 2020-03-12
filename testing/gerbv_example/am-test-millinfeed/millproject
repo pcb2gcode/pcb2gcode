@@ -1,0 +1,11 @@
+back=am-test.gbx
+
+mill-diameters=0.2
+zwork=-0.008
+mill-infeed=0.003
+zsafe=0.08
+mill-feed=6
+mill-speed=30000
+zchange=1.0
+optimise=true
+g64=0.0004
