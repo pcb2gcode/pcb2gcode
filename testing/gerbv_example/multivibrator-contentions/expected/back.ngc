@@ -24,6 +24,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.08133 Y-2.65215 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -63,6 +64,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.91610 Y-2.43462 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -99,6 +101,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.61607 Y-2.84408 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -147,6 +150,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.84649 Y-2.71130 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -164,6 +168,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.63346 Y-2.82807 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -181,6 +186,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.72702 Y-2.90582 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -201,6 +207,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.68179 Y-3.01590 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -229,6 +236,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.61406 Y-3.02184 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -244,6 +252,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.47384 Y-3.10088 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -273,6 +282,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.44701 Y-3.20175 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -286,6 +296,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.44097 Y-3.17626 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -317,6 +328,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.12110 Y-3.53290 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -327,6 +339,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.36710 Y-3.27297 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -340,6 +353,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.55456 Y-3.21063 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -350,6 +364,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.67366 Y-3.28937 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -362,6 +377,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.90000 Y-3.16109 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -377,6 +393,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.98720 Y-2.98593 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -394,6 +411,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.93798 Y-2.77823 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -406,6 +424,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.87230 Y-2.71125 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -423,6 +442,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.90642 Y-2.66443 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -435,6 +455,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.92570 Y-2.61901 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -454,6 +475,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.81810 Y-2.34544 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -490,6 +512,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.15350 Y-2.19115 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -508,6 +531,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.64635 Y-2.25334 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -528,6 +552,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.22531 Y-2.31509 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -543,6 +568,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.04357 Y-2.43557 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -577,6 +603,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.00502 Y-3.35346 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -602,6 +629,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.22018 Y-3.21003 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -624,6 +652,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.19793 Y-2.93741 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -643,6 +672,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.34447 Y-2.80928 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -668,6 +698,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.45474 Y-2.81445 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -680,6 +711,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.45477 Y-2.88570 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -711,6 +743,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.31656 Y-3.12280 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -739,6 +772,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.29825 Y-3.28705 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -761,6 +795,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.43751 Y-3.36824 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -779,6 +814,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.28916 Y-3.60237 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -793,6 +829,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.78779 Y-3.35433 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -813,6 +850,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.75875 Y-3.35999 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -831,6 +869,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.51205 Y-3.25000 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -847,6 +886,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.76187 Y-3.22532 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -865,6 +905,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.78507 Y-3.22897 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -888,6 +929,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.05992 Y-3.22240 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -902,6 +944,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.10146 Y-3.20966 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -923,6 +966,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.11645 Y-3.38494 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -986,6 +1030,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.26285 Y-3.16714 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -1036,6 +1081,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.29545 Y-2.81952 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -1046,6 +1092,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.43915 Y-2.81551 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -1071,6 +1118,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-4.21132 Y-2.87733 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
@@ -1101,6 +1149,7 @@ G00 Z0.08000 ( retract )
 
 G00 X-3.56938 Y-2.83144 ( rapid move to begin. )
 G01 F180.00000
+( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000

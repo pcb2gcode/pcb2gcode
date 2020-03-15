@@ -241,6 +241,7 @@ options::options()
        ("zwork", po::value<Length>(), "milling depth in inches (Z-coordinate while engraving)")
        ("mill-feed", po::value<Velocity>(), "feed while isolating in [i/m] or [mm/m]")
        ("mill-vertfeed", po::value<Velocity>(), "vertical feed while isolating in [i/m] or [mm/m]")
+       ("mill-infeed", po::value<Length>(), "maximum milling depth; PCB may be cut in multiple passes")
        ("mill-speed", po::value<Rpm>(), "spindle rpm when milling")
        ("mill-feed-direction", po::value<MillFeedDirection::MillFeedDirection>()->default_value(MillFeedDirection::ANY),
         "In which direction should all milling occur")
@@ -517,6 +518,10 @@ static void check_milling_parameters(po::variables_map const& vm)
 
       if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
         options::maybe_throw("Error: Negative or equal to 0 vertical milling feed (--mill-vertfeed).", ERR_NEGATIVEMILLVERTFEED);
+      }
+
+      if (vm.count("mill-infeed")>0 && vm["mill-infeed"].as<Length>().asInch(unit) <= 0.0) {
+        options::maybe_throw("Error: The milling infeed --mill-infeed. seems too low.", ERR_LOWMILLINFEED);
       }
 
       if (vm["mill-speed"].as<Rpm>().asDouble() < 0) {

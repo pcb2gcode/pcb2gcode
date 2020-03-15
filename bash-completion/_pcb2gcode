@@ -1,0 +1,110 @@
+# A re-use from tar completion
+__pcb2gcode_parse_help_opt() {
+	local opttype arg opt separator optvar
+	opttype=long
+	arg="$2"
+	opt="$1"
+	separator=" "
+
+	case "$opt" in
+		--*)
+			;;
+		-\?)
+			return ;;
+		-*)
+			opttype=short
+			opt=${opt##-}
+			separator=
+			;;
+		*)
+			echo >&2 "not an option $opt"
+			return 1
+			;;
+	esac
+
+	# Remove arguments.
+	opt=${opt//\[*/}
+	opt=${opt//=*/=}
+
+	# Basic sanity.
+	opt=${opt//\"*/}
+	opt=${opt//\'*/}
+	opt=${opt//\;*/}
+
+	optvar=$opttype'_arg_'$arg
+
+	eval "$optvar=\"\$$optvar$separator\"\"$opt\""
+}
+
+__pcb2gcode_parse_help_line()
+{
+	local i
+
+	for i in $1; do
+		case "$i" in
+			# regular options
+			--*|-*)
+			__pcb2gcode_parse_help_opt "$i" "$2"
+			;;
+
+			# end once there is single non-option word
+			*)
+			break
+	esac
+done
+}
+
+__pcb2gcode_parse_help()
+{
+	local str line arg
+	while IFS= read line; do
+		# Ok, this requires some comment probably.  The GNU help output prints
+		# options on lines beginning with spaces.  After that, there is one
+		# or more options separated by ', ' separator string.  We are matching
+		# like this then:  ^<spaces>(<separator>?<option>)+<whatever>$
+		if [[ "$line" =~ \
+			^[[:blank:]]{1,10}(((,[[:blank:]])?(--?([\]\[a-zA-Z0-9?=-]+))(,[[:space:]])?)+).*$ ]]; then
+
+			line=${BASH_REMATCH[1]}
+			str="${line//,/ }"
+
+			# Detect that all options on this line accept arguments (and whether
+			# the arguments are required or not).  Note that only long option
+			# description in GNU help output mentions arguments.  So the $line
+			# variable may contain e.g. '-X, --XXX[=NAME], -XXX2[=NAME]'.
+			arg=none
+			if [[ "$line" =~ --[A-Za-z0-9-]+(\[?)= ]]; then
+				[[ -n "${BASH_REMATCH[1]}" ]] && arg=opt || arg=req
+			fi
+
+			__pcb2gcode_parse_help_line "$str" "$arg"
+	fi
+	done <<<"$(pcb2gcode --help)"
+
+	long_opts="\
+$long_arg_none\
+$long_arg_opt\
+$long_arg_req"
+
+	short_opts="$short_arg_none$short_arg_opt$short_arg_req"
+}
+
+
+
+_pcb2gcode () {
+	if [ -n "$PCB2GCODE_COMP_DEBUG" ]; then
+		set -x
+		PS4="\$BASH_SOURCE:\$LINENO:"
+	fi
+	_init_completion -s || return
+	__pcb2gcode_parse_help
+	COMPREPLY=( $( compgen -W "$long_opts" -- "$cur" ) )
+	if [ -n "$PCB2GCODE_COMP_DEBUG" ]; then
+		set +x
+		unset PS4
+	fi
+}
+
+complete -F _pcb2gcode pcb2gcode
+
+# vim: filetype=sh tabstop=2:

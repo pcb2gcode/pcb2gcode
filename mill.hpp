@@ -59,7 +59,7 @@ class RoutingMill: public Mill {
   size_t path_finding_limit;
   double g0_vertical_speed;
   double g0_horizontal_speed;
-
+  double stepsize;
 };
 
 /******************************************************************************/
@@ -84,7 +84,6 @@ class Isolator: public RoutingMill {
 class Cutter: public RoutingMill {
  public:
   double tool_diameter;
-  double stepsize;
   unsigned int bridges_num;
   double bridges_height;
   double bridges_width;

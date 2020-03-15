@@ -55,19 +55,16 @@ public:
     // only the probe calls for the other softwares)
     void header( std::ofstream &of );
 
-    // setMillingParameters sets the milling parameters
-    void setMillingParameters ( double zwork, double zsafe, int feedrate );
-
     // autoleveller doesn't just interpolate a point, it also checks that the distance between the
     // previous point and the new point is not too high. If the distance is too high, it creates the
     // required number of points between the previous and the current point and it interpolates them too.
     // This function adds a new chain point. Always call setLastChainPoint before starting a new chain
     // (call it also for the 1st chain)
-    std::string addChainPoint ( icoordpair point );
+    std::string addChainPoint(icoordpair point, double zwork);
 
     // g01Corrected interpolates only one point (without adding it to the chain), and it prints a G01 to that
     // position
-    std::string g01Corrected ( icoordpair point );
+    std::string g01Corrected(icoordpair point, double zwork);
 
     // Set lastPoint as the last chain point. You can use this function when you want to start a new chain
     inline void setLastChainPoint ( icoordpair lastPoint )
@@ -106,7 +103,6 @@ public:
     const std::string setZZeroCustom;
     const double XProbeDistRequired;
     const double YProbeDistRequired;
-    const std::string zwork;
     const std::string zprobe;
     const std::string zsafe;
     const std::string zfail;
@@ -132,7 +128,7 @@ public:
     const std::string globalVar3;
     const std::string globalVar4;
     const std::string globalVar5;
-    
+
     const struct Tiling::TileInfo tileInfo;
     const unsigned int initialXOffsetVar;
     const unsigned int initialYOffsetVar;
