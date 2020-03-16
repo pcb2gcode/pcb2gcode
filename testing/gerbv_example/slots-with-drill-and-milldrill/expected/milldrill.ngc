@@ -8,7 +8,15 @@ G20       (Units == INCHES.)
 G91.1     (Incremental arc distance mode.)
 G90       (Absolute coordinates.)
 S10000    (RPM spindle speed.)
+
 G01 F100.00000 (Feedrate)
+G00 Z1.00000 (Retract)
+T2
+M5        (Spindle stop.)
+G04 P1.00000
+(MSG, Change tool bit to drill size 0.04000inch)
+M6        (Tool change.)
+M0        (Temporary machine stop.)
 M3        (Spindle on clockwise.)
 G04 P1.00000
 G00 Z0.08000

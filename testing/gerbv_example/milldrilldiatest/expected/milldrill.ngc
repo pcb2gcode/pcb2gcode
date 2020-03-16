@@ -8,7 +8,15 @@ G21       (Units == Millimeters.)
 G91.1     (Incremental arc distance mode.)
 G90       (Absolute coordinates.)
 S2000    (RPM spindle speed.)
+
 G01 F600.00000 (Feedrate)
+G00 Z10.00000 (Retract)
+T6
+M5        (Spindle stop.)
+G04 P1.00000
+(MSG, Change tool bit to drill size 1.00000mm)
+M6        (Tool change.)
+M0        (Temporary machine stop.)
 M3        (Spindle on clockwise.)
 G04 P1.00000
 G00 Z1.50000

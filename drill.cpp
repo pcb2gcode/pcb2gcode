@@ -597,11 +597,19 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     of << " )\n\n";
 
     //preamble
-    of << preamble_ext << preamble << "S" << left << target->speed
-       << "    (RPM spindle speed.)\n" << "G01 F" << target->feed * cfactor
-       << " (Feedrate)\nM3        (Spindle on clockwise.)\n"
-       << "G04 P" << target->spinup_time
-       << "\nG00 Z" << target->zsafe * cfactor << "\n\n";
+    of << preamble_ext << preamble
+       << "S" << left << target->speed << "    (RPM spindle speed.)\n\n"
+       << "G01 F" << target->feed * cfactor << " (Feedrate)\n"
+       << "G00 Z" << target->zchange * cfactor << " (Retract)\n"
+       << "T" << (*holes.begin()).first << "\n"
+       << "M5        (Spindle stop.)\n"
+       << "G04 P" << target->spindown_time << "\n"
+       << "(MSG, Change tool bit to drill size " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter) << (bMetricOutput ? "mm" : "inch") << ")\n"
+       << "M6        (Tool change.)\n"
+       << "M0        (Temporary machine stop.)\n"
+       << "M3        (Spindle on clockwise.)\n"
+       << "G04 P" << target->spinup_time << "\n"
+       << "G00 Z" << target->zsafe * cfactor << "\n\n";
 
     tiling->header( of );
 
