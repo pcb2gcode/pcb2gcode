@@ -352,6 +352,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                 }
             }
         }
+        if (!nog81) {
+          of << "G80\n"; // End the G81 from before.
+        }
         of << "\n";
     }
 
