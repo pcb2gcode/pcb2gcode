@@ -522,7 +522,7 @@ G2 X4.00120 Y-2.75256 I-0.03813 J-0.00846
 G1 X3.92254 Y-2.39823
 G0 Z0.08000
 
-G00 Z1.000 ( All done -- retract )
+G00 Z1.000000 ( All done -- retract )
 
 M5      (Spindle off.)
 G04 P1.000000

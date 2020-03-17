@@ -1550,7 +1550,7 @@ G01 X-4.44678 Y-2.81459
 G01 X-4.43915 Y-2.81551
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G00 Z1.000000 ( retract )
 
 M5 ( Spindle off. )
 G04 P1.000000

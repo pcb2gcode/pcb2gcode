@@ -410,7 +410,7 @@ o1 call
 G92 X[#5420-[-1.974016]]
 o1 call
 G92 Y[#5421-[-1.374016]]
-G00 Z1.000 ( All done -- retract )
+G00 Z1.000000 ( All done -- retract )
 
 M5      (Spindle off.)
 G04 P1.000000

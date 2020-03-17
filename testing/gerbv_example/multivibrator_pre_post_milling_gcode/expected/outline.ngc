@@ -71,7 +71,7 @@ G01 X-3.02104 Y-3.60576
 G01 X-3.02047 Y-3.60000
 
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000 ( retract )
+G00 Z1.000000 ( retract )
 
 postamble line1
 postamble line2
