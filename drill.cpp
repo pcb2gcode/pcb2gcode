@@ -400,7 +400,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
             // Is there enough room for material evacuation?
             if (distance > 0.3 * cutdiameter) {
-                of << "F" << cutter->feed * cfactor << '\n';
+                of << "G1 F" << cutter->feed * cfactor << '\n';
             }
 
             double zhalfstep = cutter->zwork / stepcount / 2;
@@ -489,7 +489,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         // Is hole is big enough for horizontal speed?
         if (holediameter + distance > 1.1 * cutdiameter) {
-          of << "F" << cutter->feed * cfactor << '\n';
+          of << "G1 F" << cutter->feed * cfactor << '\n';
         }
 
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
