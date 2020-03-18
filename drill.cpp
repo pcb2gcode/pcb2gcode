@@ -312,7 +312,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
            << "G04 P" << driller->spinup_time << "\n\n";
 
         if( nog81 )
-            of << "F" << driller->feed * cfactor << '\n';
+            of << "G1 F" << driller->feed * cfactor << '\n';
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
@@ -339,7 +339,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                                << ( get_xvalue(x) - xoffsetTot ) * cfactor
                                << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
                             of << "G1 Z" << driller->zwork * cfactor << '\n';
-                                of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                            of << "G1 Z" << driller->zsafe * cfactor << '\n';
                         }
                         else
                         {
@@ -427,7 +427,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             of << "G1 Z" << cutter->zwork * cfactor
                << " F" << cutter->vertfeed * cfactor << '\n';
         }
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
+        of << "G1 Z" << cutter->zsafe * cfactor
+           << " F" << cutter->vertfeed * cfactor << "\n\n";
 
         return false;
     } else {
@@ -541,7 +542,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           }
         }
 
-        of << "G0 Z" << cutter->zsafe * cfactor << "\n\n";
+        of << "G1 Z" << cutter->zsafe * cfactor
+           << " F" << cutter->vertfeed * cfactor << "\n\n";
 
         return true;
     }
