@@ -352,6 +352,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                 }
             }
         }
+        if (!nog81) {
+          of << "G80\n"; // End the G81 from before.
+        }
         of << "\n";
     }
 
@@ -397,7 +400,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
             // Is there enough room for material evacuation?
             if (distance > 0.3 * cutdiameter) {
-                of << "F" << cutter->feed * cfactor << '\n';
+                of << "G1 F" << cutter->feed * cfactor << '\n';
             }
 
             double zhalfstep = cutter->zwork / stepcount / 2;
@@ -486,7 +489,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
         // Is hole is big enough for horizontal speed?
         if (holediameter + distance > 1.1 * cutdiameter) {
-          of << "F" << cutter->feed * cfactor << '\n';
+          of << "G1 F" << cutter->feed * cfactor << '\n';
         }
 
         string arc_gcode = mill_feed_direction == MillFeedDirection::CLIMB ? "G3" : "G2";
@@ -552,13 +555,13 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
     cout << "Exporting milldrill... " << flush;
 
-    zchange << setprecision(3) << fixed << target->zchange * cfactor;
+    zchange << setprecision(6) << fixed << target->zchange * cfactor;
     tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
-                         " ( All done -- retract )\n" + postamble_ext +
-                         "\nM5      (Spindle off.)\nG04 P" +
-                         to_string(target->spindown_time) +
+                        " ( All done -- retract )\n" + postamble_ext +
+                        "\nM5      (Spindle off.)\nG04 P" +
+                        to_string(target->spindown_time) +
                         "\nM9      (Coolant off.)\n"
-                         "M2      (Program end.)\n\n");
+                        "M2      (Program end.)\n\n");
 
     map<int, drillbit> bits = parsed_bits;
     const map<int, ilinesegments> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);

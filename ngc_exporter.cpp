@@ -304,7 +304,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       }
       Tiling tiling(tileInfo, cfactor, main_sub_ocodes.getUniqueCode());
       tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
-                         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.3f") % ( mill->zchange * cfactor ) ) +
+                         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.6f") % ( mill->zchange * cfactor ) ) +
                          " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
                          to_string(mill->spindown_time) + "\n");
 
