@@ -48,7 +48,7 @@ multi_linestring_type_fp make_eulerian_paths(const vector<pair<linestring_type_f
   };
   // Only allow reversing the direction of travel if mill_feed_direction is
   // ANY.  We need to scale them back down.
-  multi_linestring_type_fp segments_as_linestrings;
+  vector<std::pair<linestring_type_fp, bool>> segments_as_linestrings;
   segments_as_linestrings.reserve(split_segments.size());
   allow_reversals.clear();
   allow_reversals.reserve(split_segments.size());
@@ -59,15 +59,14 @@ multi_linestring_type_fp make_eulerian_paths(const vector<pair<linestring_type_f
     const auto& allow_reversal = segment_and_allow_reversal.second;
     ls.push_back(point_type_fp(segment.low().x() / SCALE, segment.low().y() / SCALE));
     ls.push_back(point_type_fp(segment.high().x() / SCALE, segment.high().y() / SCALE));
-    segments_as_linestrings.push_back(ls);
-    allow_reversals.push_back(allow_reversal);
+    segments_as_linestrings.push_back(make_pair(ls, allow_reversal));
   }
 
   return get_eulerian_paths<
       point_type_fp,
       linestring_type_fp,
       multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings, allow_reversals);
+      PointLessThan>(segments_as_linestrings);
 }
 
 multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible) {
