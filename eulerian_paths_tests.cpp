@@ -36,8 +36,8 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
   ls.push_back(point_type(3,4));
   vector<pair<linestring_type, bool>> mls;
   mls.push_back(make_pair(ls, true));
-  multi_linestring_type result =
-      get_eulerian_paths<point_type, linestring_type, multi_linestring_type, PointLessThan>(mls);
+  vector<pair<linestring_type, bool>> result =
+      get_eulerian_paths<point_type, linestring_type, PointLessThan>(mls);
   BOOST_CHECK_EQUAL(result.size(), 1UL);
 }
 
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
 // |   |   |
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{1,2}, true),
       make_pair(vector<int>{2,3}, true),
       make_pair(vector<int>{4,5}, true),
@@ -64,9 +64,9 @@ BOOST_AUTO_TEST_CASE(window_pane) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(window_pane) {
 // |   |   |
 // 7---8---9
 BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{4,5}, true),
       make_pair(vector<int>{5,6}, true),
       make_pair(vector<int>{4,7,8}, true),
@@ -94,9 +94,9 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
 // |   |   |   |
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(bridge) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{5,2}, true),
       make_pair(vector<int>{2,1}, true),
       make_pair(vector<int>{1,6}, true),
@@ -123,9 +123,9 @@ BOOST_AUTO_TEST_CASE(bridge) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
 // |   |   |   |
 // 3---4   7---8
 BOOST_AUTO_TEST_CASE(disjoint_loops) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{5,2}, true),
       make_pair(vector<int>{1,6}, true),
       make_pair(vector<int>{3,4}, true),
@@ -154,9 +154,9 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
 // v   |
 // 3---4
 BOOST_AUTO_TEST_CASE(mixed1) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{1,2}, false),
       make_pair(vector<int>{1,3}, false),
       make_pair(vector<int>{2,4}, true),
@@ -179,9 +179,9 @@ BOOST_AUTO_TEST_CASE(mixed1) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(mixed1) {
 // v   |
 // 3---4
 BOOST_AUTO_TEST_CASE(mixed2) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{2,1}, false),
       make_pair(vector<int>{1,3}, false),
       make_pair(vector<int>{2,4}, true),
@@ -204,9 +204,9 @@ BOOST_AUTO_TEST_CASE(mixed2) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(mixed2) {
 // |   |   |
 // 7---8---9
 BOOST_AUTO_TEST_CASE(mixed3) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{1,2}, true),
       make_pair(vector<int>{2,3}, true),
       make_pair(vector<int>{1,4}, true),
@@ -240,9 +240,9 @@ BOOST_AUTO_TEST_CASE(mixed3) {
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -253,15 +253,15 @@ BOOST_AUTO_TEST_CASE(mixed3) {
 
 // At least one of the paths must be turned around.
 BOOST_AUTO_TEST_CASE(start_second) {
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{0,1}, true),
       make_pair(vector<int>{0,2}, true),
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
@@ -272,19 +272,15 @@ BOOST_AUTO_TEST_CASE(start_second) {
 
 // Directional paths with a loop.
 BOOST_AUTO_TEST_CASE(directional_loop) {
-  vector<vector<int>> input{{0, 0}, // here's a loop
-                            {1, 0}, // it should connect to here
-  };
-
-  vector<vector<int>> euler_paths = get_eulerian_paths<int, vector<int>, vector<vector<int>>>({
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
       make_pair(vector<int>{0, 0}, false),
       make_pair(vector<int>{1, 0}, false),
     });
   int edges_visited = 0;
   for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].size()-1;
-    for (size_t j = 0; j < euler_paths[i].size(); j++) {
-      printf("%d ", euler_paths[i][j]);
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
     }
     printf("\n");
   }
