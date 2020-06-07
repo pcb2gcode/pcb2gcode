@@ -54,6 +54,7 @@ using boost::make_optional;
 #include "surface_vectorial.hpp"
 #include "segmentize.hpp"
 #include "eulerian_paths.hpp"
+#include "backtrack.hpp"
 #include "bg_helpers.hpp"
 #include "units.hpp"
 #include "path_finding.hpp"
@@ -240,14 +241,25 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
 // very little.
 multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
     const std::shared_ptr<RoutingMill>& mill, const vector<pair<linestring_type_fp, bool>>& toolpath) const {
-  multi_linestring_type_fp combined_toolpath;
   auto toolpath1 = toolpath;
   if (mill->eulerian_paths) {
     toolpath1 = segmentize::segmentize_paths(toolpath1);
+    if (mill->backtrack) {
+      auto paths_to_add = backtrack::backtrack(
+          toolpath1,
+          mill->feed,
+          (mill->zsafe - mill->zwork) / mill->g0_vertical_speed,
+          mill->g0_vertical_speed,
+          (mill->zsafe - mill->zwork) / mill->vertfeed);
+      for (const auto& p : paths_to_add) {
+        toolpath1.push_back(p);
+      }
+    }
     toolpath1 = eulerian_paths::get_eulerian_paths<
       point_type_fp,
       linestring_type_fp>(toolpath1);
   }
+  multi_linestring_type_fp combined_toolpath;
   combined_toolpath.reserve(toolpath1.size());
   for (const auto& ls_and_allow_reversal : toolpath1) {
     combined_toolpath.push_back(ls_and_allow_reversal.first);
