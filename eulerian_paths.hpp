@@ -47,9 +47,8 @@ static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t b
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
 class eulerian_paths {
  public:
-  eulerian_paths(const multi_linestring_t& paths, const std::vector<bool>& allow_reversals) :
-      paths(paths),
-      allow_reversals(allow_reversals) {}
+  eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) :
+    paths(paths) {}
   multi_linestring_t get() {
     /* We use Hierholzer's algorithm to find the minimum cycles.  First, make a
      * path from each vertex with more paths out than in.  In the reversible
@@ -142,7 +141,7 @@ class eulerian_paths {
     all_start_vertices.clear();
 
     for (size_t i = 0; i < paths.size(); i++) {
-      auto& path = paths[i];
+      auto& path = paths[i].first;
       if (path.size() < 2) {
         // Valid path must have a start and end.
         continue;
@@ -150,7 +149,7 @@ class eulerian_paths {
       point_t start = path.front();
       point_t end = path.back();
       all_start_vertices.insert(start);
-      if (allow_reversals[i]) {
+      if (paths[i].second) {
         bidi_vertex_to_unvisited_path_index.emplace(start, i);
         bidi_vertex_to_unvisited_path_index.emplace(end, i);
         all_start_vertices.insert(end);
@@ -178,7 +177,7 @@ class eulerian_paths {
       }
     }
     size_t path_index = vertex_and_path_index->second;
-    const auto& path = paths[path_index];
+    const auto& path = paths[path_index].first;
     if (point == path.front()) {
       // Append this path in the forward direction.
       new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
@@ -189,7 +188,7 @@ class eulerian_paths {
     vertex_to_unvisited_map->erase(vertex_and_path_index); // Remove from the first vertex.
     const point_t& new_point = new_path->back();
     // We're bound to find exactly one unless there is a serious error.
-    auto end_map = allow_reversals[path_index] ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
+    auto end_map = paths[path_index].second ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
     auto range = end_map->equal_range(new_point);
     for (auto iter = range.first; iter != range.second; iter++) {
       if (iter->second == path_index) {
@@ -227,8 +226,7 @@ class eulerian_paths {
     }
   }
 
-  const multi_linestring_t& paths;
-  const std::vector<bool> allow_reversals;
+  const std::vector<std::pair<linestring_t, bool>>& paths;
   // Create a map from vertex to each path that start at that vertex.  It's a
   // map to an index into the input paths.
   std::multimap<point_t, size_t, point_less_than_p> start_vertex_to_unvisited_path_index;
@@ -244,9 +242,9 @@ class eulerian_paths {
 
 // Visible for testing only.
 template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
-    multi_linestring_t get_eulerian_paths(const multi_linestring_t& paths, const std::vector<bool>& allow_reversals) {
+multi_linestring_t get_eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) {
   return eulerian_paths<point_t, linestring_t, multi_linestring_t, point_less_than_p>(
-      paths, allow_reversals).get();
+      paths).get();
 }
 
 // Returns a minimal number of toolpaths that include all the milling in the
