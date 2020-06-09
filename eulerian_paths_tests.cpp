@@ -41,6 +41,20 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
   BOOST_CHECK_EQUAL(result.size(), 1UL);
 }
 
+static int print_euler_paths(vector<pair<vector<int>, bool>> euler_paths) {
+  int edges_visited = 0;
+  for (size_t i = 0; i < euler_paths.size(); i++) {
+    edges_visited += euler_paths[i].first.size()-1;
+    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
+      printf("%d ", euler_paths[i].first[j]);
+    }
+    printf(", %s", euler_paths[i].second ? "reversible" : "not-reversible");
+    printf("\n");
+  }
+  printf("\n");
+  return edges_visited;
+}
+
 // 3x3 grid connected like a window pane:
 // 1---2---3
 // |   |   |
@@ -62,15 +76,7 @@ BOOST_AUTO_TEST_CASE(window_pane) {
       make_pair(vector<int>{3,6}, true),
       make_pair(vector<int>{6,9}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 12);
   BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
 }
@@ -92,15 +98,7 @@ BOOST_AUTO_TEST_CASE(window_pane_with_longer_corners) {
       make_pair(vector<int>{4,1,2}, true),
       make_pair(vector<int>{2,3,6}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 12);
   BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
 }
@@ -121,15 +119,7 @@ BOOST_AUTO_TEST_CASE(bridge) {
       make_pair(vector<int>{1,7}, true),
       make_pair(vector<int>{6,8}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 9);
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
@@ -152,15 +142,7 @@ BOOST_AUTO_TEST_CASE(disjoint_loops) {
       make_pair(vector<int>{}, true),
       make_pair(vector<int>{12}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 9);
   BOOST_CHECK_EQUAL(euler_paths.size(), 3UL);
 }
@@ -177,15 +159,7 @@ BOOST_AUTO_TEST_CASE(mixed1) {
       make_pair(vector<int>{2,4}, true),
       make_pair(vector<int>{3,4}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 4);
   BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
 }
@@ -202,15 +176,7 @@ BOOST_AUTO_TEST_CASE(mixed2) {
       make_pair(vector<int>{2,4}, true),
       make_pair(vector<int>{3,4}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 4);
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
@@ -238,15 +204,7 @@ BOOST_AUTO_TEST_CASE(mixed3) {
       make_pair(vector<int>{7,8}, true),
       make_pair(vector<int>{8,9}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 12);
   BOOST_CHECK_EQUAL(euler_paths.size(), 4UL);
 }
@@ -257,15 +215,7 @@ BOOST_AUTO_TEST_CASE(start_second) {
       make_pair(vector<int>{0,1}, true),
       make_pair(vector<int>{0,2}, true),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 2);
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
@@ -276,15 +226,7 @@ BOOST_AUTO_TEST_CASE(directional_loop) {
       make_pair(vector<int>{0, 0}, false),
       make_pair(vector<int>{1, 0}, false),
     });
-  int edges_visited = 0;
-  for (size_t i = 0; i < euler_paths.size(); i++) {
-    edges_visited += euler_paths[i].first.size()-1;
-    for (size_t j = 0; j < euler_paths[i].first.size(); j++) {
-      printf("%d ", euler_paths[i].first[j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  int edges_visited = print_euler_paths(euler_paths);
   BOOST_CHECK_EQUAL(edges_visited, 2);
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
