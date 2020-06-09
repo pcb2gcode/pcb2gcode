@@ -44,12 +44,12 @@ static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t b
  * cover all segments in the input paths with the minimum number of
  * paths as described above.
  */
-template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
+template <typename point_t, typename linestring_t, typename point_less_than_p = std::less<point_t>>
 class eulerian_paths {
  public:
   eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) :
     paths(paths) {}
-  multi_linestring_t get() {
+  std::vector<std::pair<linestring_t, bool>> get() {
     /* We use Hierholzer's algorithm to find the minimum cycles.  First, make a
      * path from each vertex with more paths out than in.  In the reversible
      * case, that means an odd path count.  Follow the path until it ends.
@@ -81,14 +81,14 @@ class eulerian_paths {
      */
     add_paths_to_maps();
 
-    multi_linestring_t euler_paths;
+    std::vector<std::pair<linestring_t, bool>> euler_paths;
     for (const auto& vertex : all_start_vertices) {
       while (must_start(vertex)) {
         // Make a path starting from vertex with odd count.
         linestring_t new_path;
         new_path.push_back(vertex);
-        make_path(vertex, &new_path);
-        euler_paths.push_back(new_path);
+        bool reversible = make_path(vertex, &new_path);
+        euler_paths.push_back(std::make_pair(new_path, reversible));
       }
       // The vertex is no longer must_start.  So it must have the same or fewer
       // out edges than in edges, even accounting for bidi edges becoming in
@@ -110,9 +110,10 @@ class eulerian_paths {
     for (auto start_map : {&start_vertex_to_unvisited_path_index, &bidi_vertex_to_unvisited_path_index}) {
       while (start_map->size() > 0) {
         const auto vertex = start_map->cbegin()->first;
-        linestring_t new_path;
-        new_path.push_back(vertex);
-        make_path(vertex, &new_path);
+        std::pair<linestring_t, bool> new_path;
+        new_path.first.push_back(vertex);
+        bool reversible = make_path(vertex, &(new_path.first));
+        new_path.second = reversible;
         // We can stitch right now because all vertices already have even number
         // of edges.
         stitch_loops(&new_path);
@@ -162,8 +163,9 @@ class eulerian_paths {
 
   // Given a point, make a path from that point as long as possible
   // until a dead end.  Assume that point itself is already in the
-  // list.
-  void make_path(const point_t& point, linestring_t* new_path) {
+  // list.  Return true if the path is all reversible, otherwise
+  // false.
+  bool make_path(const point_t& point, linestring_t* new_path) {
     // Find an unvisited path that leads from point.  Prefer out edges to bidi
     // because we may need to save the bidi edges to later be in edges.
     auto vertex_and_path_index = start_vertex_to_unvisited_path_index.find(point);
@@ -173,7 +175,7 @@ class eulerian_paths {
       vertex_to_unvisited_map = &bidi_vertex_to_unvisited_path_index;
       if (vertex_and_path_index == bidi_vertex_to_unvisited_path_index.cend()) {
         // No more paths to follow.
-        return;
+        return true; // Empty path is reversible.
       }
     }
     size_t path_index = vertex_and_path_index->second;
@@ -198,7 +200,7 @@ class eulerian_paths {
       }
     }
     // Continue making the path from here.
-    make_path(new_point, new_path);
+    return make_path(new_point, new_path) && paths[path_index].second;
   }
 
   // Only call this when there are no vertices with uneven edge count.  That
@@ -210,17 +212,18 @@ class eulerian_paths {
   // and stitch it into the current path.  Because all paths have the same
   // number of in and out, the stitch can only possibly end in a loop.  This
   // continues until the end of the path.
-  void stitch_loops(linestring_t *euler_path) {
+  void stitch_loops(std::pair<linestring_t, bool> *euler_path) {
     // Use a counter and not a pointer because the list will grow and pointers
     // may be invalidated.
     linestring_t new_loop;
-    for (size_t i = 0; i < euler_path->size(); i++) {
+    for (size_t i = 0; i < euler_path->first.size(); i++) {
       // Make a path from here.  We don't need the first element, it's already in our path.
-      make_path(euler_path->at(i), &new_loop);
+      bool new_loop_reversible = make_path(euler_path->first[i], &new_loop);
       // Did this vertex have any unvisited edges?
       if (new_loop.size() > 0) {
         // Now we stitch it in.
-        euler_path->insert(euler_path->begin()+i+1, new_loop.begin(), new_loop.end());
+        euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.begin(), new_loop.end());
+        euler_path->second = euler_path->second && new_loop_reversible;
         new_loop.clear(); // Prepare for the next one.
       }
     }
@@ -241,9 +244,9 @@ class eulerian_paths {
 }; //class eulerian_paths
 
 // Visible for testing only.
-template <typename point_t, typename linestring_t, typename multi_linestring_t, typename point_less_than_p = std::less<point_t>>
-multi_linestring_t get_eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) {
-  return eulerian_paths<point_t, linestring_t, multi_linestring_t, point_less_than_p>(
+template <typename point_t, typename linestring_t, typename point_less_than_p = std::less<point_t>>
+std::vector<std::pair<linestring_t, bool>> get_eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) {
+  return eulerian_paths<point_t, linestring_t, point_less_than_p>(
       paths).get();
 }
 

@@ -62,11 +62,16 @@ multi_linestring_type_fp make_eulerian_paths(const vector<pair<linestring_type_f
     segments_as_linestrings.push_back(make_pair(ls, allow_reversal));
   }
 
-  return get_eulerian_paths<
-      point_type_fp,
-      linestring_type_fp,
-      multi_linestring_type_fp,
-      PointLessThan>(segments_as_linestrings);
+  vector<pair<linestring_type_fp, bool>> eulerian_paths = get_eulerian_paths<
+    point_type_fp,
+    linestring_type_fp,
+    PointLessThan>(segments_as_linestrings);
+
+  multi_linestring_type_fp ret;
+  for (auto& eulerian_path : eulerian_paths) {
+    ret.push_back(eulerian_path.first);
+  }
+  return ret;
 }
 
 multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible) {
