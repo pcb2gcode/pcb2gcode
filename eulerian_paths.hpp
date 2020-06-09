@@ -3,10 +3,19 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
+#include <unordered_map>
 
 #include "geometry.hpp"
 
 namespace eulerian_paths {
+
+// Make a minimal number of paths from those segments.
+struct PointLessThan {
+  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
+    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
+  }
+};
 
 static inline bool operator !=(const point_type_fp& x, const point_type_fp& y) {
   return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
@@ -243,17 +252,14 @@ class eulerian_paths {
   std::set<point_t, point_less_than_p> all_start_vertices;
 }; //class eulerian_paths
 
-// Visible for testing only.
+// Returns a minimal number of toolpaths that include all the milling in the
+// oroginal toolpaths.  Each path is traversed once.  Each path has a bool
+// indicating if the path is reversible.
 template <typename point_t, typename linestring_t, typename point_less_than_p = std::less<point_t>>
 std::vector<std::pair<linestring_t, bool>> get_eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) {
   return eulerian_paths<point_t, linestring_t, point_less_than_p>(
       paths).get();
 }
-
-// Returns a minimal number of toolpaths that include all the milling in the
-// oroginal toolpaths.  Each path is traversed once.  Each path has a bool
-// indicating if the path is reversible.
-multi_linestring_type_fp make_eulerian_paths(const std::vector<std::pair<linestring_type_fp, bool>>& toolpaths);
 
 multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
 
