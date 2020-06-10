@@ -52,6 +52,7 @@ using boost::make_optional;
 
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
+#include "segmentize.hpp"
 #include "eulerian_paths.hpp"
 #include "bg_helpers.hpp"
 #include "units.hpp"
@@ -232,13 +233,17 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
 multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
     const std::shared_ptr<RoutingMill>& mill, const vector<pair<linestring_type_fp, bool>>& toolpath) const {
   multi_linestring_type_fp combined_toolpath;
+  auto toolpath1 = toolpath;
   if (mill->eulerian_paths) {
-    combined_toolpath = eulerian_paths::make_eulerian_paths(toolpath);
-  } else {
-    combined_toolpath.reserve(toolpath.size());
-    for (const auto& ls_and_allow_reversal : toolpath) {
-      combined_toolpath.push_back(ls_and_allow_reversal.first);
-    }
+    toolpath1 = segmentize::segmentize_paths(toolpath1);
+    toolpath1 = eulerian_paths::get_eulerian_paths<
+      point_type_fp,
+      linestring_type_fp,
+      eulerian_paths::PointLessThan>(toolpath1);
+  }
+  combined_toolpath.reserve(toolpath1.size());
+  for (const auto& ls_and_allow_reversal : toolpath1) {
+    combined_toolpath.push_back(ls_and_allow_reversal.first);
   }
   if (tsp_2opt) {
     tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
@@ -468,11 +473,7 @@ void attach_ring(const ring_type_fp& ring,
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
   ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
-  vector<pair<linestring_type_fp, bool>> ring_paths_with_direction;
-  for (const auto& ring_path : ring_paths) {
-    ring_paths_with_direction.push_back(make_pair(ring_path, dir == MillFeedDirection::ANY));
-  }
-  ring_paths = eulerian_paths::make_eulerian_paths(ring_paths_with_direction); // Rejoin those paths as possible.
+  ring_paths = eulerian_paths::make_eulerian_paths(ring_paths, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
   for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
     attach_ls(ring_path, toolpaths, dir, path_finder);
   }

@@ -70,7 +70,7 @@ check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_
                  autoleveller_tests common_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp
-segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp
+segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp
 path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
 units_tests_SOURCES = units_tests.cpp units.hpp
