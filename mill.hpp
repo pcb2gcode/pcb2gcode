@@ -54,7 +54,7 @@ class Mill {
 /******************************************************************************/
 class RoutingMill: public Mill {
  public:
-  bool optimise;
+  double optimise;
   bool eulerian_paths;
   size_t path_finding_limit;
   double g0_vertical_speed;

@@ -141,7 +141,7 @@ void Board::createLayers()
       if (fill) {
         surface->enable_filling();
       }
-      surface->render(importer);
+      surface->render(importer, get<1>(prepared_layer.second)->optimise);
       shared_ptr<Layer> layer(new Layer(prepared_layer.first,
                                         surface,
                                         get<1>(prepared_layer.second),
