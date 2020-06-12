@@ -679,13 +679,6 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
           }
           new_trace_toolpath.swap(temp);
         }
-        if (mill->optimise) {
-          for (auto& ls_and_allow_reversal : new_trace_toolpath) {
-            linestring_type_fp temp_ls;
-            bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
-            ls_and_allow_reversal.first = temp_ls;
-          }
-        }
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
         if (tool_index + 1 == tool_count) {
           // No point in updating the already_milled.
@@ -721,13 +714,6 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
           };
       for (const auto& path : paths) {
         attach_ls(path, new_trace_toolpath, MillFeedDirection::ANY, path_finder);
-      }
-      if (mill->optimise) {
-        for (auto& ls_and_allow_reversal : new_trace_toolpath) {
-          linestring_type_fp temp_ls;
-          bg::simplify(ls_and_allow_reversal.first, temp_ls, mill->tolerance);
-          ls_and_allow_reversal.first = temp_ls;
-        }
       }
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
       write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
