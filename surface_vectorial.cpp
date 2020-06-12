@@ -261,7 +261,7 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
 
   if (mill->optimise) {
     multi_linestring_type_fp temp_mls;
-    bg::simplify(combined_toolpath, temp_mls, mill->tolerance);
+    bg::simplify(combined_toolpath, temp_mls, mill->optimise);
     combined_toolpath = temp_mls;
   }
   return combined_toolpath;
