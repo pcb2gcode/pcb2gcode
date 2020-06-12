@@ -4,7 +4,6 @@ metricoutput=true
 zchange=10
 nog81=true
 nog64=true
-optimise=true
 tsp-2opt=true
 vectorial=true
 eulerian-paths=true

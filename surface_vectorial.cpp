@@ -83,7 +83,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     invert_gerbers(invert_gerbers),
     render_paths_to_shapes(render_paths_to_shapes) {}
 
-void Surface_vectorial::render(shared_ptr<GerberImporter> importer) {
+void Surface_vectorial::render(shared_ptr<GerberImporter> importer, double tolerance) {
   auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
 
   if (bg::intersects(vectorial_surface_not_simplified.first)) {
@@ -96,12 +96,20 @@ void Surface_vectorial::render(shared_ptr<GerberImporter> importer) {
   //With a very small loss of precision we can reduce memory usage and processing time
   vectorial_surface = make_shared<
       pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>>>();
-  bg::simplify(vectorial_surface_not_simplified.first, vectorial_surface->first, 0.0001);
-  for (const auto& diameter_and_path : vectorial_surface_not_simplified.second) {
+  if (tolerance > 0) {
+    bg::simplify(vectorial_surface_not_simplified.first, vectorial_surface->first, tolerance);
+  } else {
+    vectorial_surface->first.swap(vectorial_surface_not_simplified.first);
+  }
+  for (auto& diameter_and_path : vectorial_surface_not_simplified.second) {
     vectorial_surface->second[diameter_and_path.first] = multi_linestring_type_fp();
-    bg::simplify(diameter_and_path.second,
-                 vectorial_surface->second[diameter_and_path.first],
-                 0.0001);
+    if (tolerance > 0) {
+      bg::simplify(diameter_and_path.second,
+                   vectorial_surface->second[diameter_and_path.first],
+                   tolerance);
+    } else {
+      vectorial_surface->second[diameter_and_path.first].swap(diameter_and_path.second);
+    }
   }
 }
 

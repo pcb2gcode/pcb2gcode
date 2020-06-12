@@ -6,6 +6,5 @@ zsafe=0.08
 mill-feed=6
 mill-speed=30000
 zchange=1.0
-optimise=true
 voronoi=true
 extra-passes=3
