@@ -54,6 +54,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "milldrilldiatest",
                   "multivibrator",
                   "multivibrator_no_optimise",
+                  "multivibrator_backtrack",
                   "multivibrator-basename",
                   "multivibrator-clockwise",
                   "multivibrator-contentions",
