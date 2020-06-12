@@ -37,6 +37,8 @@ pcb2gcode_SOURCES = \
     surface_vectorial.cpp \
     tile.hpp \
     tile.cpp \
+    trim_paths.hpp \
+    trim_paths.cpp \
     tsp_solver.hpp \
     options.hpp \
     options.cpp \
@@ -69,7 +71,7 @@ EXTRA_DIST = millproject
 
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
-                 autoleveller_tests common_tests backtrack_tests
+                 autoleveller_tests common_tests backtrack_tests trim_paths_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp
@@ -83,6 +85,7 @@ options_tests_SOURCES = options_tests.cpp options.hpp options.cpp boost_unit_tes
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp boost_unit_test.cpp
 common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cpp
 backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_unit_test.cpp
+trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp
 
 TESTS = $(check_PROGRAMS)
 
