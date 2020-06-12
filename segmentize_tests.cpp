@@ -3,38 +3,7 @@
 
 #include <ostream>
 #include "segmentize.hpp"
-
-namespace std {
-
-static inline std::ostream& operator<<(std::ostream& out, const point_type_fp& p) {
-  out << "{" << p.x() << "," << p.y() << "}";
-  return out;
-}
- 
-static inline std::ostream& operator<<(std::ostream& out, const linestring_type_fp& ls) {
-  out << "{";
-  for (const auto& p : ls) {
-    out << p;
-  }
-  out << "}";
-  return out;
-}
-
-static inline std::ostream& operator<<(std::ostream& out, const pair<linestring_type_fp, bool>& ls) {
-  out << "{" << ls.first << "," << ls.second << "}";
-  return out;
-}
- 
-static inline std::ostream& operator<<(std::ostream& out, const vector<pair<linestring_type_fp, bool>>& lss) {
-  out << "{\n";
-  for (const auto& ls : lss) {
-    out << ls << "\n";
-  }
-  out << "}";
-  return out;
-}
-
-} // namespace std
+#include "bg_helpers.hpp"
 
 using namespace std;
 

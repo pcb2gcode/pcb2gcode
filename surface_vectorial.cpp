@@ -246,8 +246,7 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
     toolpath1 = segmentize::segmentize_paths(toolpath1);
     toolpath1 = eulerian_paths::get_eulerian_paths<
       point_type_fp,
-      linestring_type_fp,
-      eulerian_paths::PointLessThan>(toolpath1);
+      linestring_type_fp>(toolpath1);
   }
   combined_toolpath.reserve(toolpath1.size());
   for (const auto& ls_and_allow_reversal : toolpath1) {

@@ -1,4 +1,5 @@
 #include "geometry.hpp"
+#include "bg_helpers.hpp"
 #include <vector>
 #include <utility>
 
@@ -19,8 +20,7 @@ multi_linestring_type_fp make_eulerian_paths(const vector<linestring_type_fp>& p
   path_to_simplify = segmentize::segmentize_paths(path_to_simplify);
   auto eulerian_paths = get_eulerian_paths<
       point_type_fp,
-      linestring_type_fp,
-      PointLessThan>(path_to_simplify);
+      linestring_type_fp>(path_to_simplify);
   multi_linestring_type_fp ret;
   for (auto& eulerian_path : eulerian_paths) {
     ret.push_back(eulerian_path.first);

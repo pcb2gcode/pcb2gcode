@@ -5,16 +5,8 @@
 #include <utility>
 #include "geometry_int.hpp"
 
-namespace eulerian_paths {
-
-static inline bool operator ==(const point_type& x, const point_type& y) {
-  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
-}
-
-} // namespace eulerian_paths
-
 #include "eulerian_paths.hpp"
-#include "geometry_int.hpp"
+#include "bg_helpers.hpp"
 
 using std::vector;
 using std::pair;
@@ -22,12 +14,6 @@ using std::make_pair;
 using namespace eulerian_paths;
 
 BOOST_AUTO_TEST_SUITE(eulerian_paths_tests)
-
-struct PointLessThan {
-  bool operator()(const point_type& a, const point_type& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
 
 BOOST_AUTO_TEST_CASE(do_nothing_points) {
   linestring_type ls;
@@ -37,7 +23,7 @@ BOOST_AUTO_TEST_CASE(do_nothing_points) {
   vector<pair<linestring_type, bool>> mls;
   mls.push_back(make_pair(ls, true));
   vector<pair<linestring_type, bool>> result =
-      get_eulerian_paths<point_type, linestring_type, PointLessThan>(mls);
+      get_eulerian_paths<point_type, linestring_type>(mls);
   BOOST_CHECK_EQUAL(result.size(), 1UL);
 }
 
