@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE segmentize tests
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include <ostream>
 #include "segmentize.hpp"

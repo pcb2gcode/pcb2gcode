@@ -1,10 +1,10 @@
 #define BOOST_TEST_MODULE path finding tests
+#include <boost/test/unit_test.hpp>
 
 #include <ostream>
 #include "geometry.hpp"
 #include "bg_helpers.hpp"
 
-#include <boost/test/included/unit_test.hpp>
 #include <boost/optional.hpp>
 using boost::make_optional;
 

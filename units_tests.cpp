@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE units tests
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
