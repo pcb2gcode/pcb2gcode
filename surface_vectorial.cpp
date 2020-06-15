@@ -247,16 +247,15 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   if (mill->eulerian_paths) {
     toolpath1 = segmentize::segmentize_paths(toolpath1);
     vector<pair<linestring_type_fp, bool>> paths_to_add;
-    if (mill->backtrack) {
-      paths_to_add = backtrack::backtrack(
-          toolpath1,
-          mill->feed,
-          (mill->zsafe - mill->zwork) / mill->g0_vertical_speed,
-          mill->g0_vertical_speed,
-          (mill->zsafe - mill->zwork) / mill->vertfeed);
-      for (const auto& p : paths_to_add) {
-        toolpath1.push_back(p);
-      }
+    paths_to_add = backtrack::backtrack(
+        toolpath1,
+        mill->feed,
+        (mill->zsafe - mill->zwork) / mill->g0_vertical_speed,
+        mill->g0_vertical_speed,
+        (mill->zsafe - mill->zwork) / mill->vertfeed,
+        mill->backtrack);
+    for (const auto& p : paths_to_add) {
+      toolpath1.push_back(p);
     }
     toolpath1 = eulerian_paths::get_eulerian_paths<
       point_type_fp,

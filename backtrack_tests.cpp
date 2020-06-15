@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_SUITE(backtrack_tests)
 
 BOOST_AUTO_TEST_CASE(empty) {
   vector<pair<linestring_type_fp, bool>> paths{};
-  const auto actual = backtrack::backtrack(paths, 1,100,100,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,100,100, 100);
   vector<pair<linestring_type_fp, bool>> expected{};
   BOOST_CHECK_EQUAL(actual, expected);
 }
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(square) {
     {{{1,1}, {1,0}}, true},
     {{{1,0}, {0,0}}, true},
   };
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   vector<pair<linestring_type_fp, bool>> expected{};
   BOOST_CHECK_EQUAL(actual, expected);
 }
@@ -65,7 +65,7 @@ static vector<pair<linestring_type_fp, bool>> make_grid(point_type_fp p0, point_
 
 BOOST_AUTO_TEST_CASE(grid) {
   vector<pair<linestring_type_fp, bool>> paths = make_grid({0,0}, {2,2}, 3);
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 4);
   BOOST_CHECK_EQUAL(actual.size(), 4);
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(grid) {
 
 BOOST_AUTO_TEST_CASE(wide_grid) {
   vector<pair<linestring_type_fp, bool>> paths = make_grid({0,0}, {2,20}, 3);
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 22);
   BOOST_CHECK_EQUAL(actual.size(), 4);
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(wide_grid) {
 
 BOOST_AUTO_TEST_CASE(tall_grid) {
   vector<pair<linestring_type_fp, bool>> paths = make_grid({0,0}, {20,2}, 3);
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 22);
   BOOST_CHECK_EQUAL(actual.size(), 4);
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(two_grids) {
   vector<pair<linestring_type_fp, bool>> paths = make_grid({0,0}, {2,2}, 3);
   auto grid2 = make_grid({10,10}, {12,12}, 3);
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 8);
   BOOST_CHECK_EQUAL(actual.size(), 8);
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(two_grids_connected_at_corner) {
   auto grid2 = make_grid({10,0}, {12,2}, 3);
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,0}, {10,0}}, true});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 18);
   BOOST_CHECK_EQUAL(actual.size(), 11);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(two_grids_connected_at_corner_directed) {
   auto grid2 = make_grid({10,0}, {12,2}, 3);
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,0}, {10,0}}, false});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 18);
   BOOST_CHECK_EQUAL(actual.size(), 11);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(two_grids_connected_at_side) {
   auto grid2 = make_grid({10,0}, {12,2}, 3);
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,1}, {10,1}}, true});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 16);
   BOOST_CHECK_EQUAL(actual.size(), 9);
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(two_grids_connected_at_side_directed) {
   auto grid2 = make_grid({10,0}, {12,2}, 3);
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,1}, {10,1}}, false});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 16);
   BOOST_CHECK_EQUAL(actual.size(), 9);
@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(two_grids_connected_at_2_corners) {
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,0}, {10,0}}, true});
   paths.push_back({{{2,2}, {10,2}}, true});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 8);
   BOOST_CHECK_EQUAL(actual.size(), 8);
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(two_squares_connected_at_2_corners_directed) {
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,0}, {10,0}}, false});
   paths.push_back({{{2,2}, {10,2}}, false});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 4);
   BOOST_CHECK_EQUAL(actual.size(), 2);
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(two_squares_connected_at_2_corners_undirected) {
   paths.insert(paths.cend(), grid2.cbegin(), grid2.cend());
   paths.push_back({{{2,0}, {10,0}}, true});
   paths.push_back({{{2,2}, {10,2}}, true});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 4);
   BOOST_CHECK_EQUAL(actual.size(), 2);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(two_directed_lines) {
   vector<pair<linestring_type_fp, bool>> paths;
   paths.push_back({{{0,0}, {0,5}}, false});
   paths.push_back({{{0,0}, {5,0}}, false});
-  const auto actual = backtrack::backtrack(paths, 1,100,1,100);
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
   BOOST_TEST_MESSAGE("actual is " << actual);
   BOOST_CHECK_EQUAL(length(actual), 0);
   BOOST_CHECK_EQUAL(actual.size(), 0);

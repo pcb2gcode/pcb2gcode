@@ -131,6 +131,9 @@ void trim_path(pair<linestring_type_fp, bool>& ls,
 // just two vertices.
 void trim_paths(vector<pair<linestring_type_fp, bool>>& toolpaths,
                 const vector<pair<linestring_type_fp, bool>>& backtracks) {
+  if (backtracks.size() == 0) {
+    return;
+  }
   // backtrack adds enough paths to make a eulerian circuit but we
   // just need a eulerian path, so find the longest stretch of
   // backtracks and remove those.

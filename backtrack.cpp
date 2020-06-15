@@ -79,7 +79,8 @@ static inline pair<long double, vector<pair<linestring_type_fp, bool>>> find_nea
     const double g1_speed,
     const double up_time,
     const double g0_speed,
-    const double down_time) {
+    const double down_time,
+    const double in_per_sec) {
   if (!vertex_degrees.at(start).can_start()) {
     // Starting from here isn't useful.
     return {0, {}};
@@ -130,7 +131,10 @@ static inline pair<long double, vector<pair<linestring_type_fp, bool>>> find_nea
       }
       long double new_distance = distances[current_vertex].first + bg::length(edge.first);
       const auto max_manhattan = max(abs(new_vertex.x() - start.x()), abs(new_vertex.y() - start.y()));
-      if (new_distance / g1_speed > up_time + max_manhattan / g0_speed  + down_time) {
+      double time_with_backtrack = new_distance / g1_speed;
+      double time_without_backtrack = up_time + max_manhattan / g0_speed  + down_time;
+      double time_saved = time_without_backtrack - time_with_backtrack;
+      if (time_saved < 0 || new_distance / time_saved > in_per_sec) {
         continue; // This is already too far away to be useful.
       }
       const auto old_distance_pair = distances.find(new_vertex);
@@ -151,7 +155,11 @@ static inline pair<long double, vector<pair<linestring_type_fp, bool>>> find_nea
 // overall milling time.
 vector<pair<linestring_type_fp, bool>> backtrack(
     const vector<pair<linestring_type_fp, bool>>& paths,
-    const double g1_speed, const double up_time, const double g0_speed, const double down_time) {
+    const double g1_speed, const double up_time, const double g0_speed, const double down_time,
+    const double in_per_sec) {
+  if (in_per_sec == 0) {
+    return {};
+  }
   // Convert the paths structure to a map from vector to edges that
   // meet there.
   map<point_type_fp, vector<pair<linestring_type_fp, bool>>> graph;
@@ -186,7 +194,7 @@ vector<pair<linestring_type_fp, bool>> backtrack(
       // find_nearest_vertex returns 0 if there is none that is close
       // enough or if the start vertex is not can_start(), that is, it
       // has so many paths out already that it shouldn't get anymore.
-      auto length_and_path = find_nearest_vertex(graph, v.first, vertex_degrees, g1_speed, up_time, g0_speed, down_time);
+      auto length_and_path = find_nearest_vertex(graph, v.first, vertex_degrees, g1_speed, up_time, g0_speed, down_time, in_per_sec);
       if (length_and_path.first > 0) {
         best_backtracks.push_back(length_and_path);
       }

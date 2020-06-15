@@ -113,7 +113,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         isolator->path_finding_limit = vm["path-finding-limit"].as<size_t>();
         isolator->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
         isolator->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
-        isolator->backtrack = vm["backtrack"].as<bool>();
+        isolator->backtrack = vm["backtrack"].as<Velocity>().asInchPerMinute(unit);
         if (vm.count("mill-infeed")) {
           isolator->stepsize = vm["mill-infeed"].as<Length>().asInch(unit);
         } else {
