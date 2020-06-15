@@ -10,21 +10,6 @@
 
 namespace eulerian_paths {
 
-// Make a minimal number of paths from those segments.
-struct PointLessThan {
-  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
-
-static inline bool operator !=(const point_type_fp& x, const point_type_fp& y) {
-  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
-}
-
-static inline bool operator ==(const point_type_fp& x, const point_type_fp& y) {
-  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
-}
-
 // Made public for testing.
 static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
   if (out_edges > in_edges + bidi_edges) {
@@ -53,7 +38,7 @@ static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t b
  * cover all segments in the input paths with the minimum number of
  * paths as described above.
  */
-template <typename point_t, typename linestring_t, typename point_less_than_p = std::less<point_t>>
+template <typename point_t, typename linestring_t>
 class eulerian_paths {
  public:
   eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) :
@@ -241,23 +226,23 @@ class eulerian_paths {
   const std::vector<std::pair<linestring_t, bool>>& paths;
   // Create a map from vertex to each path that start at that vertex.  It's a
   // map to an index into the input paths.
-  std::multimap<point_t, size_t, point_less_than_p> start_vertex_to_unvisited_path_index;
+  std::multimap<point_t, size_t> start_vertex_to_unvisited_path_index;
   // Create a map from vertex to each bidi path that may start or end at that
   // vertex.  It's a map to an index into the input paths.
-  std::multimap<point_t, size_t, point_less_than_p> bidi_vertex_to_unvisited_path_index;
+  std::multimap<point_t, size_t> bidi_vertex_to_unvisited_path_index;
   // Create a map from vertex to each path that may start or end at that vertex.  It's a
   // map to an index into the input paths.
-  std::multimap<point_t, size_t, point_less_than_p> end_vertex_to_unvisited_path_index;
+  std::multimap<point_t, size_t> end_vertex_to_unvisited_path_index;
   // Only the ones that have at least one potential edge leading out.
-  std::set<point_t, point_less_than_p> all_start_vertices;
+  std::set<point_t> all_start_vertices;
 }; //class eulerian_paths
 
 // Returns a minimal number of toolpaths that include all the milling in the
 // oroginal toolpaths.  Each path is traversed once.  Each path has a bool
 // indicating if the path is reversible.
-template <typename point_t, typename linestring_t, typename point_less_than_p = std::less<point_t>>
+template <typename point_t, typename linestring_t>
 std::vector<std::pair<linestring_t, bool>> get_eulerian_paths(const std::vector<std::pair<linestring_t, bool>>& paths) {
-  return eulerian_paths<point_t, linestring_t, point_less_than_p>(
+  return eulerian_paths<point_t, linestring_t>(
       paths).get();
 }
 

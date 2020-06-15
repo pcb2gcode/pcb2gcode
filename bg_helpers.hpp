@@ -231,6 +231,7 @@ static inline void buffer(ring_type_fp const & geometry_in, multi_polygon_type_f
                bg::strategy::buffer::point_circle());
   }
 }
+
 } // namespace bg_helpers
 
 template <typename polygon_type_t, typename rhs_t>
@@ -261,5 +262,55 @@ static inline bg::model::multi_polygon<polygon_type_t> operator+(const bg::model
   bg::union_(lhs, rhs, ret);
   return ret;
 }
+
+// It's not great to insert definitions into the bg namespace but they
+// are useful for sorting and maps.
+
+namespace boost { namespace geometry { namespace model { namespace d2 {
+
+template <typename T>
+static inline bool operator<(
+    const boost::geometry::model::d2::point_xy<T>& x,
+    const boost::geometry::model::d2::point_xy<T>& y) {
+  return std::tie(x.x(), x.y()) < std::tie(y.x(), y.y());
+}
+
+template <typename T>
+static inline bool operator==(
+    const boost::geometry::model::d2::point_xy<T>& x,
+    const boost::geometry::model::d2::point_xy<T>& y) {
+  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
+}
+
+static inline bool operator!=(const point_type_fp& x, const point_type_fp& y) {
+  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
+}
+
+static inline std::ostream& operator<<(std::ostream& out, const point_type_fp& t) {
+  out << bg::wkt(t);
+  return out;
+}
+
+}}}} // namespace boost::geometry::model::d2
+
+namespace std {
+
+template <typename A, typename B>
+static inline std::ostream& operator<<(std::ostream& out, const pair<A, B>& p) {
+  out << "{" << p.first << "," << p.second << "}";
+  return out;
+}
+
+template <typename T>
+static inline std::ostream& operator<<(std::ostream& out, const vector<T>& xs) {
+  out << "{";
+  for (const auto& x : xs) {
+    out << x << ",";
+  }
+  out << "}";
+  return out;
+}
+
+} // namespace std
 
 #endif //BG_HELPERS_H
