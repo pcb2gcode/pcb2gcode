@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE gerberimporter tests
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "gerberimporter.hpp"
 #include <sys/types.h>

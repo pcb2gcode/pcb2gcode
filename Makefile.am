@@ -68,18 +68,18 @@ EXTRA_DIST = millproject
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
                  autoleveller_tests common_tests
-voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp
-eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp
-segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp
-path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp
-tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp
-units_tests_SOURCES = units_tests.cpp units.hpp
-available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp
-gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp
+voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
+eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp
+segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp
+path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp
+tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp boost_unit_test.cpp
+units_tests_SOURCES = units_tests.cpp units.hpp boost_unit_test.cpp
+available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp boost_unit_test.cpp
+gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp boost_unit_test.cpp
 gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
-options_tests_SOURCES = options_tests.cpp options.hpp options.cpp
-autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp
-common_tests_SOURCES = common.hpp common.cpp common_tests.cpp
+options_tests_SOURCES = options_tests.cpp options.hpp options.cpp boost_unit_test.cpp
+autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp boost_unit_test.cpp
+common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cpp
 
 TESTS = $(check_PROGRAMS)
 

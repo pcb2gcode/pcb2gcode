@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE tsp_solver_tests
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include "tsp_solver.hpp"
 

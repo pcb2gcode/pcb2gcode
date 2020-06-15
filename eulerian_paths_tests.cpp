@@ -1,5 +1,5 @@
 #define BOOST_TEST_MODULE eulerian paths tests
-#include <boost/test/included/unit_test.hpp>
+#include <boost/test/unit_test.hpp>
 
 #include <tuple>
 #include <utility>
