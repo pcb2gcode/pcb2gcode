@@ -9,6 +9,7 @@ using std::pair;
 using std::vector;
 using std::multiset;
 using std::reverse;
+using std::remove_if;
 
 // Returns true if the segment described by the two points is in the
 // haystack.  Finds reversed segments if the segment is reversible.
@@ -148,6 +149,14 @@ void trim_paths(vector<pair<linestring_type_fp, bool>>& toolpaths,
       ls = reverse_ls;
     }
   }
+  toolpaths.erase(
+      remove_if(
+          toolpaths.begin(),
+          toolpaths.end(),
+          [](pair<linestring_type_fp, bool> const& p) {
+            return p.first.size() < 2;
+          }),
+      toolpaths.cend());
 }
 
 } // namespace trim_paths

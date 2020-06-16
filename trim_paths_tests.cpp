@@ -176,5 +176,29 @@ BOOST_AUTO_TEST_CASE(trim_reversible) {
   BOOST_CHECK_EQUAL(paths, expected);
 }
 
+BOOST_AUTO_TEST_CASE(directed_square_and_diagonal) {
+  vector<pair<linestring_type_fp, bool>> paths{
+    {{{0,0}, {0,5}}, false},
+    {{{0,5}, {5,5}}, false},
+    {{{5,5}, {5,0}}, false},
+    {{{5,0}, {0,0}}, false},
+    {{{5,5}, {0,0}}, false},
+    {{{0,0}, {0,5}}, false},
+    {{{0,5}, {5,5}}, false},
+  };
+  vector<pair<linestring_type_fp, bool>> backtracks{
+    {{{0,0}, {0,5}}, false},
+    {{{0,5}, {5,5}}, false},
+  };
+  trim_paths::trim_paths(paths, backtracks);
+  vector<pair<linestring_type_fp, bool>> expected{
+    {{{5,5}, {5,0}}, false},
+    {{{5,0}, {0,0}}, false},
+    {{{5,5}, {0,0}}, false},
+    {{{0,0}, {0,5}}, false},
+    {{{0,5}, {5,5}}, false},
+  };
+  BOOST_CHECK_EQUAL(paths, expected);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
