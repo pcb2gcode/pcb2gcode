@@ -40,6 +40,9 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
         echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
         echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
+    - name: Display env
+      run: |
+        env
     - name: Linux specific setup
       if: matrix.os == 'ubuntu'
       run: |
