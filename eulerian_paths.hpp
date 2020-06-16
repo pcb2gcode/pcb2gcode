@@ -155,11 +155,28 @@ class eulerian_paths {
     }
   }
 
+  double path_score(__attribute__((unused)) const linestring_t& path_so_far,
+                    std::pair<point_t, size_t> option) {
+    return 1;
+  }
+
+  // Pick the best path to continue on given the path_so_far and a
+  // range of options.  The range must have at least one element in
+  // it.
   typename std::multimap<point_t, size_t>::iterator select_path(
-      __attribute__((unused)) linestring_t* path_so_far,
-      std::pair<typename std::multimap<point_t, size_t>::iterator,
-                typename std::multimap<point_t, size_t>::iterator> options) {
-    return options.first;
+      const linestring_t& path_so_far,
+      const std::pair<typename std::multimap<point_t, size_t>::iterator,
+                      typename std::multimap<point_t, size_t>::iterator>& options) {
+    auto best = options.first;
+    double best_score = path_score(path_so_far, *best);
+    for (auto current = options.first; current != options.second; current++) {
+      double current_score = path_score(path_so_far, *current);
+      if (current_score > best_score) {
+        best = current;
+        best_score = current_score;
+      }
+    }
+    return best;
   }
 
   // Given a point, make a path from that point as long as possible
@@ -179,7 +196,7 @@ class eulerian_paths {
         return true; // Empty path is reversible.
       }
     }
-    auto vertex_and_path_index = select_path(new_path, vertex_and_path_range);
+    auto vertex_and_path_index = select_path(*new_path, vertex_and_path_range);
     size_t path_index = vertex_and_path_index->second;
     const auto& path = paths[path_index].first;
     if (point == path.front()) {
