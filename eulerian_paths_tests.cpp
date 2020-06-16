@@ -221,7 +221,7 @@ BOOST_AUTO_TEST_CASE(directional_loop) {
 // Draw a windmill shape.
 BOOST_AUTO_TEST_CASE(prefer_straight_lines) {
   vector<pair<linestring_type_fp, bool>> mls{
-    {{{5,5}, {4,0}, {6,0}, {5,5}}, true},
+    {{{5,5}, {6,0}, {4,0}, {5,5}}, true},
     {{{5,5}, {10,4}, {10, 6}, {5,5}}, true},
     {{{5,5}, {4,10}, {6, 10}, {5,5}}, true},
     {{{5,5}, {0,4}, {0, 6}, {5,5}}, true},
@@ -232,14 +232,14 @@ BOOST_AUTO_TEST_CASE(prefer_straight_lines) {
     {
       {
         {5, 5},
-        {4, 0},
         {6, 0},
+        {4, 0},
+        {5, 5},
+        {6, 10},
+        {4, 10},
         {5, 5},
         {10, 4},
         {10, 6},
-        {5, 5},
-        {4, 10},
-        {6, 10},
         {5, 5},
         {0, 4},
         {0, 6},

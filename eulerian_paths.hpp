@@ -10,6 +10,35 @@
 
 namespace eulerian_paths {
 
+template<typename p_t>
+struct identity {
+  typedef p_t type;
+};
+
+enum struct Side : bool {
+  front,
+  back,
+};
+
+static inline Side operator!(const Side& s) {
+  switch(s) {
+   case Side::front: return Side::back;
+   case Side::back: return Side::front;
+  }
+}
+
+static inline std::ostream& operator<<(std::ostream& out, const Side& s) {
+  switch(s) {
+   case Side::front:
+     out << "front";
+     break;
+   case Side::back:
+     out << "back";
+     break;
+  }
+  return out;
+}
+
 // Made public for testing.
 static inline bool must_start_helper(size_t out_edges, size_t in_edges, size_t bidi_edges) {
   if (out_edges > in_edges + bidi_edges) {
@@ -145,32 +174,62 @@ class eulerian_paths {
       point_t end = path.back();
       all_start_vertices.insert(start);
       if (paths[i].second) {
-        bidi_vertex_to_unvisited_path_index.emplace(start, i);
-        bidi_vertex_to_unvisited_path_index.emplace(end, i);
+        bidi_vertex_to_unvisited_path_index.emplace(start, std::make_pair(i, Side::front));
+        bidi_vertex_to_unvisited_path_index.emplace(end, std::make_pair(i, Side::back));
         all_start_vertices.insert(end);
       } else {
-        start_vertex_to_unvisited_path_index.emplace(start, i);
-        end_vertex_to_unvisited_path_index.emplace(end, i);
+        start_vertex_to_unvisited_path_index.emplace(start, std::make_pair(i, Side::front));
+        end_vertex_to_unvisited_path_index.emplace(end, std::make_pair(i, Side::back));
       }
     }
   }
 
-  double path_score(__attribute__((unused)) const linestring_t& path_so_far,
-                    std::pair<point_t, size_t> option) {
-    return 1;
+  // Higher score is better.
+  template <typename p_t>
+  double path_score(const linestring_t& path_so_far,
+                    const std::pair<point_t, std::pair<size_t, Side>>& option,
+                    identity<p_t>) {
+    if (path_so_far.size() < 2 || paths[option.second.first].first.size() < 2) {
+      // Doesn't matter, pick any.
+      return 0;
+    }
+    auto p0 = path_so_far[path_so_far.size()-2];
+    auto p1 = path_so_far.back();
+    auto p2 = paths[option.second.first].first[1];
+    if (option.second.second == Side::back) {
+      // This must be reversed.
+      p2 = paths[option.second.first].first[paths[option.second.first].first.size()-2];
+    }
+    auto length_p0_p1 = bg::distance(p0, p1);
+    auto length_p1_p2 = bg::distance(p1, p2);
+    auto delta_x = (p1.x() - p0.x())/length_p0_p1 + (p2.x() - p1.x())/length_p1_p2;
+    auto delta_y = (p1.y() - p0.y())/length_p0_p1 + (p2.y() - p1.y())/length_p1_p2;
+    return (delta_x * delta_x + delta_y * delta_y);  // No need to sqrt, this is comparable.
+  }
+
+  double path_score(const linestring_t&,
+                    const std::pair<point_t, std::pair<size_t, Side>>&,
+                    identity<int>) {
+    return 0;
+  }
+
+  template <typename p_t>
+  double path_score(const linestring_t& path_so_far,
+                    const std::pair<point_t, std::pair<size_t, Side>>& option) {
+    return path_score(path_so_far, option, identity<p_t>());
   }
 
   // Pick the best path to continue on given the path_so_far and a
   // range of options.  The range must have at least one element in
   // it.
-  typename std::multimap<point_t, size_t>::iterator select_path(
+  typename std::multimap<point_t, std::pair<size_t, Side>>::iterator select_path(
       const linestring_t& path_so_far,
-      const std::pair<typename std::multimap<point_t, size_t>::iterator,
-                      typename std::multimap<point_t, size_t>::iterator>& options) {
+      const std::pair<typename std::multimap<point_t, std::pair<size_t, Side>>::iterator,
+                      typename std::multimap<point_t, std::pair<size_t, Side>>::iterator>& options) {
     auto best = options.first;
-    double best_score = path_score(path_so_far, *best);
+    double best_score = path_score<point_t>(path_so_far, *best);
     for (auto current = options.first; current != options.second; current++) {
-      double current_score = path_score(path_so_far, *current);
+      double current_score = path_score<point_t>(path_so_far, *current);
       if (current_score > best_score) {
         best = current;
         best_score = current_score;
@@ -197,9 +256,10 @@ class eulerian_paths {
       }
     }
     auto vertex_and_path_index = select_path(*new_path, vertex_and_path_range);
-    size_t path_index = vertex_and_path_index->second;
+    size_t path_index = vertex_and_path_index->second.first;
+    Side side = vertex_and_path_index->second.second;
     const auto& path = paths[path_index].first;
-    if (point == path.front()) {
+    if (side == Side::front) {
       // Append this path in the forward direction.
       new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
     } else {
@@ -212,7 +272,7 @@ class eulerian_paths {
     auto end_map = paths[path_index].second ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
     auto range = end_map->equal_range(new_point);
     for (auto iter = range.first; iter != range.second; iter++) {
-      if (iter->second == path_index) {
+      if (iter->second == std::make_pair(path_index, !side)) {
         // Remove the path that ends on the vertex.
         end_map->erase(iter);
         break; // There must be only one.
@@ -249,15 +309,21 @@ class eulerian_paths {
   }
 
   const std::vector<std::pair<linestring_t, bool>>& paths;
-  // Create a map from vertex to each path that start at that vertex.  It's a
-  // map to an index into the input paths.
-  std::multimap<point_t, size_t> start_vertex_to_unvisited_path_index;
-  // Create a map from vertex to each bidi path that may start or end at that
-  // vertex.  It's a map to an index into the input paths.
-  std::multimap<point_t, size_t> bidi_vertex_to_unvisited_path_index;
-  // Create a map from vertex to each path that may start or end at that vertex.  It's a
-  // map to an index into the input paths.
-  std::multimap<point_t, size_t> end_vertex_to_unvisited_path_index;
+  // Create a map from vertex to each path that start at that vertex.
+  // It's a map to an index into the input paths.  The bool tells us
+  // if the point_t is at the front or back.  For start, it will
+  // always be true.
+  std::multimap<point_t, std::pair<size_t, Side>> start_vertex_to_unvisited_path_index;
+  // Create a map from vertex to each bidi path that may start or end
+  // at that vertex.  It's a map to an index into the input paths.
+  // The bool tells us if the point_t is at the front or back.  For
+  // bidi, it could be either.
+  std::multimap<point_t, std::pair<size_t, Side>> bidi_vertex_to_unvisited_path_index;
+  // Create a map from vertex to each path that may start or end at
+  // that vertex.  It's a map to an index into the input paths.  The
+  // bool tells us if the point_t is at the front or back.  For end,
+  // it will always be false.
+  std::multimap<point_t, std::pair<size_t, Side>> end_vertex_to_unvisited_path_index;
   // Only the ones that have at least one potential edge leading out.
   std::set<point_t> all_start_vertices;
 }; //class eulerian_paths
