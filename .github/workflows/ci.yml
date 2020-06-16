@@ -30,9 +30,7 @@ jobs:
 
     steps:
     - name: Checkout pcb2gcode source
-      uses: actions/checkout@v1
-      with:
-        fetch-depth: 2
+      uses: actions/checkout@v2
     - name: Setup paths and env
       run: |
         mkdir -p $HOME/.local/bin
