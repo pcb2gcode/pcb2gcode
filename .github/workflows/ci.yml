@@ -233,21 +233,9 @@ jobs:
       with:
         name: lcov
         path: pcb2gcode-lcov.info
-    - name: EasyCov coverage
-      if: matrix.code_coverage
-      uses: EasyCov/EasyCov@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        lcov-coverage: pcb2gcode-lcov.info
-    - name: Upload coverage.bin.gz
-      if: matrix.code_coverage
-      uses: actions/upload-artifact@v1
-      with:
-        name: coverage.bin.gz
-        path: coverage.bin.gz
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
-      uses: eyal0/github-action@master
+      uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
@@ -262,7 +250,7 @@ jobs:
       with:
         fetch-depth: 2
     - name: Finalize coverage
-      uses: eyal0/github-action@master
+      uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
