@@ -155,6 +155,13 @@ class eulerian_paths {
     }
   }
 
+  typename std::multimap<point_t, size_t>::iterator select_path(
+      __attribute__((unused)) linestring_t* path_so_far,
+      std::pair<typename std::multimap<point_t, size_t>::iterator,
+                typename std::multimap<point_t, size_t>::iterator> options) {
+    return options.first;
+  }
+
   // Given a point, make a path from that point as long as possible
   // until a dead end.  Assume that point itself is already in the
   // list.  Return true if the path is all reversible, otherwise
@@ -162,16 +169,17 @@ class eulerian_paths {
   bool make_path(const point_t& point, linestring_t* new_path) {
     // Find an unvisited path that leads from point.  Prefer out edges to bidi
     // because we may need to save the bidi edges to later be in edges.
-    auto vertex_and_path_index = start_vertex_to_unvisited_path_index.find(point);
+    auto vertex_and_path_range = start_vertex_to_unvisited_path_index.equal_range(point);
     auto vertex_to_unvisited_map = &start_vertex_to_unvisited_path_index;
-    if (vertex_and_path_index == start_vertex_to_unvisited_path_index.cend()) {
-      vertex_and_path_index = bidi_vertex_to_unvisited_path_index.find(point);
+    if (vertex_and_path_range.first == vertex_and_path_range.second) {
+      vertex_and_path_range = bidi_vertex_to_unvisited_path_index.equal_range(point);
       vertex_to_unvisited_map = &bidi_vertex_to_unvisited_path_index;
-      if (vertex_and_path_index == bidi_vertex_to_unvisited_path_index.cend()) {
+      if (vertex_and_path_range.first == vertex_and_path_range.second) {
         // No more paths to follow.
         return true; // Empty path is reversible.
       }
     }
+    auto vertex_and_path_index = select_path(new_path, vertex_and_path_range);
     size_t path_index = vertex_and_path_index->second;
     const auto& path = paths[path_index].first;
     if (point == path.front()) {
