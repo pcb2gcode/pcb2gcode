@@ -187,4 +187,18 @@ BOOST_AUTO_TEST_CASE(two_directed_lines) {
   BOOST_CHECK_EQUAL(actual.size(), 0);
 }
 
+BOOST_AUTO_TEST_CASE(directed_square_and_diagonal) {
+  vector<pair<linestring_type_fp, bool>> paths{
+    {{{0,0}, {0,5}}, false},
+    {{{0,5}, {5,5}}, false},
+    {{{5,5}, {5,0}}, false},
+    {{{5,0}, {0,0}}, false},
+    {{{5,5}, {0,0}}, false},
+  };
+  const auto actual = backtrack::backtrack(paths, 1,100,1,100, 100);
+  BOOST_TEST_MESSAGE("actual is " << actual);
+  BOOST_CHECK_EQUAL(length(actual), 10);
+  BOOST_CHECK_EQUAL(actual.size(), 2);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
