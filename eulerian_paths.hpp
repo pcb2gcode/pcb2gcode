@@ -200,11 +200,17 @@ class eulerian_paths {
       // This must be reversed.
       p2 = paths[option.second.first].first[paths[option.second.first].first.size()-2];
     }
-    auto length_p0_p1 = bg::distance(p0, p1);
-    auto length_p1_p2 = bg::distance(p1, p2);
-    auto delta_x = (p1.x() - p0.x())/length_p0_p1 + (p2.x() - p1.x())/length_p1_p2;
+    /*auto delta_x = (p1.x() - p0.x())/length_p0_p1 + (p2.x() - p1.x())/length_p1_p2;
     auto delta_y = (p1.y() - p0.y())/length_p0_p1 + (p2.y() - p1.y())/length_p1_p2;
     return (delta_x * delta_x + delta_y * delta_y);  // No need to sqrt, this is comparable.
+    */
+    auto delta_x10 = p0.x() - p1.x();
+    auto delta_y10 = p0.y() - p1.y();
+    auto delta_x12 = p2.x() - p1.x();
+    auto delta_y12 = p2.y() - p1.y();
+    auto length_product = sqrt((delta_x10*delta_x10 + delta_y10*delta_y10) * (delta_x12*delta_x12 + delta_y12*delta_y12));
+    auto dot_product = (delta_x10*delta_x12) + (delta_y10*delta_y12);
+    return -dot_product/length_product;
   }
 
   double path_score(const linestring_t&,
