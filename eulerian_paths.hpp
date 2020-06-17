@@ -200,10 +200,10 @@ class eulerian_paths {
       // This must be reversed.
       p2 = paths[option.second.first].first[paths[option.second.first].first.size()-2];
     }
-    /*auto delta_x = (p1.x() - p0.x())/length_p0_p1 + (p2.x() - p1.x())/length_p1_p2;
-    auto delta_y = (p1.y() - p0.y())/length_p0_p1 + (p2.y() - p1.y())/length_p1_p2;
-    return (delta_x * delta_x + delta_y * delta_y);  // No need to sqrt, this is comparable.
-    */
+
+    // cos(theta) = (a dot b)/(|a|*|b|)
+    // We don't need to take the cosine because it is decreasing over
+    // the range of theta that we care about, so they are comparable.
     auto delta_x10 = p0.x() - p1.x();
     auto delta_y10 = p0.y() - p1.y();
     auto delta_x12 = p2.x() - p1.x();
