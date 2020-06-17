@@ -217,6 +217,39 @@ BOOST_AUTO_TEST_CASE(directional_loop) {
   BOOST_CHECK_EQUAL(euler_paths.size(), 1UL);
 }
 
+// Prefer straight lines.
+// Draw a windmill shape.
+BOOST_AUTO_TEST_CASE(prefer_straight_lines) {
+  vector<pair<linestring_type_fp, bool>> mls{
+    {{{5,5}, {6,0}, {4,0}, {5,5}}, true},
+    {{{5,5}, {10,4}, {10, 6}, {5,5}}, true},
+    {{{5,5}, {4,10}, {6, 10}, {5,5}}, true},
+    {{{5,5}, {0,4}, {0, 6}, {5,5}}, true},
+  };
+  vector<pair<linestring_type_fp, bool>> result =
+      get_eulerian_paths<point_type_fp, linestring_type_fp>(mls);
+  vector<pair<linestring_type_fp, bool>> expected{
+    {
+      {
+        {5, 5},
+        {6, 0},
+        {4, 0},
+        {5, 5},
+        {6, 10},
+        {4, 10},
+        {5, 5},
+        {10, 4},
+        {10, 6},
+        {5, 5},
+        {0, 4},
+        {0, 6},
+        {5, 5},
+      },
+     true},
+  };
+  BOOST_CHECK_EQUAL(result, expected);
+}
+
 BOOST_AUTO_TEST_CASE(must_start_tests) {
   vector<std::tuple<size_t, size_t, size_t, bool>> tests{
     // Sum = 0

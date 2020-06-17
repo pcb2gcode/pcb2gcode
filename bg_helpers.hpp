@@ -282,7 +282,10 @@ static inline bool operator==(
   return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
 }
 
-static inline bool operator!=(const point_type_fp& x, const point_type_fp& y) {
+template <typename T>
+static inline bool operator!=(
+    const boost::geometry::model::d2::point_xy<T>& x,
+    const boost::geometry::model::d2::point_xy<T>& y) {
   return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
 }
 
