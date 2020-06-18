@@ -95,10 +95,10 @@ void Surface_vectorial::render(shared_ptr<GerberImporter> importer, double toler
         " g-code output and/or fix your gerber files!\n";
   }
 
-  //With a very small loss of precision we can reduce memory usage and processing time
   vectorial_surface = make_shared<
       pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>>>();
   if (tolerance > 0) {
+    //With a very small loss of precision we can reduce memory usage and processing time
     bg::simplify(vectorial_surface_not_simplified.first, vectorial_surface->first, tolerance);
   } else {
     vectorial_surface->first.swap(vectorial_surface_not_simplified.first);
@@ -529,7 +529,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
 // Get all the toolpaths for a single milling bit for just one of the traces or
 // thermal holes.  The mill is the tool to use and the tool_diameter and the
 // overlap_width are the specifics of the tool to use in the milling.  mirror
-// means that the entire shapre should be reflected across the y=0 axis, because
+// means that the entire shape should be reflected across the x=0 axis, because
 // it will be on the back.  The tool_suffix is for making unique filenames if
 // there are multiple tools.  The already_milled_shrunk is the running union of
 // all the milled area so far, so that new milling can avoid re-milling areas
@@ -573,7 +573,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
       keep_out = bg_helpers::buffer(*current_trace, diameter/2);
     }
     auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
-    // Find if a distance between two ponts should be milled or retract, move
+    // Find if a distance between two points should be milled or retract, move
     // fast, and plunge.  Milling is chosen if it's faster and also the path is
     // entirely within the path_finding_surface.  If it's not faster or the path
     // isn't possible, boost::none is returned.
@@ -598,7 +598,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
                 }
                 tries++;
                 // Return true if this path needs to be clipped.  The distance from
-                // a to target so far is length.  At best, we'll have a stright
+                // a to target so far is length.  At best, we'll have a straight
                 // line from there to the goal, b.
                 const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
                 if (potential_horizontal_distance > max_g1_distance) {
@@ -671,7 +671,9 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         multi_polygon_type_fp already_milled_shrunk;
         bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
         if (tool_index < tool_count - 1) {
-          // Don't force isolation.
+          // Don't force isolation.  By pretending that an area around
+          // the trace is already milled, it will be removed from
+          // consideration for milling.
           if (trace_index < vectorial_surface->first.size()) {
             // This doesn't run for thermal holes.
             multi_polygon_type_fp temp;
@@ -721,9 +723,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       // true means reversal is still allowed.
       vector<pair<linestring_type_fp, bool>> new_trace_toolpath;
       PathFinder path_finder =
-          [&](const point_type_fp& a, const point_type_fp& b) -> optional<linestring_type_fp> {
-            UNUSED(a);
-            UNUSED(b);
+          [&](const point_type_fp&, const point_type_fp&) -> optional<linestring_type_fp> {
             return boost::none;
           };
       for (const auto& path : paths) {
@@ -794,14 +794,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
-    // slightly to accomodate the thickness of the millbit.
+    // slightly to accommodate the thickness of the millbit.
     multi_polygon_type_fp temp;
     bg_helpers::buffer(masked_milling_poly, temp, -diameter/2);
     masked_milling_poly = temp;
   }
-  // This is the area that the milling must not cross so that it doesn't dig
-  // into the trace.  We only need this if there is an input. which is not the
-  // case if this is a thermal hole.
+  // This is the area that the milling must not cross so that it
+  // doesn't dig into the trace.  We only need this if there is an
+  // input which is not the case if this is a thermal hole.
   multi_polygon_type_fp path_minimum;
   if (input) {
     bg_helpers::buffer(*input, path_minimum, diameter/2);
@@ -813,7 +813,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   if (mask) {
     masked_milling_polys = masked_milling_poly & mask->vectorial_surface->first;
   } else {
-    // Increase the size of the bounding box to accomodate all milling.
+    // Increase the size of the bounding box to accommodate all milling.
     box_type_fp new_bounding_box;
     if (do_voronoi) {
       // This worked experimentally to remove spurious contention.
