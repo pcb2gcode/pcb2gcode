@@ -116,10 +116,10 @@ void Board::createLayers()
               // Figure out how much margin the extra passes might make.
               extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
             }
-            min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin);
-            max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin);
-            min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin);
-            max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin);
+            min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin - trace_mill->offset);
+            max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin + trace_mill->offset);
+            min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin - trace_mill->offset);
+            max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin + trace_mill->offset);
           }
         }
       }

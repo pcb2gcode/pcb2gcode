@@ -113,6 +113,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         isolator->extra_passes = vm["extra-passes"].as<int>();
         isolator->isolation_width = vm["isolation-width"].as<Length>().asInch(unit);
         isolator->optimise = vm["optimise"].as<Length>().asInch(unit);
+        isolator->offset = vm["offset"].as<Length>().asInch(unit);
         isolator->preserve_thermal_reliefs = vm["preserve-thermal-reliefs"].as<bool>();
         isolator->eulerian_paths = vm["eulerian-paths"].as<bool>();
         isolator->path_finding_limit = vm["path-finding-limit"].as<size_t>();
@@ -151,6 +152,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cutter->zchange = vm["zchange"].as<Length>().asInch(unit);
       cutter->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
       cutter->optimise = vm["optimise"].as<Length>().asInch(unit);
+      cutter->offset = vm["offset"].as<Length>().asInch(unit);
       cutter->eulerian_paths = vm["eulerian-paths"].as<bool>();
       cutter->path_finding_limit = vm["path-finding-limit"].as<size_t>();
       cutter->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);

@@ -675,7 +675,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi,
-                       diameter, overlap, extra_passes + 1, do_voronoi);
+                       diameter, overlap, extra_passes + 1, do_voronoi, mill->offset);
     multi_polygon_type_fp keep_in;
     keep_in.push_back(current_voronoi);
     optional<multi_polygon_type_fp> keep_out;
@@ -799,7 +799,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
           if (trace_index < vectorial_surface->first.size()) {
             // This doesn't run for thermal holes.
             multi_polygon_type_fp temp;
-            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - mill->tolerance);
+            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 + mill->offset - mill->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
           }
         }
@@ -906,16 +906,18 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
 // milling for thermal reliefs.  The voronoi is the shape that
 // encloses the input and outside which we have no need to mill
 // because that will be handled by another call to this function.  The
-// diameter and overlap required of the tool are specified.  Steps is
+// diameter is the diameter of the tool and the overlap is by how much each pass should overlap the prevoius pass.  Steps is
 // how many passes to do, including the first pass.  If do_voronoi is
 // true then isolation should be done from the voronoi region inward
-// instead of from the trace outward.
+// instead of from the trace outward.  The offset is how far to kee away from any trace, useful if the milling bit has some diameter that it is guaranteed to mill but also some slop that causes it to sometimes mill beyond its diameter.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     coordinate_type_fp diameter,
     coordinate_type_fp overlap,
-    unsigned int steps, bool do_voronoi) const {
+    unsigned int steps, bool do_voronoi,
+    coordinate_type_fp offset) const {
+  // The polygons to add to the PNG debugging output files.
   // Mask the polygon that we need to mill.
   multi_polygon_type_fp masked_milling_poly;
   masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
@@ -923,7 +925,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     // This means that we are milling a thermal so we need to move inward
     // slightly to accommodate the thickness of the millbit.
     multi_polygon_type_fp temp;
-    bg_helpers::buffer(masked_milling_poly, temp, -diameter/2);
+    bg_helpers::buffer(masked_milling_poly, temp, -diameter/2 - offset);
     masked_milling_poly = temp;
   }
   // This is the area that the milling must not cross so that it
@@ -931,7 +933,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // input which is not the case if this is a thermal hole.
   multi_polygon_type_fp path_minimum;
   if (input) {
-    bg_helpers::buffer(*input, path_minimum, diameter/2);
+    bg_helpers::buffer(*input, path_minimum, diameter/2 + offset);
   }
 
   multi_polygon_type_fp masked_milling_polys;
@@ -979,14 +981,11 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
 
     multi_polygon_type_fp mpoly;
-    if (expand_by == 0) {
-      // We simply need to mill every ring in the shape.
-      mpoly = masked_milling_polys;
+    multi_polygon_type_fp mpoly_temp;
+    bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by + offset);
+    if (expand_by + offset == 0) {
+      mpoly = mpoly_temp;
     } else {
-      multi_polygon_type_fp mpoly_temp;
-      // Buffer should be done on floating point polygons.
-      bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
-
       if (!do_voronoi) {
         mpoly = mpoly_temp & voronoi_polygon;
       } else {
