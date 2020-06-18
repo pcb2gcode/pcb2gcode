@@ -26,3 +26,4 @@ zsafe=0.08
 zchange=1.0
 mill-feed-direction=climb
 tsp-2opt=false
+offset=5mm
