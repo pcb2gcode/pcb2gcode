@@ -93,7 +93,7 @@ protected:
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
       const double overlap_width,
       const multi_polygon_type_fp& already_milled) const;
-  std::vector<multi_polygon_type_fp> offset_polygon(
+  std::vector<std::pair<multi_polygon_type_fp, multi_linestring_type_fp>> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
       coordinate_type_fp diameter,

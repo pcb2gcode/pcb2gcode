@@ -481,6 +481,18 @@ void attach_ls(const linestring_type_fp& ls,
   }
 }
 
+void attach_mls(const multi_linestring_type_fp& mls,
+                vector<pair<linestring_type_fp, bool>>& toolpaths,
+                const MillFeedDirection::MillFeedDirection& dir,
+                const multi_polygon_type_fp& already_milled_shrunk,
+                const PathFinder& path_finder) {
+  auto mls_masked = mls - already_milled_shrunk;  // This might chop the single path into many paths.
+  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
+  for (const auto& ls : mls_masked) { // Maybe more than one if the masking cut one into parts.
+    attach_ls(ls, toolpaths, dir, path_finder);
+  }
+}
+
 // Given a ring, attach it to one of the toolpaths.  The ring is first masked
 // with the already_milled_shrunk, so it may become a few linestrings.  Those
 // linestrings are attached.  Only attach if there is a point on the linestring
@@ -494,17 +506,14 @@ void attach_ring(const ring_type_fp& ring,
                  const PathFinder& path_finder) {
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
-  ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
-  ring_paths = eulerian_paths::make_eulerian_paths(ring_paths, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
-  for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
-    attach_ls(ring_path, toolpaths, dir, path_finder);
-  }
+  attach_mls(ring_paths, toolpaths, dir, already_milled_shrunk, path_finder);
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.  path_finder is
 // the function that can return a path to connect linestrings if such a path is
 // possible, as in, not too long and doesn't cross any traces, etc.
 void attach_polygons(const multi_polygon_type_fp& polygons,
+                     const multi_linestring_type_fp& spikes,
                      vector<pair<linestring_type_fp, bool>>& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
@@ -524,6 +533,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
       }
     }
   }
+  attach_mls(spikes, toolpaths, MillFeedDirection::ANY, already_milled_shrunk, path_finder);
 }
 
 // Get all the toolpaths for a single milling bit for just one of the traces or
@@ -563,7 +573,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
       current_trace.emplace(vectorial_surface->first.at(trace_index));
     }
     const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
-    const vector<multi_polygon_type_fp> polygons =
+    const vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> polygons_and_spikes =
         offset_polygon(current_trace, current_voronoi,
                        diameter, overlap, extra_passes + 1, do_voronoi);
     multi_polygon_type_fp keep_in;
@@ -615,11 +625,11 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     // Each linestring has a bool attached to it indicating if it is reversible.
     // true means reversal is still allowed.
     vector<pair<linestring_type_fp, bool>> toolpath;
-    for (size_t polygon_index = 0; polygon_index < polygons.size(); polygon_index++) {
-      const auto& polygon = polygons[polygon_index];
+    for (size_t polygon_index = 0; polygon_index < polygons_and_spikes.size(); polygon_index++) {
+      const auto& polygon_and_spike = polygons_and_spikes[polygon_index];
       MillFeedDirection::MillFeedDirection dir = mill_feed_direction;
       if (polygon_index != 0) {
-        if (polygon_index + 1 == polygons.size()) {
+        if (polygon_index + 1 == polygons_and_spikes.size()) {
           // This is the outermost pass and it isn't the only loop so invert
           // it to remove burrs.
           dir = invert(dir);
@@ -632,7 +642,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         // This is on the back so all loops are reversed.
         dir = invert(dir);
       }
-      attach_polygons(polygon, toolpath, dir, already_milled_shrunk, path_finder);
+      attach_polygons(polygon_and_spike.first, polygon_and_spike.second, toolpath, dir, already_milled_shrunk, path_finder);
     }
 
     return toolpath;
@@ -780,15 +790,12 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
 }
 
 // Might not have an input, which is when we are milling for thermal reliefs.
-vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
+vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     coordinate_type_fp diameter,
     coordinate_type_fp overlap,
     unsigned int steps, bool do_voronoi) const {
-  // The polygons to add to the PNG debuging output files.
-  vector<multi_polygon_type_fp> polygons;
-
   // Mask the polygon that we need to mill.
   multi_polygon_type_fp masked_milling_poly;
   masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
@@ -826,6 +833,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     masked_milling_polys = masked_milling_poly & new_bounding_box;
   }
 
+  vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> polygons_and_spikes;
   // Convert the input shape into a bunch of rings that need to be milled.
   for (unsigned int i = 0; i < steps; i++) {
     coordinate_type_fp expand_by;
@@ -851,41 +859,96 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
 
     multi_polygon_type_fp mpoly;
+    multi_linestring_type_fp spikes;  // These are needed in convex corners.
     if (expand_by == 0) {
       // We simply need to mill every ring in the shape.
       mpoly = masked_milling_polys;
     } else {
       multi_polygon_type_fp mpoly_temp;
+      multi_linestring_type_fp spikes_temp;  // These are needed in convex corners.
       // Buffer should be done on floating point polygons.
       bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
+      if (i > 0) {
+        // This is not the last pass.  Look for convex corners where
+        // we might need to add a segment to fill a gap.
+        if (!do_voronoi) {
+          // Boost shapes are usually clockwise.
+          for (auto& poly : mpoly_temp) {
+            // Subtract 1 because the first point is repeated.
+            for (size_t i = 0; i < poly.outer().size()-1; i++) {
+              // Check if this point is making a right turn.
+              //https://math.stackexchange.com/a/1324213/96317
+              point_type_fp current = poly.outer()[i];
+              point_type_fp prev = i == 0 ? poly.outer()[poly.outer().size()-2] : poly.outer()[i-1];
+              point_type_fp next = poly.outer()[i+1];
+              coordinate_type_fp determinant =
+                  prev.x()*current.y() + prev.y()*next.x() + current.x()*next.y() -
+                  prev.x()*next.y() - prev.y()*current.x() - current.y()*next.x();
+              if (determinant > 0) {
+                // Need to add a point.
+                // Get the incoming and outgoing vectors.
+                auto v_in = current - prev;
+                auto v_out = next - current;
+                // Rotate them to the right to get the perpendicular vectors at current.
+                point_type_fp in_perp{v_in.y(), -v_in.x()};
+                point_type_fp out_perp{v_out.y(), -v_out.x()};
+                // Normalize each to half the length of the offset.
+                in_perp = in_perp / bg::distance(point_type_fp{0,0}, in_perp);
+                out_perp = out_perp / bg::distance(point_type_fp{0,0}, out_perp);
+                // Find the sum, which points in the direction for the spike.
+                auto v_dir = (in_perp + out_perp) * (diameter - overlap) / 2;
+                // Use similar triangles to find the distance to the vertex the vertex on the previous pass.
+                auto v_dir_length = bg::distance(point_type_fp{0,0}, v_dir);
+                auto distance_to_vertex = (diameter - overlap)*(diameter - overlap) / v_dir_length;
+                auto spike_length = distance_to_vertex - (diameter - overlap);
+                // Adjust v_dir to be the spike_length.
+                v_dir = v_dir / v_dir_length * spike_length;
+                std::cout << "need to add at " << current << " " << (current + v_dir) << "\n";
+                spikes_temp.push_back({current, current + v_dir});
+              }
+            }
+          }
+        }
+      }
 
       if (!do_voronoi) {
         mpoly = mpoly_temp & voronoi_polygon;
+        spikes = spikes_temp & voronoi_polygon;
       } else {
         mpoly = mpoly_temp + path_minimum;
+        spikes = spikes_temp - path_minimum;
       }
     }
     multi_polygon_type_fp masked_expanded_milling_polys;
+    multi_linestring_type_fp masked_expanded_milling_spikes;
     if (mask) {
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
       masked_expanded_milling_polys = ((mpoly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
+      masked_expanded_milling_spikes = ((spikes & mask->vectorial_surface->first) - path_minimum) & voronoi_polygon;
     } else {
       masked_expanded_milling_polys = mpoly;
+      masked_expanded_milling_spikes = spikes;
     }
     if (invert_gerbers) {
       masked_expanded_milling_polys = masked_expanded_milling_polys & bounding_box;
+      masked_expanded_milling_spikes = masked_expanded_milling_spikes & bounding_box;
     }
-    if (polygons.size() > 0 && bg::equals(masked_expanded_milling_polys, polygons.back())) {
-      // Once we start getting repeats, we can expect that all the rest will be
-      // the same so we're done.
+    if (polygons_and_spikes.size() > 0 &&
+        bg::equals(masked_expanded_milling_polys, polygons_and_spikes.back().first) &&
+        bg::equals(masked_expanded_milling_spikes, polygons_and_spikes.back().second)) {
+      // Once we start getting repeats, we can expect that all the
+      // rest will be the same so we're done.
       break;
     }
-    polygons.push_back(masked_expanded_milling_polys);
+    polygons_and_spikes.push_back({
+        masked_expanded_milling_polys,
+        masked_expanded_milling_spikes,
+      });
   }
 
-  return polygons;
+  return polygons_and_spikes;
 }
 
 svg_writer::svg_writer(string filename, box_type_fp bounding_box) :
