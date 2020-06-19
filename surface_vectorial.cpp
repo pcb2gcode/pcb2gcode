@@ -869,11 +869,15 @@ vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> Surface_vectorial:
       // Buffer should be done on floating point polygons.
       bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by);
       if (i > 0) {
-        // This is not the last pass.  Look for convex corners where
+        // This is not the first pass.  Look for convex corners where
         // we might need to add a segment to fill a gap.
         if (!do_voronoi) {
           // Boost shapes are usually clockwise.
           for (auto& poly : mpoly_temp) {
+            // TODO: Add spikes for poly.inner(), too.  They will be
+            // in the reverse direction so compare the determinant the
+            // reverse way and rotate left and not right.
+            
             // Subtract 1 because the first point is repeated.
             for (size_t i = 0; i < poly.outer().size()-1; i++) {
               // Check if this point is making a right turn.
@@ -903,7 +907,6 @@ vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> Surface_vectorial:
                 auto spike_length = distance_to_vertex - (diameter - overlap);
                 // Adjust v_dir to be the spike_length.
                 v_dir = v_dir / v_dir_length * spike_length;
-                std::cout << "need to add at " << current << " " << (current + v_dir) << "\n";
                 spikes_temp.push_back({current, current + v_dir});
               }
             }
@@ -936,8 +939,8 @@ vector<pair<multi_polygon_type_fp, multi_linestring_type_fp>> Surface_vectorial:
       masked_expanded_milling_spikes = masked_expanded_milling_spikes & bounding_box;
     }
     if (polygons_and_spikes.size() > 0 &&
-        bg::equals(masked_expanded_milling_polys, polygons_and_spikes.back().first) &&
-        bg::equals(masked_expanded_milling_spikes, polygons_and_spikes.back().second)) {
+        bg::equals(masked_expanded_milling_polys, polygons_and_spikes.back().first)) {
+      // Don't check polygons_and_spikes.back().second, that led to a long run time?
       // Once we start getting repeats, we can expect that all the
       // rest will be the same so we're done.
       break;
