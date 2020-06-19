@@ -299,6 +299,34 @@ static inline bool operator<(
 }
 
 template <typename T>
+static inline boost::geometry::model::d2::point_xy<T> operator-(
+    const boost::geometry::model::d2::point_xy<T>& lhs,
+    const boost::geometry::model::d2::point_xy<T>& rhs) {
+  return {lhs.x()-rhs.x(), lhs.y()-rhs.y()};
+}
+
+template <typename T>
+static inline boost::geometry::model::d2::point_xy<T> operator+(
+    const boost::geometry::model::d2::point_xy<T>& lhs,
+    const boost::geometry::model::d2::point_xy<T>& rhs) {
+  return {lhs.x()+rhs.x(), lhs.y()+rhs.y()};
+}
+
+template <typename T, typename S>
+static inline boost::geometry::model::d2::point_xy<T> operator/(
+    const boost::geometry::model::d2::point_xy<T>& lhs,
+    const S& rhs) {
+  return {lhs.x()/static_cast<T>(rhs), lhs.y()/static_cast<T>(rhs)};
+}
+
+template <typename T, typename S>
+static inline boost::geometry::model::d2::point_xy<T> operator*(
+    const boost::geometry::model::d2::point_xy<T>& lhs,
+    const S& rhs) {
+  return {lhs.x()*static_cast<T>(rhs), lhs.y()*static_cast<T>(rhs)};
+}
+
+template <typename T>
 static inline bool operator==(
     const boost::geometry::model::d2::point_xy<T>& x,
     const boost::geometry::model::d2::point_xy<T>& y) {
