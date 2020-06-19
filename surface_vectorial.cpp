@@ -294,9 +294,9 @@ bool attach_ring(const linestring_type_fp& ring,
                  const PathFinder& path_finder) {
   auto& toolpath = toolpath_and_allow_reversal.first;
   bool insert_at_front = true;
-  auto best_ring_point = ring.begin();
+  auto best_ring_point = ring.cbegin();
   double best_distance = bg::comparable_distance(*best_ring_point, toolpath.front());
-  for (auto ring_point = ring.begin(); ring_point != ring.end(); ring_point++) {
+  for (auto ring_point = ring.cbegin(); ring_point != ring.cend(); ring_point++) {
     if (bg::comparable_distance(*ring_point, toolpath.front()) < best_distance) {
       best_distance = bg::comparable_distance(*ring_point, toolpath.front());
       best_ring_point = ring_point;
@@ -322,7 +322,7 @@ bool attach_ring(const linestring_type_fp& ring,
   }
   // Now insertion point is where to write the connecting path.  Don't copy the
   // first and last points, they are already part of the toolpath and ring.
-  insertion_point = std::copy(path->begin()+1, path->end()-1, insertion_point);
+  insertion_point = std::copy(path->cbegin()+1, path->cend()-1, insertion_point);
   if (insert_at_front) {
     insertion_point = toolpath.begin();
   }
@@ -332,12 +332,12 @@ bool attach_ring(const linestring_type_fp& ring,
     // Taken from: http://www.cplusplus.com/reference/algorithm/rotate_copy/
     // Next to take the next of each element because the range is closed at the
     // start and open at the end.
-    auto close_ring_point = std::reverse_copy(std::next(ring.begin()), std::next(best_ring_point), insertion_point);
-    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.end(), close_ring_point);
+    auto close_ring_point = std::reverse_copy(std::next(ring.cbegin()), std::next(best_ring_point), insertion_point);
+    close_ring_point = std::reverse_copy(std::next(best_ring_point), ring.cend(), close_ring_point);
     *close_ring_point = *best_ring_point;
   } else { // It's ANY or CLIMB.  For ANY, we can choose either direction and we
            // default to the current direction.
-    auto close_ring_point = std::rotate_copy(ring.begin(), best_ring_point, std::prev(ring.end()), insertion_point);
+    auto close_ring_point = std::rotate_copy(ring.cbegin(), best_ring_point, std::prev(ring.cend()), insertion_point);
     *close_ring_point = *best_ring_point;
   }
   // Iff both inputs are reversible than the path remains reversible.
@@ -468,16 +468,29 @@ void attach_ls(const linestring_type_fp& ls,
   } else {
     for (auto& toolpath : toolpaths) {
       if (attach_ls(ls, toolpath, dir, path_finder)) {
-        return;
+        return; // Done, we were able to attach to an existing toolpath.
       }
     }
   }
+  // If we've reached here, there was no way to attach at all so make a new path.
   if (dir == MillFeedDirection::CONVENTIONAL) {
     toolpaths.push_back(make_pair(linestring_type_fp(ls.crbegin(), ls.crend()), false));
   } else if (dir == MillFeedDirection::CLIMB) {
     toolpaths.push_back(make_pair(linestring_type_fp(ls.cbegin(), ls.cend()), false));
   } else {
     toolpaths.push_back(make_pair(linestring_type_fp(ls.cbegin(), ls.cend()), true)); // true for reversible
+  }
+}
+
+void attach_mls(const multi_linestring_type_fp& mls,
+                vector<pair<linestring_type_fp, bool>>& toolpaths,
+                const MillFeedDirection::MillFeedDirection& dir,
+                const multi_polygon_type_fp& already_milled_shrunk,
+                const PathFinder& path_finder) {
+  auto mls_masked = mls - already_milled_shrunk;  // This might chop the single path into many paths.
+  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
+  for (const auto& ls : mls_masked) { // Maybe more than one if the masking cut one into parts.
+    attach_ls(ls, toolpaths, dir, path_finder);
   }
 }
 
@@ -494,11 +507,7 @@ void attach_ring(const ring_type_fp& ring,
                  const PathFinder& path_finder) {
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
-  ring_paths = ring_paths - already_milled_shrunk;  // This might chop the single path into many paths.
-  ring_paths = eulerian_paths::make_eulerian_paths(ring_paths, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
-  for (const auto& ring_path : ring_paths) { // Maybe more than one if the masking cut one into parts.
-    attach_ls(ring_path, toolpaths, dir, path_finder);
-  }
+  attach_mls(ring_paths, toolpaths, dir, already_milled_shrunk, path_finder);
 }
 
 // Given polygons, attach all the rings inside to the toolpaths.  path_finder is
@@ -779,16 +788,21 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
   }
 }
 
-// Might not have an input, which is when we are milling for thermal reliefs.
+// The input is the trace which we want to isolate.  It might have
+// holes in it.  We might not have an input, which is when we are
+// milling for thermal reliefs.  The voronoi is the shape that
+// encloses the input and outside which we have no need to mill
+// because that will be handled by another call to this function.  The
+// diameter and overlap required of the tool are specified.  Steps is
+// how many passes to do, including the first pass.  If do_voronoi is
+// true then isolation should be done from the voronoi region inward
+// instead of from the trace outward.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     coordinate_type_fp diameter,
     coordinate_type_fp overlap,
     unsigned int steps, bool do_voronoi) const {
-  // The polygons to add to the PNG debuging output files.
-  vector<multi_polygon_type_fp> polygons;
-
   // Mask the polygon that we need to mill.
   multi_polygon_type_fp masked_milling_poly;
   masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
@@ -826,6 +840,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     masked_milling_polys = masked_milling_poly & new_bounding_box;
   }
 
+  vector<multi_polygon_type_fp> polygons;
   // Convert the input shape into a bunch of rings that need to be milled.
   for (unsigned int i = 0; i < steps; i++) {
     coordinate_type_fp expand_by;
