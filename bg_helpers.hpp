@@ -208,7 +208,14 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
   geos::io::WKTWriter writer;
   auto geos_wkt = writer.write(geos_out);
   free(geos_out);
-  bg::read_wkt(geos_wkt, geometry_out);
+  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
+    bg::read_wkt(geos_wkt, geometry_out);
+  } else {
+    polygon_type_fp poly;
+    bg::read_wkt(geos_wkt, poly);
+    geometry_out.clear();
+    geometry_out.push_back(poly);
+  }
   /*
   geometry_out.clear();
   if (expand_by == 0) {
