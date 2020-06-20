@@ -192,19 +192,13 @@ template<typename CoordinateType>
 static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
   if (expand_by == 0) {
     geometry_out.clear();
-    return;
-  }
-  // bg::buffer of multilinestring is broken in boost.  Converting the
-  // multilinestring to non-intersecting paths seems to help.
-  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true);
-  geometry_out.clear();
-  if (expand_by == 0) {
-    return;
-  }
-  for (const auto& ls : mls) {
-    multi_polygon_type_fp buf;
-    buffer(ls, buf, expand_by);
-    geometry_out = geometry_out + buf;
+  } else {
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_round(points_per_circle),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
   }
 }
 
