@@ -2,6 +2,11 @@
 #define BG_HELPERS_H
 
 #include "eulerian_paths.hpp"
+#ifdef GEOS_VERSION
+#include <geos/io/WKTReader.h>
+#include <geos/io/WKTWriter.h>
+#include <geos/operation/buffer/BufferOp.h>
+#endif // GEOS_VERSION
 
 template <typename polygon_type_t, typename rhs_t>
 static inline bg::model::multi_polygon<polygon_type_t> operator-(const bg::model::multi_polygon<polygon_type_t>& lhs,
@@ -197,6 +202,23 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
   // bg::buffer of multilinestring is broken in boost.  Converting the
   // multilinestring to non-intersecting paths seems to help.
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true);
+#ifdef GEOS_VERSION
+  geos::io::WKTReader reader;
+  std::stringstream ss;
+  ss << bg::wkt(mls);
+  auto geos_in = reader.read(ss.str());
+  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
+  geos::io::WKTWriter writer;
+  auto geos_wkt = writer.write(geos_out.get());
+  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
+    bg::read_wkt(geos_wkt, geometry_out);
+  } else {
+    polygon_type_fp poly;
+    bg::read_wkt(geos_wkt, poly);
+    geometry_out.clear();
+    geometry_out.push_back(poly);
+  }
+#else
   geometry_out.clear();
   if (expand_by == 0) {
     return;
@@ -206,6 +228,7 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
     buffer(ls, buf, expand_by);
     geometry_out = geometry_out + buf;
   }
+#endif
 }
 
 template<typename CoordinateType>

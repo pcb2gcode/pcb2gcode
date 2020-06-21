@@ -58,6 +58,15 @@ PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 
+# Optional GEOS, as a slower but more reliable replacement for Boost geometry.
+GEOS_INIT
+AS_IF([test "x$HAVE_GEOS" = "xyes"],
+      [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy though it can be slower.])],
+      [AC_MSG_NOTICE([Didn't find geos, we'll use boost geometry for all geometry functions.  If you see inaccuracy, try geos.])])
+AS_IF([test "x$HAVE_GEOS" = "xyes"],
+      [AC_SUBST(GEOS_EXTRA, ["-DUSE_UNSTABLE_GEOS_CPP_API -DGEOS_VERSION=\\\"\$(GEOS_VERSION)\\\""])])
+
+
 AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
 
 AC_SUBST(gerbv_LIBS)

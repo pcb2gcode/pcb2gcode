@@ -58,6 +58,11 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cout << "Git commit: " << GIT_VERSION << endl;
       cout << "Boost: " << BOOST_VERSION << endl;
       cout << "Gerbv: " << GERBV_VERSION << endl;
+#ifdef GEOS_VERSION
+      cout << "Geos: " << GEOS_VERSION << endl;
+#else
+      cout << "Geos: Not installed" << endl;
+#endif
       return;
     }
 
