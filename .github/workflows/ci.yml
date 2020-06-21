@@ -8,23 +8,25 @@ on:
 
 jobs:
   build-and-test:
-    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}
+    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
       matrix:
         os: [ubuntu, macos]
-        boost: [1_60_0, 1_66_0]
+        boost: [1_60, 1_66]
+        geos: ['none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
-            boost: 1_66_0
+            boost: 1_66
           - os: macos
             compiler: 'g++-8'
         include:
           - os: ubuntu
-            boost: 1_66_0
+            boost: 1_66
             compiler: g++-8
+            geos: 'none'
             code_coverage: "--enable-code-coverage"
-          - boost: 1_60_0
+          - boost: 1_60
             skip_gerberimporter_tests: "SKIP_GERBERIMPORTER_TESTS=1"
     runs-on: ${{ matrix.os }}-latest
 
@@ -74,9 +76,13 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
         echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
         echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: Macos geos
+      if: matrix.geos != 'none' && matrix.os == 'macos'
+      run:
+        brew install geos
     - name: Sanitize cache key
       id: sanitize-key
-      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}' | sed 's/+/plus/g')"
+      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
     - name: Cache .local
       uses: actions/cache@v1
       with:
@@ -85,7 +91,7 @@ jobs:
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
-        BOOST: ${{ matrix.boost }}
+        BOOST: ${{ matrix.boost }}_0
       run: |
         if [ ! -d "${HOME}/.local/include/boost" ]; then
           pushd ~
@@ -101,6 +107,24 @@ jobs:
           popd
         fi
         echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
+    - name: Build and install geos
+      if: matrix.os == 'ubuntu' && matrix.geos != 'none'
+      env:
+        GEOS: ${{ matrix.geos }}
+      run: |
+        if [ ! -d "${HOME}/.local/include/geos" ]; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T20 -t1 -O "geos-${GEOS}.tar.bz2" "http://download.osgeo.org/geos/geos-${GEOS}.tar.bz2" && break;
+          done
+          tar xjf "geos-${GEOS}.tar.bz2"
+          pushd geos-${GEOS}
+          ./configure --prefix=${HOME}/.local
+          make -j ${NUM_CPUS}
+          make install
+          popd
+          popd
+        fi
     - name: coverage specific setup
       if: matrix.code_coverage
       run: |
@@ -215,8 +239,8 @@ jobs:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: ${{ matrix.skip_gerberimporter_tests }} make -j ${NUM_CPUS} check-valgrind
-    - name: Run intergration tests
-      if: matrix.boost == '1_66_0'
+    - name: Run integration tests
+      if: matrix.boost == '1_66' && matrix.geos == 'none'
       run: |
         pip install --user colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
