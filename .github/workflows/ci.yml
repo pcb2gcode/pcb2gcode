@@ -111,7 +111,7 @@ jobs:
       if: matrix.os == "ubuntu"
       env:
         GEOS: ${{ matrix.geos }}
-      run:
+      run: |
         if [ ! -d "${HOME}/.local/include/geos" ]; then
           pushd ~
           for i in {1..5}; do
