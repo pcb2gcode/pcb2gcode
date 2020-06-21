@@ -12,19 +12,19 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos]
-        boost: [1_60_0, 1_66_0]
+        boost: [1_60, 1_66]
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
-            boost: 1_66_0
+            boost: 1_66
           - os: macos
             compiler: 'g++-8'
         include:
           - os: ubuntu
-            boost: 1_66_0
+            boost: 1_66
             compiler: g++-8
             code_coverage: "--enable-code-coverage"
-          - boost: 1_60_0
+          - boost: 1_60
             skip_gerberimporter_tests: "SKIP_GERBERIMPORTER_TESTS=1"
     runs-on: ${{ matrix.os }}-latest
 
@@ -85,7 +85,7 @@ jobs:
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
-        BOOST: ${{ matrix.boost }}
+        BOOST: ${{ matrix.boost }}_0
       run: |
         if [ ! -d "${HOME}/.local/include/boost" ]; then
           pushd ~
@@ -216,7 +216,7 @@ jobs:
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: ${{ matrix.skip_gerberimporter_tests }} make -j ${NUM_CPUS} check-valgrind
     - name: Run intergration tests
-      if: matrix.boost == '1_66_0'
+      if: matrix.boost == '1_66'
       run: |
         pip install --user colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
