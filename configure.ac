@@ -63,6 +63,9 @@ GEOS_INIT
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
       [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy though it can be slower.])],
       [AC_MSG_NOTICE([Didn't find geos, we'll use boost geometry for all geometry functions.  If you see inaccuracy, try geos.])])
+AS_IF([test "x$HAVE_GEOS" = "xyes"],
+      [AC_SUBST(GEOS_EXTRA, ["-DUSE_UNSTABLE_GEOS_CPP_API -DGEOS_VERSION=\\\"\$(GEOS_VERSION)\\\""])])
+
 
 AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
 

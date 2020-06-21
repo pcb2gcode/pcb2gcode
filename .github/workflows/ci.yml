@@ -13,6 +13,7 @@ jobs:
       matrix:
         os: [ubuntu, macos]
         boost: [1_60_0, 1_66_0]
+        geos: ["3.8.1", ""]
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
@@ -23,6 +24,7 @@ jobs:
           - os: ubuntu
             boost: 1_66_0
             compiler: g++-8
+            geos: "3.8.1"
             code_coverage: "--enable-code-coverage"
           - boost: 1_60_0
             skip_gerberimporter_tests: "SKIP_GERBERIMPORTER_TESTS=1"
@@ -74,6 +76,10 @@ jobs:
         echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
         echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
         echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+    - name: Macos geos
+      if: matrix.geos != ""
+      run:
+        brew install geos
     - name: Sanitize cache key
       id: sanitize-key
       run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}' | sed 's/+/plus/g')"
@@ -101,6 +107,24 @@ jobs:
           popd
         fi
         echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
+    - name: Build and install geos
+      if: matrix.os == "ubuntu"
+      env:
+        GEOS: ${{ matrix.geos }}
+      run:
+        if [ ! -d "${HOME}/.local/include/geos" ]; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T20 -t1 -O "geos-${GEOS}.tar.bz2" "http://download.osgeo.org/geos/geos-${GEOS}.tar.bz2" && break;
+          done
+          tar xjf "geos-${GEOS}.tar.bz2"
+          pushd geos-${GEOS}
+          ./configure --prefix=${HOME}/.local
+          ./make -j ${NUM_CPUS}
+          ./make install
+          popd
+          popd
+        fi
     - name: coverage specific setup
       if: matrix.code_coverage
       run: |

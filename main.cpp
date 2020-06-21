@@ -58,6 +58,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       cout << "Git commit: " << GIT_VERSION << endl;
       cout << "Boost: " << BOOST_VERSION << endl;
       cout << "Gerbv: " << GERBV_VERSION << endl;
+      cout << "Geos: " << GEOS_VERSION "" << endl;
       return;
     }
 
