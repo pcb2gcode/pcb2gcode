@@ -30,10 +30,8 @@ int sgn(T val) {
  * shapes where the end of a linestring butts up against the center of
  * another.
  *
- * Repeats are removed but segments are considered directional.  For each
- * segment there is a boolean that is true if the segment is reversible.
- * Non-reversible segments are re-oriented if needed.  The default is reversible
- * true.
+ * For each segment there is a boolean that is true if the segment is
+ * reversible.  Non-reversible segments are re-oriented if needed.
  */
 static inline vector<pair<segment_type_p, bool>> segmentize(
     const vector<segment_type_p>& all_segments,
@@ -62,9 +60,6 @@ static inline vector<pair<segment_type_p, bool>> segmentize(
       }
     }
   }
-  sort(intersected_segments.begin(), intersected_segments.end());
-  auto last = unique(intersected_segments.begin(), intersected_segments.end());
-  intersected_segments.erase(last, intersected_segments.end());
 
   return intersected_segments;
 }

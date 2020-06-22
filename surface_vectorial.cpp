@@ -246,6 +246,10 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   auto toolpath1 = toolpath;
   if (mill->eulerian_paths) {
     toolpath1 = segmentize::segmentize_paths(toolpath1);
+    sort(toolpath1.begin(), toolpath1.end());
+    auto last = unique(toolpath1.begin(), toolpath1.end());
+    toolpath1.erase(last, toolpath1.end());
+
     vector<pair<linestring_type_fp, bool>> paths_to_add;
     paths_to_add = backtrack::backtrack(
         toolpath1,
@@ -488,7 +492,7 @@ void attach_mls(const multi_linestring_type_fp& mls,
                 const multi_polygon_type_fp& already_milled_shrunk,
                 const PathFinder& path_finder) {
   auto mls_masked = mls - already_milled_shrunk;  // This might chop the single path into many paths.
-  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY); // Rejoin those paths as possible.
+  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY, true); // Rejoin those paths as possible.
   for (const auto& ls : mls_masked) { // Maybe more than one if the masking cut one into parts.
     attach_ls(ls, toolpaths, dir, path_finder);
   }

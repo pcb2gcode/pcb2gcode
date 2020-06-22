@@ -201,7 +201,7 @@ static inline void buffer(multi_linestring_type_fp const & geometry_in, multi_po
   }
   // bg::buffer of multilinestring is broken in boost.  Converting the
   // multilinestring to non-intersecting paths seems to help.
-  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true);
+  multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
   geos::io::WKTReader reader;
   std::stringstream ss;
