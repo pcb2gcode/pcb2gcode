@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(parallel_with_overlap) {
     {{{30,30}, {15,15}}, true},
   };
   const auto& result = segmentize::segmentize_paths(ms);
-  BOOST_CHECK_EQUAL(result.size(), 6UL);
+  BOOST_CHECK_EQUAL(result.size(), 7UL);
   //print_result(result);
 }
 
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(sort_segments) {
     {{{10, 10}, {13, -4}}, true},
   };
   const auto& result = segmentize::segmentize_paths(ms);
-  BOOST_CHECK_EQUAL(result.size(), 1UL);
+  BOOST_CHECK_EQUAL(result.size(), 5UL);
   //print_result(result);
 }
 

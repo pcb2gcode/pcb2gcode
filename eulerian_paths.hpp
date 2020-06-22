@@ -344,7 +344,7 @@ std::vector<std::pair<linestring_t, bool>> get_eulerian_paths(const std::vector<
       paths).get();
 }
 
-multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible);
+multi_linestring_type_fp make_eulerian_paths(const std::vector<linestring_type_fp>& paths, bool reversible, bool unique);
 
 } // namespace eulerian_paths
 #endif //EULERIAN_PATHS_H
