@@ -277,8 +277,9 @@ class eulerian_paths {
     // We're bound to find exactly one unless there is a serious error.
     auto end_map = paths[path_index].second ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
     auto range = end_map->equal_range(new_point);
+    auto to_compare = std::make_pair(path_index, !side);
     for (auto iter = range.first; iter != range.second; iter++) {
-      if (iter->second == std::make_pair(path_index, !side)) {
+      if (iter->second == to_compare) {
         // Remove the path that ends on the vertex.
         end_map->erase(iter);
         break; // There must be only one.
