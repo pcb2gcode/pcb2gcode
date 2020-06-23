@@ -492,7 +492,7 @@ void attach_mls(const multi_linestring_type_fp& mls,
                 const multi_polygon_type_fp& already_milled_shrunk,
                 const PathFinder& path_finder) {
   auto mls_masked = mls - already_milled_shrunk;  // This might chop the single path into many paths.
-  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY, true); // Rejoin those paths as possible.
+  mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY, false); // Rejoin those paths as possible.
   for (const auto& ls : mls_masked) { // Maybe more than one if the masking cut one into parts.
     attach_ls(ls, toolpaths, dir, path_finder);
   }
