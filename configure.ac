@@ -2,8 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-package, version, [bug-report], [tarname], [url])
-AC_INIT([pcb2gcode], [2.0.0],
+AC_INIT([pcb2gcode], [2.1.0],
         [https://github.com/pcb2gcode/pcb2gcode/issues/new],
         [pcb2gcode],
         [https://github.com/pcb2gcode/pcb2gcode])
