@@ -498,19 +498,113 @@ void attach_mls(const multi_linestring_type_fp& mls,
   }
 }
 
+
+static optional<point_type_fp> get_spike(const point_type_fp& prev, const point_type_fp& current, const point_type_fp& next,
+                        coordinate_type_fp offset) {
+  // Check if this point is making an anti-clockwise turn.
+  //https://math.stackexchange.com/a/1324213/96317
+  coordinate_type_fp determinant =
+      prev.x()*current.y() + prev.y()*next.x() + current.x()*next.y() -
+      prev.x()*next.y() - prev.y()*current.x() - current.y()*next.x();
+  if (determinant < 0) {
+    return boost::none;
+  }
+  // Need to add a point.
+  // Get the incoming and outgoing vectors.
+  auto v_in = current - prev;
+  auto v_out = next - current;
+  // Rotate them to the right to get the perpendicular vectors at current.
+  point_type_fp in_perp{v_in.y(), -v_in.x()};
+  point_type_fp out_perp{v_out.y(), -v_out.x()};
+  // Normalize each to half the length of the offset and
+  // find the sum, which points in the direction for the
+  // spike.
+  in_perp = in_perp / bg::distance(point_type_fp{0,0}, in_perp);
+  out_perp = out_perp / bg::distance(point_type_fp{0,0}, out_perp);
+  auto v_dir = (in_perp + out_perp) * offset / 2;
+  // Use similar triangles to find the distance to the vertex the vertex on the previous pass.
+  auto v_dir_length = bg::distance(point_type_fp{0,0}, v_dir);
+  auto distance_to_vertex = offset*offset / v_dir_length;
+  auto spike_length = distance_to_vertex - offset;
+  // Adjust v_dir to be the spike_length.
+  v_dir = v_dir / v_dir_length * spike_length;
+  return current + v_dir;
+}
+
+// Find the next point in the ring after ring[index] such that it is
+// at least offset away.
+static optional<point_type_fp> get_next_point(const linestring_type_fp& ls, size_t index) {
+  if (index == ls.size() - 1) {
+    return {ls[1]}; // Skip the first one because it's a repeat.
+  } else {
+    return {ls[index + 1]};
+  }
+}
+
+// Find the previous point in the ring before ring[index] such that it
+// is at least offset away.
+static optional<point_type_fp> get_prev_point(const linestring_type_fp& ls, size_t index) {
+  if (index == 0) {
+    return {ls[ls.size() - 2]}; // Skip the last one because it's a repeat.
+  } else {
+    return {ls[index - 1]};
+  }
+}
+
+// Gets all the spikes needed for this ring.
+static void add_spikes(ring_type_fp& ring, coordinate_type_fp offset, bool reverse, coordinate_type_fp tolerance) {
+  if (offset == 0 || ring.size() < 3) {
+    return;
+  }
+  // Simplify removes some points.
+  linestring_type_fp ls(ring.cbegin(), ring.cend());
+  linestring_type_fp ls_temp;
+  bg::simplify(ls, ls_temp, tolerance);
+  size_t ring_index = 0;
+  // Subtract 1 because the first point is repeated.
+  for (size_t i = 0; i < ls_temp.size()-1; i++) {
+    // Find the matching point in ring.
+    point_type_fp current = ls_temp[i];
+    while (current != ring[ring_index]) {
+      ring_index++;
+    }
+    optional<point_type_fp> prev = get_prev_point(ls_temp, i);
+    if (!prev) {
+      continue;
+    }
+    optional<point_type_fp> next = get_next_point(ls_temp, i);
+    if (!next) {
+      continue;
+    }
+    if (reverse) {
+      std::swap(prev, next);
+    }
+    optional<point_type_fp> spike = get_spike(*prev, current, *next, offset);
+    if (spike) {
+      ring.insert(ring.begin() + ring_index, {current, *spike});
+      ring_index+=2;
+    }
+  }
+}
+
 // Given a ring, attach it to one of the toolpaths.  The ring is first masked
 // with the already_milled_shrunk, so it may become a few linestrings.  Those
 // linestrings are attached.  Only attach if there is a point on the linestring
 // that is close enough to one of the toolpaths' endpoints is it attached.  If
 // none of the toolpaths have a close enough endpoint, a new toolpath is added
-// to the list of toolpaths.
+// to the list of toolpaths.  offset is the tool diameter minus the overlap requested.
 void attach_ring(const ring_type_fp& ring,
                  vector<pair<linestring_type_fp, bool>>& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& already_milled_shrunk,
-                 const PathFinder& path_finder) {
+                 const PathFinder& path_finder,
+                 const coordinate_type_fp offset,
+                 const bool reverse_spikes,
+                 const coordinate_type_fp tolerance) {
+  ring_type_fp ring_copy = ring;
+  add_spikes(ring_copy, offset, reverse_spikes, tolerance);
   multi_linestring_type_fp ring_paths;
-  ring_paths.push_back(linestring_type_fp(ring.cbegin(), ring.cend())); // Make a copy into an mls.
+  ring_paths.push_back(linestring_type_fp(ring_copy.cbegin(), ring_copy.cend())); // Make a copy into an mls.
   attach_mls(ring_paths, toolpaths, dir, already_milled_shrunk, path_finder);
 }
 
@@ -521,11 +615,14 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
                      vector<pair<linestring_type_fp, bool>>& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
-                     const PathFinder& path_finder) {
+                     const PathFinder& path_finder,
+                     const coordinate_type_fp offset,
+                     const bool reverse_spikes,
+                     const coordinate_type_fp tolerance) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, dir, already_milled_shrunk, path_finder);
+    attach_ring(poly.outer(), toolpaths, dir, already_milled_shrunk, path_finder, offset, reverse_spikes, tolerance);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -533,7 +630,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, dir, already_milled_shrunk, path_finder);
+        attach_ring(poly.inners()[i], toolpaths, dir, already_milled_shrunk, path_finder, offset, reverse_spikes, tolerance);
       }
     }
   }
@@ -645,7 +742,19 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         // This is on the back so all loops are reversed.
         dir = invert(dir);
       }
-      attach_polygons(polygon, toolpath, dir, already_milled_shrunk, path_finder);
+      coordinate_type_fp spike_offset = polygon_index > 0 ? diameter - overlap : 0;
+      if (do_voronoi && trace_index < voronoi.size()) {
+        // voronoi is done from inside to outward.  The very center
+        // voronoi paths are only a half-width apart if the number of
+        // passes is even.
+        if (extra_passes % 2 == 0) {
+          spike_offset = polygon_index < polygons.size() - 1 ? diameter - overlap : 0;
+        } else {
+          spike_offset = polygon_index < polygons.size() - 1 ? diameter - overlap : (diameter - overlap)/2;
+        }
+      }
+      attach_polygons(polygon, toolpath, dir, already_milled_shrunk, path_finder,
+                      spike_offset, do_voronoi && trace_index < voronoi.size(), mill->tolerance);
     }
 
     return toolpath;
