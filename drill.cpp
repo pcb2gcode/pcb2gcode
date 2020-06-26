@@ -722,7 +722,7 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
        currentDrill = currentDrill->next) {
     drillbit curBit;
     curBit.diameter = currentDrill->drill_size;
-    curBit.unit = string(currentDrill->drill_unit);
+    curBit.unit = currentDrill->drill_unit == nullptr ? "" : string(currentDrill->drill_unit);
     curBit.drill_count = currentDrill->drill_count;
 
     bits.insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
