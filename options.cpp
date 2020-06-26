@@ -65,15 +65,11 @@ void fix_variables_map(po::variables_map& vm) {
     vm.at("min-milldrill-hole-diameter").value() = Length(0);
   }
   // Deal with deprecated offset option.
-  if (vm.count("offset")) {
-    if (vm.at("mill-diameters").defaulted()) {
-      vm.at("mill-diameters").as<std::vector<CommaSeparated<Length>>>().clear();
-      vm.at("mill-diameters").as<std::vector<CommaSeparated<Length>>>().push_back({vm["offset"].as<Length>()*2.0});
-    } else {
-      throw pcb2gcode_parse_exception("Can't specify \"offset\" and \"mill-diameter\" together.", ERR_INVALIDPARAMETER);
-    }
+  if (vm.count("offset") && vm.at("mill-diameters").defaulted()) {
+    vm.at("mill-diameters").as<std::vector<CommaSeparated<Length>>>().clear();
+    vm.at("mill-diameters").as<std::vector<CommaSeparated<Length>>>().push_back({vm["offset"].as<Length>()*2.0});
+    vm.at("offset").value() = Length(0);
   }
-  vm.erase("offset");
 
   if (vm["bridgesnum"].as<unsigned int>() > 0 && vm["bridges"].as<Length>().asInch(1) <= 0) {
     vm.at("bridgesnum").value() = (unsigned int) 0;
@@ -224,8 +220,8 @@ options::options()
        ("front", po::value<string>(),"front side RS274-X .gbr")
        ("back", po::value<string>(), "back side RS274-X .gbr")
        ("voronoi", po::value<bool>()->default_value(false)->implicit_value(true), "generate voronoi regions")
-       ("offset", po::value<Length>(), "[DEPRECATED} use --mill-diameters and --milling-overlap."
-        "  Distance between the PCB traces and the end mill path; usually half the isolation width")
+       ("offset", po::value<Length>()->default_value(0), "Note: Prefer to use --mill-diameters and --milling-overlap if you just that's what you mean."
+        "  An optional offset to add to all traces, useful if the bit has a little slop that you want to keep out of the trace.")
        ("mill-diameters", po::value<std::vector<CommaSeparated<Length>>>()->default_value({{Length(0)}})
         ->multitoken(), "Diameters of mill bits, used in the order that they are provided.")
        ("milling-overlap", po::value<boost::variant<Length, Percent>>()->default_value(parse_unit<Percent>("50%")),

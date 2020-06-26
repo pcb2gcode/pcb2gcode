@@ -83,6 +83,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "shaped_pcb",
                   "sharp_corner",
                   "sharp_corner_2",
+                  "sharp_corner_2_offset",
                   "sharp_corner_big_isolation_width",
                   "silk",
                   "silk-lines",
