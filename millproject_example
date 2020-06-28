@@ -14,7 +14,6 @@
 #postamble=postamble.ngc
 
 # Common options
-dpi=1000
 metric=true
 metricoutput=true
 mirror-absolute=false
