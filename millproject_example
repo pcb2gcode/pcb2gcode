@@ -48,7 +48,6 @@ cut-infeed=10.0000
 cut-speed=10000
 cutter-diameter=3.0000
 fill-outline=true
-outline-width=0.2000
 zbridges=-0.6000
 zcut=-2.5000
 
