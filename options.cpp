@@ -270,8 +270,8 @@ options::options()
 
    po::options_description optimization_options("Optimization options, for faster PCB creation, smaller output files, and different algorithms.");
    optimization_options.add_options()
-       ("optimise", po::value<Length>()->default_value(parse_unit<Length>("0.0001in")),
-        "Reduce output file size by up to 40% while accepting a little loss of precision.  Larger values reduce file sizes and procesisng time even further.  Set to 0 to disable.")
+       ("optimise", po::value<Length>()->default_value(parse_unit<Length>("0.0001in"))->implicit_value(parse_unit<Length>("0.0001in")),
+        "Reduce output file size by up to 40% while accepting a little loss of precision.  Larger values reduce file sizes and processing time even further.  Set to 0 to disable.")
        ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
        ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
