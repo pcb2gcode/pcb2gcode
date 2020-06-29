@@ -652,16 +652,17 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     if (!isolator) {
       extra_passes = 0;
     } else {
-      auto computed_extra_passes = std::ceil(
+      int computed_extra_passes = int(std::ceil(
           (isolator->isolation_width - tool_diameter) /
-          (tool_diameter - overlap_width) - isolator->tolerance); // In case it divides evenly, do fewer passes.
+          (tool_diameter - overlap_width) - isolator->tolerance)); // In case it divides evenly, do fewer passes.
       if (isolator->extra_passes >= computed_extra_passes) {
         extra_passes = isolator->extra_passes;
       } else {
         extra_passes = computed_extra_passes;
         // The actual overlap that we'll use is such that the final pass
         // will exactly cover the isolation width and no more.
-        overlap = overlap_width;
+        overlap = tool_diameter - ((isolator->isolation_width - tool_diameter) /
+                                   (extra_passes + isolator->tolerance));
       }
     }
     const bool do_voronoi = isolator ? isolator->voronoi : false;
