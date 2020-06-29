@@ -93,4 +93,4 @@ TESTS = $(check_PROGRAMS)
 VALGRIND_FLAGS = --error-exitcode=127 --errors-for-leak-kinds=definite --show-leak-kinds=definite --leak-check=full
 
 check-syntax:
-	$(COMPILE) -o /dev/null -S ${CHK_SOURCES} || true
+	timeout 10 $(COMPILE) -o /dev/null -S ${CHK_SOURCES} || true
