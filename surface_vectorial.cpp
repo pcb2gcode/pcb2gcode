@@ -671,7 +671,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     keep_in.push_back(current_voronoi);
     optional<multi_polygon_type_fp> keep_out;
     if (current_trace) {
-      keep_out = bg_helpers::buffer(*current_trace, diameter/2);
+      keep_out = bg_helpers::buffer(*current_trace, diameter/2 + mill->offset);
     }
     auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
     // Find if a distance between two points should be milled or retract, move
