@@ -239,9 +239,7 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   auto toolpath1 = toolpath;
   if (mill->eulerian_paths) {
     toolpath1 = segmentize::segmentize_paths(toolpath1);
-    sort(toolpath1.begin(), toolpath1.end());
-    auto last = unique(toolpath1.begin(), toolpath1.end());
-    toolpath1.erase(last, toolpath1.end());
+    toolpath1 = segmentize::unique(toolpath1);
 
     vector<pair<linestring_type_fp, bool>> paths_to_add;
     paths_to_add = backtrack::backtrack(
