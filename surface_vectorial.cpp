@@ -50,6 +50,7 @@ using std::map;
 using boost::optional;
 using boost::make_optional;
 
+#include "flatten.hpp"
 #include "tsp_solver.hpp"
 #include "surface_vectorial.hpp"
 #include "segmentize.hpp"
@@ -176,14 +177,6 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
     }
   }
   return holes;
-}
-
-vector<pair<linestring_type_fp, bool>> flatten_mls(const vector<vector<pair<linestring_type_fp, bool>>>& v) {
-  vector<pair<linestring_type_fp, bool>> result;
-  for (const auto& sub : v) {
-    result.insert(result.end(), sub.begin(), sub.end());
-  }
-  return result;
 }
 
 void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp tool_diameter,
@@ -833,7 +826,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       }
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
-      auto new_toolpath = flatten_mls(new_trace_toolpaths);
+      auto new_toolpath = flatten(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
       results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
     }
@@ -868,7 +861,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
-    auto new_toolpath = flatten_mls(new_trace_toolpaths);
+    auto new_toolpath = flatten(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
     return {make_pair(cutter->tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)))};
   }
