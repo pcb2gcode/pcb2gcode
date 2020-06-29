@@ -643,20 +643,27 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const multi_polygon_type_fp& already_milled_shrunk) const {
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp diameter = tool_diameter;
-    coordinate_type_fp overlap = overlap_width;
 
     shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
     // Extra passes are done on each trace if requested,
     // each offset by the tool diameter less the overlap requested.
-    const int extra_passes =
-        isolator
-        ? std::max(
-            isolator->extra_passes,
-            int(std::ceil(
-                (isolator->isolation_width - tool_diameter) /
-                (tool_diameter - overlap_width)
-                - isolator->tolerance))) // In case it divides evenly, do fewer passes.
-        : 0;
+    int extra_passes;
+    coordinate_type_fp overlap = overlap_width;
+    if (!isolator) {
+      extra_passes = 0;
+    } else {
+      auto computed_extra_passes = std::ceil(
+          (isolator->isolation_width - tool_diameter) /
+          (tool_diameter - overlap_width) - isolator->tolerance); // In case it divides evenly, do fewer passes.
+      if (isolator->extra_passes >= computed_extra_passes) {
+        extra_passes = isolator->extra_passes;
+      } else {
+        extra_passes = computed_extra_passes;
+        // The actual overlap that we'll use is such that the final pass
+        // will exactly cover the isolation width and no more.
+        overlap = overlap_width;
+      }
+    }
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
     optional<polygon_type_fp> current_trace = boost::none;
