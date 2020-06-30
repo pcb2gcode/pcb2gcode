@@ -21,13 +21,10 @@ template<typename CoordinateType>
 multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by);
 
 template<typename CoordinateType>
-void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by);
-
-template<typename CoordinateType>
 multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by);
 
 template<typename CoordinateType>
-void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by);
+multi_polygon_type_fp buffer(ring_type_fp const & geometry_in, CoordinateType expand_by);
 
 } // namespace bg_helpers
 

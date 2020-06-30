@@ -166,8 +166,8 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
     for (const auto& inner : p.inners()) {
       auto thermal_hole = inner;
       bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-      multi_polygon_type_fp shrunk_thermal_hole;
-      bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -tolerance);
+      multi_polygon_type_fp shrunk_thermal_hole = 
+          bg_helpers::buffer(thermal_hole, -tolerance);
       bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
       if (!empty_hole) {
         continue;
@@ -828,8 +828,8 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
           combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
         }
-        multi_polygon_type_fp new_trace_toolpath_bufferred;
-        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
+        multi_polygon_type_fp new_trace_toolpath_bufferred =
+            bg_helpers::buffer(combined_trace_toolpath, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";

@@ -54,10 +54,9 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
 }
 
 template<typename CoordinateType>
-void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
+multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by) {
   if (expand_by == 0) {
-    geometry_out.clear();
-    return;
+    return {};
   }
   // bg::buffer of multilinestring is broken in boost.  Converting the
   // multilinestring to non-intersecting paths seems to help.
@@ -70,53 +69,34 @@ void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp 
   std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
   geos::io::WKTWriter writer;
   auto geos_wkt = writer.write(geos_out.get());
+  multi_polygon_type_fp ret;
   if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, geometry_out);
+    bg::read_wkt(geos_wkt, ret);
   } else {
     polygon_type_fp poly;
     bg::read_wkt(geos_wkt, poly);
-    geometry_out.clear();
-    geometry_out.push_back(poly);
+    ret.push_back(poly);
   }
+  return ret;
 #else
-  geometry_out.clear();
   if (expand_by == 0) {
-    return;
+    return {};
   }
+  multi_polygon_type_fp ret;
   for (const auto& ls : mls) {
-    geometry_out = geometry_out + buffer(ls, expand_by);
+    ret = ret + buffer(ls, expand_by);
   }
+  return ret;
 #endif
-}
-
-template void buffer(const multi_linestring_type_fp&, multi_polygon_type_fp&, double expand_by);
-
-template<typename CoordinateType>
-multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by) {
-  multi_polygon_type_fp geometry_out;
-  buffer(geometry_in, geometry_out, expand_by);
-  return geometry_out;
 }
 
 template multi_polygon_type_fp buffer(const multi_linestring_type_fp&, double expand_by);
 
 template<typename CoordinateType>
-void buffer(ring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
-  if (expand_by == 0) {
-    bg::convert(geometry_in, geometry_out);
-  } else {
-    polygon_type_fp geometry_in_fp;
-    bg::convert(geometry_in, geometry_in_fp);
-    multi_polygon_type_fp geometry_out_fp;
-    bg::buffer(geometry_in_fp, geometry_out,
-               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(),
-               bg::strategy::buffer::end_round(),
-               bg::strategy::buffer::point_circle());
-  }
+multi_polygon_type_fp buffer(ring_type_fp const & geometry_in, CoordinateType expand_by) {
+  return buffer(polygon_type_fp{geometry_in}, expand_by);
 }
 
-template void buffer(ring_type_fp const&, multi_polygon_type_fp&, double);
+template multi_polygon_type_fp buffer(ring_type_fp const&, double);
 
 } // namespace bg_helpers
