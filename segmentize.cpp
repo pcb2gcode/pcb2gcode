@@ -3,7 +3,7 @@
 
 #include "geometry_int.hpp"
 #include "geometry.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 #include "merge_near_points.hpp"
 #include <boost/polygon/isotropy.hpp>
 #include <boost/polygon/segment_concept.hpp>

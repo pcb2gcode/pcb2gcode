@@ -11,6 +11,7 @@ using std::unordered_map;
 #include "path_finding.hpp"
 
 #include "geometry.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 
 namespace path_finding {

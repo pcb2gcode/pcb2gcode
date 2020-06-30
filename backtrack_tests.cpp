@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "geometry.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 
 #include "backtrack.hpp"

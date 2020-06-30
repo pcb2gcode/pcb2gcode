@@ -12,6 +12,8 @@ pcb2gcode_SOURCES = \
     board.cpp \
     bg_helpers.hpp \
     bg_helpers.cpp \
+    bg_operators.hpp \
+    bg_operators.cpp \
     common.hpp \
     common.cpp \
     drill.hpp \
@@ -77,19 +79,19 @@ check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
                  autoleveller_tests common_tests backtrack_tests trim_paths_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
-eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp  bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp
-segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp
-path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp eulerian_paths.cpp eulerian_paths.hpp segmentize.hpp segmentize.cpp merge_near_points.cpp merge_near_points.hpp
+eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp  bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp
+segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp bg_operators.hpp bg_operators.cpp
+path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp eulerian_paths.cpp eulerian_paths.hpp segmentize.hpp segmentize.cpp merge_near_points.cpp merge_near_points.hpp bg_operators.hpp bg_operators.cpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp boost_unit_test.cpp
 units_tests_SOURCES = units_tests.cpp units.hpp boost_unit_test.cpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp boost_unit_test.cpp
-gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp
+gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp bg_operators.hpp bg_operators.cpp
 gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp boost_unit_test.cpp
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp boost_unit_test.cpp
 common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cpp
-backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp
-trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp
+backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp
+trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp
 
 TESTS = $(check_PROGRAMS)
 

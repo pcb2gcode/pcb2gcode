@@ -2,7 +2,7 @@
 #include <boost/format.hpp>
 #include <memory>
 #include "geometry.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 #include "svg_writer.hpp"
 
 using std::string;

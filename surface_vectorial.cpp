@@ -56,6 +56,7 @@ using boost::make_optional;
 #include "segmentize.hpp"
 #include "eulerian_paths.hpp"
 #include "backtrack.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 #include "units.hpp"
 #include "path_finding.hpp"

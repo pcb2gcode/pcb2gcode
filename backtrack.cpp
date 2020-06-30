@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "geometry.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 
 #include "backtrack.hpp"
 
