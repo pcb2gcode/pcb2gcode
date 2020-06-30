@@ -137,10 +137,6 @@ template multi_polygon_type_fp operator^(const multi_polygon_type_fp&, const mul
 
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const rhs_t& rhs);
-
-template <typename polygon_type_t, typename rhs_t>
-bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                                  const rhs_t& rhs) {
   if (bg::area(rhs) <= 0) {
     return lhs;
