@@ -3,6 +3,7 @@
 
 #include "geometry_int.hpp"
 #include "geometry.hpp"
+#include "bg_helpers.hpp"
 #include "merge_near_points.hpp"
 #include <boost/polygon/isotropy.hpp>
 #include <boost/polygon/segment_concept.hpp>
@@ -23,6 +24,34 @@ const double SCALE = 1000000.0;
 template <typename T>
 int sgn(T val) {
   return (T(0) < val) - (val < T(0));
+}
+
+vector<pair<linestring_type_fp, bool>> unique(const vector<pair<linestring_type_fp, bool>>& lss) {
+  std::set<pair<linestring_type_fp, bool>> ret;
+  for (const auto& ls : lss) {
+    // Should we add this to the output?  Is it unique?
+    if (ls.second) {
+      // This is reversible, check if it exists in any form in ret.
+      if (ret.count({{ls.first.front(), ls.first.back()}, true}) > 0 ||
+          ret.count({{ls.first.back(), ls.first.front()}, true}) > 0) {
+        // Found it so don't add it.
+        continue;
+      }
+      // Erase any directional ones if they exist.
+      ret.erase({{ls.first.front(), ls.first.back()}, false});
+      ret.erase({{ls.first.back(), ls.first.front()}, false});
+    } else {
+      // Not reversible.
+      if (ret.count({{ls.first.front(), ls.first.back()}, true}) ||
+          ret.count({{ls.first.back(), ls.first.front()}, true}) ||
+          ret.count({{ls.first.front(), ls.first.back()}, false})) {
+        // Found it so don't add it.
+        continue;
+      }
+    }
+    ret.insert(ls);
+  }
+  return {ret.cbegin(), ret.cend()};
 }
 
 /* Given a multi_linestring, return a new multiline_string where there

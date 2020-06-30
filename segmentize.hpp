@@ -11,6 +11,10 @@
 
 namespace segmentize {
 
+// Return a vector of unique linestrings.  Each input linestring must have just 2 points.
+std::vector<std::pair<linestring_type_fp, bool>> unique(
+    const std::vector<std::pair<linestring_type_fp, bool>>& lss);
+
 /* Convert each linestring, which might have multiple points in it,
  * into a linestrings that have just two points, the start and the
  * end.  Directionality is maintained on each one along with whether
