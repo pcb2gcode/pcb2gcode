@@ -21,14 +21,7 @@ template multi_polygon_type_fp operator-(const multi_polygon_type_fp&, const rin
 
 template <typename rhs_t>
 multi_polygon_type_fp operator-(const polygon_type_fp& lhs, const rhs_t& rhs) {
-  if (bg::area(rhs) <= 0) {
-    auto ret = multi_polygon_type_fp();
-    ret.push_back(lhs);
-    return ret;
-  }
-  multi_polygon_type_fp ret;
-  bg::difference(lhs, rhs, ret);
-  return ret;
+  return multi_polygon_type_fp{lhs} - rhs;
 }
 
 template multi_polygon_type_fp operator-(const polygon_type_fp&, const ring_type_fp&);
