@@ -15,21 +15,6 @@ namespace bg_helpers {
 // convert back afterward, if needed.  Also, they work if expand_by is
 // 0, unlike bg::buffer.
 const int points_per_circle = 32;
-template<typename CoordinateType>
-void buffer(multi_polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
-  if (expand_by == 0) {
-    bg::convert(geometry_in, geometry_out);
-  } else {
-    bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
-  }
-}
-
-template void buffer(const multi_polygon_type_fp&, multi_polygon_type_fp&, double);
 
 multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   if (expand_by == 0) {

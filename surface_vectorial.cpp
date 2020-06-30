@@ -790,8 +790,8 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-        multi_polygon_type_fp already_milled_shrunk;
-        bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
+        multi_polygon_type_fp already_milled_shrunk =
+            bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
         if (tool_index < tool_count - 1) {
           // Don't force isolation.  By pretending that an area around
           // the trace is already milled, it will be removed from
@@ -924,9 +924,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
     // slightly to accommodate the thickness of the millbit.
-    multi_polygon_type_fp temp;
-    bg_helpers::buffer(masked_milling_poly, temp, -diameter/2 - offset);
-    masked_milling_poly = temp;
+    masked_milling_poly = bg_helpers::buffer(masked_milling_poly, -diameter/2 - offset);
   }
   // This is the area that the milling must not cross so that it
   // doesn't dig into the trace.  We only need this if there is an
@@ -981,8 +979,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
 
     multi_polygon_type_fp mpoly;
-    multi_polygon_type_fp mpoly_temp;
-    bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by + offset);
+    multi_polygon_type_fp mpoly_temp = bg_helpers::buffer(masked_milling_polys, expand_by + offset);
     if (expand_by + offset == 0) {
       mpoly = mpoly_temp;
     } else {
