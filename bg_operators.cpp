@@ -65,7 +65,13 @@ bg::model::multi_linestring<linestring_type_t> operator&(
 }
 
 template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const multi_polygon_type_fp&);
-template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const box_type_fp&);
+
+template <>
+multi_linestring_type_fp operator&(const multi_linestring_type_fp& lhs, const box_type_fp& rhs) {
+  auto box_mp = multi_polygon_type_fp();
+  bg::convert(rhs, box_mp);
+  return lhs & box_mp;
+}
 
 template <typename rhs_t>
 multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
