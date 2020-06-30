@@ -76,15 +76,7 @@ multi_linestring_type_fp operator&(const multi_linestring_type_fp& lhs, const bo
 template <typename rhs_t>
 multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
                                    const rhs_t& rhs) {
-  multi_linestring_type_fp ret;
-  if (bg::area(rhs) <= 0) {
-    return ret;
-  }
-  if (bg::length(lhs) <= 0) {
-    return ret;
-  }
-  bg::intersection(lhs, rhs, ret);
-  return ret;
+  return multi_linestring_type_fp{lhs} & rhs;
 }
 
 template multi_linestring_type_fp operator&(const linestring_type_fp&, const box_type_fp&);
