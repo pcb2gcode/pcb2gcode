@@ -32,40 +32,8 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
 }
 
 template<typename CoordinateType>
-void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
-  if (expand_by == 0) {
-    bg::convert(geometry_in, geometry_out);
-  } else {
-    bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
-  }
-}
-
-template void buffer(const polygon_type_fp&, multi_polygon_type_fp&, double);
-
-template<typename CoordinateType>
-void buffer(linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by) {
-  if (expand_by == 0) {
-    geometry_out.clear();
-  } else {
-    bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<CoordinateType>(expand_by),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
-  }
-}
-
-template<typename CoordinateType>
 multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
-  multi_polygon_type_fp geometry_out;
-  buffer(geometry_in, geometry_out, expand_by);
-  return geometry_out;
+  return buffer(multi_polygon_type_fp{geometry_in}, expand_by);
 }
 
 template multi_polygon_type_fp buffer(polygon_type_fp const&, double);
@@ -116,9 +84,7 @@ void buffer(multi_linestring_type_fp const & geometry_in, multi_polygon_type_fp 
     return;
   }
   for (const auto& ls : mls) {
-    multi_polygon_type_fp buf;
-    buffer(ls, buf, expand_by);
-    geometry_out = geometry_out + buf;
+    geometry_out = geometry_out + buffer(ls, expand_by);
   }
 #endif
 }

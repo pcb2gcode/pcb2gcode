@@ -203,8 +203,8 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
 
     if (find_contentions) {
       if (trace_index < vectorial_surface->first.size()) {
-        multi_polygon_type_fp temp;
-        bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - tolerance);
+        multi_polygon_type_fp temp =
+            bg_helpers::buffer(vectorial_surface->first.at(trace_index), tool_diameter/2 - tolerance);
         multi_linestring_type_fp temp2;
         for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
           temp2.push_back(ls_and_allow_reversal.first);
@@ -798,8 +798,9 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
           // consideration for milling.
           if (trace_index < vectorial_surface->first.size()) {
             // This doesn't run for thermal holes.
-            multi_polygon_type_fp temp;
-            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 + mill->offset - mill->tolerance);
+            multi_polygon_type_fp temp =
+                bg_helpers::buffer(vectorial_surface->first.at(trace_index),
+                                   tool_diameter/2 + mill->offset - mill->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
           }
         }
@@ -931,7 +932,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // input which is not the case if this is a thermal hole.
   multi_polygon_type_fp path_minimum;
   if (input) {
-    bg_helpers::buffer(*input, path_minimum, diameter/2 + offset);
+    path_minimum = bg_helpers::buffer(*input, diameter/2 + offset);
   }
 
   multi_polygon_type_fp masked_milling_polys;

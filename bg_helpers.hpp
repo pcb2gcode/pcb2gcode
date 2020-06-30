@@ -18,12 +18,6 @@ namespace bg_helpers {
 multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by);
 
 template<typename CoordinateType>
-void buffer(polygon_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by);
-
-template<typename CoordinateType>
-void buffer(linestring_type_fp const & geometry_in, multi_polygon_type_fp & geometry_out, CoordinateType expand_by);
-
-template<typename CoordinateType>
 multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by);
 
 template<typename CoordinateType>
