@@ -113,15 +113,7 @@ multi_polygon_type_fp operator&(multi_polygon_type_fp const& lhs, box_type_fp co
 template <typename point_type_t, typename rhs_t>
 multi_polygon_type_fp operator&(const bg::model::polygon<point_type_t>& lhs,
                                 const rhs_t& rhs) {
-  multi_polygon_type_fp ret;
-  if (bg::area(rhs) <= 0) {
-    return ret;
-  }
-  if (bg::area(lhs) <= 0) {
-    return ret;
-  }
-  bg::intersection(lhs, rhs, ret);
-  return ret;
+  return multi_polygon_type_fp{lhs} & rhs;
 }
 
 template multi_polygon_type_fp operator&(polygon_type_fp const&, multi_polygon_type_fp const&);
