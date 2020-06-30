@@ -96,8 +96,19 @@ bg::model::multi_polygon<polygon_type_t> operator&(const bg::model::multi_polygo
 }
 
 template multi_polygon_type_fp operator&(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
-template multi_polygon_type_fp operator&(multi_polygon_type_fp const&, polygon_type_fp const&);
-template multi_polygon_type_fp operator&(multi_polygon_type_fp const&, box_type_fp const&);
+
+template <>
+multi_polygon_type_fp operator&(multi_polygon_type_fp const& lhs, polygon_type_fp const& rhs) {
+  return lhs & multi_polygon_type_fp{rhs};
+}
+
+template <>
+multi_polygon_type_fp operator&(multi_polygon_type_fp const& lhs, box_type_fp const& rhs) {
+  auto box_mp = multi_polygon_type_fp();
+  bg::convert(rhs, box_mp);
+  return lhs & box_mp;
+}
+
 
 template <typename point_type_t, typename rhs_t>
 multi_polygon_type_fp operator&(const bg::model::polygon<point_type_t>& lhs,
