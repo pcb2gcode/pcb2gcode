@@ -64,6 +64,9 @@ bg::model::multi_linestring<linestring_type_t> operator&(
   return ret;
 }
 
+template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const multi_polygon_type_fp&);
+template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const box_type_fp&);
+
 template <typename rhs_t>
 multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
                                    const rhs_t& rhs) {
@@ -79,8 +82,6 @@ multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
 }
 
 template multi_linestring_type_fp operator&(const linestring_type_fp&, const box_type_fp&);
-template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const multi_polygon_type_fp&);
-template multi_linestring_type_fp operator&(const multi_linestring_type_fp&, const box_type_fp&);
 
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator&(const bg::model::multi_polygon<polygon_type_t>& lhs,
