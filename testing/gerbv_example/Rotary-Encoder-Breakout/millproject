@@ -1,0 +1,13 @@
+back=Rotary-Encoder-Breakout-B_Cu.gbr
+
+metric=true
+zero-start=true
+zchange=10.0000
+zsafe=1.5000
+mill-diameters=1.45mm,0.85mm,0.25mm
+milling-overlap=25%
+isolation-width=1mm
+mill-feed=1000
+mill-speed=24000
+offset=0.1500
+zwork=-0.09
