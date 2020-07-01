@@ -3,7 +3,7 @@
 
 #include <ostream>
 #include "segmentize.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 
 using namespace std;
 

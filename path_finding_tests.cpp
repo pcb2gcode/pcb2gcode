@@ -3,6 +3,7 @@
 
 #include <ostream>
 #include "geometry.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 
 #include <boost/optional.hpp>

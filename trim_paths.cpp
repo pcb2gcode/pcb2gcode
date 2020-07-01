@@ -1,5 +1,5 @@
 #include "geometry.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 
 #include "trim_paths.hpp"
 

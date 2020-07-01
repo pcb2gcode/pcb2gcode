@@ -6,7 +6,7 @@
 #include "geometry_int.hpp"
 
 #include "eulerian_paths.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 
 using std::vector;
 using std::pair;

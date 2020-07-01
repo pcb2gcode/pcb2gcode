@@ -1,5 +1,5 @@
 #include "geometry.hpp"
-#include "bg_helpers.hpp"
+#include "bg_operators.hpp"
 #include <vector>
 #include <utility>
 
@@ -13,7 +13,7 @@ using std::pair;
 
 // This calls segmentize and then get_eulerian_paths.  If unique is
 // true, remove repeated segments.
-multi_linestring_type_fp make_eulerian_paths(const vector<linestring_type_fp>& paths, bool reversible, bool unique) {
+multi_linestring_type_fp make_eulerian_paths(const multi_linestring_type_fp& paths, bool reversible, bool unique) {
   vector<pair<linestring_type_fp, bool>> path_to_simplify;
   for (const auto& ls : paths) {
     path_to_simplify.push_back(std::make_pair(ls, reversible));

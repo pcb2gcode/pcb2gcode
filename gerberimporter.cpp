@@ -53,6 +53,7 @@ using std::map;
 
 #include "gerberimporter.hpp"
 #include "eulerian_paths.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 #include "merge_near_points.hpp"
 

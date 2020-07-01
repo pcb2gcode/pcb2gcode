@@ -56,6 +56,7 @@ using boost::make_optional;
 #include "segmentize.hpp"
 #include "eulerian_paths.hpp"
 #include "backtrack.hpp"
+#include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 #include "units.hpp"
 #include "path_finding.hpp"
@@ -165,8 +166,8 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
     for (const auto& inner : p.inners()) {
       auto thermal_hole = inner;
       bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
-      multi_polygon_type_fp shrunk_thermal_hole;
-      bg_helpers::buffer(thermal_hole, shrunk_thermal_hole, -tolerance);
+      multi_polygon_type_fp shrunk_thermal_hole = 
+          bg_helpers::buffer(thermal_hole, -tolerance);
       bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
       if (!empty_hole) {
         continue;
@@ -202,8 +203,8 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
 
     if (find_contentions) {
       if (trace_index < vectorial_surface->first.size()) {
-        multi_polygon_type_fp temp;
-        bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 - tolerance);
+        multi_polygon_type_fp temp =
+            bg_helpers::buffer(vectorial_surface->first.at(trace_index), tool_diameter/2 - tolerance);
         multi_linestring_type_fp temp2;
         for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
           temp2.push_back(ls_and_allow_reversal.first);
@@ -789,16 +790,17 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-        multi_polygon_type_fp already_milled_shrunk;
-        bg_helpers::buffer(already_milled[trace_index], already_milled_shrunk, -tool_diameter/2 + tolerance);
+        multi_polygon_type_fp already_milled_shrunk =
+            bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
         if (tool_index < tool_count - 1) {
           // Don't force isolation.  By pretending that an area around
           // the trace is already milled, it will be removed from
           // consideration for milling.
           if (trace_index < vectorial_surface->first.size()) {
             // This doesn't run for thermal holes.
-            multi_polygon_type_fp temp;
-            bg_helpers::buffer(vectorial_surface->first.at(trace_index), temp, tool_diameter/2 + mill->offset - mill->tolerance);
+            multi_polygon_type_fp temp =
+                bg_helpers::buffer(vectorial_surface->first.at(trace_index),
+                                   tool_diameter/2 + mill->offset - mill->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
           }
         }
@@ -826,8 +828,8 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
         for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
           combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
         }
-        multi_polygon_type_fp new_trace_toolpath_bufferred;
-        bg_helpers::buffer(combined_trace_toolpath, new_trace_toolpath_bufferred, tool_diameter/2);
+        multi_polygon_type_fp new_trace_toolpath_bufferred =
+            bg_helpers::buffer(combined_trace_toolpath, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
@@ -923,16 +925,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
     // slightly to accommodate the thickness of the millbit.
-    multi_polygon_type_fp temp;
-    bg_helpers::buffer(masked_milling_poly, temp, -diameter/2 - offset);
-    masked_milling_poly = temp;
+    masked_milling_poly = bg_helpers::buffer(masked_milling_poly, -diameter/2 - offset);
   }
   // This is the area that the milling must not cross so that it
   // doesn't dig into the trace.  We only need this if there is an
   // input which is not the case if this is a thermal hole.
   multi_polygon_type_fp path_minimum;
   if (input) {
-    bg_helpers::buffer(*input, path_minimum, diameter/2 + offset);
+    path_minimum = bg_helpers::buffer(*input, diameter/2 + offset);
   }
 
   multi_polygon_type_fp masked_milling_polys;
@@ -980,8 +980,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
 
     multi_polygon_type_fp mpoly;
-    multi_polygon_type_fp mpoly_temp;
-    bg_helpers::buffer(masked_milling_polys, mpoly_temp, expand_by + offset);
+    multi_polygon_type_fp mpoly_temp = bg_helpers::buffer(masked_milling_polys, expand_by + offset);
     if (expand_by + offset == 0) {
       mpoly = mpoly_temp;
     } else {
@@ -1012,75 +1011,4 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   }
 
   return polygons;
-}
-
-svg_writer::svg_writer(string filename, box_type_fp bounding_box) :
-    output_file(filename),
-    bounding_box(bounding_box)
-{
-    const coordinate_type_fp width =
-        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * SVG_PIX_PER_IN;
-    const coordinate_type_fp height =
-        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * SVG_PIX_PER_IN;
-    const coordinate_type_fp viewBox_width =
-        (bounding_box.max_corner().x() - bounding_box.min_corner().x()) * SVG_DOTS_PER_IN;
-    const coordinate_type_fp viewBox_height =
-        (bounding_box.max_corner().y() - bounding_box.min_corner().y()) * SVG_DOTS_PER_IN;
-
-    //Some SVG readers does not behave well when viewBox is not specified
-    const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
-
-    mapper = unique_ptr<bg::svg_mapper<point_type_fp>>
-        (new bg::svg_mapper<point_type_fp>(output_file, viewBox_width, viewBox_height, svg_dimensions));
-    mapper->add(bounding_box);
-}
-
-template <typename multi_polygon_type_t>
-void svg_writer::add(const multi_polygon_type_t& geometry, double opacity, bool stroke)
-{
-    string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-    for (const auto& poly : geometry)
-    {
-        const unsigned int r = rand() % 256;
-        const unsigned int g = rand() % 256;
-        const unsigned int b = rand() % 256;
-
-        multi_polygon_type_t new_bounding_box;
-        bg::convert(bounding_box, new_bounding_box);
-
-        mapper->map(poly & new_bounding_box,
-            str(boost::format("fill-opacity:%f;fill:rgb(%u,%u,%u);" + stroke_str) %
-            opacity % r % g % b));
-    }
-}
-
-void svg_writer::add(const multi_linestring_type_fp& mls, coordinate_type_fp width, bool stroke) {
-  string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
-
-  for (const auto& ls : mls) {
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
-
-    add(ls, width, r, g, b);
-  }
-}
-
-void svg_writer::add(const linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
-  // Stroke the width of the path.
-  mapper->map(path,
-              str(boost::format("stroke:rgb(%u,%u,%u);stroke-width:%f;fill:none;"
-                                "stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;") % r % g % b % (width * SVG_DOTS_PER_IN)));
-  // Stroke the center of the path.
-  mapper->map(path,
-              "stroke:rgb(0,0,0);stroke-width:1px;fill:none;"
-              "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
-}
-
-void svg_writer::add(const multi_linestring_type_fp& path, coordinate_type_fp width, unsigned int r, unsigned int g, unsigned int b) {
-  for (const auto& p : path) {
-    add(p, width, r, g, b);
-  }
 }
