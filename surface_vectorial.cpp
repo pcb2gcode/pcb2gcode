@@ -166,7 +166,7 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
       auto thermal_hole = inner;
       bg::correct(thermal_hole); // Convert it from a hole to a filled-in shape.
       multi_polygon_type_fp shrunk_thermal_hole = 
-          bg_helpers::buffer(thermal_hole, -tolerance);
+          bg_helpers::buffer_miter(thermal_hole, -tolerance);
       bool empty_hole = !bg::intersects(shrunk_thermal_hole, milling_surface);
       if (!empty_hole) {
         continue;

@@ -60,7 +60,7 @@ class PathFindingSurface {
                       }),
         all_vertices.end());
 
-    total_keep_in_grown = bg_helpers::buffer(total_keep_in, tolerance);
+    total_keep_in_grown = bg_helpers::buffer_miter(total_keep_in, tolerance);
   }
   multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;

@@ -31,12 +31,32 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
   }
 }
 
+multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0) {
+    return geometry_in;
+  } else {
+    multi_polygon_type_fp geometry_out;
+    bg::buffer(geometry_in, geometry_out,
+               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
+               bg::strategy::buffer::side_straight(),
+               bg::strategy::buffer::join_miter(expand_by),
+               bg::strategy::buffer::end_round(points_per_circle),
+               bg::strategy::buffer::point_circle(points_per_circle));
+    return geometry_out;
+  }
+}
+
 template<typename CoordinateType>
 multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
   return buffer(multi_polygon_type_fp{geometry_in}, expand_by);
 }
 
 template multi_polygon_type_fp buffer(polygon_type_fp const&, double);
+
+template<typename CoordinateType>
+multi_polygon_type_fp buffer_miter(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
+  return buffer_miter(multi_polygon_type_fp{geometry_in}, expand_by);
+}
 
 template<typename CoordinateType>
 multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateType expand_by) {
@@ -98,5 +118,12 @@ multi_polygon_type_fp buffer(ring_type_fp const & geometry_in, CoordinateType ex
 }
 
 template multi_polygon_type_fp buffer(ring_type_fp const&, double);
+
+template<typename CoordinateType>
+multi_polygon_type_fp buffer_miter(ring_type_fp const & geometry_in, CoordinateType expand_by) {
+  return buffer_miter(polygon_type_fp{geometry_in}, expand_by);
+}
+
+template multi_polygon_type_fp buffer_miter(ring_type_fp const&, double);
 
 } // namespace bg_helpers
