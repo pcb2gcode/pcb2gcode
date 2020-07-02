@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(simple) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, boost::none, 0.1);
+  auto surface = create_path_finding_surface(keep_in, multi_polygon_type_fp(), 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(1,1), nullptr);
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(box) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
+  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10), nullptr);
 
   linestring_type_fp expected;
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(unreachable_box) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
+  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5), nullptr);
 
   BOOST_CHECK_EQUAL(ret, boost::none);
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(reuse_surface) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, boost::make_optional(keep_out), 0.1);
+  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
   auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5), nullptr);
   BOOST_CHECK_EQUAL(ret, boost::none);
 
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(u_shape) {
   poly.outer() = u_shape;
   multi_polygon_type_fp keep_in;
   keep_in.push_back(poly);
-  auto surface = create_path_finding_surface(keep_in, boost::none, 0.1);
+  auto surface = create_path_finding_surface(keep_in, multi_polygon_type_fp(), 0.1);
   auto ret = find_path(surface, point_type_fp(1,9), point_type_fp(9,9), nullptr);
 
   linestring_type_fp expected;

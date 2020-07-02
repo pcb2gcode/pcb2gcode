@@ -26,16 +26,12 @@ using std::make_shared;
 class PathFindingSurface {
  public:
   PathFindingSurface(const multi_polygon_type_fp& keep_in,
-                     const optional<multi_polygon_type_fp>& keep_out,
-                     const coordinate_type_fp tolerance) {
+                     const multi_polygon_type_fp& keep_out,
+                     coordinate_type_fp tolerance) {
     multi_polygon_type_fp total_keep_in;
     total_keep_in = keep_in;
-    // By here, total_keep_in_grown is ready.
-    if (keep_out) {
-      total_keep_in = total_keep_in - *keep_out;
-    }
+    total_keep_in = total_keep_in - keep_out;
 
-    all_vertices.clear();
     for (const auto& poly : total_keep_in) {
       for (const auto& point : poly.outer()) {
         all_vertices.push_back(point);
@@ -362,7 +358,7 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
 
 const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
     const multi_polygon_type_fp& keep_in,
-    const boost::optional<multi_polygon_type_fp>& keep_out,
+    const multi_polygon_type_fp& keep_out,
     const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();

@@ -695,7 +695,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
                        diameter, overlap, extra_passes + 1, do_voronoi, mill->offset);
     multi_polygon_type_fp keep_in;
     keep_in.push_back(current_voronoi);
-    optional<multi_polygon_type_fp> keep_out;
+    multi_polygon_type_fp keep_out;
     if (current_trace) {
       keep_out = bg_helpers::buffer(*current_trace, diameter/2 + mill->offset);
     }
