@@ -42,6 +42,7 @@ class PathFindingSurface {
         }
       }
     }
+    total_keep_in_grown = bg_helpers::buffer_miter(total_keep_in, tolerance);
 
     sort(all_vertices.begin(),
          all_vertices.end(),
@@ -51,12 +52,10 @@ class PathFindingSurface {
     all_vertices.erase(
         std::unique(all_vertices.begin(),
                     all_vertices.end(),
-                      [](const point_type_fp& a, const point_type_fp& b) {
-                        return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
-                      }),
+                    [](const point_type_fp& a, const point_type_fp& b) {
+                      return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
+                    }),
         all_vertices.end());
-
-    total_keep_in_grown = bg_helpers::buffer_miter(total_keep_in, tolerance);
   }
   multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;
@@ -98,7 +97,6 @@ class PathSurface {
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
               PathLimiter path_limiter)
       : path_limiter(path_limiter) {
-    total_keep_in_grown.clear();
     for (const auto& poly : base->total_keep_in_grown) {
       if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
         total_keep_in_grown.push_back(poly);
