@@ -1,3 +1,5 @@
+#include <unordered_set>
+
 #include "geometry.hpp"
 #include "bg_operators.hpp"
 
@@ -7,7 +9,7 @@ namespace trim_paths {
 
 using std::pair;
 using std::vector;
-using std::multiset;
+using std::unordered_multiset;
 using std::reverse;
 using std::remove_if;
 
@@ -15,7 +17,7 @@ using std::remove_if;
 // haystack.  Finds reversed segments if the segment is reversible.
 // Prefers directional, however.  Removes the found element or returns
 // false.
-bool segment_in_path(const point_type_fp& start, const point_type_fp& end, multiset<pair<linestring_type_fp, bool>>& haystack) {
+bool segment_in_path(const point_type_fp& start, const point_type_fp& end, unordered_multiset<pair<linestring_type_fp, bool>>& haystack) {
   auto to_delete = haystack.find({{start, end}, false});
   if (to_delete != haystack.cend()) {
     haystack.erase(to_delete);
@@ -35,12 +37,12 @@ bool segment_in_path(const point_type_fp& start, const point_type_fp& end, multi
 }
 
 void trim_path(pair<linestring_type_fp, bool>& ls,
-               multiset<pair<linestring_type_fp, bool>>& backtracks) {
+               unordered_multiset<pair<linestring_type_fp, bool>>& backtracks) {
   if (ls.first.size() < 2) {
     return; // Nothing to remove.
   }
   // backtracks not yet seen.
-  multiset<pair<linestring_type_fp, bool>> backtracks_multiset;
+  unordered_multiset<pair<linestring_type_fp, bool>> backtracks_multiset;
   for (const auto& p : backtracks) {
     backtracks_multiset.insert(p);
   }
@@ -138,7 +140,7 @@ void trim_paths(vector<pair<linestring_type_fp, bool>>& toolpaths,
   // backtrack adds enough paths to make a eulerian circuit but we
   // just need a eulerian path, so find the longest stretch of
   // backtracks and remove those.
-  multiset<pair<linestring_type_fp, bool>> bt{backtracks.cbegin(), backtracks.cend()};
+  unordered_multiset<pair<linestring_type_fp, bool>> bt{backtracks.cbegin(), backtracks.cend()};
   for (auto& ls : toolpaths) {
     trim_path(ls, bt);
     if (ls.second) {

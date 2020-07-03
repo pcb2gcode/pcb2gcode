@@ -1,6 +1,8 @@
 #ifndef BG_OPERATORS_HPP
 #define BG_OPERATORS_HPP
 
+#include <boost/functional/hash/hash.hpp>
+
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator-(
     const bg::model::multi_polygon<polygon_type_t>& lhs,
@@ -114,6 +116,38 @@ static std::ostream& operator<<(std::ostream& out, const vector<T>& xs) {
   out << "}";
   return out;
 }
+
+template <typename T>
+struct hash<boost::geometry::model::d2::point_xy<T>> {
+  inline std::size_t operator()(const boost::geometry::model::d2::point_xy<T>& p) const {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, p.x());
+    boost::hash_combine(seed, p.y());
+    return seed;
+  }
+};
+
+template <typename T0, typename T1>
+struct hash<std::pair<T0, T1>> {
+  inline std::size_t operator()(const std::pair<T0, T1>& x) const {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, hash<T0>{}(x.first));
+    boost::hash_combine(seed, hash<T1>{}(x.second));
+    return seed;
+  }
+};
+
+template <typename T>
+struct hash<boost::geometry::model::linestring<T>> {
+  inline std::size_t operator()(const boost::geometry::model::linestring<T>& xs) const {
+    std::size_t seed = 0;
+    for (const auto& x : xs) {
+      boost::hash_combine(seed, hash<T>{}(x));
+    }
+    return seed;
+  }
+};
+
 
 } // namespace std
 

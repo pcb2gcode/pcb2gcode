@@ -2,6 +2,7 @@
 #define BG_HELPERS_HPP
 
 #include "eulerian_paths.hpp"
+#include <boost/functional/hash/hash.hpp>
 #ifdef GEOS_VERSION
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>

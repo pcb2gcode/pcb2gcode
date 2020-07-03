@@ -1,6 +1,7 @@
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <unordered_map>
 
 #include "geometry.hpp"
 #include "bg_operators.hpp"
@@ -13,7 +14,7 @@ using std::vector;
 using std::pair;
 using std::tuple;
 using std::tie;
-using std::map;
+using std::unordered_map;
 using std::set;
 using std::make_pair;
 using std::priority_queue;
@@ -73,9 +74,9 @@ struct VertexDegree {
 // that they should be used, in the direction that they should be
 // used.
 static inline pair<long double, vector<pair<linestring_type_fp, bool>>> find_nearest_vertex(
-    const map<point_type_fp, vector<pair<linestring_type_fp, bool>>>& graph,
+    const unordered_map<point_type_fp, vector<pair<linestring_type_fp, bool>>>& graph,
     point_type_fp start,
-    const map<point_type_fp, VertexDegree>& vertex_degrees,
+    const unordered_map<point_type_fp, VertexDegree>& vertex_degrees,
     const double g1_speed,
     const double up_time,
     const double g0_speed,
@@ -85,10 +86,10 @@ static inline pair<long double, vector<pair<linestring_type_fp, bool>>> find_nea
     // Starting from here isn't useful.
     return {0, {}};
   }
-  // map from vertex to the best-so-far distance to get to the
+  // unordered_map from vertex to the best-so-far distance to get to the
   // vertex, along with the edge that gets you there.  The edge
   // might be reversed.
-  map<point_type_fp, pair<long double, pair<linestring_type_fp, bool>>> distances;
+  unordered_map<point_type_fp, pair<long double, pair<linestring_type_fp, bool>>> distances;
   distances[start] = make_pair(0, make_pair(linestring_type_fp{}, true));
   priority_queue<pair<long double, point_type_fp>,
                  vector<pair<long double, point_type_fp>>,
@@ -160,12 +161,12 @@ vector<pair<linestring_type_fp, bool>> backtrack(
   if (in_per_sec == 0) {
     return {};
   }
-  // Convert the paths structure to a map from vector to edges that
+  // Convert the paths structure to a unordered_map from vector to edges that
   // meet there.
-  map<point_type_fp, vector<pair<linestring_type_fp, bool>>> graph;
+  unordered_map<point_type_fp, vector<pair<linestring_type_fp, bool>>> graph;
   // Find the in, out, and bidi degree of all vertices.  We can't just
   // use the graph because we will modify this as we go.
-  map<point_type_fp, VertexDegree> vertex_degrees;
+  unordered_map<point_type_fp, VertexDegree> vertex_degrees;
   for (const auto& ls : paths) {
     graph[ls.first.front()].push_back(ls);
     graph[ls.first.back()]; // Create this element even if there are no edges from it.
@@ -187,7 +188,8 @@ vector<pair<linestring_type_fp, bool>> backtrack(
     // using the distance function on the edge.
 
     // best_backtracks stores the total length, the start, the end,
-    // and an unordered list of paths to take to get there.
+    // and a list of paths to take to get there, in the right order
+    // and with the right directionality.
     vector<pair<long double, vector<pair<linestring_type_fp, bool>>>> best_backtracks;
     for (const auto& v : vertex_degrees) {
       // Get the length and path to the nearest element.
@@ -200,11 +202,7 @@ vector<pair<linestring_type_fp, bool>> backtrack(
       }
     }
     // Now sort so that the shortest backtracks are first.
-    sort(best_backtracks.begin(), best_backtracks.end(),
-         [](const pair<long double, vector<pair<linestring_type_fp, bool>>>& lhs,
-            const pair<long double, vector<pair<linestring_type_fp, bool>>>& rhs) {
-           return lhs.first < rhs.first;
-         });
+    sort(best_backtracks.begin(), best_backtracks.end());
     // Select backtracks one-at-a-time, best first.  If the next best
     // to select includes a vertex that should no longer be used
     // because it already has enough inward or outward edges, start
