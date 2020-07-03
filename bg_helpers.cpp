@@ -113,13 +113,6 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
 template multi_polygon_type_fp buffer(const multi_linestring_type_fp&, double expand_by);
 
 template<typename CoordinateType>
-multi_polygon_type_fp buffer(ring_type_fp const & geometry_in, CoordinateType expand_by) {
-  return buffer(polygon_type_fp{geometry_in}, expand_by);
-}
-
-template multi_polygon_type_fp buffer(ring_type_fp const&, double);
-
-template<typename CoordinateType>
 multi_polygon_type_fp buffer_miter(ring_type_fp const & geometry_in, CoordinateType expand_by) {
   return buffer_miter(polygon_type_fp{geometry_in}, expand_by);
 }
