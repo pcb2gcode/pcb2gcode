@@ -18,6 +18,8 @@ namespace bg_helpers {
 // 0, unlike bg::buffer.
 multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by);
 
+multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by);
+
 template<typename CoordinateType>
 multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by);
 
@@ -26,6 +28,9 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
 
 template<typename CoordinateType>
 multi_polygon_type_fp buffer(ring_type_fp const & geometry_in, CoordinateType expand_by);
+
+template<typename CoordinateType>
+multi_polygon_type_fp buffer_miter(ring_type_fp const & geometry_in, CoordinateType expand_by);
 
 } // namespace bg_helpers
 

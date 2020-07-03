@@ -26,16 +26,12 @@ using std::make_shared;
 class PathFindingSurface {
  public:
   PathFindingSurface(const multi_polygon_type_fp& keep_in,
-                     const optional<multi_polygon_type_fp>& keep_out,
-                     const coordinate_type_fp tolerance) {
+                     const multi_polygon_type_fp& keep_out,
+                     coordinate_type_fp tolerance) {
     multi_polygon_type_fp total_keep_in;
     total_keep_in = keep_in;
-    // By here, total_keep_in_grown is ready.
-    if (keep_out) {
-      total_keep_in = total_keep_in - *keep_out;
-    }
+    total_keep_in = total_keep_in - keep_out;
 
-    all_vertices.clear();
     for (const auto& poly : total_keep_in) {
       for (const auto& point : poly.outer()) {
         all_vertices.push_back(point);
@@ -46,6 +42,7 @@ class PathFindingSurface {
         }
       }
     }
+    total_keep_in_grown = bg_helpers::buffer_miter(total_keep_in, tolerance);
 
     sort(all_vertices.begin(),
          all_vertices.end(),
@@ -55,12 +52,10 @@ class PathFindingSurface {
     all_vertices.erase(
         std::unique(all_vertices.begin(),
                     all_vertices.end(),
-                      [](const point_type_fp& a, const point_type_fp& b) {
-                        return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
-                      }),
+                    [](const point_type_fp& a, const point_type_fp& b) {
+                      return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
+                    }),
         all_vertices.end());
-
-    total_keep_in_grown = bg_helpers::buffer(total_keep_in, tolerance);
   }
   multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;
@@ -102,7 +97,6 @@ class PathSurface {
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
               PathLimiter path_limiter)
       : path_limiter(path_limiter) {
-    total_keep_in_grown.clear();
     for (const auto& poly : base->total_keep_in_grown) {
       if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
         total_keep_in_grown.push_back(poly);
@@ -362,7 +356,7 @@ struct AstarGoalVisitor : public boost::default_astar_visitor {
 
 const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
     const multi_polygon_type_fp& keep_in,
-    const boost::optional<multi_polygon_type_fp>& keep_out,
+    const multi_polygon_type_fp& keep_out,
     const coordinate_type_fp tolerance) {
   boost::function_requires<boost::VertexListGraphConcept<PathSurface>>();
   boost::function_requires<boost::IncidenceGraphConcept<PathSurface>>();
