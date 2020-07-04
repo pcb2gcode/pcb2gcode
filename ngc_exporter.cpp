@@ -140,7 +140,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
  * by where the bridges begins.  So the bridges is from points with indecies x
  * to x+1 for each element in the bridges vector.  We can always assume that the
  * bridge segment and the segments on either side form a straight line. */
-void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, shared_ptr<icoords> path,
+void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, const linestring_type_fp& path,
                                   const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot) {
   const unsigned int steps_num = ceil(-cutter->zwork / cutter->stepsize);
 
@@ -153,7 +153,7 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
 
     auto current_bridge = bridges.cbegin();
 
-    for (size_t current = 1; current < path->size(); current++) {
+    for (size_t current = 1; current < path.size(); current++) {
       if (current_bridge != bridges.cend() && *current_bridge == current && z >= cutter->bridges_height) {
         // We're about to cut to the start of a bridge but there is no need to
         // stop there so let's just mill right across it.
@@ -170,8 +170,8 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
       }
 
       // Now cut horizontally.
-      of << "G01 X" << (path->at(current).first - xoffsetTot) * cfactor
-         << " Y"    << (path->at(current).second - yoffsetTot) * cfactor << '\n';
+      of << "G01 X" << (path.at(current).x() - xoffsetTot) * cfactor
+         << " Y"    << (path.at(current).y() - yoffsetTot) * cfactor << '\n';
 
       // Now plunge back down if needed.
       if (is_bridge_cut) {
@@ -183,7 +183,7 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
   }
 }
 
-void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, shared_ptr<icoords> path,
+void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, const linestring_type_fp& path,
                                      boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot) {
   of << "G01 F" << mill->vertfeed * cfactor << '\n';
 
@@ -197,27 +197,27 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 
   for (unsigned int i = 0; i < steps_num; i++) {
     const double z = mill->zwork / steps_num * (i + 1);
-    icoords::iterator iter = path->begin();
+    linestring_type_fp::const_iterator iter = path.cbegin();
     of << "( Mill infeed pass " << i+1 << "/" << steps_num << " )\n";
     if (leveller) {
-      leveller->setLastChainPoint(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
-                                             (path->begin()->second - yoffsetTot) * cfactor));
-      of << leveller->g01Corrected(icoordpair((path->begin()->first - xoffsetTot) * cfactor,
-                                              (path->begin()->second - yoffsetTot) * cfactor),
+      leveller->setLastChainPoint(point_type_fp((path.begin()->x() - xoffsetTot) * cfactor,
+                                                (path.begin()->y() - yoffsetTot) * cfactor));
+      of << leveller->g01Corrected(point_type_fp((path.begin()->x() - xoffsetTot) * cfactor,
+                                                 (path.begin()->y() - yoffsetTot) * cfactor),
                                    z * cfactor);
     } else {
       of << "G01 Z" << z * cfactor << "\n";
     }
     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
     of << "G01 F" << mill->feed * cfactor << '\n';
-    while (iter != path->end()) {
+    while (iter != path.cend()) {
       if (leveller) {
-        of << leveller->addChainPoint(icoordpair((iter->first - xoffsetTot) * cfactor,
-                                                 (iter->second - yoffsetTot) * cfactor),
+        of << leveller->addChainPoint(point_type_fp((iter->x() - xoffsetTot) * cfactor,
+                                                    (iter->y() - yoffsetTot) * cfactor),
                                       z * cfactor);
       } else {
-        of << "G01 X" << (iter->first - xoffsetTot) * cfactor << " Y"
-           << (iter->second - yoffsetTot) * cfactor << '\n';
+        of << "G01 X" << (iter->x() - xoffsetTot) * cfactor << " Y"
+           << (iter->y() - yoffsetTot) * cfactor << '\n';
       }
       ++iter;
     }
@@ -233,7 +233,7 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
-    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> all_toolpaths = layer->get_toolpaths();
+    vector<pair<coordinate_type_fp, multi_linestring_type_fp>> all_toolpaths = layer->get_toolpaths();
 
     if (all_toolpaths.size() < 1) {
       return; // Nothing to do.
@@ -290,7 +290,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;
     if (cutter) {
-      for (const auto& path : all_toolpaths[0].second) {  // Cutter layer can only have one tool_diameter.
+      for (auto& path : all_toolpaths[0].second) {  // Cutter layer can only have one tool_diameter.
         auto bridges = layer->get_bridges(path);
         all_bridges.push_back(bridges);
       }
@@ -344,16 +344,16 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
           // contours
           for(size_t path_index = 0; path_index < toolpaths.size(); path_index++) {
-            shared_ptr<icoords> path = toolpaths[path_index];
-            if (path->size() < 1) {
+            const linestring_type_fp& path = toolpaths[path_index];
+            if (path.size() < 1) {
               continue; // Empty path.
             }
 
             // retract, move to the starting point of the next contour
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
             of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << endl << endl;
-            of << "G00 X" << ( path->begin()->first - xoffsetTot ) * cfactor << " Y"
-               << ( path->begin()->second - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
+            of << "G00 X" << ( path.begin()->x() - xoffsetTot ) * cfactor << " Y"
+               << ( path.begin()->y() - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
 
             /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
              * i know this is partially repetitive, but this way it's easier to read

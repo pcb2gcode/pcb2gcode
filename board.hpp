@@ -57,22 +57,22 @@ public:
     void prepareLayer(std::string layername, std::shared_ptr<GerberImporter> importer,
                       std::shared_ptr<RoutingMill> manufacturer, bool backside);
     void set_margins(double margins) { margin = margins;	}
-    ivalue_t get_width();
-    ivalue_t get_height();
-    ivalue_t get_min_x() {	return min_x; }
-    ivalue_t get_max_x() {	return max_x; }
-    ivalue_t get_min_y() {	return min_y; }
-    ivalue_t get_max_y() {	return max_y; }
+    coordinate_type_fp get_width();
+    coordinate_type_fp get_height();
+    coordinate_type_fp get_min_x() {	return min_x; }
+    coordinate_type_fp get_max_x() {	return max_x; }
+    coordinate_type_fp get_min_y() {	return min_y; }
+    coordinate_type_fp get_max_y() {	return max_y; }
     double get_layersnum() {  return layers.size(); }
 
     std::vector<std::string> list_layers();
     std::shared_ptr<Layer> get_layer(std::string layername);
-    std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(std::string layername);
+    std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpath(std::string layername);
 
     void createLayers(); // should be private
 
 private:
-    ivalue_t margin;
+    coordinate_type_fp margin;
     const bool fill_outline;
     const std::string outputdir;
     const bool tsp_2opt;
@@ -80,10 +80,10 @@ private:
     const bool invert_gerbers;
     const bool render_paths_to_shapes;
 
-    ivalue_t min_x;
-    ivalue_t max_x;
-    ivalue_t min_y;
-    ivalue_t max_y;
+    coordinate_type_fp min_x;
+    coordinate_type_fp max_x;
+    coordinate_type_fp min_y;
+    coordinate_type_fp max_y;
 
     /* The Layer gets constructed from data prepared in
      * prepareLayer after the size calculations are done in createLayers.

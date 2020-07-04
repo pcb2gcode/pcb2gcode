@@ -78,24 +78,24 @@ class ExcellonProcessor
 {
 public:
     ExcellonProcessor(const boost::program_options::variables_map& options,
-                      const icoordpair min, const icoordpair max);
+                      const point_type_fp min, const point_type_fp max);
     ~ExcellonProcessor();
     void add_header(std::string);
     void set_preamble(std::string);
     void set_postamble(std::string);
-    icoords line_to_holes(const ilinesegment& line, double drill_diameter);
+    linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_diameter);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
                     std::shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
                     std::shared_ptr<Cutter> target, bool zchange_absolute);
 
     std::shared_ptr< std::map<int, drillbit> > get_bits();
-    std::shared_ptr< std::map<int, ilinesegments> > get_holes();
+    std::shared_ptr< std::map<int, multi_linestring_type_fp> > get_holes();
 
 private:
   gerbv_project_t* parse_project(const std::string& filename);
   std::map<int, drillbit> parse_bits();
-  std::map<int, ilinesegments> parse_holes();
+  std::map<int, multi_linestring_type_fp> parse_holes();
 
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
@@ -104,22 +104,22 @@ private:
     double get_xvalue(double);
     std::string drill_to_string(drillbit drillbit);
 
-  std::map<int, ilinesegments> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
-                                         const boost::optional<Length>& min_diameter,
-                                         const boost::optional<Length>& max_diameter);
+  std::map<int, multi_linestring_type_fp> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
+                                                         const boost::optional<Length>& min_diameter,
+                                                         const boost::optional<Length>& max_diameter);
   std::map<int, drillbit> optimize_bits();
 
     void save_svg(
-        const std::map<int, drillbit>& bits, const std::map<int, ilinesegments>& holes,
+        const std::map<int, drillbit>& bits, const std::map<int, multi_linestring_type_fp>& holes,
         const std::string& of_dir, const std::string& of_name);
 
     const box_type_fp board_dimensions;
-    const ivalue_t board_center_x;
+    const coordinate_type_fp board_center_x;
 
     gerbv_project_t * const project;
     const bool bMetricOutput;   //Flag to indicate metric output
     const std::map<int, drillbit> parsed_bits;
-    const std::map<int, ilinesegments> parsed_holes;
+    const std::map<int, multi_linestring_type_fp> parsed_holes;
     std::vector<std::string> header;
     std::string preamble;        //Preamble for output file
 

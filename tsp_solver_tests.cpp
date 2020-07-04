@@ -7,17 +7,16 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(tsp_solver_tests)
 
-double get_distance(const icoordpair& a, const icoordpair& b) {
-  return sqrt((a.first-b.first)*(a.first-b.first) +
-              (a.second-b.second)*(a.second-b.second));
+double get_distance(const point_type_fp& a, const point_type_fp& b) {
+  return bg::distance(a, b);
 }
 
-double get_distance(const ilinesegment& a, const ilinesegment& b) {
-  return get_distance(a.second, b.first);
+double get_distance(const point_type_fp& a, const linestring_type_fp& b) {
+  return bg::distance(a, b.front());
 }
 
-double get_distance(const icoordpair& a, const ilinesegment& b) {
-  return get_distance(a, b.first);
+double get_distance(const linestring_type_fp& a, const linestring_type_fp& b) {
+  return bg::distance(a.back(), b.front());
 }
 
 template <typename point_t, typename T>
@@ -49,24 +48,16 @@ void print_path(const vector<T>& path) {
 }
 
 template <>
-void print_path(const vector<ilinesegment>& path) {
-  for (size_t i = 0; i+1 < path.size(); i++) {
-    cout << path[i].second.first << "," << path[i].second.second << "->"
-         << path[i+1].first.first << "," << path[i+1].first.second << endl;
-  }
-}
-
-template <>
-void print_path(const vector<icoordpair>& path) {
+void print_path(const vector<point_type_fp>& path) {
   for (size_t i = 0; i < path.size(); i++) {
-    cout << "(" << path[i].first << "," << path[i].second << ") ";
+    cout << "(" << path[i].x() << "," << path[i].y() << ") ";
   }
   cout << endl;
 }
 
 BOOST_AUTO_TEST_CASE(empty) {
-  vector<icoordpair> path;
-  icoordpair start(0,0);
+  vector<point_type_fp> path;
+  point_type_fp start(0,0);
   tsp_solver::nearest_neighbour(path, start);
   double nn = get_path_length(path, start);
   BOOST_CHECK_EQUAL(nn, 0);
@@ -76,13 +67,13 @@ BOOST_AUTO_TEST_CASE(empty) {
 }
 
 BOOST_AUTO_TEST_CASE(grid_10_by_10) {
-  vector<icoordpair> path;
+  vector<point_type_fp> path;
   for (auto i = 0; i < 10; i++) {
     for (auto j = 0; j < 10; j++) {
-      path.push_back(icoordpair(i, j));
+      path.push_back(point_type_fp(i, j));
     }
   }
-  icoordpair start(0,0);
+  point_type_fp start(0,0);
   tsp_solver::nearest_neighbour(path, start);
   double nn = get_path_length(path, start);
   tsp_solver::tsp_2opt(path, start);
@@ -91,27 +82,27 @@ BOOST_AUTO_TEST_CASE(grid_10_by_10) {
 }
 
 BOOST_AUTO_TEST_CASE(grid_10_by_10_no_start) {
-  vector<icoordpair> path;
+  vector<point_type_fp> path;
   for (auto i = 0; i < 10; i++) {
     for (auto j = 0; j < 10; j++) {
-      path.push_back(icoordpair(i, j));
+      path.push_back(point_type_fp(i, j));
     }
   }
-  icoordpair start(-1,-1);
+  point_type_fp start(-1,-1);
   tsp_solver::tsp_2opt(path, start);
   double tsp_2opt_with_start = get_path_length(path, start);
-  tsp_solver::tsp_2opt<icoordpair>(path);
+  tsp_solver::tsp_2opt<point_type_fp>(path);
   double tsp_2opt_without_start = get_path_length(path);
   BOOST_CHECK_LT(tsp_2opt_without_start, tsp_2opt_with_start);
 }
 
 BOOST_AUTO_TEST_CASE(reversable_paths) {
-  vector<ilinesegment> path;
+  vector<linestring_type_fp> path;
   for (auto i = 0; i < 10; i++) {
-    path.push_back(ilinesegment(icoordpair(i, 0),
-                                icoordpair(i, 100)));
+    path.push_back(linestring_type_fp{{static_cast<double>(i), 0},
+                                      {static_cast<double>(i), 100}});
   }
-  icoordpair start(0,0);
+  point_type_fp start(0,0);
   tsp_solver::tsp_2opt(path, start);
   double nn = get_path_length(path, start);
   BOOST_CHECK_LT(nn, 10);

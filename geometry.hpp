@@ -34,18 +34,6 @@
 #define SVG_DOTS_PER_IN 2000
 
 typedef double coordinate_type_fp;
-typedef double ivalue_t;
-
-typedef std::pair<ivalue_t, ivalue_t> icoordpair;
-typedef std::vector<icoordpair> icoords;
-typedef std::pair<icoordpair, icoordpair> ilinesegment;
-typedef std::vector<ilinesegment> ilinesegments;
-
-//Adaptation of icoordpair to Boost Geometry (point)
-BOOST_GEOMETRY_REGISTER_POINT_2D(icoordpair, ivalue_t, cs::cartesian, first, second)
-
-// Adaptation of icoords to Boost Geometry (ring)
-BOOST_GEOMETRY_REGISTER_RING(icoords)
 
 typedef boost::geometry::model::d2::point_xy<coordinate_type_fp> point_type_fp;
 typedef boost::geometry::model::multi_point<point_type_fp> multi_point_type_fp;

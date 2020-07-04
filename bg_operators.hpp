@@ -1,6 +1,8 @@
 #ifndef BG_OPERATORS_HPP
 #define BG_OPERATORS_HPP
 
+#include "geometry.hpp"
+
 #include <boost/functional/hash/hash.hpp>
 
 template <typename polygon_type_t, typename rhs_t>
@@ -74,6 +76,10 @@ template <typename T, typename S>
 boost::geometry::model::d2::point_xy<T> operator*(
     const boost::geometry::model::d2::point_xy<T>& lhs,
     const S& rhs);
+
+static inline point_type_fp floor(const point_type_fp& a) {
+  return point_type_fp(std::floor(a.x()), std::floor(a.y()));
+}
 
 template <typename T>
 bool operator==(

@@ -70,8 +70,8 @@ using std::dynamic_pointer_cast;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
-                                     ivalue_t min_x, ivalue_t max_x,
-                                     ivalue_t min_y, ivalue_t max_y,
+                                     coordinate_type_fp min_x, coordinate_type_fp max_x,
+                                     coordinate_type_fp min_y, coordinate_type_fp max_y,
                                      string name, string outputdir,
                                      bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
                                      bool invert_gerbers, bool render_paths_to_shapes) :
@@ -139,17 +139,6 @@ multi_linestring_type_fp mirror_toolpath(
               point.y()));
     }
     result.push_back(new_ls);
-  }
-  return result;
-}
-
-vector<shared_ptr<icoords>> mls_to_icoords(const multi_linestring_type_fp& mls) {
-  vector<shared_ptr<icoords>> result;
-  for (const auto& ls : mls) {
-    result.push_back(make_shared<icoords>());
-    for (const auto& p : ls) {
-      result.back()->push_back(icoordpair(p.x(), p.y()));
-    }
   }
   return result;
 }
@@ -745,7 +734,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
 }
 
 // A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
-vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial::get_toolpath(
+vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
   bg::unique(vectorial_surface->first);
   for (auto& diameter_and_path : vectorial_surface->second) {
@@ -764,7 +753,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       thermal_holes = find_thermal_reliefs(vectorial_surface->first, tolerance);
     }
     const auto tool_count = isolator->tool_diameters_and_overlap_widths.size();
-    vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> results(tool_count);
+    vector<pair<coordinate_type_fp, multi_linestring_type_fp>> results(tool_count);
     const auto trace_count = vectorial_surface->first.size() + thermal_holes.size(); // Includes thermal holes.
     // One for each trace or thermal hole, including all prior tools.
     vector<multi_polygon_type_fp> already_milled(trace_count);
@@ -865,7 +854,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
-      results[tool_index] = make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)));
+      results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror));
     }
     // Now process any lines that need drawing.
     for (const auto& diameter_and_paths : vectorial_surface->second) {
@@ -884,7 +873,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
       write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_trace_toolpath);
-      results.push_back(make_pair(tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror))));
+      results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror)));
     }
     return results;
   }
@@ -904,7 +893,7 @@ vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Surface_vectorial:
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
-    return {make_pair(cutter->tool_diameter, mls_to_icoords(mirror_toolpath(combined_toolpath, mirror)))};
+    return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }

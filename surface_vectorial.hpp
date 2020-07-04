@@ -43,12 +43,12 @@ class Surface_vectorial: private boost::noncopyable {
  public:
   // This function returns a linestring that connects two points if possible.
   typedef std::function<boost::optional<linestring_type_fp>(const point_type_fp& start, const point_type_fp& end)> PathFinder;
-
-  Surface_vectorial(unsigned int points_per_circle, ivalue_t min_x, ivalue_t max_x, ivalue_t min_y, ivalue_t max_y,
+  Surface_vectorial(unsigned int points_per_circle,
+                    coordinate_type_fp min_x, coordinate_type_fp max_x, coordinate_type_fp min_y, coordinate_type_fp max_y,
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
                     bool invert_gerbers, bool render_paths_to_shapes);
 
-  std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpath(
+  std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror);
   void save_debug_image(std::string message);
   void enable_filling();
@@ -58,11 +58,11 @@ class Surface_vectorial: private boost::noncopyable {
   // processing.
   void render(std::shared_ptr<GerberImporter> importer, double tolerance);
 
-  inline ivalue_t get_width_in() {
+  inline coordinate_type_fp get_width_in() {
     return bounding_box.max_corner().x() - bounding_box.min_corner().x();
   }
 
-  inline ivalue_t get_height_in() {
+  inline coordinate_type_fp get_height_in() {
     return bounding_box.max_corner().y() - bounding_box.min_corner().y();
   }
 

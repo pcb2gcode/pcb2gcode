@@ -33,40 +33,24 @@ class tsp_solver {
  private:
   enum class Side { FRONT, BACK };
   // You can extend this class adding new overloads of get with this prototype:
-  //  icoordpair get(T _name_, Side side) { ... }
-  //  icoordpair reverse(T _name_) { ... }
-  static inline icoordpair get(const icoordpair& point, Side side) {
+  //  point_type_fp get(T _name_, Side side) { ... }
+  //  point_type_fp reverse(T _name_) { ... }
+  static inline point_type_fp get(const point_type_fp& point, Side side) {
     UNUSED(side);
     return point;
   }
 
-  static inline void reverse(icoordpair& point) {
+  static inline void reverse(point_type_fp& point) {
     UNUSED(point);
     return;
   }
 
-  static inline icoordpair get(const std::shared_ptr<icoords>& path, Side side) {
+  static inline point_type_fp get(const linestring_type_fp& line, Side side) {
     if (side == Side::FRONT) {
-      return path->front();
+      return line.front();
     } else {
-      return path->back();
+      return line.back();
     }
-  }
-
-  static inline void reverse(std::shared_ptr<icoords>& path) {
-    std::reverse(path->begin(), path->end());
-  }
-
-  static inline icoordpair get(const ilinesegment& line, Side side) {
-    if (side == Side::FRONT) {
-      return line.first;
-    } else {
-      return line.second;
-    }
-  }
-
-  static inline void reverse(ilinesegment& line) {
-    std::swap(line.first, line.second);
   }
 
   template <typename point_type_t>
@@ -79,33 +63,24 @@ class tsp_solver {
   }
 
   template <typename point_type_t>
-      static inline void reverse(bg::model::linestring<point_type_t>& path) {
+  static inline void reverse(bg::model::linestring<point_type_t>& path) {
     std::reverse(path.begin(), path.end());
   }
 
   // Return the Chebyshev distance, which is a good approximation
   // for the time it takes to do a rapid move on a CNC router.
-  template <typename value_t>
-      static inline double distance(const std::pair<value_t, value_t>& p0,
-                                    const std::pair<value_t, value_t>& p1) {
-    return std::max(std::abs(p0.first - p1.first),
-                    std::abs(p0.second - p1.second));
-  }
-
-  // Return the Chebyshev distance, which is a good approximation
-  // for the time it takes to do a rapid move on a CNC router.
   template <typename coordinate_type_t>
-      static inline coordinate_type_t distance(const bg::model::d2::point_xy<coordinate_type_t>& p0,
+  static inline coordinate_type_t distance(const bg::model::d2::point_xy<coordinate_type_t>& p0,
                                                const bg::model::d2::point_xy<coordinate_type_t>& p1) {
     return std::max(std::abs(p0.x() - p1.x()),
                     std::abs(p0.y() - p1.y()));
   }
  public:
   // This function computes the optimised path of a
-  //  * icoordpair
-  //  * std::shared_ptr<icoords>
-  // In the case of icoordpair it interprets the coordpairs as coordinates and computes the optimised path
-  // In the case of std::shared_ptr<icoords> it interprets the std::vector<icoordpair> as closed paths, and it computes
+  //  * point_type_fp
+  //  * std::shared_ptr<linestring_type_fp>
+  // In the case of point_type_fp it interprets the coordpairs as coordinates and computes the optimised path
+  // In the case of std::shared_ptr<linestring_type_fp> it interprets the std::vector<point_type_fp> as closed paths, and it computes
   // the optimised path of the first point of each subpath. This can be used in the milling paths, where each
   // subpath is closed and we want to find the best subpath order
   template <typename T, typename point_t>

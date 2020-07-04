@@ -1,37 +1,21 @@
 #define BOOST_TEST_MODULE autoleveller tests
 #include <boost/test/unit_test.hpp>
 
+#include "geometry.hpp"
+#include "bg_operators.hpp"
+
 #include "autoleveller.hpp"
 
 using namespace std;
 
-namespace std {
-static inline std::ostream& operator<<(std::ostream& out, const icoordpair& point) {
-  out << "{" << point.first << ", " << point.second << "}";
-  return out;
-}
-
-static inline std::ostream& operator<<(std::ostream& out, const icoords& points) {
-  out << "{";
-  for (auto p = points.cbegin(); p != points.cend(); p++) {
-    out << *p;
-    if (p + 1 != points.cend()) {
-      out << ", ";
-    }
-  }
-  out << "}";
-  return out;
-}
-}
-
 BOOST_AUTO_TEST_SUITE(autoleveller_tests)
 
 BOOST_AUTO_TEST_CASE(ten_by_ten) {
-  const auto actual = partition_segment(icoordpair(0,0),
-                                        icoordpair(100,100),
-                                        icoordpair(0,0),
-                                        icoordpair(10, 10));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(0,0),
+                                        point_type_fp(100,100),
+                                        point_type_fp(0,0),
+                                        point_type_fp(10, 10));
+  const linestring_type_fp expected {
     {0, 0},
     {10, 10},
     {20, 20},
@@ -48,11 +32,11 @@ BOOST_AUTO_TEST_CASE(ten_by_ten) {
 }
 
 BOOST_AUTO_TEST_CASE(horizontal_aligned) {
-  const auto actual = partition_segment(icoordpair(0,0),
-                                        icoordpair(0,100),
-                                        icoordpair(0,0),
-                                        icoordpair(10, 10));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(0,0),
+                                        point_type_fp(0,100),
+                                        point_type_fp(0,0),
+                                        point_type_fp(10, 10));
+  const linestring_type_fp expected {
     {0, 0},
     {0, 10},
     {0, 20},
@@ -69,11 +53,11 @@ BOOST_AUTO_TEST_CASE(horizontal_aligned) {
 }
 
 BOOST_AUTO_TEST_CASE(horizontal_unaligned) {
-  const auto actual = partition_segment(icoordpair(0.1,0.1),
-                                        icoordpair(0.1,19.9),
-                                        icoordpair(0,0),
-                                        icoordpair(10, 10));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(0.1,0.1),
+                                        point_type_fp(0.1,19.9),
+                                        point_type_fp(0,0),
+                                        point_type_fp(10, 10));
+  const linestring_type_fp expected {
     {0.1, 0.1},
     {0.1, 10},
     {0.1, 19.9},
@@ -82,11 +66,11 @@ BOOST_AUTO_TEST_CASE(horizontal_unaligned) {
 }
 
 BOOST_AUTO_TEST_CASE(ten_by_ten_offset) {
-  const auto actual = partition_segment(icoordpair(0,0),
-                                        icoordpair(100,100),
-                                        icoordpair(1,1),
-                                        icoordpair(10, 10));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(0,0),
+                                        point_type_fp(100,100),
+                                        point_type_fp(1,1),
+                                        point_type_fp(10, 10));
+  const linestring_type_fp expected {
     {0, 0},
     {1, 1},
     {11, 11},
@@ -104,22 +88,22 @@ BOOST_AUTO_TEST_CASE(ten_by_ten_offset) {
 }
 
 BOOST_AUTO_TEST_CASE(source_equals_dest) {
-  const auto actual = partition_segment(icoordpair(0,0),
-                                        icoordpair(0,0),
-                                        icoordpair(1,2),
-                                        icoordpair(3, 4));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(0,0),
+                                        point_type_fp(0,0),
+                                        point_type_fp(1,2),
+                                        point_type_fp(3, 4));
+  const linestring_type_fp expected {
     {0, 0}
   };
   BOOST_CHECK_EQUAL(actual, expected);
 }
 
 BOOST_AUTO_TEST_CASE(skewed) {
-  const auto actual = partition_segment(icoordpair(5,5),
-                                        icoordpair(99,12),
-                                        icoordpair(0,0),
-                                        icoordpair(7, 5));
-  const icoords expected {
+  const auto actual = partition_segment(point_type_fp(5,5),
+                                        point_type_fp(99,12),
+                                        point_type_fp(0,0),
+                                        point_type_fp(7, 5));
+  const linestring_type_fp expected {
     {5, 5},
     {7, 5.14894},
     {14, 5.67021},
@@ -141,8 +125,8 @@ BOOST_AUTO_TEST_CASE(skewed) {
   BOOST_CHECK_EQUAL(actual.size(), expected.size());
   for (size_t i = 0; i < actual.size(); i++) {
     BOOST_TEST_CONTEXT("actual[" << i << "] == expected[" << i << "]") {
-      BOOST_CHECK_CLOSE(actual[i].first, expected[i].first, 0.001);
-      BOOST_CHECK_CLOSE(actual[i].second, expected[i].second, 0.001);
+      BOOST_CHECK_CLOSE(actual[i].x(), expected[i].x(), 0.001);
+      BOOST_CHECK_CLOSE(actual[i].y(), expected[i].y(), 0.001);
     }
   }
 }

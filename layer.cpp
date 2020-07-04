@@ -52,7 +52,7 @@ Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
 #include <iostream>
 
 /******************************************************************************/
-vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Layer::get_toolpaths() {
+vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Layer::get_toolpaths() {
   return surface->get_toolpath(manufacturer, mirrored);
 }
 
@@ -74,7 +74,7 @@ void Layer::add_mask(shared_ptr<Layer> mask)
     surface->add_mask(mask->surface);
 }
 
-vector<size_t> Layer::get_bridges( shared_ptr<icoords> toolpath ) {
+vector<size_t> Layer::get_bridges(linestring_type_fp& toolpath) {
   auto cutter = dynamic_pointer_cast<Cutter>(manufacturer);
   auto bridges = outline_bridges::makeBridges(
       toolpath,
@@ -88,4 +88,3 @@ vector<size_t> Layer::get_bridges( shared_ptr<icoords> toolpath ) {
 
   return bridges;
 }
-

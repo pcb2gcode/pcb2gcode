@@ -58,10 +58,10 @@ using std::map;
 #include "common.hpp"
 #include "units.hpp"
 #include "available_drills.hpp"
+#include "bg_operators.hpp"
 
 using std::pair;
 using std::make_pair;
-using std::max;
 using std::min_element;
 using std::cerr;
 using std::ios_base;
@@ -75,29 +75,28 @@ using std::to_string;
  */
 /******************************************************************************/
 ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map& options,
-                                     const icoordpair min,
-                                     const icoordpair max)
-    : board_dimensions(point_type_fp(min.first, min.second),
-                        point_type_fp(max.first, max.second)),
-      board_center_x((min.first + max.first) / 2),
-      project(parse_project(options["drill"].as<string>())),
-      bMetricOutput(options["metricoutput"].as<bool>()),
-      parsed_bits(parse_bits()),
-      parsed_holes(parse_holes()),
-      drillfront(workSide(options, "drill")),
-      inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
-      tsp_2opt(options["tsp-2opt"].as<bool>()),
-      xoffset((options["zero-start"].as<bool>() ? min.first : 0) -
-              options["x-offset"].as<Length>().asInch(inputFactor)),
-      yoffset((options["zero-start"].as<bool>() ? min.second : 0) -
-              options["y-offset"].as<Length>().asInch(inputFactor)),
-      mirror_axis(options["mirror-axis"].as<Length>()),
-      min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
-      mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
-      available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
-      ocodes(1),
-      globalVars(100),
-      tileInfo(Tiling::generateTileInfo(options, max.second - min.second, max.first - min.first)) {
+                                     const point_type_fp min,
+                                     const point_type_fp max)
+  : board_dimensions(min, max),
+    board_center_x(((min + max)/2).x()),
+    project(parse_project(options["drill"].as<string>())),
+    bMetricOutput(options["metricoutput"].as<bool>()),
+    parsed_bits(parse_bits()),
+    parsed_holes(parse_holes()),
+    drillfront(workSide(options, "drill")),
+    inputFactor(options["metric"].as<bool>() ? 1.0/25.4 : 1),
+    tsp_2opt(options["tsp-2opt"].as<bool>()),
+    xoffset((options["zero-start"].as<bool>() ? min.x() : 0) -
+            options["x-offset"].as<Length>().asInch(inputFactor)),
+    yoffset((options["zero-start"].as<bool>() ? min.y() : 0) -
+            options["y-offset"].as<Length>().asInch(inputFactor)),
+    mirror_axis(options["mirror-axis"].as<Length>()),
+    min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
+    mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
+    available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
+    ocodes(1),
+    globalVars(100),
+    tileInfo(Tiling::generateTileInfo(options, max.y() - min.y(), max.x() - min.x())) {
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricOutput ? 25.4 : 1;
 
@@ -177,11 +176,11 @@ string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     return ss.str();
 }
 
-icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_diameter) {
-    auto start_x = line.first.first;
-    auto start_y = line.first.second;
-    auto stop_x = line.second.first;
-    auto stop_y = line.second.second;
+linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& line, double drill_diameter) {
+    auto start_x = line.front().x();
+    auto start_y = line.front().y();
+    auto stop_x = line.back().x();
+    auto stop_y = line.back().y();
     auto distance = sqrt((stop_x-start_x)*(stop_x-start_x)+
                          (stop_y-start_y)*(stop_y-start_y));
     // According to the spec for G85, holes should be drilled so that
@@ -204,7 +203,7 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
     }
     // drill all the rest
     drills_to_do.push_back(std::make_pair(1, drill_count-2));
-    icoords holes;
+    linestring_type_fp holes;
     for (unsigned int current_drill_index = 0;
          current_drill_index < drills_to_do.size();
          current_drill_index++) {
@@ -222,7 +221,7 @@ icoords ExcellonProcessor::line_to_holes(const ilinesegment& line, double drill_
         const auto y = start_y * (1 - ratio) + stop_y * ratio;
         drills_to_do.push_back(std::make_pair(start_drill, mid_drill-1));
         drills_to_do.push_back(std::make_pair(mid_drill+1, end_drill));
-        holes.push_back(icoordpair(x, y));
+        holes.push_back(point_type_fp(x, y));
     }
     return holes;
 }
@@ -254,7 +253,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                          "M2      (Program end.)\n\n");
 
     map<int, drillbit> bits = optimize_bits();
-    const map<int, ilinesegments> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
+    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
 
     //open output file
     std::ofstream of;
@@ -330,8 +329,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
                 for (const auto& line : hole.second) {
                     for (auto& drill_hole : line_to_holes(line, drill_diameter)) {
-                        const auto x = drill_hole.first;
-                        const auto y = drill_hole.second;
+                        const auto x = drill_hole.x();
+                        const auto y = drill_hole.y();
 
                         if( nog81 )
                         {
@@ -566,7 +565,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "M2      (Program end.)\n\n");
 
     map<int, drillbit> bits = parsed_bits;
-    const map<int, ilinesegments> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
+    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
 
     // open output file
     std::ofstream of;
@@ -633,10 +632,10 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                 const auto& bit = bits.at(hole.first);
                 double diameter = bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter;
                 for (const auto& line : hole.second) {
-                    const auto& start_x = line.first.first;
-                    const auto& start_y = line.first.second;
-                    const auto& end_x = line.second.first;
-                    const auto& end_y = line.second.second;
+                    const auto& start_x = line.front().x();
+                    const auto& start_y = line.front().y();
+                    const auto& end_x = line.back().x();
+                    const auto& end_y = line.back().y();
                     if (!millhole(of,
                                   get_xvalue(start_x) - xoffsetTot, start_y - yoffsetTot,
                                   get_xvalue(end_x  ) - xoffsetTot,   end_y - yoffsetTot,
@@ -667,7 +666,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
  */
 /******************************************************************************/
 void ExcellonProcessor::save_svg(
-    const map<int, drillbit>& bits, const map<int, ilinesegments>& holes,
+    const map<int, drillbit>& bits, const map<int, multi_linestring_type_fp>& holes,
     const string& of_dir, const string& of_name) {
     if (holes.size() == 0) {
       return;
@@ -690,7 +689,7 @@ void ExcellonProcessor::save_svg(
         const auto& bit = bits.at(hole.first);
         const double radius = bit.unit == "mm" ? (bit.diameter / 25.4) / 2 : bit.diameter / 2;
 
-        for (const ilinesegment& line : hole.second) {
+        for (const linestring_type_fp& line : hole.second) {
             for (auto& hole : line_to_holes(line, radius*2)) {
                 mapper.map(hole, "", radius * SVG_DOTS_PER_IN);
             }
@@ -731,15 +730,15 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
 }
 
 // Must be called after parse bits so that we can report on unused bits.
-map<int, ilinesegments> ExcellonProcessor::parse_holes() {
-  map<int, ilinesegments> holes;
+map<int, multi_linestring_type_fp> ExcellonProcessor::parse_holes() {
+  map<int, multi_linestring_type_fp> holes;
 
   for (gerbv_net_t* currentNet = project->file[0]->image->netlist; currentNet;
        currentNet = currentNet->next) {
     if (currentNet->aperture != 0)
       holes[currentNet->aperture].push_back(
-          ilinesegment(icoordpair(currentNet->start_x, currentNet->start_y),
-                       icoordpair(currentNet->stop_x, currentNet->stop_y)));
+          linestring_type_fp{point_type_fp(currentNet->start_x, currentNet->start_y),
+                             point_type_fp(currentNet->stop_x, currentNet->stop_y)});
   }
   // Report all bits that are unused as warnings.
   for (const auto& bit : parsed_bits) {
@@ -760,11 +759,11 @@ map<int, ilinesegments> ExcellonProcessor::parse_holes() {
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-map<int, ilinesegments> ExcellonProcessor::optimize_holes(
+map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
     map<int, drillbit>& bits, bool onedrill,
     const boost::optional<Length>& min_diameter,
     const boost::optional<Length>& max_diameter) {
-  map<int, ilinesegments> holes(parsed_holes);
+  map<int, multi_linestring_type_fp> holes(parsed_holes);
 
   // Holes that are larger than max_diameter or smaller than min_diameter are removed.
   for (auto path = holes.begin(); path != holes.end(); ) {
@@ -818,9 +817,9 @@ map<int, ilinesegments> ExcellonProcessor::optimize_holes(
   //Optimize the holes path
   for (auto& path : holes) {
     if (tsp_2opt) {
-      tsp_solver::tsp_2opt(path.second, icoordpair(get_xvalue(0) + xoffset, yoffset));
+      tsp_solver::tsp_2opt(path.second, point_type_fp(get_xvalue(0) + xoffset, yoffset));
     } else {
-      tsp_solver::nearest_neighbour(path.second, icoordpair(get_xvalue(0) + xoffset, yoffset));
+      tsp_solver::nearest_neighbour(path.second, point_type_fp(get_xvalue(0) + xoffset, yoffset));
     }
   }
 
