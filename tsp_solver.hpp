@@ -32,29 +32,17 @@
 class tsp_solver {
  private:
   enum class Side { FRONT, BACK };
-  // You can extend this class adding new overloads of get with this prototype:
-  //  point_type_fp get(T _name_, Side side) { ... }
-  //  point_type_fp reverse(T _name_) { ... }
-  static inline point_type_fp get(const point_type_fp& point, Side side) {
-    UNUSED(side);
+
+  static inline point_type_fp get(const point_type_fp& point, Side) {
     return point;
   }
 
-  static inline void reverse(point_type_fp& point) {
-    UNUSED(point);
+  static inline void reverse(point_type_fp&) {
     return;
   }
 
-  static inline point_type_fp get(const linestring_type_fp& line, Side side) {
-    if (side == Side::FRONT) {
-      return line.front();
-    } else {
-      return line.back();
-    }
-  }
-
   template <typename point_type_t>
-      static inline point_type_t get(const bg::model::linestring<point_type_t>& path, Side side) {
+  static inline point_type_t get(const bg::model::linestring<point_type_t>& path, Side side) {
     if (side == Side::FRONT) {
       return path.front();
     } else {

@@ -167,10 +167,6 @@ void Board::createLayers()
     }
 }
 
-vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Board::get_toolpath(string layername) {
-  return layers[layername]->get_toolpaths();
-}
-
 /******************************************************************************/
 /*
  */

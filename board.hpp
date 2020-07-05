@@ -56,13 +56,13 @@ public:
 
     void prepareLayer(std::string layername, std::shared_ptr<GerberImporter> importer,
                       std::shared_ptr<RoutingMill> manufacturer, bool backside);
-    void set_margins(double margins) { margin = margins;	}
+    void set_margins(double margins) { margin = margins; }
     coordinate_type_fp get_width();
     coordinate_type_fp get_height();
-    coordinate_type_fp get_min_x() {	return min_x; }
-    coordinate_type_fp get_max_x() {	return max_x; }
-    coordinate_type_fp get_min_y() {	return min_y; }
-    coordinate_type_fp get_max_y() {	return max_y; }
+    coordinate_type_fp get_min_x() { return min_x; }
+    coordinate_type_fp get_max_x() { return max_x; }
+    coordinate_type_fp get_min_y() { return min_y; }
+    coordinate_type_fp get_max_y() { return max_y; }
     double get_layersnum() {  return layers.size(); }
 
     std::vector<std::string> list_layers();
