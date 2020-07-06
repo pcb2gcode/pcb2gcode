@@ -40,6 +40,8 @@ using std::pair;
 
 #include "units.hpp"
 
+#include "bg_operators.hpp"
+
 const string autoleveller::callSubRepeat[] = {
  "o%3$d repeat [%2%]\n%4$s    o%1% call\n%4$so%3$d endrepeat\n",
  "M98 P%1% L%2%\n",
@@ -101,20 +103,20 @@ string autoleveller::getVarName( int i, int j )
     return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
-box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
+box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, multi_linestring_type_fp>>& toolpaths) {
   box_type_fp bounding_box = boost::geometry::make_inverse<box_type_fp>();
 
   for (const auto& toolpath : toolpaths) {
     for (const auto& linestring : toolpath.second) {
       boost::geometry::expand(bounding_box,
-                              boost::geometry::return_envelope<box_type_fp>(*linestring));
+                              boost::geometry::return_envelope<box_type_fp>(linestring));
     }
   }
 
   return bounding_box;
 }
 
-void autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>>& toolpaths) {
+void autoleveller::prepareWorkarea(const vector<pair<coordinate_type_fp, multi_linestring_type_fp>>& toolpaths) {
     box_type_fp workarea;
     double workareaLenX;
     double workareaLenY;
@@ -298,21 +300,21 @@ static inline T clamp(const T& x, const T& min_x, const T& max_x) {
   return std::max(min_x, std::min(x, max_x));
 }
 
-string autoleveller::interpolatePoint ( icoordpair point )
+string autoleveller::interpolatePoint ( point_type_fp point )
 {
     unsigned int xminindex;
     unsigned int yminindex;
     double x_minus_x0_rel;
     double y_minus_y0_rel;
 
-    xminindex = floor((point.first - startPointX) / XProbeDist);
+    xminindex = floor((point.x() - startPointX) / XProbeDist);
     xminindex = clamp(xminindex, 0U, numXPoints - 1);
 
-    yminindex = floor((point.second - startPointY) / YProbeDist);
+    yminindex = floor((point.y() - startPointY) / YProbeDist);
     yminindex = clamp(yminindex, 0U, numYPoints - 1);
 
-    x_minus_x0_rel = ( point.first - startPointX - xminindex * XProbeDist ) / XProbeDist;
-    y_minus_y0_rel = ( point.second - startPointY - yminindex * YProbeDist ) / YProbeDist;
+    x_minus_x0_rel = ( point.x() - startPointX - xminindex * XProbeDist ) / XProbeDist;
+    y_minus_y0_rel = ( point.y() - startPointY - yminindex * YProbeDist ) / YProbeDist;
 
     return str( format( "#1=[%3$s+[%1$s-%3$s]*%5$.5f]\n#2=[%4$s+[%2$s-%4$s]*%5$.5f]\n#3=[#1+[#2-#1]*%6$.5f]\n" ) %
                 getVarName( xminindex, yminindex + 1 ) %
@@ -322,37 +324,23 @@ string autoleveller::interpolatePoint ( icoordpair point )
                 y_minus_y0_rel % x_minus_x0_rel );
 }
 
-static inline icoordpair operator+(const icoordpair& a, const icoordpair& b) {
-  return icoordpair(a.first + b.first, a.second + b.second);
+
+static inline point_type_fp operator*(const point_type_fp& a, const point_type_fp& b) {
+  return point_type_fp(a.x() * b.x(), a.y() * b.y());
 }
 
-static inline icoordpair operator-(const icoordpair& a, const icoordpair& b) {
-  return icoordpair(a.first - b.first, a.second - b.second);
+static inline point_type_fp operator/(const point_type_fp& a, const point_type_fp& b) {
+  return point_type_fp(a.x() / b.x(), a.y() / b.y());
 }
 
-static inline icoordpair operator*(const icoordpair& a, const icoordpair& b) {
-  return icoordpair(a.first * b.first, a.second * b.second);
-}
 
-static inline icoordpair operator/(const icoordpair& a, const icoordpair& b) {
-  return icoordpair(a.first / b.first, a.second / b.second);
-}
-
-static inline icoordpair operator*(const icoordpair& a, const double& b) {
-  return icoordpair(a.first * b, a.second * b);
-}
-
-static inline icoordpair floor(const icoordpair& a) {
-  return icoordpair(floor(a.first), floor(a.second));
-}
-
-icoords partition_segment(const icoordpair& source, const icoordpair& dest,
-                         const icoordpair& grid_zero, const icoordpair& grid_width) {
+linestring_type_fp partition_segment(const point_type_fp& source, const point_type_fp& dest,
+                                     const point_type_fp& grid_zero, const point_type_fp& grid_width) {
   if (source == dest) {
     return {dest};
   }
   double current_progress = 0;
-  icoords points;
+  linestring_type_fp points;
   while (current_progress != 1) {
     const auto current = source + (dest - source) * current_progress;
     points.push_back(current);
@@ -360,15 +348,15 @@ icoords partition_segment(const icoordpair& source, const icoordpair& dest,
     const auto current_index = floor((current - grid_zero) / grid_width);
     double best_progress = 1;
     for (const auto& index_delta : {-1,0,1,2}) {
-      const auto new_point = (current_index + icoordpair(index_delta, index_delta)) * grid_width + grid_zero;
+      const auto new_point = (current_index + point_type_fp(index_delta, index_delta)) * grid_width + grid_zero;
       const auto new_progress = (new_point - source) / (dest - source);
-      if (new_progress.first > current_progress && new_progress.first < best_progress) {
+      if (new_progress.x() > current_progress && new_progress.x() < best_progress) {
         // This step gets us closer to the end yet moves the least amount in that direction.
-        best_progress = new_progress.first;
+        best_progress = new_progress.x();
       }
-      if (new_progress.second > current_progress && new_progress.second < best_progress) {
+      if (new_progress.y() > current_progress && new_progress.y() < best_progress) {
         // This step gets us closer to the end yet moves the least amount in that direction.
-        best_progress = new_progress.second;
+        best_progress = new_progress.y();
       }
     }
     current_progress = best_progress;
@@ -377,20 +365,20 @@ icoords partition_segment(const icoordpair& source, const icoordpair& dest,
   return points;
 }
 
-string autoleveller::addChainPoint (icoordpair point, double zwork) {
+string autoleveller::addChainPoint (point_type_fp point, double zwork) {
     string outputStr;
-    icoords subsegments;
-    icoords::const_iterator i;
+    linestring_type_fp subsegments;
+    linestring_type_fp::const_iterator i;
 
-    subsegments = partition_segment(lastPoint, point, icoordpair(startPointX, startPointY), icoordpair(XProbeDist, YProbeDist));
+    subsegments = partition_segment(lastPoint, point, point_type_fp(startPointX, startPointY), point_type_fp(XProbeDist, YProbeDist));
 
     if (software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3) {
       for( i = subsegments.begin() + 1; i != subsegments.end(); i++ )
-        outputStr += str( silent_format( callSub2[software] ) % g01InterpolatedNum % i->first % i->second % zwork);
+        outputStr += str( silent_format( callSub2[software] ) % g01InterpolatedNum % i->x() % i->y() % zwork);
     } else {
       for(i = subsegments.begin() + 1; i != subsegments.end(); i++) {
         outputStr += interpolatePoint( *i );
-        outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+%3$.5f]\n" ) % i->first % i->second % zwork);
+        outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+%3$.5f]\n" ) % i->x() % i->y() % zwork);
       }
     }
 
@@ -398,9 +386,10 @@ string autoleveller::addChainPoint (icoordpair point, double zwork) {
     return outputStr;
 }
 
-string autoleveller::g01Corrected (icoordpair point, double zwork) {
-    if( software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3 )
-        return str( silent_format( callSub2[software] ) % g01InterpolatedNum % point.first % point.second % zwork);
-    else
-        return interpolatePoint( point ) + "G01 Z[" + str(format("%.5f")%zwork) + "+#" + returnVar + "]\n";
+string autoleveller::g01Corrected (point_type_fp point, double zwork) {
+  if( software == Software::LINUXCNC || software == Software::MACH4 || software == Software::MACH3 ) {
+    return str( silent_format( callSub2[software] ) % g01InterpolatedNum % point.x() % point.y() % zwork);
+  } else {
+    return interpolatePoint( point ) + "G01 Z[" + str(format("%.5f")%zwork) + "+#" + returnVar + "]\n";
+  }
 }

@@ -343,8 +343,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("drill") > 0) {
         try
         {
-            icoordpair min;
-            icoordpair max;
+            point_type_fp min;
+            point_type_fp max;
 
             //Check if there are layers in "board"; if not, we have to compute
             //the size of the board now, based only on the size of the drill layer
@@ -356,13 +356,13 @@ void do_pcb2gcode(int argc, const char* argv[]) {
               if (!importer->load_file(vm["drill"].as<string>())) {
                 options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
               }
-                min = std::make_pair( importer->get_min_x(), importer->get_min_y() );
-                max = std::make_pair( importer->get_max_x(), importer->get_max_y() );
+                min = point_type_fp( importer->get_min_x(), importer->get_min_y() );
+                max = point_type_fp( importer->get_max_x(), importer->get_max_y() );
             }
             else
             {
-                min = std::make_pair( board->get_min_x(), board->get_min_y() );
-                max = std::make_pair( board->get_max_x(), board->get_max_y() );
+                min = point_type_fp( board->get_min_x(), board->get_min_y() );
+                max = point_type_fp( board->get_max_x(), board->get_max_y() );
             }
 
             ExcellonProcessor ep(vm, min, max);

@@ -26,6 +26,7 @@
 
 #include "common.hpp"
 #include "unique_codes.hpp"
+#include "geometry.hpp"
 
 class Tiling
 {
@@ -36,8 +37,8 @@ public:
         bool enabled;
         unsigned int tileX;
         unsigned int tileY;
-        double boardWidth;
-        double boardHeight;
+        coordinate_type_fp boardWidth;
+        coordinate_type_fp boardHeight;
         unsigned int forXNum;
         unsigned int forYNum;
     };
@@ -46,7 +47,7 @@ public:
     void header( std::ofstream &of );
     void footer( std::ofstream &of );
     static TileInfo generateTileInfo( const boost::program_options::variables_map& options,
-                                      double boardHeight, double boardWidth );
+                                      coordinate_type_fp boardHeight, coordinate_type_fp boardWidth );
 
     inline void setGCodeEnd( std::string _gCodeEnd )
     {

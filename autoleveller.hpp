@@ -49,7 +49,7 @@ public:
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
     // points; if it exceeds the maximum number of probe point it return false, otherwise it returns true
     // All the arguments must be in inches
-    void prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>>& toolpaths);
+    void prepareWorkarea(const std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>>& toolpaths);
 
     // header prints in of the header required for the probing (subroutines and probe calls for LinuxCNC,
     // only the probe calls for the other softwares)
@@ -60,14 +60,14 @@ public:
     // required number of points between the previous and the current point and it interpolates them too.
     // This function adds a new chain point. Always call setLastChainPoint before starting a new chain
     // (call it also for the 1st chain)
-    std::string addChainPoint(icoordpair point, double zwork);
+    std::string addChainPoint(point_type_fp point, double zwork);
 
     // g01Corrected interpolates only one point (without adding it to the chain), and it prints a G01 to that
     // position
-    std::string g01Corrected(icoordpair point, double zwork);
+    std::string g01Corrected(point_type_fp point, double zwork);
 
     // Set lastPoint as the last chain point. You can use this function when you want to start a new chain
-    inline void setLastChainPoint ( icoordpair lastPoint )
+    inline void setLastChainPoint ( point_type_fp lastPoint )
     {
         this->lastPoint = lastPoint;
     }
@@ -150,7 +150,7 @@ protected:
 
     std::string callSub2[3];
 
-    icoordpair lastPoint;
+    point_type_fp lastPoint;
 
     // footerNoIf prints the footer, regardless of the software
     void footerNoIf( std::ofstream &of );
@@ -161,10 +161,10 @@ protected:
 
     // interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
     // The result of the interpolation is saved in the parameter number RESULT_VAR
-    std::string interpolatePoint ( icoordpair point );
+    std::string interpolatePoint ( point_type_fp point );
 };
 
-icoords partition_segment(const icoordpair& source, const icoordpair& dest,
-                         const icoordpair& grid_zero, const icoordpair& grid_width);
+linestring_type_fp partition_segment(const point_type_fp& source, const point_type_fp& dest,
+                                     const point_type_fp& grid_zero, const point_type_fp& grid_width);
 
 #endif // AUTOLEVELLER_H

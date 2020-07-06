@@ -92,7 +92,7 @@ void Board::createLayers()
     if (outline != prepared_layers.cend()) {
       shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
       const auto& importer = get<0>(outline->second);
-      ivalue_t tool_diameter = outline_mill->tool_diameter;
+      coordinate_type_fp tool_diameter = outline_mill->tool_diameter;
       min_x = std::min(min_x, importer->get_min_x() - tool_diameter);
       max_x = std::max(max_x, importer->get_max_x() + tool_diameter);
       min_y = std::min(min_y, importer->get_min_y() - tool_diameter);
@@ -165,10 +165,6 @@ void Board::createLayers()
         }
       }
     }
-}
-
-vector<pair<coordinate_type_fp, vector<shared_ptr<icoords>>>> Board::get_toolpath(string layername) {
-  return layers[layername]->get_toolpaths();
 }
 
 /******************************************************************************/

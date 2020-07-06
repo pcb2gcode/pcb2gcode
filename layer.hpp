@@ -35,9 +35,9 @@ class Layer : private boost::noncopyable {
   Layer(const std::string& name, std::shared_ptr<Surface_vectorial> surface,
         std::shared_ptr<RoutingMill> manufacturer, bool backside);
 
-  std::vector<std::pair<coordinate_type_fp, std::vector<std::shared_ptr<icoords>>>> get_toolpaths();
+  std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpaths();
   std::shared_ptr<RoutingMill> get_manufacturer();
-  std::vector<size_t> get_bridges(std::shared_ptr<icoords> toolpath);
+  std::vector<size_t> get_bridges(linestring_type_fp& toolpath);
   std::string get_name() {
     return name;
   }
