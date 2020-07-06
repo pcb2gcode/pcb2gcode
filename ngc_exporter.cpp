@@ -153,32 +153,29 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
 
     auto current_bridge = bridges.cbegin();
 
+    bool in_bridge = false;
+    // Start at 1 because the caller already moved to the start.
     for (size_t current = 1; current < path.size(); current++) {
-      if (current_bridge != bridges.cend() && *current_bridge == current && z >= cutter->bridges_height) {
-        // We're about to cut to the start of a bridge but there is no need to
-        // stop there so let's just mill right across it.
-        current += 2;
+      while (current_bridge != bridges.cend() && *current_bridge < current - 1) {
         current_bridge++;
       }
       // We are now cutting to current.
       // Is this a bridge cut?
       auto is_bridge_cut = current_bridge != bridges.cend() && *current_bridge == current-1;
-      if (is_bridge_cut) {
-        // We're about to make a bridge cut so we need to go up.  (If we didn't
-        // need to, we would have skipped over it earlier.)
+      if (is_bridge_cut && z < cutter->bridges_height && !in_bridge) {
+        // We're about to make a bridge cut so we need to go up.
         of << "G00 Z" << cutter->bridges_height * cfactor << '\n';
+        in_bridge = true;
+      } else if (!is_bridge_cut && in_bridge) {
+        // Now plunge back down if needed.
+        of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
+        of << "G01 F" << cutter->feed * cfactor << '\n';
+        in_bridge = false;
       }
-
+      
       // Now cut horizontally.
       of << "G01 X" << (path.at(current).x() - xoffsetTot) * cfactor
          << " Y"    << (path.at(current).y() - yoffsetTot) * cfactor << '\n';
-
-      // Now plunge back down if needed.
-      if (is_bridge_cut) {
-        of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << '\n';
-        of << "G01 F" << cutter->feed * cfactor << '\n';
-        current_bridge++; // We're done with this bridge.
-      }
     }
   }
 }

@@ -81,10 +81,5 @@ vector<size_t> Layer::get_bridges(linestring_type_fp& toolpath) {
       cutter->bridges_num,
       cutter->bridges_width + cutter->tool_diameter );
 
-  if (bridges.size() != cutter->bridges_num) {
-    cerr << "Can't create " << cutter->bridges_num << " bridges on this layer, "
-        "only " << bridges.size() << " will be created." << endl;
-  }
-
   return bridges;
 }

@@ -929,10 +929,14 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
 // milling for thermal reliefs.  The voronoi is the shape that
 // encloses the input and outside which we have no need to mill
 // because that will be handled by another call to this function.  The
-// diameter is the diameter of the tool and the overlap is by how much each pass should overlap the prevoius pass.  Steps is
-// how many passes to do, including the first pass.  If do_voronoi is
-// true then isolation should be done from the voronoi region inward
-// instead of from the trace outward.  The offset is how far to kee away from any trace, useful if the milling bit has some diameter that it is guaranteed to mill but also some slop that causes it to sometimes mill beyond its diameter.
+// diameter is the diameter of the tool and the overlap is by how much
+// each pass should overlap the prevoius pass.  Steps is how many
+// passes to do, including the first pass.  If do_voronoi is true then
+// isolation should be done from the voronoi region inward instead of
+// from the trace outward.  The offset is how far to kee away from any
+// trace, useful if the milling bit has some diameter that it is
+// guaranteed to mill but also some slop that causes it to sometimes
+// mill beyond its diameter.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
