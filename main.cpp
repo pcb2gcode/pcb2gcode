@@ -133,6 +133,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             vm["post-milling-gcode"].as<vector<string>>(), "\n");
         isolator->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         isolator->spindown_time = spindown_time;
+        isolator->marlin_compatible = vm["marlin-compatible"].as<bool>();
     }
 
     shared_ptr<Cutter> cutter(new Cutter());
@@ -167,6 +168,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         cutter->bridges_height = vm["zbridges"].as<Length>().asInch(unit);
       else
         cutter->bridges_height = cutter->zsafe;
+      cutter->marlin_compatible = vm["marlin-compatible"].as<bool>();
     }
 
     shared_ptr<Driller> driller;
@@ -183,6 +185,9 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
         driller->spindown_time = spindown_time;
         driller->zchange = vm["zchange"].as<Length>().asInch(unit);
+        driller->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
+        driller->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
+        driller->marlin_compatible = vm["marlin-compatible"].as<bool>(); 
     }
 
     //---------------------------------------------------------------------------

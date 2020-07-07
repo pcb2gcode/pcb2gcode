@@ -334,7 +334,8 @@ options::options()
        ("preamble-text", po::value<string>(), "preamble text file, inserted at the very beginning as a comment.")
        ("preamble", po::value<string>(), "gcode preamble file, inserted at the very beginning.")
        ("postamble", po::value<string>(), "gcode postamble file, inserted before M9 and M2.")
-       ("no-export", po::value<bool>()->default_value(false)->implicit_value(true), "skip the exporting process");
+       ("no-export", po::value<bool>()->default_value(false)->implicit_value(true), "skip the exporting process")
+       ("marlin-compatible", po::value<bool>()->default_value(false), "emit Marlin-compatible gcode");
 }
 
 /******************************************************************************/
@@ -465,6 +466,22 @@ static void check_generic_parameters(po::variables_map const& vm)
     if (vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() != MillFeedDirection::ANY &&
         vm["tsp-2opt"].as<bool>()) {
       options::maybe_throw("Error: Can't use tsp-2opt together with mill-feed-direction", ERR_INVALIDPARAMETER);
+    }
+    if (vm["marlin-compatible"].as<bool>()){
+      // Toolhead control commands are omitted
+      // Need to have opted for 1 tool only in the following modes
+      if (vm.count("drill") && !vm.count("milldrill-diameter")){
+        // Must use milldrill in this mode
+        options::maybe_throw("Error: When in marlin-compatible mode, milldrill must be used", ERR_ONETOOL);
+      }
+
+      if (vm.count("back") || vm.count("front")) {
+        const auto & tool_diameters = flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>());
+        if (tool_diameters.size() > 1) {
+          // Must use exactly 1 tool in this mode
+          options::maybe_throw("Error: When in marlin-compatible mode, a single mill diameter must be specified", ERR_ONETOOL);
+        }
+      }
     }
 }
 
