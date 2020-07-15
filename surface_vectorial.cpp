@@ -251,10 +251,20 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   for (const auto& ls_and_allow_reversal : toolpath1) {
     combined_toolpath.push_back(ls_and_allow_reversal.first);
   }
-  if (tsp_2opt) {
-    tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
+  if (dynamic_pointer_cast<Isolator>(mill) != nullptr) {
+    if (tsp_2opt) {
+      tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
+    } else {
+      tsp_solver::nearest_neighbour(combined_toolpath, point_type_fp(0, 0));
+    }
   } else {
-    tsp_solver::nearest_neighbour(combined_toolpath, point_type_fp(0, 0));
+    // It's a cutter so do the cuts from shortest to longest.  This
+    // makes it very likely that the inside cuts will happen before
+    // the perimeter cut, which is best for stability of the PCB.
+    std::sort(combined_toolpath.begin(), combined_toolpath.end(),
+              [](const linestring_type_fp& lhs, const linestring_type_fp rhs) {
+                return bg::length(lhs) < bg::length(rhs);
+              });
   }
 
   if (mill->optimise) {
