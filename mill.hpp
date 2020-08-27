@@ -46,6 +46,9 @@ class Mill {
   double spindown_time;
   std::string pre_milling_gcode;
   std::string post_milling_gcode;
+  double g0_vertical_speed;
+  double g0_horizontal_speed;
+  bool marlin_compatible;
 };
 
 /******************************************************************************/
@@ -57,8 +60,6 @@ class RoutingMill: public Mill {
   double optimise;
   bool eulerian_paths;
   size_t path_finding_limit;
-  double g0_vertical_speed;
-  double g0_horizontal_speed;
   double backtrack;
   double stepsize;
   double offset;  // Stay away from the traces by this amount.

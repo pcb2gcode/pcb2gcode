@@ -34,6 +34,14 @@ using std::string;
 using std::cout;
 using std::endl;
 
+#include <sstream>
+using std::stringstream;
+
+#include <numeric>
+#include <iomanip>
+using std::setprecision;
+using std::fixed;
+
 #include <vector>
 using std::vector;
 
@@ -267,8 +275,10 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
          << "G20 ( Units == INCHES. )\n\n";
     }
 
-    of << "G90 ( Absolute coordinates. )\n"
-       << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
+    of << "G90 ( Absolute coordinates. )\n";
+    if (!layer->get_manufacturer()->marlin_compatible) {
+       of << "G00 S" << left << mill->speed << " ( RPM spindle speed. )\n";
+    }
 
     if (mill->explicit_tolerance) {
       of << "G64 P" << mill->tolerance * cfactor << " ( set maximum deviation from commanded toolpath )\n";
@@ -300,35 +310,49 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
         continue; // Nothing to do for this mill size.
       }
       Tiling tiling(tileInfo, cfactor, main_sub_ocodes.getUniqueCode());
-      tiling.setGCodeEnd(string("\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n")
-                         + (bZchangeG53 ? "G53 " : "") + "G00 Z" + str( format("%.6f") % ( mill->zchange * cfactor ) ) +
-                         " ( retract )\n\n" + postamble + "M5 ( Spindle off. )\nG04 P" +
-                         to_string(mill->spindown_time) + "\n");
 
-      // Start the new tool.
-      of << endl
-         << (bZchangeG53 ? "G53 " : "") << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)" << endl
-         << "T" << toolpaths_index << endl
-         << "M5      (Spindle stop.)" << endl
-         << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)" << endl;
-      if (cutter) {
-        of << "(MSG, Change tool bit to cutter diameter ";
-      } else if (isolator) {
-        of << "(MSG, Change tool bit to mill diameter ";
-      } else {
-        throw std::logic_error("Can't cast to Cutter nor Isolator.");
+      stringstream gcode_end;
+      gcode_end << setprecision(6) << fixed;
+      gcode_end << "\nG04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
+      if (bZchangeG53) {
+        gcode_end << "G53 ";
       }
-      const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
-      if (bMetricoutput) {
-        of << (tool_diameter * 25.4) << "mm)" << endl;
-      } else {
-        of << tool_diameter << "in)" << endl;
+      gcode_end << "G00 Z" << mill->zchange * cfactor << " ( retract )\n\n";
+      gcode_end << postamble;
+      if (!layer->get_manufacturer()->marlin_compatible) {
+        gcode_end << "M5 ( Spindle off. )\n";
+        gcode_end << "G04 P" << mill->spindown_time << '\n';
       }
-      of << "M6      (Tool change.)" << endl
-         << "M0      (Temporary machine stop.)" << endl
-         << "M3 ( Spindle on clockwise. )" << endl
-         << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << endl;
+      tiling.setGCodeEnd(gcode_end.str());
 
+      if (!layer->get_manufacturer()->marlin_compatible) {
+        // Start the new tool.
+        of << "\n"
+           << (bZchangeG53 ? "G53 " : "") << "G00 Z" << mill->zchange * cfactor << " (Retract to tool change height)\n"
+           << "T" << toolpaths_index << "\n"
+           << "M5      (Spindle stop.)\n"
+           << "G04 P" << mill->spindown_time << " (Wait for spindle to stop)\n";
+
+        if (cutter) {
+          of << "(MSG, Change tool bit to cutter diameter ";
+        } else if (isolator) {
+          of << "(MSG, Change tool bit to mill diameter ";
+        } else {
+          throw std::logic_error("Can't cast to Cutter nor Isolator.");
+        }
+
+        const auto& tool_diameter = all_toolpaths[toolpaths_index].first;
+        if (bMetricoutput) {
+          of << (tool_diameter * 25.4) << "mm)" << endl;
+        } else {
+          of << tool_diameter << "in)" << endl;
+        }
+
+        of << "M6      (Tool change.)" << endl
+           << "M0      (Temporary machine stop.)" << endl
+           << "M3 ( Spindle on clockwise. )" << endl
+           << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << endl;
+      }
       tiling.header( of );
 
       for( unsigned int i = 0; i < tileInfo.forYNum; i++ ) {
@@ -350,7 +374,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
             of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
             of << "G00 Z" << mill->zsafe * cfactor << " ( retract )" << endl << endl;
             of << "G00 X" << ( path.begin()->x() - xoffsetTot ) * cfactor << " Y"
-               << ( path.begin()->y() - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
+               << ( path.begin()->y() - yoffsetTot ) * cfactor;
+            if (layer->get_manufacturer()->marlin_compatible) {
+              of << " F" << mill->g0_horizontal_speed * cfactor;
+            }
+
+            of << " ( rapid move to begin. )\n";
 
             /* if we're cutting, perhaps do it in multiple steps, but do isolations just once.
              * i know this is partially repetitive, but this way it's easier to read
