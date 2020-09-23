@@ -2,7 +2,7 @@
 ( Software-independent Gcode )
 
 ( This file uses 1 drill bit sizes. )
-( Bit sizes: [0.015748 inch] )
+( Bit sizes: [0.015748inch] )
 
 G94       (Inches per minute feed rate.)
 G20       (Units == INCHES.)
@@ -14,7 +14,7 @@ G00 Z1.00000 (Retract)
 T1
 M5      (Spindle stop.)
 G04 P1.00000
-(MSG, Change tool bit to drill size 0.015748 inch)
+(MSG, Change tool bit to drill size 0.015748inch)
 M6      (Tool change.)
 M0      (Temporary machine stop.)
 M3      (Spindle on clockwise.)
