@@ -12,12 +12,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos]
-        boost: [1_60, 1_66]
+        boost: ['1_60', '1_66', '1_73']
         geos: ['3.8.1', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
-            boost: 1_66
+            boost: '1_60'
+          - os: macos
+            boost: '1_66'
+          - os: ubuntu
+            boost: '1_73'
           - os: macos
             compiler: 'g++-8'
         include:
@@ -62,10 +66,10 @@ jobs:
       if: matrix.os == 'macos'
       run: |
         brew update
-        brew upgrade python@2
+        brew upgrade python@3
         brew reinstall -s libtool
         brew unlink parallel
-        brew install boost@1.60 gtkmm moreutils gettext librsvg autoconf automake pkg-config
+        brew install boost@1.73 gtkmm moreutils gettext librsvg autoconf automake pkg-config
         brew upgrade wget
         hash -r
         ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize
@@ -76,6 +80,7 @@ jobs:
         echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
         echo "CPPFLAGS_gerbv=-DQUARTZ" >> $GITHUB_ENV
         echo "PATH=/usr/local/opt/gettext/bin:$PATH" >> $GITHUB_ENV
+        rm /usr/local/include/boost
     - name: Macos geos
       if: matrix.geos != 'none' && matrix.os == 'macos'
       run:
@@ -242,7 +247,8 @@ jobs:
     - name: Run integration tests
       if: matrix.boost == '1_66' && matrix.geos == '3.8.1'
       run: |
-        pip install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+        sudo apt-get install python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
     - name: Gather coverage
       if: matrix.code_coverage
