@@ -1,22 +1,25 @@
-#!/usr/bin/python
+#!/usr/bin/python3
+
+"""Run integration tests on pcb2gcode."""
 
 from __future__ import print_function
-import unittest2
-import subprocess
-import os
-import tempfile
-import shutil
+import argparse
+import collections
 import difflib
 import filecmp
-import sys
-import argparse
+import multiprocessing
+import os
 import re
-import collections
-import termcolor
+import shutil
+import subprocess
+import sys
+import tempfile
+import xml.etree.ElementTree
+
 import colour_runner.runner
 import in_place
-import xml.etree.ElementTree
-import multiprocessing
+import termcolor
+import unittest2
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -139,12 +142,13 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
 )
 
 def colored(text, **color):
+  """Colorize text if supported."""
   if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
     return termcolor.colored(text, **color)
-  else:
-    return text
+  return text
 
 class IntegrationTests(unittest2.TestCase):
+  """Run integration tests."""
   def rotate_pathstring(self, pathstring):
     """Parse a string representing an SVG path.
 
@@ -161,8 +165,11 @@ class IntegrationTests(unittest2.TestCase):
       (M) and the rest are absolute lineTo (L) until the next moveTo (M).
       """
       pathstring = pathstring[2:-3] # Remove the first M and the final z
-      paths = [[tuple(point.split(",")) for point in p.strip().split(" L ")] for p in pathstring.split("M ")]
-      # Now paths is a list.  Each element is an array of points.  Each point is a pair of strings, x,y.
+      paths = [[tuple(point.split(","))
+                for point in pathstring_text.strip().split(" L ")]
+               for pathstring_text in pathstring.split("M ")]
+      # Now paths is a list.  Each element is an array of points.
+      # Each point is a pair of strings, x,y.
       return paths
 
     def rotate_path(path):
@@ -178,7 +185,8 @@ class IntegrationTests(unittest2.TestCase):
 
     def paths_to_string(paths):
       """Return the path string that represents these paths."""
-      return "M " + "M ".join(" L ".join(','.join(point) for point in path) for path in paths) + " z "
+      return "M " + "M ".join(" L ".join(','.join(point) for point in path)
+                              for path in paths) + " z "
     self.assertEqual(pathstring, paths_to_string(string_to_paths(pathstring)))
     return paths_to_string(rotate_path(p) for p in string_to_paths(pathstring))
 
@@ -199,26 +207,26 @@ class IntegrationTests(unittest2.TestCase):
       while width < 1000 or height < 1000:
         width *= 10
         height *= 10
-      return 'width="' + str(width) + '" height="' + str(height) + '" '
-    for root, subdirs, files in os.walk(path):
+      return 'width="{:.12g}" height="{:.12g}" '.format(width, height)
+    for root, _, files in os.walk(path):
       for current_file in files:
-        with in_place.InPlace(os.path.join(root, current_file)) as f:
-          for line in f:
+        with in_place.InPlace(os.path.join(root, current_file)) as svg_file:
+          for line in svg_file:
             if line.startswith("<svg"):
-              f.write("<!-- original:\n" +
-                      line +
-                      "-->\n" +
-                      re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
-                             bigger,
-                             line))
+              svg_file.write("<!-- original:\n" +
+                             line +
+                             "-->\n" +
+                             re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
+                                    bigger,
+                                    line))
             elif line.startswith('<g fill-rule="evenodd"><path d="M '):
               etree = xml.etree.ElementTree.fromstring(line)
               pathstring = etree[0].attrib['d']
-              f.write(line.replace(pathstring, self.rotate_pathstring(pathstring)))
+              svg_file.write(line.replace(pathstring, self.rotate_pathstring(pathstring)))
             else:
-              f.write(line)
+              svg_file.write(line)
 
-  def pcb2gcode_one_directory(self, input_path, cwd, args=[], exit_code=0):
+  def pcb2gcode_one_directory(self, input_path, cwd, args=None, exit_code=0):
     """Run pcb2gcode once in one directory.
 
     Current working directory remains unchanged at the end.
@@ -230,11 +238,11 @@ class IntegrationTests(unittest2.TestCase):
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
     try:
-      cmd = [pcb2gcode, "--output-dir", actual_output_path] + args
+      cmd = [pcb2gcode, "--output-dir", actual_output_path] + (args or [])
       print("Running {}".format(" ".join("'{}'".format(x) for x in cmd)))
-      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-      result = p.communicate()
-      self.assertEqual(p.returncode, exit_code)
+      proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      result = proc.communicate()
+      self.assertEqual(proc.returncode, exit_code)
       self.fix_up_expected(actual_output_path)
     finally:
       print(result[0], file=sys.stderr)
@@ -326,6 +334,9 @@ class IntegrationTests(unittest2.TestCase):
     diff_text = self.run_one_directory(input_path, cwd, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
     self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
+def cmp(x,y):
+  return (x>y) - (x<y)
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Integration test of pcb2gcode.')
   parser.add_argument('--fix', action='store_true', dest='fix',
@@ -356,19 +367,19 @@ if __name__ == '__main__':
     output = None
     try:
       subprocess.check_output(sys.argv + ['--no-fix'], stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
-      output = str(e.output)
+    except subprocess.CalledProcessError as e:
+      output = e.output
     if not output:
       print("No diffs, nothing to do.")
       exit(0)
     p = subprocess.Popen(["patch", "-p1"], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     result = p.communicate(input=output)
     files_patched = []
-    for l in result[0].split('\n'):
-      if l.startswith("patching file '"):
-        files_patched.append(l[len("patching file '"):-1])
-      elif l.startswith("patching file "):
-        files_patched.append(l[len("patching file "):])
+    for l in result[0].split(b'\n'):
+      if l.startswith(b"patching file '"):
+        files_patched.append(str(l[len("patching file '"):-1]))
+      elif l.startswith(b"patching file "):
+        files_patched.append(str(l[len("patching file "):]))
     print(result[0])
     if args.add:
       subprocess.call(["git", "add"] + files_patched)

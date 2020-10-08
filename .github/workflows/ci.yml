@@ -12,12 +12,16 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos]
-        boost: [1_60, 1_66]
+        boost: ['1_60', '1_66', '1_73']
         geos: ['3.8.1', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
-            boost: 1_66
+            boost: '1_60'
+          - os: macos
+            boost: '1_66'
+          - os: ubuntu
+            boost: '1_73'
           - os: macos
             compiler: 'g++-8'
         include:
@@ -37,20 +41,20 @@ jobs:
       run: |
         mkdir -p $HOME/.local/bin
         mkdir -p $HOME/.local/lib/pkgconfig
-        echo "::set-env name=PKG_CONFIG_PATH::$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH"
-        echo "::set-env name=LD_LIBRARY_PATH::$HOME/.local/lib:$LD_LIBRARY_PATH"
-        echo "::set-env name=PATH::$HOME/.local/bin:$PATH"
+        echo "PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
     - name: Linux specific setup
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
-        echo "::set-env name=NUM_CPUS::$((`nproc --all` * 4))"
+        echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
     - name: Set clang as default compiler
       if: matrix.compiler == 'clang++'
       run: |
-        echo "::set-env name=CC::`which clang`"
-        echo "::set-env name=CXX::`which clang++`"
+        echo "CC=`which clang`" >> $GITHUB_ENV
+        echo "CXX=`which clang++`" >> $GITHUB_ENV
     - name: g++-8 specific setup
       if: matrix.compiler == 'g++-8'
       run: |
@@ -62,20 +66,21 @@ jobs:
       if: matrix.os == 'macos'
       run: |
         brew update
-        brew upgrade python@2
+        brew upgrade python@3
         brew reinstall -s libtool
         brew unlink parallel
-        brew install boost@1.60 gtkmm moreutils gettext librsvg autoconf automake pkg-config
+        brew install boost@1.73 gtkmm moreutils gettext librsvg autoconf automake pkg-config
         brew upgrade wget
         hash -r
         ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize
         ln -f -s `which glibtool` $HOME/.local/bin/libtool
         hash -r
-        echo "::set-env name=BOOST_ROOT::/usr/local/opt/boost@1.60"
-        echo "::set-env name=NUM_CPUS::$((`sysctl -n hw.logicalcpu` * 4))"
-        echo "::set-env name=PKG_CONFIG_PATH::$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig"
-        echo "::set-env name=CPPFLAGS_gerbv::-DQUARTZ"
-        echo "::set-env name=PATH::/usr/local/opt/gettext/bin:$PATH"
+        echo "BOOST_ROOT=/usr/local/opt/boost@1.73" >> $GITHUB_ENV
+        echo "NUM_CPUS=$((`sysctl -n hw.logicalcpu` * 4))" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
+        echo "CPPFLAGS_gerbv=-DQUARTZ" >> $GITHUB_ENV
+        echo "PATH=/usr/local/opt/gettext/bin:$PATH" >> $GITHUB_ENV
+        rm /usr/local/include/boost
     - name: Macos geos
       if: matrix.geos != 'none' && matrix.os == 'macos'
       run:
@@ -106,7 +111,7 @@ jobs:
           popd
           popd
         fi
-        echo "::set-env name=BOOST_ROOT::$(echo ${HOME}/.local)"
+        echo "BOOST_ROOT=$(echo ${HOME}/.local)" >> $GITHUB_ENV
     - name: Build and install geos
       if: matrix.os == 'ubuntu' && matrix.geos != 'none'
       env:
@@ -242,7 +247,8 @@ jobs:
     - name: Run integration tests
       if: matrix.boost == '1_66' && matrix.geos == '3.8.1'
       run: |
-        pip install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+        sudo apt-get install python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
     - name: Gather coverage
       if: matrix.code_coverage
