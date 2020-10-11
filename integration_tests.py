@@ -377,10 +377,10 @@ if __name__ == '__main__':
     files_patched = []
     for l in result[0].split(b'\n'):
       if l.startswith(b"patching file '"):
-        files_patched.append(str(l[len("patching file '"):-1]))
+        files_patched.append(l[len("patching file '"):-1].decode())
       elif l.startswith(b"patching file "):
-        files_patched.append(str(l[len("patching file "):]))
-    print(result[0])
+        files_patched.append(l[len("patching file "):].decode())
+    print(result[0].decode())
     if args.add:
       subprocess.call(["git", "add"] + files_patched)
       print("Done.\nAdded to git:\n" +
