@@ -1,7 +1,7 @@
 ( pcb2gcode 2.1.0 )
 ( Software-independent Gcode )
 ( This file uses a mill head of 0.10000inch to drill the 3 hole sizes. )
-( Hole sizes: [0.015748 inch] [0.0394094 inch] [0.11811 inch] )
+( Hole sizes: [0.015748inch] [0.0394094inch] [0.11811inch] )
 
 G94       (Inches per minute feed rate.)
 G20       (Units == INCHES.)

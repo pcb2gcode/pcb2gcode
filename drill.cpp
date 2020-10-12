@@ -172,7 +172,7 @@ string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     }
     auto unit = bMetricOutput ? "mm" : "inch";
     std::ostringstream ss;
-    ss << diameter << " " << unit;
+    ss << diameter << unit;
     return ss.str();
 }
 

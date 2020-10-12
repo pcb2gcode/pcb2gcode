@@ -13,7 +13,7 @@ G53 G00 Z25.40000 (Retract)
 T1
 M5      (Spindle stop.)
 G04 P1.00000
-(MSG, Change tool bit to drill size 0.4064 mm)
+(MSG, Change tool bit to drill size 0.4064mm)
 M6      (Tool change.)
 M0      (Temporary machine stop.)
 M3      (Spindle on clockwise.)
