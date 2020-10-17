@@ -52,6 +52,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "invert_gerbers_fill",
                   "KNoT-Gateway Mini Starter Board",
                   "KNoT_Thing_Starter_Board",
+                  "lift-mill",
                   "mill_masking",
                   "mill_masking_voronoi",
                   "milldrilldiatest",

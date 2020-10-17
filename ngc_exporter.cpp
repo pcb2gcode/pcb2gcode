@@ -23,6 +23,7 @@
 #include "ngc_exporter.hpp"
 #include "options.hpp"
 #include <boost/algorithm/string.hpp>
+#include "bg_operators.hpp"
 #include <iostream>
 using std::cerr;
 using std::flush;
@@ -147,6 +148,14 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
   for (unsigned int i = 0; i < steps_num; i++) {
     const double z = cutter->zwork / steps_num * (i + 1);
 
+    /* Lift between steps if this is not the first pass and the path
+       is not a closed loop. */
+    if (i > 0 && path.front() != path.back()) {
+      of << "G00 Z" << cutter->zsafe * cfactor << " ( retract )\n";
+      of << "G00 X" << ( path.begin()->x() - xoffsetTot ) * cfactor << " Y"
+         << ( path.begin()->y() - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
+    }
+
     of << "G01 Z" << z * cfactor << " F" << cutter->vertfeed * cfactor << " ( plunge. )\n";
     of << "G04 P0 ( dwell for no time -- G64 should not smooth over this point )\n";
     of << "G01 F" << cutter->feed * cfactor << "\n";
@@ -172,7 +181,7 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
         of << "G01 F" << cutter->feed * cfactor << '\n';
         in_bridge = false;
       }
-      
+
       // Now cut horizontally.
       of << "G01 X" << (path.at(current).x() - xoffsetTot) * cfactor
          << " Y"    << (path.at(current).y() - yoffsetTot) * cfactor << '\n';
@@ -196,6 +205,15 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
     const double z = mill->zwork / steps_num * (i + 1);
     linestring_type_fp::const_iterator iter = path.cbegin();
     of << "( Mill infeed pass " << i+1 << "/" << steps_num << " )\n";
+
+    /* Lift between steps if this is not the first pass and the path
+       is not a closed loop. */
+    if (i > 0 && path.front() != path.back()) {
+      of << "G00 Z" << mill->zsafe * cfactor << " ( retract )\n";
+      of << "G00 X" << ( path.begin()->x() - xoffsetTot ) * cfactor << " Y"
+         << ( path.begin()->y() - yoffsetTot ) * cfactor << " ( rapid move to begin. )\n";
+    }
+
     if (leveller) {
       leveller->setLastChainPoint(point_type_fp((path.begin()->x() - xoffsetTot) * cfactor,
                                                 (path.begin()->y() - yoffsetTot) * cfactor));
