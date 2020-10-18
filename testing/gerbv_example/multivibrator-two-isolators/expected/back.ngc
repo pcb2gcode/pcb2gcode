@@ -721,12 +721,6 @@ G01 X-4.56107 Y-3.09427
 G01 X-4.63336 Y-3.02198
 G01 X-4.63394 Y-3.02197
 
-G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z1.000000 ( retract )
-
-M5 ( Spindle off. )
-G04 P1.000000
-
 G00 Z1.00000 (Retract to tool change height)
 T1
 M5      (Spindle stop.)
