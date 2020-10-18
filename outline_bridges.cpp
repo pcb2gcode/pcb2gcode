@@ -202,7 +202,7 @@ static inline vector<double> min_distance_to_clique(point_type_fp point,
  *
  * Returns the positions in path of the segments that need to be modified.
  */
-static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t number) {
+static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t number, double length) {
   if (number < 1) {
     return {};
   }
@@ -210,9 +210,23 @@ static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t num
   // All the potential bridge segments and their locations.
   map<size_t, point_type_fp> candidates;
   for (size_t i = 0; i < path.size() - 1; i++) {
+    auto current_distance = bg::distance(path.at(i), path.at(i+1));
+    if (current_distance < length) {
+      continue;
+    }
     candidates[i] = intermediatePoint(path.at(i),
                                       path.at(i + 1),
                                       0.5);
+  }
+  if (candidates.size() < number) {
+    // We didn't find enough places to put bridges with the length
+    // restriction so try again but this time allow small edges, too.
+    candidates.clear();
+    for (size_t i = 0; i < path.size() - 1; i++) {
+      candidates[i] = intermediatePoint(path.at(i),
+                                        path.at(i + 1),
+                                        0.5);
+    }
   }
 
   // Make a set of bridges that we will output.  They must be unique.  For now
@@ -262,7 +276,7 @@ static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t num
 }
 
 vector<size_t> makeBridges(linestring_type_fp& path, size_t number, double length) {
-  return insertBridges(path, findBridgeSegments(path, number), length);
+  return insertBridges(path, findBridgeSegments(path, number, length), length);
 }
 
 } // namespace outline_bridges
