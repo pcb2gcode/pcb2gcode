@@ -41,16 +41,16 @@ BOOST_AUTO_TEST_CASE(rectangle) {
   linestring_type_fp path{{0,0}, {0,1}, {10,1}, {10,0}, {0,0}};
   auto ret = makeBridges(path, 2, 2);
 
-  vector<size_t> expected_ret{0,1,3,4,5,7,8};
+  vector<size_t> expected_ret{2,6};
   linestring_type_fp expected_path{
     {0,0},
     {0,1},
-    {0.5,1},
-    {9.5,1},
+    {4,1},
+    {6,1},
     {10,1},
     {10,0},
-    {9.5,0},
-    {0.5,0},
+    {6,0},
+    {4,0},
     {0,0},
   };
   BOOST_CHECK_EQUAL(ret, expected_ret);
