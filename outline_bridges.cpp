@@ -106,25 +106,22 @@ static list<point_type_fp>::const_iterator insertPoint(list<point_type_fp>& path
  */
 static vector<size_t> insertBridges(linestring_type_fp& path, const set<size_t>& bridges, double length) {
   list<point_type_fp> path_list(path.cbegin(), path.cend());
-  set<list<point_type_fp>::const_iterator> bridge_pointers;
+  set<pair<list<point_type_fp>::const_iterator, double>> bridge_pointers;
   {
     auto p = path_list.cbegin();
     size_t i = 0;
     for (; p != path_list.cend(); i++, p++) {
       if (bridges.count(i) > 0) {
-        bridge_pointers.insert(p);
+        bridge_pointers.insert(make_pair(p, bg::distance(path.at(i), path.at(i+1))));
       }
     }
   }
 
   set<list<point_type_fp>::const_iterator> bridge_segments;
   for(const auto& bridge_pointer : bridge_pointers) {
-    auto segment_start = *bridge_pointer;
-    auto segment_end = *std::next(bridge_pointer);
-    auto segment_length = bg::distance(segment_start, segment_end);
     //Insert the bridges in the path.
-    auto bridge_start = insertPoint(path_list, bridge_pointer, segment_length/2 - length/2);
-    auto bridge_end = insertPoint(path_list, bridge_pointer, segment_length/2 + length/2);
+    auto bridge_start = insertPoint(path_list, bridge_pointer.first, bridge_pointer.second/2 - length/2);
+    auto bridge_end = insertPoint(path_list, bridge_pointer.first, bridge_pointer.second/2 + length/2);
     for (auto seg = bridge_start; seg != bridge_end; seg++) {
       if (seg == path_list.cend()) {
         seg = path_list.cbegin();
