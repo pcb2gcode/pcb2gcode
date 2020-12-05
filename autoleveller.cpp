@@ -326,18 +326,19 @@ string autoleveller::interpolatePoint ( point_type_fp point )
 
             // If `point` is on top of a measurement point, just copy
             // the measured height over
-            return str( format( "#3=%1$s\n" ) %
-                        getVarName( xminindex, yminindex ) );
+            return str( format( "#%2$s=%1$s\n" ) %
+                        getVarName( xminindex, yminindex ) %
+						returnVar );
 
         } else {
 
             // If `point` has the same y coordinate as a row of points,
             // interpolate between the points to the left and right of
             // it
-            return str( format( "#3=[%1$s+[%2$s-%1$s]*%3$.5f]\n" ) %
+            return str( format( "#%4$s=[%1$s+[%2$s-%1$s]*%3$.5f]\n" ) %
                         getVarName( xminindex, yminindex ) %
                         getVarName( xminindex + 1, yminindex ) %
-                        x_minus_x0_rel );
+                        x_minus_x0_rel % returnVar );
 
         }
 
@@ -347,21 +348,22 @@ string autoleveller::interpolatePoint ( point_type_fp point )
 
             // If `point` has the same x coordinate as a column of
             // points, interpolate between the points above and below it
-            return str( format( "#3=[%2$s+[%1$s-%2$s]*%3$.5f]\n" ) %
+            return str( format( "#%4$s=[%2$s+[%1$s-%2$s]*%3$.5f]\n" ) %
                         getVarName( xminindex, yminindex + 1 ) %
                         getVarName( xminindex, yminindex ) %
-                        y_minus_y0_rel );
+                        y_minus_y0_rel % returnVar );
 
         } else {
 
             // ...else use bilinear interpolation between all four
             // points around it
-            return str( format( "#1=[%3$s+[%1$s-%3$s]*%5$.5f]\n#2=[%4$s+[%2$s-%4$s]*%5$.5f]\n#3=[#1+[#2-#1]*%6$.5f]\n" ) %
+            return str( format( "#%7$s=[%3$s+[%1$s-%3$s]*%5$.5f]\n#%8$s=[%4$s+[%2$s-%4$s]*%5$.5f]\n#%9$s=[#%7$s+[#%8$s-#%7$s]*%6$.5f]\n" ) %
                         getVarName( xminindex, yminindex + 1 ) %
                         getVarName( xminindex + 1, yminindex + 1 ) %
                         getVarName( xminindex, yminindex ) %
                         getVarName( xminindex + 1, yminindex ) %
-                        y_minus_y0_rel % x_minus_x0_rel );
+                        y_minus_y0_rel % x_minus_x0_rel % 
+                        globalVar4 % globalVar5 % returnVar );
 
         }
 
@@ -423,7 +425,7 @@ string autoleveller::addChainPoint (point_type_fp point, double zwork) {
     } else {
       for(i = subsegments.begin() + 1; i != subsegments.end(); i++) {
         outputStr += interpolatePoint( *i );
-        outputStr += str( format( "X%1$.5f Y%2$.5f Z[#3+%3$.5f]\n" ) % i->x() % i->y() % zwork);
+        outputStr += str( format( "X%1$.5f Y%2$.5f Z[#%4$s+%3$.5f]\n" ) % i->x() % i->y() % zwork % returnVar );
       }
     }
 
