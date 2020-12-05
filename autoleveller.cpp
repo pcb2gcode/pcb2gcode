@@ -307,21 +307,66 @@ string autoleveller::interpolatePoint ( point_type_fp point )
     double x_minus_x0_rel;
     double y_minus_y0_rel;
 
+    // Calculate point index for measurement point below and to the left
+    // of `point`
     xminindex = floor((point.x() - startPointX) / XProbeDist);
     xminindex = clamp(xminindex, 0U, numXPoints - 1);
 
     yminindex = floor((point.y() - startPointY) / YProbeDist);
     yminindex = clamp(yminindex, 0U, numYPoints - 1);
 
+    // Get fraction of the distance to the next measurement point up and
+    // to the left that `point` is.
     x_minus_x0_rel = ( point.x() - startPointX - xminindex * XProbeDist ) / XProbeDist;
     y_minus_y0_rel = ( point.y() - startPointY - yminindex * YProbeDist ) / YProbeDist;
 
-    return str( format( "#1=[%3$s+[%1$s-%3$s]*%5$.5f]\n#2=[%4$s+[%2$s-%4$s]*%5$.5f]\n#3=[#1+[#2-#1]*%6$.5f]\n" ) %
-                getVarName( xminindex, yminindex + 1 ) %
-                getVarName( xminindex + 1, yminindex + 1 ) %
-                getVarName( xminindex, yminindex ) %
-                getVarName( xminindex + 1, yminindex ) %
-                y_minus_y0_rel % x_minus_x0_rel );
+    if ( y_minus_y0_rel == 0 ) {
+
+        if ( x_minus_x0_rel == 0 ) {
+
+            // If `point` is on top of a measurement point, just copy
+            // the measured height over
+            return str( format( "#3=%1$s\n" ) %
+                        getVarName( xminindex, yminindex ) );
+
+        } else {
+
+            // If `point` has the same y coordinate as a row of points,
+            // interpolate between the points to the left and right of
+            // it
+            return str( format( "#3=[%1$s+[%2$s-%1$s]*%3$.5f]\n" ) %
+                        getVarName( xminindex, yminindex ) %
+                        getVarName( xminindex + 1, yminindex ) %
+                        x_minus_x0_rel );
+
+        }
+
+    } else {
+
+        if ( x_minus_x0_rel == 0 ) {
+
+            // If `point` has the same x coordinate as a column of
+            // points, interpolate between the points above and below it
+            return str( format( "#3=[%2$s+[%1$s-%2$s]*%3$.5f]\n" ) %
+                        getVarName( xminindex, yminindex + 1 ) %
+                        getVarName( xminindex, yminindex ) %
+                        y_minus_y0_rel );
+
+        } else {
+
+            // ...else use bilinear interpolation between all four
+            // points around it
+            return str( format( "#1=[%3$s+[%1$s-%3$s]*%5$.5f]\n#2=[%4$s+[%2$s-%4$s]*%5$.5f]\n#3=[#1+[#2-#1]*%6$.5f]\n" ) %
+                        getVarName( xminindex, yminindex + 1 ) %
+                        getVarName( xminindex + 1, yminindex + 1 ) %
+                        getVarName( xminindex, yminindex ) %
+                        getVarName( xminindex + 1, yminindex ) %
+                        y_minus_y0_rel % x_minus_x0_rel );
+
+        }
+
+    }
+
 }
 
 
