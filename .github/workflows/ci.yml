@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - master
+  schedule:
+    - cron: '5 4 * * 1'
 
 jobs:
   build-and-test:
@@ -12,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos]
-        boost: ['1_60', '1_66', '1_73']
+        boost: ['1_60', '1_66', '1_74']
         geos: ['3.8.1', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
@@ -21,7 +23,7 @@ jobs:
           - os: macos
             boost: '1_66'
           - os: ubuntu
-            boost: '1_73'
+            boost: '1_74'
           - os: macos
             compiler: 'g++-8'
         include:
@@ -69,13 +71,13 @@ jobs:
         brew upgrade python@3
         brew reinstall -s libtool
         brew unlink parallel
-        brew install boost@1.73 gtkmm moreutils gettext librsvg autoconf automake pkg-config
+        brew install boost@1.74 gtkmm moreutils gettext librsvg autoconf automake pkg-config
         brew upgrade wget
         hash -r
         ln -f -s `which glibtoolize` $HOME/.local/bin/libtoolize
         ln -f -s `which glibtool` $HOME/.local/bin/libtool
         hash -r
-        echo "BOOST_ROOT=/usr/local/opt/boost@1.73" >> $GITHUB_ENV
+        echo "BOOST_ROOT=/usr/local/opt/boost@1.74" >> $GITHUB_ENV
         echo "NUM_CPUS=$((`sysctl -n hw.logicalcpu` * 4))" >> $GITHUB_ENV
         echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
         echo "CPPFLAGS_gerbv=-DQUARTZ" >> $GITHUB_ENV
