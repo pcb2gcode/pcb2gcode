@@ -773,13 +773,8 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
       auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + mill->offset);
-      multi_polygon_type_fp keep_in;
-      if (mask) {
-        keep_in = mask->vectorial_surface->first;
-      } else {
-        bg::convert(bounding_box, keep_in);
-      }
-      auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
+
+      auto path_finding_surface = path_finding::create_path_finding_surface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, mill->tolerance);
       // Find if a distance between two points should be milled or retract, move
       // fast, and plunge.  Milling is chosen if it's faster and also the path is
       // entirely within the path_finding_surface.  If it's not faster or the path
@@ -860,6 +855,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
             bg_helpers::buffer(combined_trace_toolpath, tool_diameter/2);
         already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
       }
+
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);

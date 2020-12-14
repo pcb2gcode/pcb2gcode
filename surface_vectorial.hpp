@@ -38,6 +38,7 @@
 #include "gerberimporter.hpp"
 #include "voronoi.hpp"
 #include "units.hpp"
+#include "path_finding.hpp"
 
 class Surface_vectorial: private boost::noncopyable {
  public:
