@@ -21,7 +21,7 @@ typedef std::function<bool(const point_type_fp& target, const coordinate_type_fp
 // keep_out.  If those are missing, they are ignored.  The tolerance should be a
 // small epsilon value.
 const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
-    const multi_polygon_type_fp& keep_in,
+    const boost::optional<multi_polygon_type_fp>& keep_in,
     const multi_polygon_type_fp& keep_out,
     const coordinate_type_fp tolerance);
 

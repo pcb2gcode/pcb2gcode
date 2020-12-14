@@ -56,6 +56,29 @@ BOOST_AUTO_TEST_CASE(box) {
   BOOST_CHECK_EQUAL(ret, make_optional(expected));
 }
 
+BOOST_AUTO_TEST_CASE(box_no_keep_in) {
+  ring_type_fp box;
+  box.push_back(point_type_fp(3,3));
+  box.push_back(point_type_fp(3,7));
+  box.push_back(point_type_fp(7,7));
+  box.push_back(point_type_fp(8,3));
+  box.push_back(point_type_fp(3,3));
+  polygon_type_fp poly;
+  poly.outer() = box;
+  multi_polygon_type_fp keep_out;
+  keep_out.push_back(poly);
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
+  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10), nullptr);
+
+  linestring_type_fp expected;
+  expected.push_back(point_type_fp(0, 0));
+  expected.push_back(point_type_fp(3, 7));
+  expected.push_back(point_type_fp(10, 10));
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
 BOOST_AUTO_TEST_CASE(unreachable_box) {
   ring_type_fp box;
   box.push_back(point_type_fp(3,3));
