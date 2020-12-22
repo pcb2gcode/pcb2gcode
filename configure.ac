@@ -21,7 +21,7 @@ AC_PROG_CC
 AC_PROG_LIBTOOL
 
 # Check for C++11
-AX_CXX_COMPILE_STDCXX_11
+AX_CXX_COMPILE_STDCXX_14
 
 # As reported here https://svn.boost.org/trac/boost/ticket/9240,
 # Boost requires -fext-numeric-literals when built with C++11
