@@ -53,52 +53,66 @@ bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygo
 namespace boost { namespace geometry { namespace model { namespace d2 {
 
 template <typename T>
-bool operator<(
+extern inline bool operator<(
     const boost::geometry::model::d2::point_xy<T>& x,
-    const boost::geometry::model::d2::point_xy<T>& y);
+    const boost::geometry::model::d2::point_xy<T>& y) {
+  return std::tie(x.x(), x.y()) < std::tie(y.x(), y.y());
+}
 
 template <typename T>
-boost::geometry::model::d2::point_xy<T> operator-(
+extern inline boost::geometry::model::d2::point_xy<T> operator-(
     const boost::geometry::model::d2::point_xy<T>& lhs,
-    const boost::geometry::model::d2::point_xy<T>& rhs);
+    const boost::geometry::model::d2::point_xy<T>& rhs) {
+  return {lhs.x()-rhs.x(), lhs.y()-rhs.y()};
+}
 
 template <typename T>
-boost::geometry::model::d2::point_xy<T> operator+(
+extern inline boost::geometry::model::d2::point_xy<T> operator+(
     const boost::geometry::model::d2::point_xy<T>& lhs,
-    const boost::geometry::model::d2::point_xy<T>& rhs);
+    const boost::geometry::model::d2::point_xy<T>& rhs) {
+  return {lhs.x()+rhs.x(), lhs.y()+rhs.y()};
+}
 
 template <typename T, typename S>
-boost::geometry::model::d2::point_xy<T> operator/(
+extern inline boost::geometry::model::d2::point_xy<T> operator/(
     const boost::geometry::model::d2::point_xy<T>& lhs,
-    const S& rhs);
+    const S& rhs) {
+  return {lhs.x()/static_cast<T>(rhs), lhs.y()/static_cast<T>(rhs)};
+}
 
 template <typename T, typename S>
-boost::geometry::model::d2::point_xy<T> operator*(
+extern inline boost::geometry::model::d2::point_xy<T> operator*(
     const boost::geometry::model::d2::point_xy<T>& lhs,
-    const S& rhs);
+    const S& rhs) {
+  return {lhs.x()*static_cast<T>(rhs), lhs.y()*static_cast<T>(rhs)};
+}
 
-static inline point_type_fp floor(const point_type_fp& a) {
+template <typename T>
+extern inline bool operator==(
+    const boost::geometry::model::d2::point_xy<T>& x,
+    const boost::geometry::model::d2::point_xy<T>& y) {
+  return std::tie(x.x(), x.y()) == std::tie(y.x(), y.y());
+}
+
+template <typename T>
+extern inline bool operator!=(
+    const boost::geometry::model::d2::point_xy<T>& x,
+    const boost::geometry::model::d2::point_xy<T>& y) {
+  return std::tie(x.x(), x.y()) != std::tie(y.x(), y.y());
+}
+
+extern inline point_type_fp floor(const point_type_fp& a) {
   return point_type_fp(std::floor(a.x()), std::floor(a.y()));
 }
 
 template <typename T>
-bool operator==(
-    const boost::geometry::model::d2::point_xy<T>& x,
-    const boost::geometry::model::d2::point_xy<T>& y);
-
-template <typename T>
-bool operator!=(
-    const boost::geometry::model::d2::point_xy<T>& x,
-    const boost::geometry::model::d2::point_xy<T>& y);
-
-template <typename T>
-static std::ostream& operator<<(std::ostream& out, const bg::model::d2::point_xy<T>& t) {
+extern inline std::ostream& operator<<(std::ostream& out, const bg::model::d2::point_xy<T>& t) {
   out << bg::wkt(t);
   return out;
 }
 
 template <typename T>
-static std::ostream& operator<<(std::ostream& out, const bg::model::linestring<T>& t) {
+extern inline std::ostream& operator<<(std::ostream& out, const bg::model::linestring<T>& t) {
   out << bg::wkt(t);
   return out;
 }
