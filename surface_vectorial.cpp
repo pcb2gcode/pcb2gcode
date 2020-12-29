@@ -275,6 +275,9 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   return combined_toolpath;
 }
 
+// This function returns a linestring that connects two points if possible.
+typedef std::function<optional<linestring_type_fp>(const point_type_fp& start, const point_type_fp& end)> PathFinder;
+
 // Given a linestring which has the same front and back (so it's actually a
 // ring), attach it to one of the ends of the toolpath.  Only attach if there is
 // a point on the ring that is close enough to the toolpath endpoint.  toolpath
@@ -282,7 +285,7 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
 bool attach_ring(const linestring_type_fp& ring,
                  pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                  const MillFeedDirection::MillFeedDirection& dir,
-                 const Surface_vectorial::PathFinder& path_finder) {
+                 const PathFinder& path_finder) {
   auto& toolpath = toolpath_and_allow_reversal.first;
   bool insert_at_front = true;
   auto best_ring_point = ring.cbegin();
@@ -339,7 +342,7 @@ bool attach_ring(const linestring_type_fp& ring,
 bool attach_ls(const linestring_type_fp& ls,
                pair<linestring_type_fp, bool>& toolpath_and_allow_reversal, // true if the toolpath can be reversed
                const MillFeedDirection::MillFeedDirection& dir,
-               const Surface_vectorial::PathFinder& path_finder) {
+               const PathFinder& path_finder) {
   auto& toolpath = toolpath_and_allow_reversal.first;
   bool reverse_toolpath; // Do we start with a reversed toolpath?
   bool insert_front = false; // Then, do we insert at the front?
@@ -447,7 +450,7 @@ bool attach_ls(const linestring_type_fp& ls,
 void attach_ls(const linestring_type_fp& ls,
                vector<pair<linestring_type_fp, bool>>& toolpaths,
                const MillFeedDirection::MillFeedDirection& dir,
-               const Surface_vectorial::PathFinder& path_finder) {
+               const PathFinder& path_finder) {
   if (bg::equals(ls.front(), ls.back())) {
     // This path is actually a ring so we can use attach_ring which can connect
     // at any point.
@@ -477,7 +480,7 @@ void attach_mls(const multi_linestring_type_fp& mls,
                 vector<pair<linestring_type_fp, bool>>& toolpaths,
                 const MillFeedDirection::MillFeedDirection& dir,
                 const multi_polygon_type_fp& already_milled_shrunk,
-                const Surface_vectorial::PathFinder& path_finder) {
+                const PathFinder& path_finder) {
   auto mls_masked = mls - already_milled_shrunk;  // This might chop the single path into many paths.
   mls_masked = eulerian_paths::make_eulerian_paths(mls_masked, dir == MillFeedDirection::ANY, false); // Rejoin those paths as possible.
   for (const auto& ls : mls_masked) { // Maybe more than one if the masking cut one into parts.
@@ -600,7 +603,7 @@ void attach_ring(const ring_type_fp& ring,
                  vector<pair<linestring_type_fp, bool>>& toolpaths,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& already_milled_shrunk,
-                 const Surface_vectorial::PathFinder& path_finder,
+                 const PathFinder& path_finder,
                  const coordinate_type_fp offset,
                  const bool reverse_spikes,
                  const coordinate_type_fp tolerance,
@@ -619,7 +622,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
                      vector<pair<linestring_type_fp, bool>>& toolpaths,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
-                     const Surface_vectorial::PathFinder& path_finder,
+                     const PathFinder& path_finder,
                      const coordinate_type_fp offset,
                      const bool reverse_spikes,
                      const coordinate_type_fp tolerance,
@@ -654,8 +657,7 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
 vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
     const double overlap_width,
-    const multi_polygon_type_fp& already_milled_shrunk,
-    const Surface_vectorial::PathFinder& path_finder) const {
+    const multi_polygon_type_fp& already_milled_shrunk) const {
     // This is by how much we will grow each trace if extra passes are needed.
     coordinate_type_fp diameter = tool_diameter;
 
@@ -690,6 +692,48 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi,
                        diameter, overlap, extra_passes + 1, do_voronoi, mill->offset);
+    multi_polygon_type_fp keep_in;
+    keep_in.push_back(current_voronoi);
+    multi_polygon_type_fp keep_out;
+    if (current_trace) {
+      keep_out = bg_helpers::buffer(*current_trace, diameter/2 + mill->offset);
+    }
+    auto path_finding_surface = path_finding::create_path_finding_surface(keep_in, keep_out, mill->tolerance);
+    // Find if a distance between two points should be milled or retract, move
+    // fast, and plunge.  Milling is chosen if it's faster and also the path is
+    // entirely within the path_finding_surface.  If it's not faster or the path
+    // isn't possible, boost::none is returned.
+    PathFinder path_finder =
+        [&](const point_type_fp& a, const point_type_fp& b) {
+          // Solve for distance:
+          // risetime at G0 + horizontal distance G0 + plunge G1 ==
+          // travel time at G1
+          // The horizontal G0 move is for the maximum of the X and Y coordinates.
+          // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
+          const auto vertical_distance = mill->zsafe - mill->zwork;
+          const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
+          const double horizontalG1speed = mill->feed;
+          const double vertG1speed = mill->vertfeed;
+          const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
+          const double max_g1_distance = g0_time * horizontalG1speed;
+          size_t tries = 0;
+          path_finding::PathLimiter path_limiter =
+              [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
+                if (tries >= mill->path_finding_limit) {
+                  throw path_finding::GiveUp();
+                }
+                tries++;
+                // Return true if this path needs to be clipped.  The distance from
+                // a to target so far is length.  At best, we'll have a straight
+                // line from there to the goal, b.
+                const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
+                if (potential_horizontal_distance > max_g1_distance) {
+                  return true; // clip this path
+                }
+                return false;
+              };
+          return find_path(path_finding_surface, a, b, path_limiter);
+        };
 
     // The rings of polygons are the paths to mill.  The paths may include both
     // inner and outer rings.  They vector has them sorted from the smallest
@@ -772,46 +816,6 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       const auto tool_diameter = tool.first;
       vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
-      auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + mill->offset);
-
-      auto path_finding_surface = path_finding::create_path_finding_surface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, mill->tolerance);
-      // Find if a distance between two points should be milled or retract, move
-      // fast, and plunge.  Milling is chosen if it's faster and also the path is
-      // entirely within the path_finding_surface.  If it's not faster or the path
-      // isn't possible, boost::none is returned.
-      Surface_vectorial::PathFinder path_finder =
-          [&](const point_type_fp& a, const point_type_fp& b) {
-            // Solve for distance:
-            // risetime at G0 + horizontal distance G0 + plunge G1 ==
-            // travel time at G1
-            // The horizontal G0 move is for the maximum of the X and Y coordinates.
-            // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
-            const auto vertical_distance = mill->zsafe - mill->zwork;
-            const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
-            const double horizontalG1speed = mill->feed;
-            const double vertG1speed = mill->vertfeed;
-            const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
-            size_t tries = 0;
-            path_finding::PathLimiter path_limiter =
-                [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
-                  if (tries >= mill->path_finding_limit) {
-                    throw path_finding::GiveUp();
-                  }
-                  tries++;
-                  // Return true if this path needs to be clipped.  The distance from
-                  // a to target so far is length.  At best, we'll have a straight
-                  // line from there to the goal, b.
-                  const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
-                  const auto g1_time = potential_horizontal_distance / horizontalG1speed;
-                  const auto time_saved = g0_time - g1_time;
-                  if (time_saved < 0 || potential_horizontal_distance / time_saved > mill->backtrack) {
-                    return true; // clip this path
-                  }
-                  return false;
-                };
-            return find_path(path_finding_surface, a, b, path_limiter);
-          };
-
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk =
             bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
@@ -828,7 +832,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
           }
         }
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
-                                                      already_milled_shrunk, path_finder);
+                                                      already_milled_shrunk);
         if (invert_gerbers) {
           auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
           vector<pair<linestring_type_fp, bool>> temp;
@@ -869,7 +873,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       // Each linestring has a bool attached to it indicating if it is reversible.
       // true means reversal is still allowed.
       vector<pair<linestring_type_fp, bool>> new_trace_toolpath;
-      Surface_vectorial::PathFinder path_finder =
+      PathFinder path_finder =
           [&](const point_type_fp&, const point_type_fp&) -> optional<linestring_type_fp> {
             return boost::none;
           };
@@ -885,15 +889,11 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    Surface_vectorial::PathFinder path_finder =
-        [&](const point_type_fp&, const point_type_fp&) {
-          return boost::none;
-        };
     const auto trace_count = vectorial_surface->first.size();
     vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
     for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-      const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp(), path_finder);
+      const auto new_trace_toolpath = get_single_toolpath(cutter, trace_index, mirror, cutter->tool_diameter, 0, multi_polygon_type_fp());
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);

@@ -40,10 +40,12 @@
 #include "units.hpp"
 #include "path_finding.hpp"
 
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
 class Surface_vectorial: private boost::noncopyable {
  public:
-  // This function returns a linestring that connects two points if possible.
-  typedef std::function<boost::optional<linestring_type_fp>(const point_type_fp& start, const point_type_fp& end)> PathFinder;
   Surface_vectorial(unsigned int points_per_circle,
                     coordinate_type_fp min_x, coordinate_type_fp max_x, coordinate_type_fp min_y, coordinate_type_fp max_y,
                     std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
@@ -92,8 +94,7 @@ protected:
   std::vector<std::pair<linestring_type_fp, bool>> get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
       const double overlap_width,
-      const multi_polygon_type_fp& already_milled,
-      const PathFinder& path_finder) const;
+      const multi_polygon_type_fp& already_milled) const;
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
