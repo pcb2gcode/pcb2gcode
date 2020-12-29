@@ -31,6 +31,39 @@ BOOST_AUTO_TEST_CASE(simple) {
   BOOST_CHECK_EQUAL(ret, make_optional(expected));
 }
 
+BOOST_AUTO_TEST_CASE(hole) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-10, -10));
+  bg::expand(bounding_box, point_type_fp(10, 10));
+  multi_polygon_type_fp keep_out;
+  bg::convert(bounding_box, keep_out);
+  box_type_fp hole = bg::return_envelope<box_type_fp>(point_type_fp(-5, -5));
+  bg::expand(hole, point_type_fp(5, 5));
+  multi_polygon_type_fp poly_hole;
+  bg::convert(hole, poly_hole);
+  keep_out = keep_out - poly_hole;
+  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
+  auto ret = find_path(surface, point_type_fp(0, 0), point_type_fp(1, 1), nullptr);
+  linestring_type_fp expected;
+  expected.push_back(point_type_fp(0, 0));
+  expected.push_back(point_type_fp(1, 1));
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(hole_unreachable) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-10, -10));
+  bg::expand(bounding_box, point_type_fp(10, 10));
+  multi_polygon_type_fp keep_out;
+  bg::convert(bounding_box, keep_out);
+  box_type_fp hole = bg::return_envelope<box_type_fp>(point_type_fp(-5, -5));
+  bg::expand(hole, point_type_fp(5, 5));
+  multi_polygon_type_fp poly_hole;
+  bg::convert(hole, poly_hole);
+  keep_out = keep_out - poly_hole;
+  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
+  auto ret = find_path(surface, point_type_fp(0, 0), point_type_fp(50, 50), nullptr);
+  BOOST_CHECK_EQUAL(ret, boost::none);
+}
+
 BOOST_AUTO_TEST_CASE(box) {
   ring_type_fp box;
   box.push_back(point_type_fp(3,3));
