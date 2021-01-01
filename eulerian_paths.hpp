@@ -248,45 +248,47 @@ class eulerian_paths {
   // until a dead end.  Assume that point itself is already in the
   // list.  Return true if the path is all reversible, otherwise
   // false.
-  bool make_path(const point_t& point, linestring_t* new_path) {
-    // Find an unvisited path that leads from point.  Prefer out edges to bidi
-    // because we may need to save the bidi edges to later be in edges.
-    auto vertex_and_path_range = start_vertex_to_unvisited_path_index.equal_range(point);
-    auto vertex_to_unvisited_map = &start_vertex_to_unvisited_path_index;
-    if (vertex_and_path_range.first == vertex_and_path_range.second) {
-      vertex_and_path_range = bidi_vertex_to_unvisited_path_index.equal_range(point);
-      vertex_to_unvisited_map = &bidi_vertex_to_unvisited_path_index;
+  bool make_path(point_t point, linestring_t* new_path) {
+    bool all_reversible = true;
+    while (true) {
+      // Find an unvisited path that leads from point.  Prefer out edges to bidi
+      // because we may need to save the bidi edges to later be in edges.
+      auto vertex_and_path_range = start_vertex_to_unvisited_path_index.equal_range(point);
+      auto vertex_to_unvisited_map = &start_vertex_to_unvisited_path_index;
       if (vertex_and_path_range.first == vertex_and_path_range.second) {
-        // No more paths to follow.
-        return true; // Empty path is reversible.
+        vertex_and_path_range = bidi_vertex_to_unvisited_path_index.equal_range(point);
+        vertex_to_unvisited_map = &bidi_vertex_to_unvisited_path_index;
+        if (vertex_and_path_range.first == vertex_and_path_range.second) {
+          // No more paths to follow.
+          return all_reversible; // Empty path is reversible.
+        }
       }
-    }
-    auto vertex_and_path_index = select_path(*new_path, vertex_and_path_range);
-    size_t path_index = vertex_and_path_index->second.first;
-    Side side = vertex_and_path_index->second.second;
-    const auto& path = paths[path_index].first;
-    if (side == Side::front) {
-      // Append this path in the forward direction.
-      new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
-    } else {
-      // Append this path in the reverse direction.
-      new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
-    }
-    vertex_to_unvisited_map->erase(vertex_and_path_index); // Remove from the first vertex.
-    const point_t& new_point = new_path->back();
-    // We're bound to find exactly one unless there is a serious error.
-    auto end_map = paths[path_index].second ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
-    auto range = end_map->equal_range(new_point);
-    auto to_compare = std::make_pair(path_index, !side);
-    for (auto iter = range.first; iter != range.second; iter++) {
-      if (iter->second == to_compare) {
-        // Remove the path that ends on the vertex.
-        end_map->erase(iter);
-        break; // There must be only one.
+      auto vertex_and_path_index = select_path(*new_path, vertex_and_path_range);
+      size_t path_index = vertex_and_path_index->second.first;
+      Side side = vertex_and_path_index->second.second;
+      const auto& path = paths[path_index].first;
+      if (side == Side::front) {
+        // Append this path in the forward direction.
+        new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
+      } else {
+        // Append this path in the reverse direction.
+        new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
       }
+      vertex_to_unvisited_map->erase(vertex_and_path_index); // Remove from the first vertex.
+      point = new_path->back();
+      // We're bound to find exactly one unless there is a serious error.
+      auto end_map = paths[path_index].second ? &bidi_vertex_to_unvisited_path_index : &end_vertex_to_unvisited_path_index;
+      auto range = end_map->equal_range(point);
+      auto to_compare = std::make_pair(path_index, !side);
+      for (auto iter = range.first; iter != range.second; iter++) {
+        if (iter->second == to_compare) {
+          // Remove the path that ends on the vertex.
+          end_map->erase(iter);
+          break; // There must be only one.
+        }
+      }
+      all_reversible = all_reversible && paths[path_index].second;
     }
-    // Continue making the path from here.
-    return make_path(new_point, new_path) && paths[path_index].second;
   }
 
   // Only call this when there are no vertices with uneven edge count.  That
