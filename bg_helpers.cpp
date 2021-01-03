@@ -1,6 +1,7 @@
 #include "eulerian_paths.hpp"
 #ifdef GEOS_VERSION
 #include <geos/io/WKTReader.h>
+#include <geos/io/WKTReader.inl>
 #include <geos/io/WKTWriter.h>
 #include <geos/operation/buffer/BufferOp.h>
 #endif // GEOS_VERSION
