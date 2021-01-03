@@ -144,12 +144,11 @@ jobs:
         hash -r
         lcov --version
     - name: Display information about build environment
-      continue-on-error: true
       run: |
         env
         if command -v g++; then g++ --version; fi
         if command -v clang++; then clang++ --version; fi
-        if command -v pkg-config; then pkg_config --version; fi
+        if command -v pkg-config; then pkg-config --version; fi
         if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
