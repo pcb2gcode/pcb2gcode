@@ -46,7 +46,7 @@ jobs:
         echo "PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
         echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-    - name: Linux specific setup
+    - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
@@ -140,17 +140,17 @@ jobs:
         pushd ~
         git clone --depth=1 https://github.com/linux-test-project/lcov.git
         pushd lcov
-        make PREFIX=~/.local install
+        make PREFIX=${HOME}/.local install
         hash -r
         lcov --version
     - name: Display information about build environment
       continue-on-error: true
       run: |
         env
-        g++ --version
-        clang++ --version
-        pkg-config --version
-        m4 --version
+        if command -v g++; then g++ --version; fi
+        if command -v clang++; then clang++ --version; fi
+        if command -v pkg-config; then pkg_config --version; fi
+        if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
         if ! gerbv --version; then
@@ -165,7 +165,7 @@ jobs:
           popd
         fi
     - name: Install valgrind
-      if: matrix.os != 'macos'
+      if: matrix.os == 'ubuntu'
       run: |
         if ! valgrind --version; then
           pushd ~
@@ -224,11 +224,12 @@ jobs:
           if [[ -f "no-valgrind" ]]; then
             cat no-valgrind;
           fi;
-          if [[ -f "no-valgrind" || "${{ matrix.os }}" == "macos" ]]; then
+          if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
             time ../../../pcb2gcode || exit;
           else
             time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
           fi;
+          echo "Finished on {}";
           popd'
         popd
     - name: Reset coverage
@@ -242,7 +243,7 @@ jobs:
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: ${{ matrix.skip_gerberimporter_tests }} make -j ${NUM_CPUS} check
     - name: Run unit tests with valgrind
-      if: matrix.os != 'macos'
+      if: matrix.os == 'ubuntu'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
@@ -262,8 +263,13 @@ jobs:
       if: matrix.code_coverage
       uses: actions/upload-artifact@v1
       with:
-        name: lcov
+        name: lcov-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-lcov.info
+    - name: Export build
+      uses: actions/upload-artifact@v1
+      with:
+        name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
+        path: pcb2gcode
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: coverallsapp/github-action@master
@@ -271,8 +277,146 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
         parallel: true
+  
+  build-and-test-windows:
+    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
+    strategy:
+      matrix:
+        os: ['windows']
+        boost: ['1_75']
+        geos: ['3.8.1', 'none']
+        compiler: ['g++']
+        local_install_path: ['/d/a/pcb2gcode']
+    runs-on: ${{ matrix.os }}-latest
+
+    defaults:
+      run:
+        shell: |
+          powershell -command "[System.Environment]::SetEnvironmentVariable('GITHUB_SCRIPT', ('{0}' -replace '\\','\\')); [System.Environment]::SetEnvironmentVariable('PKG_CONFIG_PATH_MSYS', $Env:PKG_CONFIG_PATH); [System.Environment]::SetEnvironmentVariable('PATH_MSYS', $Env:Path);"
+          msys2 -c 'if [[ -v MSYSTEM ]]; then sed -i 1d $(cygpath $GITHUB_SCRIPT); sed -i \$d $(cygpath $GITHUB_SCRIPT); if [[ -v PKG_CONFIG_PATH_MSYS ]]; then export PKG_CONFIG_PATH=$PKG_CONFIG_PATH_MSYS; fi; if [[ -v PATH_MSYS && ! ( $PATH_MSYS =~ ^D:\\\\a\\\\_temp\\\\msys\\;C:\\\\Users ) ]]; then export PATH=$(echo $PATH_MSYS | sed s/D:\\\\\\\\a\\\\\\\\_temp\\\\\\\\msys\;// | sed s/\;/:/g); fi; fi; source $(cygpath $GITHUB_SCRIPT)'
+    steps:
+    - name: Checkout pcb2gcode source
+      uses: actions/checkout@v2
+    - name: Setup msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo
+    - name: Setup paths and env
+      run: |
+        mkdir -p ${LOCAL_INSTALL_PATH}/bin
+        mkdir -p ${LOCAL_INSTALL_PATH}/lib/pkgconfig
+        echo "PKG_CONFIG_PATH=${LOCAL_INSTALL_PATH}/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${LOCAL_INSTALL_PATH}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+        echo "PATH=${LOCAL_INSTALL_PATH}/bin:$PATH" >> $GITHUB_ENV
+        echo "LOCAL_INSTALL_PATH=${LOCAL_INSTALL_PATH}" >> $GITHUB_ENV
+      env:
+        LOCAL_INSTALL_PATH: ${{ matrix.local_install_path }}
+    - name: Windows specific setup
+      run: |
+        echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
+    - name: Sanitize cache key
+      id: sanitize-key
+      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
+    - name: Cache local install path
+      uses: actions/cache@v1
+      with:
+        path: ${{ matrix.local_install_path }}
+        key: ${{ steps.sanitize-key.outputs.key }}
+    - name: Build and install geos
+      if: matrix.geos != 'none'
+      env:
+        GEOS: ${{ matrix.geos }}
+      run: |
+        if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T20 -t1 -O "geos-${GEOS}.tar.bz2" "http://download.osgeo.org/geos/geos-${GEOS}.tar.bz2" && break;
+          done
+          tar xjf "geos-${GEOS}.tar.bz2"
+          pushd geos-${GEOS}
+          ./configure --prefix=${LOCAL_INSTALL_PATH}
+          make -j ${NUM_CPUS}
+          make install
+          popd
+          popd
+        fi
+    - name: Display information about build environment
+      continue-on-error: true
+      run: |
+        env
+        if command -v g++; then g++ --version; fi
+        if command -v clang++; then clang++ --version; fi
+        if command -v pkg-config; then pkg_config --version; fi
+        if command -v m4; then m4 --version; fi
+    - name: Install gerbv
+      run: |
+        if ! gerbv --version; then
+          pushd ~
+          git clone --depth=1 https://github.com/eyal0/gerbv.git
+          pushd gerbv
+          sh autogen.sh
+          ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${LOCAL_INSTALL_PATH}
+          make -j ${NUM_CPUS}
+          make install
+          popd
+          popd
+        fi
+    - name: Install parallel
+      run: |
+        if ! parallel --version; then
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T5 -t1 -O "parallel-latest.tar.bz2" "http://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2" && break;
+          done
+          mkdir parallel
+          pushd parallel
+          tar xjf "../parallel-latest.tar.bz2"
+          pushd parallel-*
+          ./configure --prefix=${LOCAL_INSTALL_PATH}
+          make
+          make install
+          popd
+          popd
+          popd
+        fi
+    - name: Finalize setup
+      run: |
+        hash -r
+    - name: Autoreconf pcb2gcode
+      run: autoreconf -fvi
+    - name: Configure pcb2gcode
+      run: >-
+        ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror
+        --disable-dependency-tracking
+        --disable-silent-rules
+        --enable-static-boost
+        ${{ matrix.code_coverage }}
+        || (cat config.log && false)
+    - name: Make pcb2gcode
+      run: make -j ${NUM_CPUS}
+    - name: Run examples
+      if: '! matrix.code_coverage'
+      run: |
+        pushd testing/gerbv_example
+        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+          pushd {};
+          echo "Running on {}";
+          if [[ -f "no-valgrind" ]]; then
+            cat no-valgrind;
+          fi;
+          time ../../../pcb2gcode || exit;
+          echo "Finished on {}";
+          popd'
+        popd
+    - name: Export build
+      uses: actions/upload-artifact@v1
+      with:
+        name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
+        path: .libs/pcb2gcode.exe
   finalize-coverage:
-    needs: build-and-test
+    needs: [build-and-test, build-and-test-windows]
     name: Finalize coverage
     runs-on: ubuntu-latest
     steps:
