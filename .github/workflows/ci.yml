@@ -206,6 +206,7 @@ jobs:
         --disable-dependency-tracking
         --disable-silent-rules
         --enable-static-boost
+        --enable-static
         ${{ matrix.code_coverage }}
         || (cat config.log && false)
     - name: Remove debug flags from coverage builds
@@ -391,6 +392,7 @@ jobs:
         --disable-dependency-tracking
         --disable-silent-rules
         --enable-static-boost
+        --enable-static
         ${{ matrix.code_coverage }}
         || (cat config.log && false)
     - name: Make pcb2gcode
@@ -409,11 +411,55 @@ jobs:
           echo "Finished on {}";
           popd'
         popd
+    - name: Prepare for export
+      run: |
+        mkdir bin
+        pushd bin
+        cp ../pcb2gcode.exe .
+        mkdir .libs
+        pushd .libs
+        cp ../../.libs/pcb2gcode.exe .
+        cp ../../../.local/bin/libgerbv-1.dll .
+        cp /mingw64/bin/libboost_program_options-mt.dll .
+        cp /mingw64/bin/libbrotlicommon.dll .
+        cp /mingw64/bin/libbrotlidec.dll .
+        cp /mingw64/bin/libbz2-1.dll .
+        cp /mingw64/bin/libcairo-2.dll .
+        cp /mingw64/bin/libdatrie-1.dll .
+        cp /mingw64/bin/libexpat-1.dll .
+        cp /mingw64/bin/libffi-7.dll .
+        cp /mingw64/bin/libfontconfig-1.dll .
+        cp /mingw64/bin/libfreetype-6.dll .
+        cp /mingw64/bin/libfribidi-0.dll .
+        cp /mingw64/bin/libgcc_s_seh-1.dll .
+        cp /mingw64/bin/libgdk_pixbuf-2.0-0.dll .
+        cp /mingw64/bin/libgdk-win32-2.0-0.dll .
+        cp /mingw64/bin/libgio-2.0-0.dll .
+        cp /mingw64/bin/libglib-2.0-0.dll .
+        cp /mingw64/bin/libgmodule-2.0-0.dll .
+        cp /mingw64/bin/libgobject-2.0-0.dll .
+        cp /mingw64/bin/libgraphite2.dll .
+        cp /mingw64/bin/libharfbuzz-0.dll .
+        cp /mingw64/bin/libiconv-2.dll .
+        cp /mingw64/bin/libintl-8.dll .
+        cp /mingw64/bin/libpango-1.0-0.dll .
+        cp /mingw64/bin/libpangocairo-1.0-0.dll .
+        cp /mingw64/bin/libpangoft2-1.0-0.dll .
+        cp /mingw64/bin/libpangowin32-1.0-0.dll .
+        cp /mingw64/bin/libpcre-1.dll .
+        cp /mingw64/bin/libpixman-1-0.dll .
+        cp /mingw64/bin/libpng16-16.dll .
+        cp /mingw64/bin/libstdc++-6.dll .
+        cp /mingw64/bin/libthai-0.dll .
+        cp /mingw64/bin/libwinpthread-1.dll .
+        cp /mingw64/bin/zlib1.dll .
+        popd
+        popd
     - name: Export build
       uses: actions/upload-artifact@v1
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
-        path: .libs/pcb2gcode.exe
+        path: bin
   finalize-coverage:
     needs: [build-and-test, build-and-test-windows]
     name: Finalize coverage
