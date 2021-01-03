@@ -285,7 +285,7 @@ jobs:
         boost: ['1_75']
         geos: ['3.8.1', 'none']
         compiler: ['g++']
-        local_install_path: ['/d/a/pcb2gcode']
+        local_install_path: ['/d/a/pcb2gcode/.local']
     runs-on: ${{ matrix.os }}-latest
 
     defaults:
