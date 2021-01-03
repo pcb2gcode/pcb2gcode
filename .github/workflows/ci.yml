@@ -317,11 +317,13 @@ jobs:
         echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
     - name: Sanitize cache key
       id: sanitize-key
-      run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
+      run: |
+        echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
+        echo "::set-output name=path::$(cygpath -w ${{ matrix.local_install_path }})"
     - name: Cache local install path
       uses: actions/cache@v2.1.3
       with:
-        path: ${{ matrix.local_install_path }}
+        path: ${{ steps.sanitize-key.outputs.path }}
         key: ${{ steps.sanitize-key.outputs.key }}
     - name: Build and install geos
       if: matrix.geos != 'none'
