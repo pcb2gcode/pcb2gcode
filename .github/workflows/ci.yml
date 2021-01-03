@@ -92,7 +92,7 @@ jobs:
       id: sanitize-key
       run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
     - name: Cache .local
-      uses: actions/cache@v1
+      uses: actions/cache@v2.1.3
       with:
         path: ~/.local
         key: ${{ steps.sanitize-key.outputs.key }}
@@ -319,7 +319,7 @@ jobs:
       id: sanitize-key
       run: echo "::set-output name=key::$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')"
     - name: Cache local install path
-      uses: actions/cache@v1
+      uses: actions/cache@v2.1.3
       with:
         path: ${{ matrix.local_install_path }}
         key: ${{ steps.sanitize-key.outputs.key }}
