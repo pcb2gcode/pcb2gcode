@@ -184,6 +184,7 @@ jobs:
         fi
     - name: Install parallel
       run: |
+        echo "UPDATE_CACHE=true" >> $GITHUB_ENV
         if ! parallel --version; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
