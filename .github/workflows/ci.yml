@@ -422,6 +422,9 @@ jobs:
         pushd .libs
         cp ../../.libs/pcb2gcode.exe .
         cp ../../../.local/bin/libgerbv-1.dll .
+        if [[ ${GEOS} != 'none' ]]; then
+          cp ../../../.local/bin/libgeos-$( echo ${GEOS} | tr . - ).dll .
+        fi
         cp /mingw64/bin/libboost_program_options-mt.dll .
         cp /mingw64/bin/libbrotlicommon.dll .
         cp /mingw64/bin/libbrotlidec.dll .
@@ -457,6 +460,8 @@ jobs:
         cp /mingw64/bin/zlib1.dll .
         popd
         popd
+      env:
+        GEOS: ${{ matrix.geos }}
     - name: Export build
       uses: actions/upload-artifact@v1
       with:
