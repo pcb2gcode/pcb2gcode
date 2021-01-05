@@ -271,12 +271,12 @@ jobs:
       run: |
         mkdir pcb2gcode-$(./pcb2gcode --version | head -1)
         cp ./pcb2gcode pcb2gcode-$(./pcb2gcode --version | head -1)
-        tar cvf pcb2gcode-$(./pcb2gcode --version | head -1).tar pcb2gcode-$(./pcb2gcode --version | head -1)
+        tar cvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar pcb2gcode-$(./pcb2gcode --version | head -1)
     - name: Upload build
       uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
-        path: pcb2gcode-$(./pcb2gcode --version | head -1).tar
+        path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
       uses: coverallsapp/github-action@master
@@ -480,14 +480,14 @@ jobs:
         cp /mingw64/bin/zlib1.dll .
         popd
         popd
-        tar cvf pcb2gcode-$(./pcb2gcode --version | head -1).tar pcb2gcode-$(./pcb2gcode --version | head -1)
+        tar cvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar pcb2gcode-$(./pcb2gcode --version | head -1)
       env:
         GEOS: ${{ matrix.geos }}
     - name: Upload build
       uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
-        path: pcb2gcode-$(./pcb2gcode --version | head -1).tar
+        path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
   finalize-coverage:
     needs: [build-and-test, build-and-test-windows]
     name: Finalize coverage
@@ -511,9 +511,9 @@ jobs:
         uses: actions/download-artifact@v2
       - name: Prepare the artifacts
         run: |
-          mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-$(cat version/version.txt).tar pcb2gcode-windows/pcb2gcode-$(cat version/version.txt).tar
-          mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1/pcb2gcode-$(cat version/version.txt).tar pcb2gcode-ubuntu/pcb2gcode-$(cat version/version.txt).tar
-          mv pcb2gcode-macos_1_75_gplusplus_3.8.1/pcb2gcode-$(cat version/version.txt).tar pcb2gcode-macos/pcb2gcode-$(cat version/version.txt).tar
+          mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-windows_1_75_gplusplus_3.8.1.tar pcb2gcode-windows/pcb2gcode-$(cat version/version.txt).tar
+          mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1/pcb2gcode-ubuntu_1_66_gplusplus_3.8.1.tar pcb2gcode-ubuntu/pcb2gcode-$(cat version/version.txt).tar
+          mv pcb2gcode-macos_1_75_gplusplus_3.8.1/pcb2gcode-macos_1_75_gplusplus_3.8.1.tar pcb2gcode-macos/pcb2gcode-$(cat version/version.txt).tar
           zip -r pcb2gcode-windows
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
