@@ -33,6 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
 
     steps:
+    - name: Show github context
+      run: echo $CONTEXT
+      env:
+        CONTEXT: ${{ toJSON(github) }}
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v2
     - name: Setup paths and env
