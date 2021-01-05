@@ -33,10 +33,6 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
 
     steps:
-    - name: Show github context
-      run: echo $CONTEXT
-      env:
-        CONTEXT: ${{ toJSON(github) }}
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v2
     - name: Setup paths and env
@@ -264,14 +260,14 @@ jobs:
       run: |
         lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
         lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
-    - name: Export coverage artifact
+    - name: Upload coverage artifact
       if: matrix.code_coverage
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-lcov.info
-    - name: Export build
-      uses: actions/upload-artifact@v1
+    - name: Upload build
+      uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode
@@ -282,7 +278,16 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
         parallel: true
-  
+    - name: Save version number
+      if: matrix.code_coverage
+      run: echo "$(./pcb2gcode --version | head -1)" > version.txt
+    - name: Upload version artifact
+      if: matrix.code_coverage
+      uses: actions/upload-artifact@v2
+      with:
+        name: version.txt
+        path: version.txt
+
   build-and-test-windows:
     name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
@@ -421,8 +426,11 @@ jobs:
           echo "Finished on {}";
           popd'
         popd
-    - name: Export build
-      uses: actions/upload-artifact@v1
+    - name: Prepare upload
+      run: |
+        tar cvf pcb2gcode-${{ steps.sanitize-key.outputs.key }} 
+    - name: Upload build
+      uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
         path: .libs/pcb2gcode.exe
@@ -440,3 +448,26 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
+  release:
+    needs: [build-and-test, build-and-test-windows]
+    name: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the artifacts to release
+        uses: actions/download-artifact@v2
+      - name: Prepare the artifacts
+        run: |
+          mv pcb2gcode-windows_1_75_gplusplus_3.8.1 pcb2gcode-windows
+          mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1 pcb2gcode-ubuntu
+          mv pcb2gcode-macos_1_75_gplusplus_3.8.1 pcb2gcode-macos
+          
+          zip -r pcb2gcode-windows
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            LICENSE.txt
+            *.jar
