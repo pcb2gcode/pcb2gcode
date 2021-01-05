@@ -515,13 +515,43 @@ jobs:
           mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-windows_1_75_gplusplus_3.8.1.tar pcb2gcode-windows/pcb2gcode-$(cat version/version.txt).tar
           mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1/pcb2gcode-ubuntu_1_66_gplusplus_3.8.1.tar pcb2gcode-ubuntu/pcb2gcode-$(cat version/version.txt).tar
           mv pcb2gcode-macos_1_75_gplusplus_3.8.1/pcb2gcode-macos_1_75_gplusplus_3.8.1.tar pcb2gcode-macos/pcb2gcode-$(cat version/version.txt).tar
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
+          tag_name: latest
+          release_name: Development Build
+          draft: false
           prerelease: true
-          title: "Development Build"
-          files: |
-            pcb2gcode-windows/pcb2gcode-$(cat version/version.txt).tar
-            pcb2gcode-ubuntu/pcb2gcode-$(cat version/version.txt).tar
-            pcb2gcode-macos/pcb2gcode-$(cat version/version.txt).tar
+
+      - run: echo "INPUT_ASSET_PATH=pcb2gcode-windows/pcb2gcode-$(cat version/version.txt).tar" >> $GITHUB_ENV
+      - name: Upload windows Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: pcb2gcode-windows.tar
+          asset_content_type: application/x-tar
+
+      - run: echo "INPUT_ASSET_PATH=pcb2gcode-ubuntu/pcb2gcode-$(cat version/version.txt).tar" >> $GITHUB_ENV
+      - name: Upload ubuntu Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: pcb2gcode-ubuntu.tar
+          asset_content_type: application/x-tar
+
+      - run: echo "INPUT_ASSET_PATH=pcb2gcode-macos/pcb2gcode-$(cat version/version.txt).tar" >> $GITHUB_ENV
+      - name: Upload macos Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: pcb2gcode-macos.tar
+          asset_content_type: application/x-tar
