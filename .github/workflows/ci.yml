@@ -530,7 +530,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     needs: [build-and-test, build-and-test-windows]
     name: release
     runs-on: ubuntu-latest
@@ -554,9 +554,9 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: true
-          title: "Development Build"
+          automatic_release_tag: ${{ startsWith(github.ref, 'refs/heads') && 'latest' || null }}
+          prerelease: ${{ startsWith(github.ref, 'refs/heads') }}
+          title: ${{ startsWith(github.ref, 'refs/heads') && 'Development Build' || null }}
           files: |
             pcb2gcode-windows/pcb2gcode-windows-${{ env.PCB2GCODE_VERSION }}.zip
             pcb2gcode-ubuntu/pcb2gcode-ubuntu-${{ env.PCB2GCODE_VERSION }}.tar.gz
