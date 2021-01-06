@@ -341,7 +341,7 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo
+        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-libzip
     - name: Setup paths and env
       run: |
         mkdir -p ${LOCAL_INSTALL_PATH}/bin
