@@ -43,6 +43,9 @@ jobs:
         echo "PKG_CONFIG_PATH=$HOME/.local/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
         echo "LD_LIBRARY_PATH=$HOME/.local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
         echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+        echo $GITHUB_JSON
+      env:
+        GITHUB_JSON: ${{ toJSON(github) }}
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
