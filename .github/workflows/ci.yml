@@ -6,6 +6,8 @@ on:
     branches:
       - master
       - auto_release
+    tags:
+      - "v*"
   schedule:
     - cron: '5 4 * * 1'
 
@@ -529,6 +531,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   release:
+    if: ${{ github.event_name == "push" && github.ref == "refs/head/master" }}
     needs: [build-and-test, build-and-test-windows]
     name: release
     runs-on: ubuntu-latest
