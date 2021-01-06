@@ -1,4 +1,4 @@
-( pcb2gcode 2.1.0 )
+( pcb2gcode 2.2.0 )
 ( Gcode for custom )
 
 G94 ( Inches per minute feed rate. )
