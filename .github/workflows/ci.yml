@@ -341,7 +341,7 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-libzip
+        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo
     - name: Setup paths and env
       run: |
         mkdir -p ${LOCAL_INSTALL_PATH}/bin
@@ -503,14 +503,14 @@ jobs:
         cp /mingw64/bin/zlib1.dll .
         popd
         popd
-        zip -r pcb2gcode-${{ steps.sanitize-key.outputs.key }}.zip pcb2gcode-$(./pcb2gcode --version | head -1)
+        tar cvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar pcb2gcode-$(./pcb2gcode --version | head -1)
       env:
         GEOS: ${{ matrix.geos }}
     - name: Upload build
       uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
-        path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.zip
+        path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
   finalize-coverage:
     needs: [build-and-test, build-and-test-windows]
     name: Finalize coverage
@@ -537,7 +537,11 @@ jobs:
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
 
-          mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-windows_1_75_gplusplus_3.8.1.zip pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.zip
+          mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-windows_1_75_gplusplus_3.8.1.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          pushd pcb2gcode-windows
+          tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
+          popd
 
           mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1/pcb2gcode-ubuntu_1_66_gplusplus_3.8.1.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
 
