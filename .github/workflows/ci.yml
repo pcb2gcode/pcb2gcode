@@ -217,24 +217,24 @@ jobs:
       run: sed -i 's/-g /-g0 /g' Makefile
     - name: Make pcb2gcode
       run: make -j ${NUM_CPUS}
-    - name: Run examples
-      if: '! matrix.code_coverage'
-      run: |
-        pushd testing/gerbv_example
-        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
-          pushd {};
-          echo "Running on {}";
-          if [[ -f "no-valgrind" ]]; then
-            cat no-valgrind;
-          fi;
-          if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
-            time ../../../pcb2gcode || exit;
-          else
-            time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
-          fi;
-          echo "Finished on {}";
-          popd'
-        popd
+    #- name: Run examples
+    #  if: '! matrix.code_coverage'
+    #  run: |
+    #    pushd testing/gerbv_example
+    #    ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+    #      pushd {};
+    #      echo "Running on {}";
+    #      if [[ -f "no-valgrind" ]]; then
+    #        cat no-valgrind;
+    #      fi;
+    #      if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
+    #        time ../../../pcb2gcode || exit;
+    #      else
+    #        time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
+    #      fi;
+    #      echo "Finished on {}";
+    #      popd'
+    #    popd
     - name: Reset coverage
       if: matrix.code_coverage
       continue-on-error: true
@@ -442,20 +442,20 @@ jobs:
         || (cat config.log && false)
     - name: Make pcb2gcode
       run: make -j ${NUM_CPUS}
-    - name: Run examples
-      if: '! matrix.code_coverage'
-      run: |
-        pushd testing/gerbv_example
-        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
-          pushd {};
-          echo "Running on {}";
-          if [[ -f "no-valgrind" ]]; then
-            cat no-valgrind;
-          fi;
-          time ../../../pcb2gcode || exit;
-          echo "Finished on {}";
-          popd'
-        popd
+    #- name: Run examples
+    #  if: '! matrix.code_coverage'
+    #  run: |
+    #    pushd testing/gerbv_example
+    #    ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+    #      pushd {};
+    #      echo "Running on {}";
+    #      if [[ -f "no-valgrind" ]]; then
+    #        cat no-valgrind;
+    #      fi;
+    #      time ../../../pcb2gcode || exit;
+    #      echo "Finished on {}";
+    #      popd'
+    #    popd
     - name: Prepare build for upload
       run: |
         mkdir pcb2gcode-$(./pcb2gcode --version | head -1)
