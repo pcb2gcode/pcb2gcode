@@ -40,6 +40,9 @@ There are pcb2gcode packages in the official repositories. You can install the w
 
 Unfortunately, these packages are seriously outdated. If you want to download the latest development version, go to "Installation from GIT".
 
+#### Windows
+Windows prebuilt binaries (with all the required DLLs) are available in the [release](https://github.com/pcb2gcode/pcb2gcode/releases) page.
+
 #### Mac OS X
 pcb2gcode is available in [Homebrew](http://brew.sh/). To install it open the "Terminal" app and run the following commands; pcb2gcode and the required dependencies will be automatically downloaded and installed:
 
