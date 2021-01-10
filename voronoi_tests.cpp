@@ -16,8 +16,10 @@ template <typename geo_t>
 void print_svg(const geo_t& geo, const string& filename) {
   std::ofstream svg(filename);
 
-  box_type bounding_box;
-  bg::envelope(geo, bounding_box);
+  box_type bounding_box{{0, 0}, {0, 0}};
+  if (bg::area(geo) > 0) {
+    bounding_box = bg::return_envelope<box_type>(geo);
+  }
   bg::svg_mapper<point_type> mapper(svg,
                                     bounding_box.max_corner().x() - bounding_box.min_corner().x(),
                                     bounding_box.max_corner().y() - bounding_box.min_corner().y());
