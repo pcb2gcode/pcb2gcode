@@ -1,4 +1,4 @@
-( pcb2gcode 2.2.0 )
+( pcb2gcode 2.2.1 )
 ( Software-independent Gcode )
 
 G94 ( Millimeters per minute feed rate. )
