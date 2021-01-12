@@ -98,9 +98,8 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     callSub2[Software::MACH3] = "#" + globalVar0 + "=%2$s\n%5$s#" + globalVar1 + "=%3$s\n%6$s#" + globalVar2 + "=%4$s\n%7$sM98 P%1$s\n";
 }
 
-string autoleveller::getVarName( int i, int j )
-{
-    return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
+string autoleveller::getVarName(unsigned int i, unsigned int j) {
+  return '#' + to_string(i * numYPoints + j + 500);	//getVarName(10,8) returns (numYPoints=10) #180
 }
 
 box_type_fp computeWorkarea(const vector<pair<coordinate_type_fp, multi_linestring_type_fp>>& toolpaths) {
@@ -300,75 +299,72 @@ static inline T clamp(const T& x, const T& min_x, const T& max_x) {
   return std::max(min_x, std::min(x, max_x));
 }
 
-string autoleveller::interpolatePoint ( point_type_fp point )
-{
-    unsigned int xminindex;
-    unsigned int yminindex;
-    double x_minus_x0_rel;
-    double y_minus_y0_rel;
+string autoleveller::interpolatePoint(point_type_fp point) {
+  unsigned int xminindex;
+  unsigned int yminindex;
+  double x_minus_x0_rel;
+  double y_minus_y0_rel;
 
-    // Calculate point index for measurement point below and to the left
-    // of `point`
-    xminindex = floor((point.x() - startPointX) / XProbeDist);
-    xminindex = clamp(xminindex, 0U, numXPoints - 1);
+  // Calculate point index for measurement point below and to the left
+  // of `point`
+  xminindex = floor((point.x() - startPointX) / XProbeDist);
+  xminindex = clamp(xminindex, 0U, numXPoints - 2);
 
-    yminindex = floor((point.y() - startPointY) / YProbeDist);
-    yminindex = clamp(yminindex, 0U, numYPoints - 1);
+  yminindex = floor((point.y() - startPointY) / YProbeDist);
+  yminindex = clamp(yminindex, 0U, numYPoints - 2);
 
-    // Get fraction of the distance to the next measurement point up and
-    // to the left that `point` is.
-    x_minus_x0_rel = ( point.x() - startPointX - xminindex * XProbeDist ) / XProbeDist;
-    y_minus_y0_rel = ( point.y() - startPointY - yminindex * YProbeDist ) / YProbeDist;
+  // Get fraction of the distance to the next measurement point up and
+  // to the left that `point` is.
+  x_minus_x0_rel = (point.x() - startPointX - xminindex * XProbeDist) / XProbeDist;
+  x_minus_x0_rel = clamp(x_minus_x0_rel, 0.0, 1.0);
+  y_minus_y0_rel = (point.y() - startPointY - yminindex * YProbeDist) / YProbeDist;
+  y_minus_y0_rel = clamp(y_minus_y0_rel, 0.0, 1.0);
 
-    if ( y_minus_y0_rel == 0 ) {
+  if (x_minus_x0_rel == 1.0) {
+    x_minus_x0_rel -= 1;
+    xminindex += 1;
+  }
+  if (y_minus_y0_rel == 1.0) {
+    y_minus_y0_rel -= 1;
+    yminindex += 1;
+  }
 
-        if ( x_minus_x0_rel == 0 ) {
-
-            // If `point` is on top of a measurement point, just copy
-            // the measured height over
-            return str( format( "#%2$s=%1$s\n" ) %
-                        getVarName( xminindex, yminindex ) %
-						returnVar );
-
-        } else {
-
-            // If `point` has the same y coordinate as a row of points,
-            // interpolate between the points to the left and right of
-            // it
-            return str( format( "#%4$s=[%1$s+[%2$s-%1$s]*%3$.5f]\n" ) %
-                        getVarName( xminindex, yminindex ) %
-                        getVarName( xminindex + 1, yminindex ) %
-                        x_minus_x0_rel % returnVar );
-
-        }
-
+  if (y_minus_y0_rel == 0) {
+    if (x_minus_x0_rel == 0) {
+      // If `point` is on top of a measurement point, just copy
+      // the measured height over
+      return str(format("#%2$s=%1$s\n")
+                 % getVarName(xminindex, yminindex)
+                 % returnVar);
     } else {
-
-        if ( x_minus_x0_rel == 0 ) {
-
-            // If `point` has the same x coordinate as a column of
-            // points, interpolate between the points above and below it
-            return str( format( "#%4$s=[%2$s+[%1$s-%2$s]*%3$.5f]\n" ) %
-                        getVarName( xminindex, yminindex + 1 ) %
-                        getVarName( xminindex, yminindex ) %
-                        y_minus_y0_rel % returnVar );
-
-        } else {
-
-            // ...else use bilinear interpolation between all four
-            // points around it
-            return str( format( "#%7$s=[%3$s+[%1$s-%3$s]*%5$.5f]\n#%8$s=[%4$s+[%2$s-%4$s]*%5$.5f]\n#%9$s=[#%7$s+[#%8$s-#%7$s]*%6$.5f]\n" ) %
-                        getVarName( xminindex, yminindex + 1 ) %
-                        getVarName( xminindex + 1, yminindex + 1 ) %
-                        getVarName( xminindex, yminindex ) %
-                        getVarName( xminindex + 1, yminindex ) %
-                        y_minus_y0_rel % x_minus_x0_rel % 
-                        globalVar4 % globalVar5 % returnVar );
-
-        }
-
+      // If `point` has the same y coordinate as a row of points,
+      // interpolate between the points to the left and right of
+      // it
+      return str(format("#%4$s=[%1$s+[%2$s-%1$s]*%3$.5f]\n")
+                 % getVarName(xminindex, yminindex)
+                 % getVarName(xminindex + 1, yminindex)
+                 % x_minus_x0_rel % returnVar);
     }
-
+  } else {
+    if (x_minus_x0_rel == 0) {
+      // If `point` has the same x coordinate as a column of
+      // points, interpolate between the points above and below it
+      return str(format("#%4$s=[%2$s+[%1$s-%2$s]*%3$.5f]\n")
+                 % getVarName(xminindex, yminindex + 1)
+                 % getVarName(xminindex, yminindex)
+                 % y_minus_y0_rel % returnVar);
+    } else {
+      // ...else use bilinear interpolation between all four
+      // points around it
+      return str(format("#%7$s=[%3$s+[%1$s-%3$s]*%5$.5f]\n#%8$s=[%4$s+[%2$s-%4$s]*%5$.5f]\n#%9$s=[#%7$s+[#%8$s-#%7$s]*%6$.5f]\n")
+                 % getVarName(xminindex, yminindex + 1)
+                 % getVarName(xminindex + 1, yminindex + 1)
+                 % getVarName(xminindex, yminindex)
+                 % getVarName(xminindex + 1, yminindex)
+                 % y_minus_y0_rel % x_minus_x0_rel
+                 % globalVar4 % globalVar5 % returnVar);
+    }
+  }
 }
 
 

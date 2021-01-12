@@ -157,7 +157,7 @@ protected:
 
     // getVarName returns the string containing the variable name associated with the probe point with
     // the indexes i and j
-    std::string getVarName( int i, int j );
+    std::string getVarName(unsigned int i, unsigned int j);
 
     // interpolatePoint finds the correct 4 probed points and computes a bilinear interpolation of point.
     // The result of the interpolation is saved in the parameter number RESULT_VAR
