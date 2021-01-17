@@ -183,60 +183,68 @@ vector<pair<linestring_type_fp, bool>> backtrack(
   }
 
   vector<pair<linestring_type_fp, bool>> backtracks;
-  while (true) {
-    // For each odd-degree vertex, find the nearest odd-degree vertex
-    // using the distance function on the edge.
+  // best_backtracks stores the total length, the start, the end,
+  // and a list of paths to take to get there, in the right order
+  // and with the right directionality.
+  vector<pair<long double,
+              vector<pair<linestring_type_fp, bool>>>> best_backtracks;
 
-    // best_backtracks stores the total length, the start, the end,
-    // and a list of paths to take to get there, in the right order
-    // and with the right directionality.
-    vector<pair<long double, vector<pair<linestring_type_fp, bool>>>> best_backtracks;
-    for (const auto& v : vertex_degrees) {
-      // Get the length and path to the nearest element.
-      // find_nearest_vertex returns 0 if there is none that is close
-      // enough or if the start vertex is not can_start(), that is, it
-      // has so many paths out already that it shouldn't get anymore.
-      auto length_and_path = find_nearest_vertex(graph, v.first, vertex_degrees, g1_speed, up_time, g0_speed, down_time, in_per_sec);
-      if (length_and_path.first > 0) {
-        best_backtracks.push_back(length_and_path);
-      }
-    }
-    // Now sort so that the shortest backtracks are first.
-    sort(best_backtracks.begin(), best_backtracks.end());
-    // Select backtracks one-at-a-time, best first.  If the next best
-    // to select includes a vertex that should no longer be used
-    // because it already has enough inward or outward edges, start
-    // the search again.
-    auto i = best_backtracks.cbegin();
-    for (; i != best_backtracks.cend(); i++) {
-      if (vertex_degrees[i->second.front().first.front()].can_start() &&
-          vertex_degrees[i->second.back().first.back()].can_end()) {
-        for (const auto& p : i->second) {
-          backtracks.emplace_back(p);
-        }
-        if (i->second.front().second) {
-          // Start is reversible.
-          vertex_degrees[i->second.front().first.front()].bidi++;
-        } else {
-          // Start is not reversible.
-          vertex_degrees[i->second.front().first.front()].out++;
-        }
-        if (i->second.back().second) {
-          // End is reversible.
-          vertex_degrees[i->second.back().first.back()].bidi++;
-        } else {
-          // End is not reversible.
-          vertex_degrees[i->second.back().first.back()].in++;
-        }
-      } else {
-        // Can't add this one or any further, begin the search again.
-        break;
-      }
-    }
-    if (i == best_backtracks.cend()) {
-      return backtracks;
+  // For each odd-degree vertex, find the nearest odd-degree vertex
+  // using the distance function on the edge.
+  for (const auto& v : vertex_degrees) {
+    // Get the length and path to the nearest element.
+    // find_nearest_vertex returns 0 if there is none that is close
+    // enough or if the start vertex is not can_start(), that is, it
+    // has so many paths out already that it shouldn't get anymore.
+    auto length_and_path = find_nearest_vertex(graph, v.first, vertex_degrees, g1_speed, up_time, g0_speed, down_time, in_per_sec);
+    if (length_and_path.first > 0) {
+      best_backtracks.push_back(length_and_path);
     }
   }
+  // Now sort so that the shortest backtracks are first.
+  make_heap(best_backtracks.begin(), best_backtracks.end(), greater<>());
+  // Select backtracks one-at-a-time, best first.  Every time that a
+  // backtrack is used, we may need to recalculate the nearest vertex.
+  // Because adding a backtrack can only possibly remove the can_start
+  // or can_end, there is no possibility that the new search will find
+  // an even shorter backtrack so we don't need to start from the
+  // beginning.
+  while (best_backtracks.size() > 0) {
+    const auto& i = best_backtracks.cbegin();
+    if (vertex_degrees[i->second.front().first.front()].can_start() &&
+        vertex_degrees[i->second.back().first.back()].can_end()) {
+      for (const auto& p : i->second) {
+        backtracks.emplace_back(p);
+      }
+      if (i->second.front().second) {
+        // Start is reversible.
+        vertex_degrees[i->second.front().first.front()].bidi++;
+      } else {
+        // Start is not reversible.
+        vertex_degrees[i->second.front().first.front()].out++;
+      }
+      if (i->second.back().second) {
+        // End is reversible.
+        vertex_degrees[i->second.back().first.back()].bidi++;
+      } else {
+        // End is not reversible.
+        vertex_degrees[i->second.back().first.back()].in++;
+      }
+    }
+    // Because this vertex used to have a backtrack, it might still
+    // have one so look for it.
+    auto length_and_path = find_nearest_vertex(
+        graph, i->second.front().first.front(), vertex_degrees, g1_speed,
+        up_time, g0_speed, down_time, in_per_sec);
+    // Now we can remove the used one and perhaps put a new one instead.
+    pop_heap(best_backtracks.begin(), best_backtracks.end(), greater<>());
+    best_backtracks.pop_back();
+    if (length_and_path.first > 0) {
+      best_backtracks.push_back(length_and_path);
+      push_heap(best_backtracks.begin(), best_backtracks.end(), greater<>());
+    }
+  }
+  return backtracks;
 }
 
 } // namespace backtrack
