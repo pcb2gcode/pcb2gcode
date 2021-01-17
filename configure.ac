@@ -60,8 +60,8 @@ PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 # Optional GEOS, as a slower but more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
-      [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy though it can be slower.])],
-      [AC_MSG_NOTICE([Didn't find geos, we'll use boost geometry for all geometry functions.  If you see inaccuracy, try geos.])])
+      [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy and speed.])],
+      [AC_MSG_NOTICE([Didn't find geos, we'll use boost geometry for all geometry functions.  If you see inaccuracies or you want faster run times, try geos.])])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
       [AC_SUBST(GEOS_EXTRA, ["-DUSE_UNSTABLE_GEOS_CPP_API -DGEOS_VERSION=\\\"\$(GEOS_VERSION)\\\""])])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
