@@ -18,18 +18,36 @@ namespace bg_helpers {
 const int points_per_circle = 32;
 
 multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
-  if (expand_by == 0) {
+  if (expand_by == 0 || geometry_in.size() == 0) {
     return geometry_in;
-  } else {
-    multi_polygon_type_fp geometry_out;
-    bg::buffer(geometry_in, geometry_out,
-               bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
-               bg::strategy::buffer::side_straight(),
-               bg::strategy::buffer::join_round(points_per_circle),
-               bg::strategy::buffer::end_round(points_per_circle),
-               bg::strategy::buffer::point_circle(points_per_circle));
-    return geometry_out;
   }
+#ifdef GEOS_VERSION
+  geos::io::WKTReader reader;
+  std::stringstream ss;
+  ss << bg::wkt(geometry_in);
+  auto geos_in = reader.read(ss.str());
+  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
+  geos::io::WKTWriter writer;
+  auto geos_wkt = writer.write(geos_out.get());
+  multi_polygon_type_fp ret;
+  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
+    bg::read_wkt(geos_wkt, ret);
+  } else {
+    polygon_type_fp poly;
+    bg::read_wkt(geos_wkt, poly);
+    ret.push_back(poly);
+  }
+  return ret;
+#else
+  multi_polygon_type_fp geometry_out;
+  bg::buffer(geometry_in, geometry_out,
+             bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
+             bg::strategy::buffer::side_straight(),
+             bg::strategy::buffer::join_round(points_per_circle),
+             bg::strategy::buffer::end_round(points_per_circle),
+             bg::strategy::buffer::point_circle(points_per_circle));
+  return geometry_out;
+#endif
 }
 
 multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
@@ -76,7 +94,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
 
 template<typename CoordinateType>
 multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by) {
-  if (expand_by == 0) {
+  if (expand_by == 0 || geometry_in.size() == 0) {
     return {};
   }
   // bg::buffer of multilinestring is broken in boost.  Converting the
