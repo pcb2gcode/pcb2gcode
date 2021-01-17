@@ -71,6 +71,7 @@ AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
 AC_ARG_VAR([pcb2gcode_CPPFLAGS_EXTRA], [Additional flags when compiling pcb2gcode])
+AC_ARG_VAR([pcb2gcode_LDFLAGS_EXTRA], [Additional flags when linking pcb2gcode])
 
 # GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
 # we want to use the new symbol
