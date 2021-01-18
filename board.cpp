@@ -35,6 +35,8 @@ using std::pair;
 #include <vector>
 using std::vector;
 
+#include "bg_operators.hpp"
+
 typedef pair<string, shared_ptr<Layer> > layer_t;
 
 /******************************************************************************/
@@ -84,7 +86,9 @@ void Board::createLayers()
 
     // Calculate the maximum possible room needed by the PCB traces, for tiling later.
     const auto outline = prepared_layers.find("outline");
-    if (outline != prepared_layers.cend()) {
+    if (outline != prepared_layers.cend() &&
+        (get<0>(outline->second)->get_bounding_box().min_corner() <
+         get<0>(outline->second)->get_bounding_box().max_corner())) {
       shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
       const auto& importer = get<0>(outline->second);
       coordinate_type_fp tool_diameter = outline_mill->tool_diameter;
@@ -144,7 +148,9 @@ void Board::createLayers()
     }
 
     // mask layers with outline
-    if (prepared_layers.find("outline") != prepared_layers.end()) {
+    if (outline != prepared_layers.cend() &&
+        (get<0>(outline->second)->get_bounding_box().min_corner() <
+         get<0>(outline->second)->get_bounding_box().max_corner())) {
       shared_ptr<Layer> outline_layer = layers.at("outline");
 
       for (const auto& layer : layers) {

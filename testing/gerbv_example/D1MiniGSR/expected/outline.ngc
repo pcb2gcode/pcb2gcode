@@ -1,0 +1,14 @@
+( pcb2gcode 2.2.2 )
+( Software-independent Gcode )
+
+G94 ( Millimeters per minute feed rate. )
+G21 ( Units == Millimeters. )
+
+G90 ( Absolute coordinates. )
+G00 S10000 ( RPM spindle speed. )
+G64 P0.01000 ( set maximum deviation from commanded toolpath )
+G01 F600.00000 ( Feedrate. )
+
+M9 ( Coolant off. )
+M2 ( Program end. )
+
