@@ -47,8 +47,9 @@
 class Surface_vectorial: private boost::noncopyable {
  public:
   Surface_vectorial(unsigned int points_per_circle,
-                    coordinate_type_fp min_x, coordinate_type_fp max_x, coordinate_type_fp min_y, coordinate_type_fp max_y,
-                    std::string name, std::string outputdir, bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
+                    const box_type_fp& bounding_box,
+                    std::string name, std::string outputdir, bool tsp_2opt,
+                    MillFeedDirection::MillFeedDirection mill_feed_direction,
                     bool invert_gerbers, bool render_paths_to_shapes);
 
   std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpath(
