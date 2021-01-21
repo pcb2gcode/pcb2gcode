@@ -42,6 +42,10 @@ using std::endl;
 using std::pair;
 using std::make_pair;
 
+#include <tuple>
+using std::tuple;
+using std::get;
+
 #include <map>
 using std::map;
 
@@ -217,39 +221,52 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
   }
 }
 
+vector<pair<linestring_type_fp, bool>> full_eulerian_paths(
+    const std::shared_ptr<RoutingMill>& mill,
+    const vector<pair<linestring_type_fp, bool>>& toolpath) {
+  auto toolpath1 = toolpath;
+  toolpath1 = segmentize::segmentize_paths(toolpath1);
+  toolpath1 = segmentize::unique(toolpath1);
+
+  vector<pair<linestring_type_fp, bool>> paths_to_add;
+  paths_to_add = backtrack::backtrack(
+      toolpath1,
+      mill->feed,
+      (mill->zsafe - mill->zwork) / mill->g0_vertical_speed,
+      mill->g0_vertical_speed,
+      (mill->zsafe - mill->zwork) / mill->vertfeed,
+      mill->backtrack);
+  for (const auto& p : paths_to_add) {
+    toolpath1.push_back(p);
+  }
+  toolpath1 = eulerian_paths::get_eulerian_paths<
+    point_type_fp,
+    linestring_type_fp>(toolpath1);
+  trim_paths::trim_paths(toolpath1, paths_to_add);
+  return toolpath1;
+}
 
 // Make eulerian paths if needed.  Sort the paths order to make it faster.
 // Simplify paths by removing points that don't affect the path or affect it
 // very little.
 multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
-    const std::shared_ptr<RoutingMill>& mill, const vector<pair<linestring_type_fp, bool>>& toolpath) const {
+    const std::shared_ptr<RoutingMill>& mill,
+    unsigned int tool_index,
+    const vector<pair<linestring_type_fp, bool>>& toolpath) const {
   auto toolpath1 = toolpath;
   if (mill->eulerian_paths) {
-    toolpath1 = segmentize::segmentize_paths(toolpath1);
-    toolpath1 = segmentize::unique(toolpath1);
-
-    vector<pair<linestring_type_fp, bool>> paths_to_add;
-    paths_to_add = backtrack::backtrack(
-        toolpath1,
-        mill->feed,
-        (mill->zsafe - mill->zwork) / mill->g0_vertical_speed,
-        mill->g0_vertical_speed,
-        (mill->zsafe - mill->zwork) / mill->vertfeed,
-        mill->backtrack);
-    for (const auto& p : paths_to_add) {
-      toolpath1.push_back(p);
-    }
-    toolpath1 = eulerian_paths::get_eulerian_paths<
-      point_type_fp,
-      linestring_type_fp>(toolpath1);
-    trim_paths::trim_paths(toolpath1, paths_to_add);
+    toolpath1 = full_eulerian_paths(mill, toolpath1);
+  }
+  shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+  if (isolator != nullptr && tool_index >= 0) {
+    const auto extra_paths = final_path_finder(isolator, tool_index, toolpath);
   }
   multi_linestring_type_fp combined_toolpath;
   combined_toolpath.reserve(toolpath1.size());
   for (const auto& ls_and_allow_reversal : toolpath1) {
     combined_toolpath.push_back(ls_and_allow_reversal.first);
   }
-  if (dynamic_pointer_cast<Isolator>(mill) != nullptr) {
+  if (isolator != nullptr) {
     if (tsp_2opt) {
       tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
     } else {
@@ -785,6 +802,90 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     return toolpath;
 }
 
+// Given a bunch of paths, where some may be one directional, connect
+// them if possible.  The second argument in the pair is true iff the
+// path is reversible.  Returns new paths to add to the list that was
+// provided.
+vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
+    std::shared_ptr<Isolator> isolator,
+    unsigned int tool_index,
+    const vector<pair<linestring_type_fp, bool>>& paths) const {
+  // Find all the connectable endpoints.  A connection can only be
+  // made if the direction suits it.
+  vector<tuple<coordinate_type_fp, point_type_fp, point_type_fp>> connections;
+  for (const auto& path1 : paths) {
+    for (const auto& path2: paths) {
+      // We can always do these:
+      connections.push_back({bg::distance(path1.first.back(), path2.first.front()), path1.first.back(), path2.first.front()});
+      connections.push_back({bg::distance(path2.first.back(), path1.first.front()), path2.first.back(), path1.first.front()});
+      if (path1.second) {
+        // A least path1 is reversible.
+        connections.push_back({bg::distance(path1.first.front(), path2.first.front()), path1.first.front(), path2.first.front()});
+        connections.push_back({bg::distance(path2.first.back(), path1.first.back()), path2.first.back(), path1.first.back()});
+      } else if (path2.second) {
+        // Only path2 is reversible.
+        connections.push_back({bg::distance(path1.first.back(), path2.first.back()), path1.first.back(), path2.first.back()});
+        connections.push_back({bg::distance(path2.first.front(), path1.first.front()), path2.first.front(), path1.first.front()});
+      }
+    }
+  }
+  // Sort so that the closest pairs are first.
+  std::sort(connections.begin(), connections.end());
+  // Maintain a list of endpoints that are already connected.  We
+  // won't re-use them.
+  vector<point_type_fp> already_connected;
+  vector<pair<linestring_type_fp, bool>> new_paths;
+  const auto& tool = isolator->tool_diameters_and_overlap_widths[tool_index];
+  const auto tool_diameter = tool.first;
+  const auto offset = isolator->offset;
+
+  auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + offset);
+ 
+  auto path_finding_surface = path_finding::create_path_finding_surface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, isolator->tolerance);
+  // Find if a distance between two points should be milled or retract, move
+  // fast, and plunge.  Milling is chosen if it's faster and also the path is
+  // entirely within the path_finding_surface.  If it's not faster or the path
+  // isn't possible, boost::none is returned.
+  PathFinder path_finder =
+      [&](const point_type_fp& a, const point_type_fp& b) {
+        // Solve for distance:
+        // risetime at G0 + horizontal distance G0 + plunge G1 ==
+        // travel time at G1
+        // The horizontal G0 move is for the maximum of the X and Y coordinates.
+        // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
+        const auto vertical_distance = isolator->zsafe - isolator->zwork;
+        const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
+        const double horizontalG1speed = isolator->feed;
+        const double vertG1speed = isolator->vertfeed;
+        const double g0_time = vertical_distance/isolator->g0_vertical_speed + max_manhattan/isolator->g0_horizontal_speed + vertical_distance/vertG1speed;
+        const double max_g1_distance = g0_time * horizontalG1speed;
+        size_t tries = 0;
+        path_finding::PathLimiter path_limiter =
+            [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
+              if (tries >= isolator->path_finding_limit) {
+                throw path_finding::GiveUp();
+              }
+              tries++;
+              // Return true if this path needs to be clipped.  The distance from
+              // a to target so far is length.  At best, we'll have a straight
+              // line from there to the goal, b.
+              const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
+              if (potential_horizontal_distance > max_g1_distance) {
+                return true; // clip this path
+              }
+              return false;
+            };
+        return find_path(path_finding_surface, a, b, path_limiter);
+      };
+  
+  
+  //for (const auto& start_end : connections) {
+    //const point_type_fp& start = get<1>(start_end);
+    //const point_type_fp& end = get<2>(start_end);
+  //}
+  return {};
+}
+
 // A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
 vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::get_toolpath(
     shared_ptr<RoutingMill> mill, bool mirror) {
@@ -861,7 +962,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, tool_index, new_toolpath);
       results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror));
     }
     // Now process any lines that need drawing.
@@ -880,7 +981,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       }
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
       write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_trace_toolpath);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, -1 /* Don't do any path finding */, new_trace_toolpath);
       results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror)));
     }
     return results;
@@ -896,7 +997,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
     }
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten(new_trace_toolpaths);
-    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, new_toolpath);
+    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, -1 /* Don't do any path finding */, new_toolpath);
     return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");

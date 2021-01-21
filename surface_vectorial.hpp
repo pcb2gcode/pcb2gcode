@@ -96,6 +96,10 @@ protected:
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
       const double overlap_width,
       const multi_polygon_type_fp& already_milled) const;
+  std::vector<std::pair<linestring_type_fp, bool>> final_path_finder(
+      std::shared_ptr<Isolator> mill,
+      unsigned int tool_index,
+      const std::vector<std::pair<linestring_type_fp, bool>>& paths) const;
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
@@ -103,7 +107,10 @@ protected:
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi,
       coordinate_type_fp offset) const;
-  multi_linestring_type_fp post_process_toolpath(const std::shared_ptr<RoutingMill>& mill, const std::vector<std::pair<linestring_type_fp, bool>>& toolpath) const;
+  multi_linestring_type_fp post_process_toolpath(
+      const std::shared_ptr<RoutingMill>& mill,
+      unsigned int tool_index,
+      const std::vector<std::pair<linestring_type_fp, bool>>& toolpath) const;
   void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                   coordinate_type_fp tolerance, bool find_contentions) const;
