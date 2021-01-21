@@ -260,14 +260,13 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   if (mill->eulerian_paths) {
     toolpath1 = full_eulerian_paths(mill, toolpath1);
   }
-  UNUSED(path_finder);
-  /*const auto extra_paths = final_path_finder(path_finder, toolpath);
-    if (extra_paths.size() > 0) {
+  const auto extra_paths = final_path_finder(path_finder, toolpath);
+  if (extra_paths.size() > 0) {
     toolpath1.insert(toolpath1.cend(), extra_paths.cbegin(), extra_paths.cend());
     if (mill->eulerian_paths) {
       toolpath1 = full_eulerian_paths(mill, toolpath1);
     }
-    }*/
+  }
   multi_linestring_type_fp combined_toolpath;
   combined_toolpath.reserve(toolpath1.size());
   for (const auto& ls_and_allow_reversal : toolpath1) {
