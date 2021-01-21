@@ -128,9 +128,9 @@ class PathSurface {
       bg::expand(bounding_box, end);
       for (const auto& v : base->all_vertices) {
         bg::expand(bounding_box, v);
+        bg::buffer(bounding_box, bounding_box, base->tolerance);
       }
       bg::convert(bounding_box, total_keep_in_grown);
-      total_keep_in_grown = {bg_helpers::buffer_miter(total_keep_in_grown, base->tolerance)};
       total_keep_in_grown = total_keep_in_grown - base->keep_out_shrunk;
     }
     all_vertices.clear();
