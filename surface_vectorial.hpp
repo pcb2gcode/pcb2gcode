@@ -46,6 +46,9 @@
 /******************************************************************************/
 class Surface_vectorial: private boost::noncopyable {
  public:
+  // This function returns a linestring that connects two points if possible.
+  typedef std::function<boost::optional<linestring_type_fp>(const point_type_fp& start, const point_type_fp& end)> PathFinder;
+
   Surface_vectorial(unsigned int points_per_circle,
                     const box_type_fp& bounding_box,
                     std::string name, std::string outputdir, bool tsp_2opt,
@@ -96,9 +99,11 @@ protected:
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
       const double overlap_width,
       const multi_polygon_type_fp& already_milled) const;
+  PathFinder make_path_finder(
+      std::shared_ptr<RoutingMill> mill,
+      std::shared_ptr<const path_finding::PathFindingSurface> path_finding_surface) const;
   std::vector<std::pair<linestring_type_fp, bool>> final_path_finder(
-      std::shared_ptr<Isolator> mill,
-      unsigned int tool_index,
+      Surface_vectorial::PathFinder path_finder,
       const std::vector<std::pair<linestring_type_fp, bool>>& paths) const;
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
@@ -109,7 +114,7 @@ protected:
       coordinate_type_fp offset) const;
   multi_linestring_type_fp post_process_toolpath(
       const std::shared_ptr<RoutingMill>& mill,
-      unsigned int tool_index,
+      const PathFinder& path_finder,
       const std::vector<std::pair<linestring_type_fp, bool>>& toolpath) const;
   void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
