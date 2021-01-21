@@ -70,14 +70,12 @@ using std::dynamic_pointer_cast;
 unsigned int Surface_vectorial::debug_image_index = 0;
 
 Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
-                                     coordinate_type_fp min_x, coordinate_type_fp max_x,
-                                     coordinate_type_fp min_y, coordinate_type_fp max_y,
+                                     const box_type_fp& bounding_box,
                                      string name, string outputdir,
                                      bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
                                      bool invert_gerbers, bool render_paths_to_shapes) :
     points_per_circle(points_per_circle),
-    bounding_box(box_type_fp(point_type_fp(min_x, min_y),
-                             point_type_fp(max_x, max_y))),
+    bounding_box(bounding_box),
     name(name),
     outputdir(outputdir),
     tsp_2opt(tsp_2opt),

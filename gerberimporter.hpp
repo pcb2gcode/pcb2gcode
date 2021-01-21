@@ -54,10 +54,7 @@ public:
   bool load_file(const std::string& path);
   virtual ~GerberImporter();
 
-  virtual gdouble get_min_x() const;
-  virtual gdouble get_max_x() const;
-  virtual gdouble get_min_y() const;
-  virtual gdouble get_max_y() const;
+  virtual box_type_fp get_bounding_box() const;
 
   virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
       bool fill_closed_lines,

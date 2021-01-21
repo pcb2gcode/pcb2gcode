@@ -65,31 +65,30 @@ void cairo_render(const GerberImporter& g, Cairo::RefPtr<Cairo::ImageSurface> su
 
 // Given a gerber file, return a pixmap that is a rasterized version of that
 // gerber.  Uses gerbv's built-in utils.
-void bitmap_from_gerber(const GerberImporter& g, double min_x, double min_y,
+void bitmap_from_gerber(const GerberImporter& g, const point_type_fp& min_corner,
                         Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
   //Render
   GdkColor blue = {0,
                    ((OLD_COLOR >> 16) & 0xff) * 0x101,
                    ((OLD_COLOR >>  8) & 0xff) * 0x101,
                    ((OLD_COLOR      ) & 0xff) * 0x101};
-  cairo_render(g, cairo_surface, dpi, min_x, min_y, blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
+  cairo_render(g, cairo_surface, dpi, min_corner.x(), min_corner.y(), blue, GERBV_RENDER_TYPE_CAIRO_HIGH_QUALITY);
 }
 
-string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y, double height) {
+string render_svg(const multi_polygon_type_fp& polys, const box_type_fp& bounding_box) {
   std::stringstream svg_stream;
   {
     box_type_fp svg_bounding_box;
     bg::envelope(polys, svg_bounding_box);
     const double svg_width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x());
     const double svg_height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y());
-    const double max_y = min_y + height;
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"%3% %4% %5% %6%\"")
             % "100%"
             % "100%"
-            % ((min_x - svg_bounding_box.min_corner().x()) * dpi)
+            % ((bounding_box.min_corner().x() - svg_bounding_box.min_corner().x()) * dpi)
             // max and not min because the origin is in a different corner for svg vs gbr
-            % ((svg_bounding_box.max_corner().y() - max_y) * dpi)
+            % ((svg_bounding_box.max_corner().y() - bounding_box.max_corner().y()) * dpi)
             % (svg_width * dpi)
             % (svg_height * dpi));
     bg::svg_mapper<point_type_fp> svg(svg_stream,
@@ -107,9 +106,9 @@ string render_svg(const multi_polygon_type_fp& polys, double min_x, double min_y
 }
 
 // Convert the gerber to a boost geometry and then convert that to SVG and then rasterize to a bitmap.
-void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, double min_x, double min_y, double height,
+void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, const box_type_fp& bounding_box,
                               Cairo::RefPtr<Cairo::ImageSurface> cairo_surface) {
-  string svg_string = render_svg(polys, min_x, min_y, height);
+  string svg_string = render_svg(polys, bounding_box);
   //Now we have the svg, let's make a cairo surface like above.
   GError* gerror = nullptr;
   RsvgHandle *rsvg_handle = rsvg_handle_new_from_data(reinterpret_cast<const guint8*>(svg_string.c_str()),
@@ -166,6 +165,14 @@ void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, const string
   cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
 }
 
+coordinate_type_fp width(box_type_fp box) {
+  return box.max_corner().x() - box.min_corner().x();
+}
+
+coordinate_type_fp height(box_type_fp box) {
+  return box.max_corner().y() - box.min_corner().y();
+}
+
 // Compare gerbv image against boost generated image.
 void test_one(const string& gerber_file, double max_error_rate) {
   string gerber_path = gerber_directory;
@@ -176,13 +183,10 @@ void test_one(const string& gerber_file, double max_error_rate) {
   multi_polygon_type_fp polys = g.render(false, true, 360).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
-  double min_x = std::min(g.get_min_x(), bounding_box.min_corner().x());
-  double min_y = std::min(g.get_min_y(), bounding_box.min_corner().y());
-  double max_x = std::max(g.get_max_x(), bounding_box.max_corner().x());
-  double max_y = std::max(g.get_max_y(), bounding_box.max_corner().y());
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  bitmap_from_gerber(g, min_x, min_y, cairo_surface);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
+  bg::expand(bounding_box, g.get_bounding_box());
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width(bounding_box) * dpi, height(bounding_box) * dpi);
+  bitmap_from_gerber(g, bounding_box.min_corner(), cairo_surface);
+  boost_bitmap_from_gerber(polys, bounding_box, cairo_surface);
   map<uint32_t, size_t> counts = get_counts(cairo_surface);
   size_t background = 0, errors = 0, both = 0;
   for (const auto& kv : counts) {
@@ -224,12 +228,8 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
-  double min_x = bounding_box.min_corner().x();
-  double min_y = bounding_box.min_corner().y();
-  double max_x = bounding_box.max_corner().x();
-  double max_y = bounding_box.max_corner().y();
-  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface((max_x - min_x) * dpi, (max_y - min_y) * dpi);
-  boost_bitmap_from_gerber(polys, min_x, min_y, max_y-min_y, cairo_surface);
+  Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width(bounding_box) * dpi, height(bounding_box) * dpi);
+  boost_bitmap_from_gerber(polys, bounding_box, cairo_surface);
   auto counts = get_counts(cairo_surface);
   size_t total = 0, marked = 0l;
   for (const auto& kv : counts) {

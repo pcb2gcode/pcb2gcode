@@ -59,10 +59,7 @@ public:
     void set_margins(double margins) { margin = margins; }
     coordinate_type_fp get_width();
     coordinate_type_fp get_height();
-    coordinate_type_fp get_min_x() { return min_x; }
-    coordinate_type_fp get_max_x() { return max_x; }
-    coordinate_type_fp get_min_y() { return min_y; }
-    coordinate_type_fp get_max_y() { return max_y; }
+    const box_type_fp& get_bounding_box() const { return bounding_box; }
     double get_layersnum() {  return layers.size(); }
 
     std::vector<std::string> list_layers();
@@ -80,10 +77,7 @@ private:
     const bool invert_gerbers;
     const bool render_paths_to_shapes;
 
-    coordinate_type_fp min_x;
-    coordinate_type_fp max_x;
-    coordinate_type_fp min_y;
-    coordinate_type_fp max_y;
+    box_type_fp bounding_box{{INFINITY, INFINITY}, {-INFINITY, -INFINITY}};
 
     /* The Layer gets constructed from data prepared in
      * prepareLayer after the size calculations are done in createLayers.

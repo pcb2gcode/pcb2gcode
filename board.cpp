@@ -82,21 +82,13 @@ void Board::createLayers()
 
     // start calculating the minimal board size
 
-    min_x = INFINITY;
-    max_x = -INFINITY;
-    min_y = INFINITY;
-    max_y = -INFINITY;
-
     // Calculate the maximum possible room needed by the PCB traces, for tiling later.
     const auto outline = prepared_layers.find("outline");
     if (outline != prepared_layers.cend()) {
       shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
       const auto& importer = get<0>(outline->second);
       coordinate_type_fp tool_diameter = outline_mill->tool_diameter;
-      min_x = std::min(min_x, importer->get_min_x() - tool_diameter);
-      max_x = std::max(max_x, importer->get_max_x() + tool_diameter);
-      min_y = std::min(min_y, importer->get_min_y() - tool_diameter);
-      max_y = std::max(max_y, importer->get_max_y() + tool_diameter);
+      bounding_box = bg::return_buffer<box_type_fp>(importer->get_bounding_box(), tool_diameter);
     } else {
       for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
         const auto current_layer = prepared_layers.find(layer_name);
@@ -116,10 +108,8 @@ void Board::createLayers()
               // Figure out how much margin the extra passes might make.
               extra_passes_margin = tool_diameter + (tool_diameter - overlap_width) * extra_passes;
             }
-            min_x = std::min(min_x, importer->get_min_x() - extra_passes_margin - trace_mill->offset);
-            max_x = std::max(max_x, importer->get_max_x() + extra_passes_margin + trace_mill->offset);
-            min_y = std::min(min_y, importer->get_min_y() - extra_passes_margin - trace_mill->offset);
-            max_y = std::max(max_y, importer->get_max_y() + extra_passes_margin + trace_mill->offset);
+            auto current_bounding_box = bg::return_buffer<box_type_fp>(importer->get_bounding_box(), extra_passes_margin + trace_mill->offset);
+            bg::expand(bounding_box, current_bounding_box);
           }
         }
       }
@@ -133,8 +123,7 @@ void Board::createLayers()
 
       shared_ptr<Surface_vectorial> surface(new Surface_vectorial(
           30,
-          min_x, max_x,
-          min_y, max_y,
+          bounding_box,
           prepared_layer.first, outputdir, tsp_2opt,
           mill_feed_direction, invert_gerbers,
           render_paths_to_shapes || (prepared_layer.first == "outline")));

@@ -78,20 +78,11 @@ bool GerberImporter::load_file(const string& path) {
   return project->file[0] != NULL;
 }
 
-gdouble GerberImporter::get_min_x() const {
-  return project->file[0]->image->info->min_x;
-}
-
-gdouble GerberImporter::get_max_x() const {
-  return project->file[0]->image->info->max_x;
-}
-
-gdouble GerberImporter::get_min_y() const {
-  return project->file[0]->image->info->min_y;
-}
-
-gdouble GerberImporter::get_max_y() const {
-  return project->file[0]->image->info->max_y;
+box_type_fp GerberImporter::get_bounding_box() const {
+  return box_type_fp{
+    {project->file[0]->image->info->min_x,  project->file[0]->image->info->min_y},
+    {project->file[0]->image->info->max_x,  project->file[0]->image->info->max_y}
+  };
 }
 
 // Draw a regular polygon with outer diameter as specified and center.  The

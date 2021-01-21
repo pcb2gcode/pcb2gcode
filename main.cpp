@@ -356,13 +356,11 @@ void do_pcb2gcode(int argc, const char* argv[]) {
               if (!importer->load_file(vm["drill"].as<string>())) {
                 options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
               }
-                min = point_type_fp( importer->get_min_x(), importer->get_min_y() );
-                max = point_type_fp( importer->get_max_x(), importer->get_max_y() );
-            }
-            else
-            {
-                min = point_type_fp( board->get_min_x(), board->get_min_y() );
-                max = point_type_fp( board->get_max_x(), board->get_max_y() );
+              min = importer->get_bounding_box().min_corner();
+              max = importer->get_bounding_box().max_corner();
+            } else {
+              min = board->get_bounding_box().min_corner();
+              max = board->get_bounding_box().max_corner();
             }
 
             ExcellonProcessor ep(vm, min, max);
