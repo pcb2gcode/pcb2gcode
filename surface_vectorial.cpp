@@ -255,12 +255,11 @@ vector<pair<linestring_type_fp, bool>> full_eulerian_paths(
 multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
     const std::shared_ptr<RoutingMill>& mill,
     const PathFinder& path_finder,
-    const vector<pair<linestring_type_fp, bool>>& toolpath) const {
-  auto toolpath1 = toolpath;
+    vector<pair<linestring_type_fp, bool>> toolpath1) const {
   if (mill->eulerian_paths) {
     toolpath1 = full_eulerian_paths(mill, toolpath1);
   }
-  const auto extra_paths = final_path_finder(path_finder, toolpath);
+  const auto extra_paths = final_path_finder(path_finder, toolpath1);
   if (extra_paths.size() > 0) {
     toolpath1.insert(toolpath1.cend(), extra_paths.cbegin(), extra_paths.cend());
     if (mill->eulerian_paths) {
@@ -823,6 +822,9 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
   vector<tuple<coordinate_type_fp, point_type_fp, point_type_fp>> connections;
   for (const auto& path1 : paths) {
     for (const auto& path2: paths) {
+      if (path1 == path2) {
+        continue;
+      }
       // We can always do these:
       connections.push_back({bg::distance(path1.first.back(), path2.first.front()), path1.first.back(), path2.first.front()});
       connections.push_back({bg::distance(path2.first.back(), path1.first.front()), path2.first.back(), path1.first.front()});
