@@ -82,16 +82,6 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
     cfactor = bMetricoutput ? 25.4 : 1;
     
-    if (options["zero-start"].as<bool>()) {
-      xoffset = board->get_bounding_box().min_corner().x();
-      yoffset = board->get_bounding_box().min_corner().y();
-    } else {
-      xoffset = 0;
-      yoffset = 0;
-    }
-    xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-    yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-
     tileInfo = Tiling::generateTileInfo( options, board->get_height(), board->get_width() );
 
     for ( string layername : board->list_layers() )
