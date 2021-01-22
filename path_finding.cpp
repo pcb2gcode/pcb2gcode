@@ -418,7 +418,8 @@ boost::optional<linestring_type_fp> find_path(
   direct_ls.push_back(end);
   try {
     if (!path_finding_surface->total_keep_in_grown) {
-      if (!bg::intersects(direct_ls, path_finding_surface->keep_out_shrunk)) {
+      if (!bg::intersects(direct_ls, path_finding_surface->keep_out_shrunk) &&
+          (path_limiter == nullptr || !path_limiter(end, bg::distance(start, end)))) {
         return direct_ls;
       }
     } else {
