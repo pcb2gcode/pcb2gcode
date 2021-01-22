@@ -75,11 +75,45 @@ class PathFindingSurface {
                     }),
         all_vertices.end());
   }
+
+  /* Given a point, determine if the point is in the search surface.
+     If so, return an integer, otherwise boost::none.  If two points
+     return the same integer, there is a path between them.  If not
+     then there cannot be a path between them. */
+  boost::optional<int> in_polygon(point_type_fp p) const {
+    if (total_keep_in_grown) {
+      for (size_t i = 0; i < total_keep_in_grown->size(); i++) {
+        if (bg::covered_by(p, total_keep_in_grown->at(i))) {
+          return {(int)i};
+        }
+      }
+      return boost::none;
+    } else {
+      int i = -2;
+      for (const auto& poly : keep_out_shrunk) {
+        for (const auto& inner : poly.inners()) {
+          if (bg::covered_by(p, inner)) {
+            return {i};
+          }
+          i--;
+        }
+      }
+      if (bg::covered_by(p, keep_out_shrunk)) {
+        return boost::none;
+      }
+      return {-1};
+    }
+  }
   optional<multi_polygon_type_fp> total_keep_in_grown;
   multi_polygon_type_fp keep_out_shrunk;
   const coordinate_type_fp tolerance;
   vector<point_type_fp> all_vertices;
 };
+
+boost::optional<int> in_polygon(const std::shared_ptr<const PathFindingSurface> path_finding_surface,
+                                point_type_fp p) {
+  return path_finding_surface->in_polygon(p);
+}
 
 inline bool is_intersecting(const point_type_fp& p0, const point_type_fp& p1,
                             const point_type_fp& p2, const point_type_fp& p3) {
@@ -158,10 +192,7 @@ class PathSurface {
 
   // Returns true if there is at least some path from begin to end.
   bool has_path() {
-    if (total_keep_in_grown) {
-      return total_keep_in_grown->size() > 0;
-    }
-    return true;
+    return total_keep_in_grown->size() > 0;
   }
 
   bool in_surface(const size_t& a_index, const size_t& b_index) const {

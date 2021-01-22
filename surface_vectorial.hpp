@@ -103,7 +103,8 @@ protected:
       std::shared_ptr<RoutingMill> mill,
       std::shared_ptr<const path_finding::PathFindingSurface> path_finding_surface) const;
   std::vector<std::pair<linestring_type_fp, bool>> final_path_finder(
-      Surface_vectorial::PathFinder path_finder,
+      const std::shared_ptr<RoutingMill>& mill,
+      const std::shared_ptr<const path_finding::PathFindingSurface> path_finding_surface,
       const std::vector<std::pair<linestring_type_fp, bool>>& paths) const;
   std::vector<multi_polygon_type_fp> offset_polygon(
       const boost::optional<polygon_type_fp>& input,
@@ -114,7 +115,7 @@ protected:
       coordinate_type_fp offset) const;
   multi_linestring_type_fp post_process_toolpath(
       const std::shared_ptr<RoutingMill>& mill,
-      const PathFinder& path_finder,
+      const boost::optional<std::shared_ptr<const path_finding::PathFindingSurface>>& path_finding_surface,
       std::vector<std::pair<linestring_type_fp, bool>> toolpath) const;
   void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,

@@ -25,6 +25,8 @@ const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
     const multi_polygon_type_fp& keep_out,
     const coordinate_type_fp tolerance);
 
+boost::optional<int> in_polygon(const std::shared_ptr<const PathFindingSurface> path_finding_surface,
+                                point_type_fp p);
 
 // Find a path from start to end in the available surface.
 boost::optional<linestring_type_fp> find_path(

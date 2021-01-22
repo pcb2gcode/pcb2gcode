@@ -20,6 +20,9 @@
 #include <unordered_set>
 using std::unordered_set;
 
+#include <unordered_map>
+using std::unordered_map;
+
 #include <fstream>
 #include <limits>
 using std::numeric_limits;
@@ -254,16 +257,18 @@ vector<pair<linestring_type_fp, bool>> full_eulerian_paths(
 // very little.
 multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
     const std::shared_ptr<RoutingMill>& mill,
-    const PathFinder& path_finder,
+    const boost::optional<std::shared_ptr<const path_finding::PathFindingSurface>>& path_finding_surface,
     vector<pair<linestring_type_fp, bool>> toolpath1) const {
   if (mill->eulerian_paths) {
     toolpath1 = full_eulerian_paths(mill, toolpath1);
   }
-  const auto extra_paths = final_path_finder(path_finder, toolpath1);
-  if (extra_paths.size() > 0) {
-    toolpath1.insert(toolpath1.cend(), extra_paths.cbegin(), extra_paths.cend());
-    if (mill->eulerian_paths) {
-      toolpath1 = full_eulerian_paths(mill, toolpath1);
+  if (path_finding_surface) {
+    const auto extra_paths = final_path_finder(mill, *path_finding_surface, toolpath1);
+    if (extra_paths.size() > 0) {
+      toolpath1.insert(toolpath1.cend(), extra_paths.cbegin(), extra_paths.cend());
+      if (mill->eulerian_paths) {
+        toolpath1 = full_eulerian_paths(mill, toolpath1);
+      }
     }
   }
   multi_linestring_type_fp combined_toolpath;
@@ -815,7 +820,8 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
 // path is reversible.  Returns new paths to add to the list that was
 // provided.
 vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
-    Surface_vectorial::PathFinder path_finder,
+    const std::shared_ptr<RoutingMill>& mill,
+    const std::shared_ptr<const path_finding::PathFindingSurface> path_finding_surface,
     const vector<pair<linestring_type_fp, bool>>& paths) const {
   // Find all the connectable endpoints.  A connection can only be
   // made if the direction suits it.
@@ -827,24 +833,35 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
       }
       // We can always do these:
       connections.push_back({bg::distance(path1.first.back(), path2.first.front()), path1.first.back(), path2.first.front()});
-      connections.push_back({bg::distance(path2.first.back(), path1.first.front()), path2.first.back(), path1.first.front()});
       if (path1.second) {
         // A least path1 is reversible.
         connections.push_back({bg::distance(path1.first.front(), path2.first.front()), path1.first.front(), path2.first.front()});
-        connections.push_back({bg::distance(path2.first.back(), path1.first.back()), path2.first.back(), path1.first.back()});
       } else if (path2.second) {
         // Only path2 is reversible.
         connections.push_back({bg::distance(path1.first.back(), path2.first.back()), path1.first.back(), path2.first.back()});
-        connections.push_back({bg::distance(path2.first.front(), path1.first.front()), path2.first.front(), path1.first.front()});
       }
     }
   }
   // Sort so that the closest pairs are first.
   std::sort(connections.begin(), connections.end());
+  // Find to which polygon each point belongs.
+  unordered_map<point_type_fp, boost::optional<int>> points_to_poly_id;
+  for (const auto& c : connections) {
+    auto result = points_to_poly_id.find(get<1>(c));
+    if (result == points_to_poly_id.cend()) {
+      points_to_poly_id[get<1>(c)] = path_finding::in_polygon(path_finding_surface, get<1>(c));
+    }
+    result = points_to_poly_id.find(get<2>(c));
+    if (result == points_to_poly_id.cend()) {
+      points_to_poly_id[get<2>(c)] = path_finding::in_polygon(path_finding_surface, get<2>(c));
+    }
+  }
+
   // Maintain a list of endpoints that are already connected.  We
   // won't re-use them.
   unordered_set<point_type_fp> already_connected;
   vector<pair<linestring_type_fp, bool>> new_paths;
+  PathFinder path_finder = make_path_finder(mill, path_finding_surface);
 
   for (const auto& start_end : connections) {
     const point_type_fp& start = get<1>(start_end);
@@ -853,6 +870,11 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
     }
     const point_type_fp& end = get<2>(start_end);
     if (already_connected.find(end) != already_connected.cend()) {
+      continue;
+    }
+    if (points_to_poly_id.at(start) == boost::none ||
+        points_to_poly_id.at(end) == boost::none ||
+        points_to_poly_id.at(start) != points_to_poly_id.at(end)) {
       continue;
     }
     boost::optional<linestring_type_fp> new_path = path_finder(start, end);
@@ -905,14 +927,14 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
             // This doesn't run for thermal holes.
             multi_polygon_type_fp temp =
                 bg_helpers::buffer(vectorial_surface->first.at(trace_index),
-                                   tool_diameter/2 + mill->offset - mill->tolerance);
+                                   tool_diameter/2 + isolator->offset - isolator->tolerance);
             already_milled_shrunk = already_milled_shrunk + temp;
           }
         }
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk);
         if (invert_gerbers) {
-          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -mill->tolerance);
+          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -isolator->tolerance);
           vector<pair<linestring_type_fp, bool>> temp;
           for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
             multi_linestring_type_fp temp_mls;
@@ -939,13 +961,12 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       }
 
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
-      write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
+      write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, isolator->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
 
-      auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + mill->offset);
-      auto path_finding_surface = path_finding::create_path_finding_surface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, mill->tolerance);
-      PathFinder path_finder = make_path_finder(mill, path_finding_surface);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, path_finder, new_toolpath);
+      auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + isolator->offset);
+      auto path_finding_surface = path_finding::create_path_finding_surface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, isolator->tolerance);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(mill, make_optional(path_finding_surface), new_toolpath);
       results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror));
     }
     // Now process any lines that need drawing.
@@ -964,7 +985,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       }
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
       write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, path_finder, new_trace_toolpath);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, boost::none, new_trace_toolpath);
       results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror)));
     }
     return results;
@@ -980,11 +1001,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
     }
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten(new_trace_toolpaths);
-    PathFinder path_finder =
-        [&](const point_type_fp&, const point_type_fp&) -> optional<linestring_type_fp> {
-      return boost::none;
-    };
-    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, path_finder, new_toolpath);
+    multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, boost::none, new_toolpath);
     return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
