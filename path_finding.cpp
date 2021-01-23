@@ -74,11 +74,15 @@ class PathFindingSurface {
                       return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
                     }),
         all_vertices.end());
+    for (const auto& v : all_vertices) {
+      bg::expand(all_vertices_box, v);
+    }
   }
   optional<multi_polygon_type_fp> total_keep_in_grown;
   multi_polygon_type_fp keep_out_shrunk;
   const coordinate_type_fp tolerance;
   vector<point_type_fp> all_vertices;
+  box_type_fp all_vertices_box = {{INFINITY, INFINITY}, {-INFINITY, -INFINITY}};
 };
 
 inline bool is_intersecting(const point_type_fp& p0, const point_type_fp& p1,
@@ -117,21 +121,24 @@ class PathSurface {
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
               PathLimiter path_limiter)
       : path_limiter(path_limiter) {
-    if (base->total_keep_in_grown) {
-      for (const auto& poly : *(base->total_keep_in_grown)) {
-        if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
-          total_keep_in_grown.push_back(poly);
-        }
-      }
-    } else {
+    multi_polygon_type_fp new_total_keep_in_grown;
+    const multi_polygon_type_fp* new_total_keep_in_grown_ptr;
+    if (!base->total_keep_in_grown) {
       box_type_fp bounding_box = bg::return_envelope<box_type_fp>(begin);
       bg::expand(bounding_box, end);
-      for (const auto& v : base->all_vertices) {
-        bg::expand(bounding_box, v);
+      bg::expand(bounding_box, base->all_vertices_box);
+      bounding_box = bg::return_buffer<box_type_fp>(bounding_box, base->tolerance);
+      bg::convert(bounding_box, new_total_keep_in_grown);
+      new_total_keep_in_grown = new_total_keep_in_grown - base->keep_out_shrunk;
+      new_total_keep_in_grown_ptr = &new_total_keep_in_grown;
+    } else {
+      new_total_keep_in_grown_ptr = &*base->total_keep_in_grown;
+    }
+    total_keep_in_grown = {};
+    for (const auto& poly : *new_total_keep_in_grown_ptr) {
+      if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
+        total_keep_in_grown.push_back(poly);
       }
-      bg::convert(bounding_box, total_keep_in_grown);
-      total_keep_in_grown = {bg_helpers::buffer_miter(total_keep_in_grown, base->tolerance)};
-      total_keep_in_grown = total_keep_in_grown - base->keep_out_shrunk;
     }
     all_vertices.clear();
     all_vertices.push_back(begin);
@@ -141,7 +148,7 @@ class PathSurface {
         all_vertices.push_back(point);
       }
     }
-    distance.resize(points_num());
+    distance.resize(all_vertices.size());
   }
 
   const point_type_fp& get_point_by_index(const size_t index) const {
