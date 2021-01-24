@@ -74,6 +74,9 @@ class PathFindingSurface {
                       return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
                     }),
         all_vertices.end());
+    for (const auto& v : all_vertices) {
+      bg::expand(all_vertices_box, v);
+    }
   }
 
   /* Given a point, determine if the point is in the search surface.
@@ -108,6 +111,7 @@ class PathFindingSurface {
   multi_polygon_type_fp keep_out_shrunk;
   const coordinate_type_fp tolerance;
   vector<point_type_fp> all_vertices;
+  box_type_fp all_vertices_box = {{INFINITY, INFINITY}, {-INFINITY, -INFINITY}};
 };
 
 boost::optional<int> in_polygon(const std::shared_ptr<const PathFindingSurface> path_finding_surface,
@@ -152,25 +156,24 @@ class PathSurface {
               PathLimiter path_limiter)
       : path_limiter(path_limiter) {
     multi_polygon_type_fp new_total_keep_in_grown;
+    const multi_polygon_type_fp* new_total_keep_in_grown_ptr;
     if (!base->total_keep_in_grown) {
       box_type_fp bounding_box = bg::return_envelope<box_type_fp>(begin);
       bg::expand(bounding_box, end);
-      for (const auto& v : base->all_vertices) {
-        bg::expand(bounding_box, v);
-      }
-      bg::buffer(bounding_box, bounding_box, base->tolerance);
+      bg::expand(bounding_box, base->all_vertices_box);
+      bounding_box = bg::return_buffer<box_type_fp>(bounding_box, base->tolerance);
       bg::convert(bounding_box, new_total_keep_in_grown);
       new_total_keep_in_grown = new_total_keep_in_grown - base->keep_out_shrunk;
+      new_total_keep_in_grown_ptr = &new_total_keep_in_grown;
     } else {
-      new_total_keep_in_grown = *base->total_keep_in_grown;
+      new_total_keep_in_grown_ptr = &*base->total_keep_in_grown;
     }
-    total_keep_in_grown = {multi_polygon_type_fp()};
-    for (const auto& poly : new_total_keep_in_grown) {
+    total_keep_in_grown = {};
+    for (const auto& poly : *new_total_keep_in_grown_ptr) {
       if (bg::covered_by(begin, poly) && bg::covered_by(end, poly)) {
-        total_keep_in_grown->push_back(poly);
+        total_keep_in_grown.push_back(poly);
       }
     }
-
     all_vertices.clear();
     all_vertices.push_back(begin);
     all_vertices.push_back(end);
@@ -179,7 +182,7 @@ class PathSurface {
         all_vertices.push_back(point);
       }
     }
-    distance.resize(points_num());
+    distance.resize(all_vertices.size());
   }
 
   const point_type_fp& get_point_by_index(const size_t index) const {
@@ -192,7 +195,7 @@ class PathSurface {
 
   // Returns true if there is at least some path from begin to end.
   bool has_path() {
-    return total_keep_in_grown->size() > 0;
+    return total_keep_in_grown.size() > 0;
   }
 
   bool in_surface(const size_t& a_index, const size_t& b_index) const {
@@ -206,13 +209,7 @@ class PathSurface {
     }
     const auto& point_a = get_point_by_index(a_index);
     const auto& point_b = get_point_by_index(b_index);
-    const multi_polygon_type_fp* edges_to_search;
-    if (total_keep_in_grown) {
-      edges_to_search = &*total_keep_in_grown;
-    } else {
-      edges_to_search = &*total_keep_out_shrunk;
-    }
-    for (const auto& poly : *edges_to_search) {
+    for (const auto& poly : total_keep_in_grown) {
       const auto& ring = poly.outer();
       for (auto current = ring.cbegin(); current + 1 != ring.cend(); current++) {
         if (is_intersecting(point_a, point_b, *current, *(current+1))) {
@@ -237,9 +234,7 @@ class PathSurface {
   const PathLimiter path_limiter;
  private:
   mutable std::unordered_map<size_t, bool> in_surface_memo;
-  // Only one of the following two will be valid.
-  boost::optional<multi_polygon_type_fp> total_keep_in_grown = boost::none;
-  boost::optional<multi_polygon_type_fp> total_keep_out_shrunk = boost::none;
+  multi_polygon_type_fp total_keep_in_grown;
   vector<point_type_fp> all_vertices;
 };
 
