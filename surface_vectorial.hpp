@@ -120,6 +120,9 @@ protected:
   void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                   coordinate_type_fp tolerance, bool find_contentions) const;
+  void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
+                  const multi_linestring_type_fp& toolpaths,
+                  coordinate_type_fp tolerance, bool find_contentions) const;
 };
 
 class svg_writer {
