@@ -33,9 +33,7 @@ class PathFindingSurface {
       return;
     }
     if (keep_in) {
-      multi_polygon_type_fp total_keep_in;
-      total_keep_in = *keep_in;
-      total_keep_in = total_keep_in - keep_out;
+      multi_polygon_type_fp total_keep_in = *keep_in - keep_out;
 
       for (const auto& poly : total_keep_in) {
         for (const auto& point : poly.outer()) {
