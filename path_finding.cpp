@@ -61,16 +61,10 @@ class PathFindingSurface {
     }
 
     sort(all_vertices.begin(),
-         all_vertices.end(),
-         [](const point_type_fp& a, const point_type_fp& b) {
-           return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-         });
+         all_vertices.end());
     all_vertices.erase(
         std::unique(all_vertices.begin(),
-                    all_vertices.end(),
-                    [](const point_type_fp& a, const point_type_fp& b) {
-                      return std::tie(a.x(), a.y()) == std::tie(b.x(), b.y());
-                    }),
+                    all_vertices.end()),
         all_vertices.end());
     for (const auto& v : all_vertices) {
       bg::expand(all_vertices_box, v);
