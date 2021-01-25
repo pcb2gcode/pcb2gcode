@@ -71,6 +71,7 @@ using boost::make_optional;
 #include "units.hpp"
 #include "path_finding.hpp"
 #include "trim_paths.hpp"
+#include "disjoint_set.hpp"
 
 using std::max;
 using std::max_element;
@@ -835,21 +836,31 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
     const std::shared_ptr<const path_finding::PathFindingSurface> path_finding_surface,
     const vector<pair<linestring_type_fp, bool>>& paths) const {
   // Find all the connectable endpoints.  A connection can only be
-  // made if the direction suits it.
-  vector<tuple<coordinate_type_fp, point_type_fp, point_type_fp>> connections;
-  for (const auto& path1 : paths) {
-    for (const auto& path2: paths) {
-      if (path1 == path2) {
-        continue;
-      }
+  // made if the direction suits it.  connections is the list of
+  // possible connections to make.  It is a tuple of (distance between
+  // points, point0, point1, path0, path1).  The path indicates an
+  // index into the paths, and says which path was the cause for
+  // adding the point.  We want to know it so that we don't make
+  // connections between paths that are already connected.
+  vector<tuple<coordinate_type_fp, point_type_fp, point_type_fp, size_t, size_t>> connections;
+  for (size_t i = 0; i < paths.size(); i++) {
+    const auto& path1 = paths[i];
+    for (size_t j = i+1; j < paths.size(); j++) {
+      const auto& path2 = paths[j];
       // We can always do these:
-      connections.push_back({bg::distance(path1.first.back(), path2.first.front()), path1.first.back(), path2.first.front()});
+      connections.push_back({bg::distance(path1.first.back(), path2.first.front()),
+                             path1.first.back(), path2.first.front(), i, j});
+      connections.push_back({bg::distance(path1.first.front(), path2.first.back()),
+                             path1.first.back(), path2.first.front(), i, j});
       if (path1.second) {
-        // A least path1 is reversible.
-        connections.push_back({bg::distance(path1.first.front(), path2.first.front()), path1.first.front(), path2.first.front()});
-      } else if (path2.second) {
-        // Only path2 is reversible.
-        connections.push_back({bg::distance(path1.first.back(), path2.first.back()), path1.first.back(), path2.first.back()});
+        // path1 is reversible so we can connect from the front of it.
+        connections.push_back({bg::distance(path1.first.front(), path2.first.front()),
+                               path1.first.front(), path2.first.front(), i, j});
+      }
+      if (path2.second) {
+        // path2 is reversible so we can connect from the front of it.
+        connections.push_back({bg::distance(path1.first.back(), path2.first.back()),
+                               path1.first.back(), path2.first.back(), i, j});
       }
     }
   }
@@ -868,31 +879,26 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
     }
   }
 
-  // Maintain a list of endpoints that are already connected.  We
-  // won't re-use them.
-  unordered_set<point_type_fp> already_connected;
   vector<pair<linestring_type_fp, bool>> new_paths;
   PathFinder path_finder = make_path_finder(mill, path_finding_surface);
-
+  DisjointSet<size_t> joined_paths;
   for (const auto& start_end : connections) {
     const point_type_fp& start = get<1>(start_end);
-    if (already_connected.find(start) != already_connected.cend()) {
-      continue;
-    }
     const point_type_fp& end = get<2>(start_end);
-    if (already_connected.find(end) != already_connected.cend()) {
-      continue;
-    }
+    size_t start_path = get<3>(start_end);
+    size_t end_path = get<4>(start_end);
     if (points_to_poly_id.at(start) == boost::none ||
         points_to_poly_id.at(end) == boost::none ||
         points_to_poly_id.at(start) != points_to_poly_id.at(end)) {
       continue;
     }
+    if (joined_paths.find(start_path) == joined_paths.find(end_path)) {
+      continue; // The two paths were already connected.
+    }
     boost::optional<linestring_type_fp> new_path = path_finder(start, end);
     if (new_path) {
       new_paths.push_back({*new_path, true});
-      already_connected.insert(start);
-      already_connected.insert(end);
+      joined_paths.join(start_path, end_path);
     }
   }
   return new_paths;
