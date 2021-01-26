@@ -87,6 +87,18 @@ extern inline boost::geometry::model::d2::point_xy<T> operator*(
   return {lhs.x()*static_cast<T>(rhs), lhs.y()*static_cast<T>(rhs)};
 }
 
+template <typename T, typename S>
+extern inline boost::geometry::model::linestring<T> operator*(
+    const boost::geometry::model::linestring<T>& lhs,
+    const S& rhs) {
+  boost::geometry::model::linestring<T> ret;
+  ret.reserve(lhs.size());
+  for (const auto& p : lhs) {
+    ret.push_back(p*rhs);
+  }
+  return ret;
+}
+
 template <typename T>
 extern inline bool operator==(
     const boost::geometry::model::d2::point_xy<T>& x,
