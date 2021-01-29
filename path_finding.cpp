@@ -85,37 +85,6 @@ class PathFindingSurface {
   box_type_fp all_vertices_box = {{INFINITY, INFINITY}, {-INFINITY, -INFINITY}};
 };
 
-inline bool is_intersecting(const point_type_fp& p0, const point_type_fp& p1,
-                            const point_type_fp& p2, const point_type_fp& p3) {
-  const coordinate_type_fp s10_x = p1.x() - p0.x();
-  const coordinate_type_fp s10_y = p1.y() - p0.y();
-  const coordinate_type_fp s32_x = p3.x() - p2.x();
-  const coordinate_type_fp s32_y = p3.y() - p2.y();
-
-  coordinate_type_fp denom = s10_x * s32_y - s32_x * s10_y;
-  if (denom == 0) {
-    return false; // Collinear
-  }
-  const bool denomPositive = denom > 0;
-
-  const coordinate_type_fp s02_x = p0.x() - p2.x();
-  const coordinate_type_fp s02_y = p0.y() - p2.y();
-  const coordinate_type_fp s_numer = s10_x * s02_y - s10_y * s02_x;
-  if ((s_numer < 0) == denomPositive) {
-    return false; // No collision
-  }
-
-  const coordinate_type_fp t_numer = s32_x * s02_y - s32_y * s02_x;
-  if ((t_numer < 0) == denomPositive) {
-    return false; // No collision
-  }
-
-  if (((s_numer > denom) == denomPositive) || ((t_numer > denom) == denomPositive)) {
-    return false; // No collision
-  }
-  return true;
-}
-
 class PathSurface {
  public:
   PathSurface(const std::shared_ptr<const PathFindingSurface>& base, const point_type_fp begin, const point_type_fp end,
