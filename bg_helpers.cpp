@@ -82,6 +82,24 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
   if (expand_by == 0) {
     return {};
   }
+#ifdef GEOS_VERSION
+  geos::io::WKTReader reader;
+  std::stringstream ss;
+  ss << bg::wkt(geometry_in);
+  auto geos_in = reader.read(ss.str());
+  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
+  geos::io::WKTWriter writer;
+  auto geos_wkt = writer.write(geos_out.get());
+  multi_polygon_type_fp ret;
+  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
+    bg::read_wkt(geos_wkt, ret);
+  } else {
+    polygon_type_fp poly;
+    bg::read_wkt(geos_wkt, poly);
+    ret.push_back(poly);
+  }
+  return ret;
+#else
   multi_polygon_type_fp geometry_out;
   bg::buffer(geometry_in, geometry_out,
              bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
@@ -90,6 +108,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
              bg::strategy::buffer::end_round(points_per_circle),
              bg::strategy::buffer::point_circle(points_per_circle));
   return geometry_out;
+#endif
 }
 
 template<typename CoordinateType>
