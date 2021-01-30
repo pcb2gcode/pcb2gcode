@@ -95,17 +95,267 @@ BOOST_AUTO_TEST_CASE(small, *boost::unit_test::disabled()) {
 
 BOOST_AUTO_TEST_SUITE_END()
 
+BOOST_AUTO_TEST_CASE(point_in_ring_tests) {
+  ring_type_fp ring{
+    point_type_fp{0,0},
+    point_type_fp{0,5},
+    point_type_fp{0,10},
+    point_type_fp{5,10},
+    point_type_fp{10,10},
+    point_type_fp{10,0},
+    point_type_fp{0,0},
+  };
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{5,5}, ring), true);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{0,-1}, ring), false);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{-1,0}, ring), false);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{0,11}, ring), false);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{-1,10}, ring), false);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{-1,5}, ring), false);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{1,5}, ring), true);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{9,5}, ring), true);
+  BOOST_CHECK_EQUAL(point_in_ring(point_type_fp{11,5}, ring), false);
+}
+
+BOOST_AUTO_TEST_SUITE(inside_multipolygon_tests)
+
+BOOST_AUTO_TEST_CASE(box) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {10,10}};
+  bg::convert(box, mp);
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), std::vector<size_t>{0});
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), std::vector<size_t>{});
+}
+
+BOOST_AUTO_TEST_CASE(doughnuts) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {10,10}};
+  bg::convert(box, mp);
+  box_type_fp hole = {point_type_fp{3,3}, {7,7}};
+  multi_polygon_type_fp hole_mp;
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  box = {point_type_fp{20,0}, point_type_fp{30,10}};
+  multi_polygon_type_fp second_doughtnut;
+  bg::convert(box, second_doughtnut);
+  mp = mp + second_doughtnut;
+  hole = {point_type_fp{23,3}, {24,4}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  hole = {point_type_fp{26,6}, {28,8}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), (std::vector<size_t>{0,1}));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), std::vector<size_t>{});
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{5,5}, mp), std::vector<size_t>{});
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,1}, mp), (std::vector<size_t>{2,3,4}));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{23.5,3.5}, mp), std::vector<size_t>{});
+}
+
+BOOST_AUTO_TEST_CASE(nested_doughnuts) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {100,100}};
+  bg::convert(box, mp);
+  box_type_fp hole = {point_type_fp{10,10}, {90,90}};
+  multi_polygon_type_fp hole_mp;
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  box = {point_type_fp{20,20}, point_type_fp{80,80}};
+  multi_polygon_type_fp second_doughtnut;
+  bg::convert(box, second_doughtnut);
+  mp = mp + second_doughtnut;
+  hole = {point_type_fp{30,30}, {70,70}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), (std::vector<size_t>{0,1}));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), std::vector<size_t>{});
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,21}, mp), (std::vector<size_t>{2,3}));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{31,31}, mp), (std::vector<size_t>{}));
+}
+
+BOOST_AUTO_TEST_SUITE_END() // inside_multipolygon_tests
+
+BOOST_AUTO_TEST_SUITE(outside_multipolygon_tests)
+
+BOOST_AUTO_TEST_CASE(box) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {10,10}};
+  bg::convert(box, mp);
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), std::vector<size_t>{});
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), (std::vector<size_t>{0,}));
+}
+
+BOOST_AUTO_TEST_CASE(doughnuts) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {10,10}};
+  bg::convert(box, mp);
+  box_type_fp hole = {point_type_fp{3,3}, {7,7}};
+  multi_polygon_type_fp hole_mp;
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  box = {point_type_fp{20,0}, point_type_fp{30,10}};
+  multi_polygon_type_fp second_doughtnut;
+  bg::convert(box, second_doughtnut);
+  mp = mp + second_doughtnut;
+  hole = {point_type_fp{23,3}, {24,4}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  hole = {point_type_fp{26,6}, {28,8}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), (std::vector<size_t>{}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), (std::vector<size_t>{0,2}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{5,5}, mp), (std::vector<size_t>{1,2}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{21,1}, mp), (std::vector<size_t>{}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{23.5,3.5}, mp), (std::vector<size_t>{0,3}));
+}
+
+BOOST_AUTO_TEST_CASE(nested_doughnuts) {
+  multi_polygon_type_fp mp;
+  box_type_fp box{point_type_fp{0,0}, {100,100}};
+  bg::convert(box, mp);
+  box_type_fp hole = {point_type_fp{10,10}, {90,90}};
+  multi_polygon_type_fp hole_mp;
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+  box = {point_type_fp{20,20}, point_type_fp{80,80}};
+  multi_polygon_type_fp second_doughtnut;
+  bg::convert(box, second_doughtnut);
+  mp = mp + second_doughtnut;
+  hole = {point_type_fp{30,30}, {70,70}};
+  bg::convert(hole, hole_mp);
+  mp = mp - hole_mp;
+
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), (std::vector<size_t>{}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), (std::vector<size_t>{1,2}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{21,21}, mp), (std::vector<size_t>{}));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{31,31}, mp), (std::vector<size_t>{1,3}));
+}
+
+BOOST_AUTO_TEST_SUITE_END() // outside_multipolygon_tests
+
+BOOST_AUTO_TEST_SUITE(nested_multipolygon_type_fp)
+
+BOOST_AUTO_TEST_CASE(barbell) {
+  multi_polygon_type_fp barbell{{{{0,0}, {0,100}, {40,100}, {40,2}, {60,2},
+                                  {60,100}, {100,100}, {100,0}, {0,0}}}};
+  auto surface = PathFindingSurface(boost::none, barbell, 5);
+  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), RingIndices({{0,{0,1}}}));
+  BOOST_CHECK_EQUAL(surface.in_surface({6,6}), RingIndices());
+  BOOST_CHECK_EQUAL(surface.in_surface({-10,-10}), RingIndices({{0,{0,1}}}));
+  BOOST_CHECK_EQUAL(surface.in_surface({10,10}), RingIndices());
+}
+
+BOOST_AUTO_TEST_CASE(almost_doughnut) {
+  multi_polygon_type_fp almost_doughnut{{{{0,0}, {0,100}, {49,100}, {49,80},
+                                          {20,80}, {20,20}, {80,20}, {80,80},
+                                          {51,80}, {51,100}, {100,100},
+                                          {100,0}, {0,0}}}};
+  auto surface = PathFindingSurface(almost_doughnut, multi_polygon_type_fp(), 5);
+  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), RingIndices({{0,{0,1}}}));
+  BOOST_CHECK_EQUAL(surface.in_surface({6,6}), RingIndices({{0,{0,1}}}));
+  BOOST_CHECK_EQUAL(surface.in_surface({-10,-10}), RingIndices());
+  BOOST_CHECK_EQUAL(surface.in_surface({50,1}), RingIndices({{0,{0,1}}}));
+  BOOST_CHECK_EQUAL(surface.in_surface({50,50}), RingIndices());
+  BOOST_CHECK_EQUAL(surface.in_surface({50,90}), RingIndices({{0,{0,1}}}));
+}
+
+BOOST_AUTO_TEST_SUITE_END() // nested_multipolygon_type_fp
+
+
 BOOST_AUTO_TEST_CASE(simple) {
   box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, multi_polygon_type_fp(), 0.1);
-  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(1,1), nullptr);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(1,1), nullptr);
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
   BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(simple_limit0) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  size_t limit = 0;
+  PathLimiter path_limiter =
+      [&](const point_type_fp&, const coordinate_type_fp&) -> bool {
+        if (limit == 0) {
+          throw GiveUp{};
+        } else {
+          limit--;
+        }
+        return false;
+      };
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(1,1), path_limiter);
+  BOOST_CHECK_EQUAL(ret, boost::none);
+}
+
+BOOST_AUTO_TEST_CASE(simple_limit1) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  size_t limit = 1;
+  PathLimiter path_limiter =
+      [&](const point_type_fp&, const coordinate_type_fp&) -> bool {
+        if (limit == 0) {
+          throw GiveUp{};
+        } else {
+          limit--;
+        }
+        return false;
+      };
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(1,1), path_limiter);
+  linestring_type_fp expected;
+  expected.push_back(point_type_fp(0, 0));
+  expected.push_back(point_type_fp(1, 1));
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(simple_limit_length200) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  PathLimiter path_limiter =
+      [&](const point_type_fp&, const coordinate_type_fp& d) -> bool {
+        if (d > 200) {
+          return true;
+        }
+        return false;
+      };
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(100,100), path_limiter);
+  linestring_type_fp expected;
+  expected.push_back(point_type_fp(0, 0));
+  expected.push_back(point_type_fp(100, 100));
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(simple_limit_length100) {
+  box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
+  bg::expand(bounding_box, point_type_fp(100, 100));
+  multi_polygon_type_fp keep_in;
+  bg::convert(bounding_box, keep_in);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  PathLimiter path_limiter =
+      [&](const point_type_fp&, const coordinate_type_fp& d) -> bool {
+        if (d > 100) {
+          return true;
+        }
+        return false;
+      };
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(100,100), path_limiter);
+  BOOST_CHECK_EQUAL(ret, boost::none);
 }
 
 BOOST_AUTO_TEST_CASE(hole) {
@@ -118,8 +368,8 @@ BOOST_AUTO_TEST_CASE(hole) {
   multi_polygon_type_fp poly_hole;
   bg::convert(hole, poly_hole);
   keep_out = keep_out - poly_hole;
-  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0, 0), point_type_fp(1, 1), nullptr);
+  auto surface = PathFindingSurface(boost::none, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0, 0), point_type_fp(1, 1), nullptr);
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
@@ -136,8 +386,8 @@ BOOST_AUTO_TEST_CASE(hole_unreachable) {
   multi_polygon_type_fp poly_hole;
   bg::convert(hole, poly_hole);
   keep_out = keep_out - poly_hole;
-  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0, 0), point_type_fp(50, 50), nullptr);
+  auto surface = PathFindingSurface(boost::none, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0, 0), point_type_fp(50, 50), nullptr);
   BOOST_CHECK_EQUAL(ret, boost::none);
 }
 
@@ -156,8 +406,8 @@ BOOST_AUTO_TEST_CASE(box) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10), nullptr);
+  auto surface = PathFindingSurface(keep_in, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(10,10), nullptr);
 
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
@@ -179,8 +429,8 @@ BOOST_AUTO_TEST_CASE(box_no_keep_in) {
   keep_out.push_back(poly);
   box_type_fp bounding_box = bg::return_envelope<box_type_fp>(point_type_fp(-100, -100));
   bg::expand(bounding_box, point_type_fp(100, 100));
-  auto surface = create_path_finding_surface(boost::none, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10), nullptr);
+  auto surface = PathFindingSurface(boost::none, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(10,10), nullptr);
 
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
@@ -204,8 +454,8 @@ BOOST_AUTO_TEST_CASE(unreachable_box) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5), nullptr);
+  auto surface = PathFindingSurface(keep_in, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(5,5), nullptr);
 
   BOOST_CHECK_EQUAL(ret, boost::none);
 }
@@ -225,11 +475,11 @@ BOOST_AUTO_TEST_CASE(reuse_surface) {
   bg::expand(bounding_box, point_type_fp(100, 100));
   multi_polygon_type_fp keep_in;
   bg::convert(bounding_box, keep_in);
-  auto surface = create_path_finding_surface(keep_in, keep_out, 0.1);
-  auto ret = find_path(surface, point_type_fp(0,0), point_type_fp(5,5), nullptr);
+  auto surface = PathFindingSurface(keep_in, keep_out, 0.1);
+  auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(5,5), nullptr);
   BOOST_CHECK_EQUAL(ret, boost::none);
 
-  ret = find_path(surface, point_type_fp(0,0), point_type_fp(10,10), nullptr);
+  ret = surface.find_path(point_type_fp(0,0), point_type_fp(10,10), nullptr);
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(3, 7));
@@ -252,14 +502,71 @@ BOOST_AUTO_TEST_CASE(u_shape) {
   poly.outer() = u_shape;
   multi_polygon_type_fp keep_in;
   keep_in.push_back(poly);
-  auto surface = create_path_finding_surface(keep_in, multi_polygon_type_fp(), 0.1);
-  auto ret = find_path(surface, point_type_fp(1,9), point_type_fp(9,9), nullptr);
+  auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
+  auto ret = surface.find_path(point_type_fp(1,9), point_type_fp(9,9), nullptr);
 
   linestring_type_fp expected;
   expected.push_back(point_type_fp(1, 9));
   expected.push_back(point_type_fp(3, 3));
   expected.push_back(point_type_fp(7, 3));
   expected.push_back(point_type_fp(9, 9));
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(doughnut) {
+  multi_polygon_type_fp almost_doughnut{
+    {{{0,0}, {0,100}, {49,100}, {49,80},
+      {30,70}, {20,20}, {80,20}, {80,80},
+      {51,80}, {51,100}, {100,100},
+      {100,0}, {0,0}}}};
+  auto surface = PathFindingSurface(almost_doughnut, multi_polygon_type_fp(), 3);
+  auto ret = surface.find_path(point_type_fp(10,10), point_type_fp(90,90), nullptr);
+
+  linestring_type_fp expected{{10, 10},{30, 70},{51, 80},{90, 90}};
+  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+}
+
+BOOST_AUTO_TEST_CASE(barbell_search) {
+  multi_polygon_type_fp barbell{{{{0,0}, {0,50}, {40,50}, {40,2}, {60,2},
+                                  {60,50}, {100,50}, {100,0}, {0,0}}}};
+  auto surface = PathFindingSurface(boost::none, barbell, 5);
+  BOOST_CHECK_EQUAL(surface.find_path({-10,-10},{110,60},nullptr),
+                    linestring_type_fp({{-10,-10},{40,2},{60,50},{110,60}}));
+}
+
+BOOST_AUTO_TEST_CASE(barbell_search_limit) {
+  multi_polygon_type_fp barbell{{{{0,0}, {0,50}, {40,50}, {40,2}, {60,2},
+                                  {60,50}, {100,50}, {100,0}, {0,0}}}};
+  auto surface = PathFindingSurface(boost::none, barbell, 5);
+  int count = 0;
+  PathLimiter path_limiter =
+      [&](const point_type_fp&, const coordinate_type_fp&) -> bool {
+        count++;
+        if (count > 2) {
+          throw GiveUp{};
+        }
+        return false;
+      };
+  BOOST_CHECK_EQUAL(surface.find_path({-10,-10},{110,60},path_limiter),
+                    boost::none);
+}
+
+BOOST_AUTO_TEST_CASE(u_shape_keep_out) {
+  ring_type_fp u_shape;
+  u_shape.push_back(point_type_fp( 0, 10));
+  u_shape.push_back(point_type_fp( 3, 10));
+  u_shape.push_back(point_type_fp( 3,  3));
+  u_shape.push_back(point_type_fp( 7,  3));
+  u_shape.push_back(point_type_fp( 7, 10));
+  u_shape.push_back(point_type_fp(10, 10));
+  u_shape.push_back(point_type_fp(10,  0));
+  u_shape.push_back(point_type_fp( 0,  0));
+  u_shape.push_back(point_type_fp( 0, 10));
+  polygon_type_fp poly;
+  poly.outer() = u_shape;
+  auto surface = PathFindingSurface(boost::none, multi_polygon_type_fp{poly}, 0.1);
+  auto ret = surface.find_path({5,5}, point_type_fp(-1,-1), nullptr);
+  linestring_type_fp expected{{5,5},{3,10},{0,10},{-1,-1}};
   BOOST_CHECK_EQUAL(ret, make_optional(expected));
 }
 

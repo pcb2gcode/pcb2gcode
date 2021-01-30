@@ -2,6 +2,8 @@
 #define PATH_FINDING_H
 
 #include <boost/optional.hpp>
+#include "bg_operators.hpp"
+#include <unordered_map>
 
 #include "geometry.hpp"
 #include "bg_operators.hpp"
@@ -77,28 +79,128 @@ extern inline bool is_intersecting(const point_type_fp& p0, const point_type_fp&
 
 class PathFindingSurface;
 
-struct GiveUp {};
+// From: http://geomalgorithms.com/a03-_inclusion.html
+extern inline bool point_in_ring(const point_type_fp& point, const ring_type_fp& ring) {
+  int winding_number = 0;
+
+  // loop through all edges of the polygon
+  for (size_t i=0; i < ring.size()-1; i++) {
+    if (ring[i].y() <= point.y()) {                   // start y <= point.y
+      if (ring[i+1].y() > point.y()) {                // an upward crossing
+        if (is_left(ring[i], ring[i+1], point) > 0) { // point left of  edge
+          ++winding_number;                           // have a valid up intersect
+        }
+      }
+    } else {                                          // start y > point.y
+      if (ring[i+1].y() <= point.y()) {               // a downward crossing
+        if (is_left(ring[i], ring[i+1], point) < 0) { // P right of  edge
+          --winding_number;                           // have a valid down intersect
+        }
+      }
+    }
+  }
+  return winding_number != 0;
+}
+
+using nested_multipolygon_type_fp = std::vector<std::pair<multi_polygon_type_fp, std::vector<multi_polygon_type_fp>>>;
+
+using RingIndices = std::vector<std::pair<size_t, std::vector<size_t>>>;
+
+std::vector<size_t> inside_multipolygon(const point_type_fp& p,
+                                        const multi_polygon_type_fp& mp);
+std::vector<size_t> outside_multipolygon(const point_type_fp& p,
+                                         const multi_polygon_type_fp& mp);
+RingIndices inside_multipolygons(
+    const point_type_fp& p,
+    const nested_multipolygon_type_fp& mp);
+RingIndices outside_multipolygons(
+    const point_type_fp& p,
+    const nested_multipolygon_type_fp& mp);
 
 // Given a target location and a potential path length to get there, determine
 // if it still makes sense to follow the path.  Return true if it does,
 // otherwise false.
-typedef std::function<bool(const point_type_fp& target, const coordinate_type_fp& length)> PathLimiter;
+using PathLimiter = std::function<bool(const point_type_fp& target, const coordinate_type_fp& length)>;
 
-// Create a surface for doing path finding.  It can be used multiple times.  The
-// surface available for paths is within the keep_in and also outside the
-// keep_out.  If those are missing, they are ignored.  The tolerance should be a
-// small epsilon value.
-const std::shared_ptr<const PathFindingSurface> create_path_finding_surface(
-    const boost::optional<multi_polygon_type_fp>& keep_in,
-    const multi_polygon_type_fp& keep_out,
-    const coordinate_type_fp tolerance);
+class Neighbors {
+ public:
+  class iterator {
+   public:
+    iterator(const Neighbors* neighbors, size_t ring_index, size_t point_index) :
+      neighbors(neighbors),
+      ring_index(ring_index),
+      point_index(point_index) {}
+    iterator operator++();
+    bool operator!=(const iterator& other) const;
+    bool operator==(const iterator& other) const;
+    const point_type_fp& operator*() const;
+   private:
+    const Neighbors* neighbors;
+    // 0 means start, 1 means goal, everything else is an index into a ring +2.
+    size_t ring_index;
+    // Ignored for start and goal, otherwise an index into a ring.
+    size_t point_index;
+  };
 
+  Neighbors(const point_type_fp& start, const point_type_fp& goal,
+            const point_type_fp& current,
+            const RingIndices& ring_indices,
+            coordinate_type_fp g_score_current,
+            const PathLimiter path_limiter,
+            const PathFindingSurface* pfs);
+  bool is_neighbor(const point_type_fp p) const;
+  iterator begin() const;
+  iterator end() const;
 
-// Find a path from start to end in the available surface.
-boost::optional<linestring_type_fp> find_path(
-    const std::shared_ptr<const PathFindingSurface> path_finding_surface,
-    const point_type_fp& start, const point_type_fp& end,
-    PathLimiter path_limiter);
+ private:
+  point_type_fp start;
+  point_type_fp goal;
+  point_type_fp current;
+  RingIndices ring_indices;
+  coordinate_type_fp g_score_current;
+  PathLimiter path_limiter;
+  const PathFindingSurface* pfs;
+};
+
+class PathFindingSurface {
+ public:
+  // Create a surface for doing path finding.  It can be used multiple times.  The
+  // surface available for paths is within the keep_in and also outside the
+  // keep_out.  If those are missing, they are ignored.  The tolerance should be a
+  // small epsilon value.
+  PathFindingSurface(const boost::optional<multi_polygon_type_fp>& keep_in,
+                     const multi_polygon_type_fp& keep_out,
+                     const coordinate_type_fp tolerance);
+  RingIndices in_surface(point_type_fp p) const;
+  bool in_surface(
+      const point_type_fp& a, const point_type_fp& b,
+      const RingIndices& ring_indices) const;
+  Neighbors neighbors(const point_type_fp& start, const point_type_fp& goal,
+                      const RingIndices& ring_indices,
+                      coordinate_type_fp g_score_current,
+                      const PathLimiter path_limiter,
+                      const point_type_fp& current) const;
+  // Find a path from start to goal in the available surface.
+  boost::optional<linestring_type_fp> find_path(
+      const point_type_fp& start, const point_type_fp& goal,
+      const PathLimiter& path_limiter) const;
+  const std::vector<std::vector<point_type_fp>>& vertices() const { return all_vertices; };
+
+ private:
+  // Each shape corresponses to an element in all_vertices and they
+  // are in the same order.  The boolean indicates if this is the
+  // outer.  This is later used for computing the inside/outside of
+  // each shape.
+  boost::optional<nested_multipolygon_type_fp> total_keep_in_grown;
+  nested_multipolygon_type_fp keep_out_shrunk;
+
+  // all_vertices is one list for each ring in the original.  The list
+  // are in DFS order of the original poly, with outer before inners.
+  std::vector<std::vector<point_type_fp>> all_vertices;
+  mutable std::unordered_map<std::pair<point_type_fp, point_type_fp>, bool> in_surface_memo;
+};
+
+struct GiveUp {};
 
 } //namespace path_finding
 
