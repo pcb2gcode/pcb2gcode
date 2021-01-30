@@ -928,7 +928,10 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       const auto tool_diameter = tool.first;
       vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
-      auto keep_out = bg_helpers::buffer(vectorial_surface->first, tool_diameter/2 + isolator->offset);
+      multi_polygon_type_fp keep_out;
+      for (const auto& poly : vectorial_surface->first) {
+        keep_out = keep_out + bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset);
+      }
       const auto path_finding_surface = path_finding::PathFindingSurface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, keep_out, isolator->tolerance);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk =
