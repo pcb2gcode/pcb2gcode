@@ -14,12 +14,14 @@ namespace bg_helpers {
 // The below implementations of buffer are similar to bg::buffer but
 // always convert to floating-point before doing work, if needed, and
 // convert back afterward, if needed.  Also, they work if expand_by is
-// 0, unlike bg::buffer.
+// 0, unlike bg::buffer.  It seems to be faster to buffer individual
+// polygons and then add them together rather than to do them all at
+// once, even though the results ought to be the same.  How strange!
 const int points_per_circle = 32;
 
-multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
-  if (expand_by == 0 || geometry_in.size() == 0) {
-    return geometry_in;
+multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0) {
+    return multi_polygon_type_fp{geometry_in};
   }
 #ifdef GEOS_VERSION
   geos::io::WKTReader reader;
@@ -50,9 +52,9 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
 #endif
 }
 
-multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+multi_polygon_type_fp buffer_miter(polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   if (expand_by == 0) {
-    return geometry_in;
+    return multi_polygon_type_fp{geometry_in};
   } else {
     multi_polygon_type_fp geometry_out;
     bg::buffer(geometry_in, geometry_out,
@@ -65,20 +67,29 @@ multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, co
   }
 }
 
-template<typename CoordinateType>
-multi_polygon_type_fp buffer(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
-  return buffer(multi_polygon_type_fp{geometry_in}, expand_by);
+multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0 || geometry_in.size() == 0) {
+    return geometry_in;
+  }
+  multi_polygon_type_fp geometry_out;
+  for (const auto& poly : geometry_in) {
+    geometry_out = geometry_out + buffer(poly, expand_by);
+  }
+  return geometry_out;
 }
 
-template multi_polygon_type_fp buffer(polygon_type_fp const&, double);
-
-template<typename CoordinateType>
-multi_polygon_type_fp buffer_miter(polygon_type_fp const & geometry_in, CoordinateType expand_by) {
-  return buffer_miter(multi_polygon_type_fp{geometry_in}, expand_by);
+multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
+  if (expand_by == 0) {
+    return geometry_in;
+  }
+  multi_polygon_type_fp geometry_out;
+  for (const auto& poly : geometry_in) {
+    geometry_out = geometry_out + buffer_miter(poly, expand_by);
+  }
+  return geometry_out;
 }
 
-template<typename CoordinateType>
-multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateType expand_by) {
+multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   if (expand_by == 0) {
     return {};
   }
@@ -111,8 +122,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
 #endif
 }
 
-template<typename CoordinateType>
-multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, CoordinateType expand_by) {
+multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   if (expand_by == 0 || geometry_in.size() == 0) {
     return {};
   }
@@ -148,13 +158,8 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
 #endif
 }
 
-template multi_polygon_type_fp buffer(const multi_linestring_type_fp&, double expand_by);
-
-template<typename CoordinateType>
-multi_polygon_type_fp buffer_miter(ring_type_fp const & geometry_in, CoordinateType expand_by) {
+multi_polygon_type_fp buffer_miter(ring_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   return buffer_miter(polygon_type_fp{geometry_in}, expand_by);
 }
-
-template multi_polygon_type_fp buffer_miter(ring_type_fp const&, double);
 
 } // namespace bg_helpers
