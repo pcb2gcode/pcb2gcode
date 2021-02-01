@@ -679,12 +679,6 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
           sr1.dist_Y == sr2.dist_Y);
 }
 
-struct PointLessThan {
-  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
-
 /* Convert paths that all need to be drawn with the same diameter into shapes.
  *
  * If fill_closed_lines is true, we'll try to find closed loops among the paths
