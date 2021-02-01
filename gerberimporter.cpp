@@ -1031,5 +1031,8 @@ std::map<coordinate_type_fp, multi_linestring_type_fp> shapes_and_lines::as_path
                                           diameter_and_path.second.cend());
     }
   }
+  for (auto& path : ret) {
+    path.second = eulerian_paths::make_eulerian_paths(path.second, true, true);
+  }
   return ret;
 }
