@@ -943,7 +943,7 @@ multi_polygon_type_fp symdiff(const vector<multi_polygon_type_fp>& inputs) {
   for (; current != inputs.cend(); current += 2) {
     new_inputs.push_back(*current ^ *(current + 1));
   }
-  return sum(new_inputs);
+  return symdiff(new_inputs);
 }
 
 multi_polygon_type_fp shapes_and_lines::as_shape() const {
