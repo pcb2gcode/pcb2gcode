@@ -966,7 +966,9 @@ multi_polygon_type_fp shapes_and_lines::as_shape() const {
     const auto& polarity = get<0>(layer).polarity;
     output = output ^ duplicate(symdiff(filled_closed_lines), stepAndRepeat);
     // Now we do the shapes.
-    if (polarity == GERBV_POLARITY_DARK) {
+    if (fill_closed_lines) {
+      output = output ^ duplicate(symdiff(all_shapes), stepAndRepeat);
+    } else if (polarity == GERBV_POLARITY_DARK) {
       output = output + duplicate(sum(all_shapes), stepAndRepeat);
     } else if (polarity == GERBV_POLARITY_CLEAR) {
       output = output - duplicate(sum(all_shapes), stepAndRepeat);
