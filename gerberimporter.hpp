@@ -49,9 +49,9 @@ class gerber_exception: public std::exception {};
 // which can work on the lines instead of having to buffer twice.
 class shapes_and_lines {
  public:
-  shapes_and_lines(bool render_paths_to_shapes, bool fill_closed_lines) :
-    render_paths_to_shapes(render_paths_to_shapes),
-    fill_closed_lines(fill_closed_lines) {}
+  shapes_and_lines(bool fill_closed_lines, bool render_paths_to_shapes) :
+    fill_closed_lines(fill_closed_lines),
+    render_paths_to_shapes(render_paths_to_shapes) {}
   // Get all the shapes.  If render_paths_to_shapes is true then all
   // the linestrings in raw_shapes are also returned.
   multi_polygon_type_fp as_shape() const;
@@ -63,8 +63,8 @@ class shapes_and_lines {
                 std::vector<multi_polygon_type_fp>,
                 std::map<coordinate_type_fp, multi_linestring_type_fp>>> raw_shapes;
  private:
-  bool render_paths_to_shapes;
   bool fill_closed_lines;
+  bool render_paths_to_shapes;
 };
 
 /******************************************************************************/

@@ -352,10 +352,8 @@ mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
 multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair>>& layers,
                                       multi_polygon_type_fp mp_pair::* member, bool xor_layers) {
   multi_polygon_type_fp output;
-  vector<ring_type_fp> rings;
 
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
-    const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
     mp_pair draw_pair = layer->second;
     multi_polygon_type_fp draws = draw_pair.*member;
@@ -377,6 +375,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
                     translate(0, stepAndRepeat.dist_Y * sr_y));
       draws = draws + translated_draws;
     }
+    const gerbv_polarity_t polarity = layer->first->polarity;
     if (xor_layers) {
       output = output ^ draws;
     } else if (polarity == GERBV_POLARITY_DARK) {
@@ -885,4 +884,113 @@ shapes_and_lines GerberImporter::render(
     result.scale(1/25.4);
   }
   return result;
+}
+
+multi_polygon_type_fp duplicate(const multi_polygon_type_fp& shape, const gerbv_step_and_repeat_t& stepAndRepeat) {
+  // First duplicate in the x direction.
+  auto original_draw = shape;
+  multi_polygon_type_fp result = shape;
+  for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
+    multi_polygon_type_fp translated_draws;
+    bg::transform(original_draw, translated_draws,
+                  translate(stepAndRepeat.dist_X * sr_x, 0));
+    result = result + translated_draws;
+  }
+
+  // Now duplicate in the y direction, with all the x duplicates in there already.
+  original_draw = result;
+  for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
+    multi_polygon_type_fp translated_draws;
+    bg::transform(original_draw, translated_draws,
+                  translate(0, stepAndRepeat.dist_Y * sr_y));
+    result = result + translated_draws;
+  }
+  return result;
+}
+
+multi_polygon_type_fp sum(const vector<multi_polygon_type_fp>& inputs) {
+  if (inputs.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (inputs.size() == 1) {
+    return inputs.front();
+  }
+  auto current = inputs.cbegin();
+  vector<multi_polygon_type_fp> new_inputs;
+  if (inputs.size() % 2 == 1) {
+    new_inputs.push_back(*current);
+    current++;
+  }
+  // There are at least two and the total number is even.
+  for (; current != inputs.cend(); current += 2) {
+    new_inputs.push_back(*current + *(current + 1));
+  }
+  return sum(new_inputs);
+}
+
+multi_polygon_type_fp symdiff(const vector<multi_polygon_type_fp>& inputs) {
+  if (inputs.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (inputs.size() == 1) {
+    return inputs.front();
+  }
+  auto current = inputs.cbegin();
+  vector<multi_polygon_type_fp> new_inputs;
+  if (inputs.size() % 2 == 1) {
+    new_inputs.push_back(*current);
+    current++;
+  }
+  // There are at least two and the total number is even.
+  for (; current != inputs.cend(); current += 2) {
+    new_inputs.push_back(*current ^ *(current + 1));
+  }
+  return sum(new_inputs);
+}
+
+multi_polygon_type_fp shapes_and_lines::as_shape() const {
+  multi_polygon_type_fp output;
+  for (const auto& layer : raw_shapes) {
+    vector<multi_polygon_type_fp> all_shapes = get<1>(layer);
+    vector<multi_polygon_type_fp> filled_closed_lines;
+    if (render_paths_to_shapes) {
+      for (const auto& diameter_and_path : get<2>(layer)) {
+        // If fill_closed_shapes then there will be shapes and also
+        // lines that were thickened.  If not fill_closed_lines then
+        // it'll just be lines that were thickened.
+        auto ovals = paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines);
+        all_shapes.push_back(ovals.shapes);
+        filled_closed_lines.push_back(ovals.filled_closed_lines);
+      }
+    }
+
+    const gerbv_step_and_repeat_t& stepAndRepeat = get<0>(layer).stepAndRepeat;
+    const auto& polarity = get<0>(layer).polarity;
+    output = output ^ duplicate(sum(filled_closed_lines), stepAndRepeat);
+    // Now we do the shapes.
+    if (polarity == GERBV_POLARITY_DARK) {
+      output = output + duplicate(sum(all_shapes), stepAndRepeat);
+    } else if (polarity == GERBV_POLARITY_CLEAR) {
+      output = output - duplicate(sum(all_shapes), stepAndRepeat);
+    } else {
+      unsupported_polarity_throw_exception();
+    }
+  }
+  return output;
+}
+
+void shapes_and_lines::scale(coordinate_type_fp) {
+}
+
+std::map<coordinate_type_fp, multi_linestring_type_fp> shapes_and_lines::as_paths() const {
+  if (render_paths_to_shapes) {
+    return {};
+  }
+  std::map<coordinate_type_fp, multi_linestring_type_fp> ret;
+  for (const auto& layer : raw_shapes) {
+    for (const auto& diameter_and_path : get<2>(layer)) {
+      ret[diameter_and_path.first].insert(ret[diameter_and_path.first].cend(),
+                                          diameter_and_path.second.cbegin(),
+                                          diameter_and_path.second.cend());
+    }
+  }
+  return {};
 }
