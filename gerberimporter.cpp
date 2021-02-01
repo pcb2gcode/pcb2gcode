@@ -964,7 +964,7 @@ multi_polygon_type_fp shapes_and_lines::as_shape() const {
 
     const gerbv_step_and_repeat_t& stepAndRepeat = get<0>(layer).stepAndRepeat;
     const auto& polarity = get<0>(layer).polarity;
-    output = output ^ duplicate(sum(filled_closed_lines), stepAndRepeat);
+    output = output ^ duplicate(symdiff(filled_closed_lines), stepAndRepeat);
     // Now we do the shapes.
     if (polarity == GERBV_POLARITY_DARK) {
       output = output + duplicate(sum(all_shapes), stepAndRepeat);
@@ -992,5 +992,5 @@ std::map<coordinate_type_fp, multi_linestring_type_fp> shapes_and_lines::as_path
                                           diameter_and_path.second.cend());
     }
   }
-  return {};
+  return ret;
 }
