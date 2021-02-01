@@ -953,12 +953,49 @@ multi_polygon_type_fp shapes_and_lines::as_shape() const {
     vector<multi_polygon_type_fp> filled_closed_lines;
     if (render_paths_to_shapes) {
       for (const auto& diameter_and_path : get<2>(layer)) {
-        // If fill_closed_shapes then there will be shapes and also
+        // If fill_closed_lines then there will be shapes and also
         // lines that were thickened.  If not fill_closed_lines then
         // it'll just be lines that were thickened.
         auto ovals = paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines);
         all_shapes.push_back(ovals.shapes);
         filled_closed_lines.push_back(ovals.filled_closed_lines);
+      }
+    }
+
+    const gerbv_step_and_repeat_t& stepAndRepeat = get<0>(layer).stepAndRepeat;
+    const auto& polarity = get<0>(layer).polarity;
+    output = output ^ duplicate(symdiff(filled_closed_lines), stepAndRepeat);
+    // Now we do the shapes.
+    if (fill_closed_lines) {
+      output = output - duplicate(sum(all_shapes), stepAndRepeat);
+    } else if (polarity == GERBV_POLARITY_DARK) {
+      output = output + duplicate(sum(all_shapes), stepAndRepeat);
+    } else if (polarity == GERBV_POLARITY_CLEAR) {
+      output = output - duplicate(sum(all_shapes), stepAndRepeat);
+    } else {
+      unsupported_polarity_throw_exception();
+    }
+  }
+  return output;
+}
+
+multi_polygon_type_fp shapes_and_lines::as_buffered_shape(const coordinate_type_fp expand_by) const {
+  multi_polygon_type_fp output;
+  for (const auto& layer : raw_shapes) {
+
+    vector<multi_polygon_type_fp> all_shapes;
+    for (const auto& shape : get<1>(layer)) {
+      all_shapes.push_back(bg_helpers::buffer(shape, expand_by));
+    }
+    vector<multi_polygon_type_fp> filled_closed_lines;
+    if (render_paths_to_shapes) {
+      for (const auto& diameter_and_path : get<2>(layer)) {
+        // If fill_closed_lines then there will be shapes and also
+        // lines that were thickened.  If not fill_closed_lines then
+        // it'll just be lines that were thickened.
+        auto ovals = paths_to_shapes(diameter_and_path.first + expand_by*2, diameter_and_path.second, fill_closed_lines);
+        all_shapes.push_back(ovals.shapes);
+        filled_closed_lines.push_back(bg_helpers::buffer(ovals.filled_closed_lines, expand_by));
       }
     }
 

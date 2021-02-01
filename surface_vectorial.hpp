@@ -89,6 +89,7 @@ protected:
   std::shared_ptr<std::pair<multi_polygon_type_fp,
                       std::map<coordinate_type_fp, multi_linestring_type_fp>>>
       vectorial_surface;
+  shapes_and_lines rendered;
   multi_polygon_type_fp voronoi;
   std::vector<polygon_type_fp> thermal_holes;
 

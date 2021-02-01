@@ -52,9 +52,11 @@ class shapes_and_lines {
   shapes_and_lines(bool fill_closed_lines, bool render_paths_to_shapes) :
     fill_closed_lines(fill_closed_lines),
     render_paths_to_shapes(render_paths_to_shapes) {}
+  shapes_and_lines() {}
   // Get all the shapes.  If render_paths_to_shapes is true then all
   // the linestrings in raw_shapes are also returned.
   multi_polygon_type_fp as_shape() const;
+  multi_polygon_type_fp as_buffered_shape(coordinate_type_fp expand_by) const;
   // Get all the paths.  If render_paths_to_shapes is true then nothing is returned.
   std::map<coordinate_type_fp, multi_linestring_type_fp> as_paths() const;
   void scale(coordinate_type_fp factor);
