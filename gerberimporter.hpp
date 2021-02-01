@@ -40,6 +40,33 @@ extern "C" {
 
 class gerber_exception: public std::exception {};
 
+// This class acts like a multi_polygon_type_fp except it internally
+// stores the shapes of polygons separately from the linear circular
+// lines, which may be used to create shapes by adding thickness or by
+// using the lines as an outline to a new shape.  Storing them
+// separately allows doing a lazy computation of the entire surface
+// and also allows some algorithms to run faster, such as buffer,
+// which can work on the lines instead of having to buffer twice.
+class shapes_and_lines {
+ public:
+  shapes_and_lines(bool render_paths_to_shapes, bool fill_closed_lines) :
+    render_paths_to_shapes(render_paths_to_shapes),
+    fill_closed_lines(fill_closed_lines) {}
+  // Get all the shapes.  If render_paths_to_shapes is true then all
+  // the linestrings in raw_shapes are also returned.
+  multi_polygon_type_fp as_shape() const;
+  // Get all the paths.  If render_paths_to_shapes is true then nothing is returned.
+  std::map<coordinate_type_fp, multi_linestring_type_fp> as_paths() const;
+  void scale(coordinate_type_fp factor);
+  std::vector<std::tuple<
+                gerbv_layer_t,
+                std::vector<multi_polygon_type_fp>,
+                std::map<coordinate_type_fp, multi_linestring_type_fp>>> raw_shapes;
+ private:
+  bool render_paths_to_shapes;
+  bool fill_closed_lines;
+};
+
 /******************************************************************************/
 /*
  Importer for RS274-X Gerber files.
@@ -56,7 +83,7 @@ public:
 
   virtual box_type_fp get_bounding_box() const;
 
-  virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
+  virtual shapes_and_lines render(
       bool fill_closed_lines,
       bool render_paths_to_shapes,
       unsigned int points_per_circle) const;

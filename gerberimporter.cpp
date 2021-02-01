@@ -22,6 +22,7 @@
 using std::pair;
 using std::reverse;
 using std::swap;
+using std::get;
 
 #include <iostream>
 using std::cerr;
@@ -730,21 +731,21 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
 }
 
 
+
 // Convert the gerber file into a pair of multi_polygon_type_fp and a list of
 // linear_paths.  The linear paths are a map from diamter of the tool for the
 // path to all the paths at that diameter.  If fill_closed_lines is true, return
 // all closed shapes without holes in them.  points_per_circle is the number of
 // lines to use to appoximate circles.
-pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> GerberImporter::render(
+shapes_and_lines GerberImporter::render(
     bool fill_closed_lines,
     bool render_paths_to_shapes,
     unsigned int points_per_circle) const {
   ring_type_fp region;
-  unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
-  vector<pair<const gerbv_layer_t *, vector<mp_pair>>> layers(1);
-
+  shapes_and_lines result(fill_closed_lines, render_paths_to_shapes);
+  result.raw_shapes.emplace_back();
   gerbv_image_t *gerber = project->file[0]->image;
 
   if (gerber->info->polarity != GERBV_POLARITY_POSITIVE) {
@@ -752,29 +753,17 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
   }
 
   const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle);
-  layers.front().first = gerber->netlist->layer;
+  get<0>(result.raw_shapes.back()) = *gerber->netlist->layer;
 
-
-  map<coordinate_type_fp, multi_linestring_type_fp> linear_circular_paths;
   for (gerbv_net_t *currentNet = gerber->netlist; currentNet; currentNet = currentNet->next) {
     const point_type_fp start (currentNet->start_x, currentNet->start_y);
     const point_type_fp stop (currentNet->stop_x, currentNet->stop_y);
     const double * const parameters = gerber->aperture[currentNet->aperture]->parameter;
-    multi_polygon_type_fp mpoly;
 
-    if (!layers_equivalent(currentNet->layer, layers.back().first)) {
-      if (render_paths_to_shapes) {
-        // About to start a new layer, render all the linear_circular_paths so far.
-        for (const auto& diameter_and_path : linear_circular_paths) {
-          layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
-        }
-        linear_circular_paths.clear();
-      }
-      layers.resize(layers.size() + 1);
-      layers.back().first = currentNet->layer;
+    if (!layers_equivalent(currentNet->layer, &get<0>(result.raw_shapes.back()))) {
+      result.raw_shapes.emplace_back();
+      get<0>(result.raw_shapes.back()) = *currentNet->layer;
     }
-
-    vector<mp_pair>& draws = layers.back().second;
 
     if (currentNet->interpolation == GERBV_INTERPOLATION_LINEARx1) {
       if (currentNet->aperture_state == GERBV_APERTURE_STATE_ON) {
@@ -791,11 +780,11 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
             linestring_type_fp segment;
             segment.push_back(start);
             segment.push_back(stop);
-            linear_circular_paths[diameter].push_back(segment);
+            get<2>(result.raw_shapes.back())[diameter].push_back(segment);
           } else if (gerber->aperture[currentNet->aperture]->type == GERBV_APTYPE_RECTANGLE) {
-            mpoly = linear_draw_rectangular_aperture(start, stop, parameters[0],
-                                                     parameters[1]);
-            draws.push_back(mpoly);
+            multi_polygon_type_fp mpoly = linear_draw_rectangular_aperture(
+                start, stop, parameters[0], parameters[1]);
+            get<1>(result.raw_shapes.back()).push_back(mpoly);
           } else {
             cerr << ("Drawing with an aperture different from a circle "
                      "or a rectangle is forbidden by the Gerber standard; skipping.")
@@ -810,17 +799,18 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
           const auto aperture_mpoly = apertures_map.find(currentNet->aperture);
 
           if (aperture_mpoly != apertures_map.end()) {
+            multi_polygon_type_fp mpoly;
             bg::transform(aperture_mpoly->second, mpoly, translate(stop.x(), stop.y()));
+            get<1>(result.raw_shapes.back()).push_back(mpoly);
           } else {
             cerr << "Macro aperture " << currentNet->aperture <<
                 " not found in macros list; skipping" << endl;
           }
-          draws.push_back(mpoly);
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
           bg::append(region, stop);
-          draws.push_back(simplify_cutins(region));
+          get<1>(result.raw_shapes.back()).push_back(simplify_cutins(region));
           region.clear();
         }
       } else {
@@ -830,7 +820,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
-      draws.push_back(simplify_cutins(region));
+      get<1>(result.raw_shapes.back()).push_back(simplify_cutins(region));
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
                currentNet->interpolation == GERBV_INTERPOLATION_CCW_CIRCULAR) {
@@ -861,7 +851,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
                 linestring_type_fp segment;
                 segment.push_back(path[i-1]);
                 segment.push_back(path[i]);
-                linear_circular_paths[diameter].push_back(segment);
+                get<2>(result.raw_shapes.back())[diameter].push_back(segment);
               }
             } else {
               cerr << ("Drawing an arc with an aperture different from a circle "
@@ -885,31 +875,11 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       cerr << "Unrecognized interpolation mode" << endl;
     }
   }
-  if (render_paths_to_shapes) {
-    // If there are any unrendered circular paths, add them to the last layer.
-    for (const auto& diameter_and_path : linear_circular_paths) {
-      layers.back().second.push_back(paths_to_shapes(diameter_and_path.first, diameter_and_path.second, fill_closed_lines));
-    }
-    linear_circular_paths.clear();
-  }
-  auto result = generate_layers(layers, &mp_pair::filled_closed_lines, fill_closed_lines);
-  if (fill_closed_lines) {
-    result = result - generate_layers(layers, &mp_pair::shapes, false);
-  } else {
-    result = result + generate_layers(layers, &mp_pair::shapes, false);
-  }
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {
     // I don't believe that this ever happens because I think that gerbv
     // internally converts everything to inches.
-    multi_polygon_type_fp scaled_result;
-    bg::transform(result, scaled_result,
-                  bg::strategy::transform::scale_transformer<coordinate_type_fp, 2, 2>(
-                      1/25.4, 1/25.4));
-    result.swap(scaled_result);
+    result.scale(1/25.4);
   }
-  for (auto& path : linear_circular_paths) {
-    path.second = eulerian_paths::make_eulerian_paths(path.second, true, true);
-  }
-  return make_pair(result, linear_circular_paths);
+  return result;
 }

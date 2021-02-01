@@ -96,9 +96,10 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     render_paths_to_shapes(render_paths_to_shapes) {}
 
 void Surface_vectorial::render(shared_ptr<GerberImporter> importer, double tolerance) {
-  auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
+  auto rendered = importer->render(fill, render_paths_to_shapes, points_per_circle);
+  auto vectorial_surface_not_simplified = rendered.as_shape();
 
-  if (bg::intersects(vectorial_surface_not_simplified.first)) {
+  if (bg::intersects(vectorial_surface_not_simplified)) {
     cerr << "\nWarning: Geometry of layer '" << name << "' is"
         " self-intersecting. This can cause pcb2gcode to produce"
         " wildly incorrect toolpaths. You may want to check the"
@@ -109,11 +110,11 @@ void Surface_vectorial::render(shared_ptr<GerberImporter> importer, double toler
       pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>>>();
   if (tolerance > 0) {
     //With a very small loss of precision we can reduce memory usage and processing time
-    bg::simplify(vectorial_surface_not_simplified.first, vectorial_surface->first, tolerance);
+    bg::simplify(vectorial_surface_not_simplified, vectorial_surface->first, tolerance);
   } else {
-    vectorial_surface->first.swap(vectorial_surface_not_simplified.first);
+    vectorial_surface->first.swap(vectorial_surface_not_simplified);
   }
-  for (auto& diameter_and_path : vectorial_surface_not_simplified.second) {
+  for (auto& diameter_and_path : rendered.as_paths()) {
     vectorial_surface->second[diameter_and_path.first] = multi_linestring_type_fp();
     if (tolerance > 0) {
       bg::simplify(diameter_and_path.second,
