@@ -339,7 +339,17 @@ mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   return merge_multi_draws(new_draws);
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers,
+// layers is a vector of layers.  Each layer has a polarity, which can
+// be dark meaning to draw, or clear, meaning to erase.  In the end,
+// the output is regions that are drawn and regions that are undrawn.
+// The layers also have two sets of elements to draw: shapes and
+// filled_closed_regions.  The former are actual shapes.  The later
+// are line drawings that maybe need to be treated as shapes, or not,
+// depend on the options provided.  Finally, there is the xor.  xor
+// overrides the layer polarity if set and causes each layer to be
+// xored with the previous layer, instead of drawn or erased (dark or
+// clear).
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair>>& layers,
                                       multi_polygon_type_fp mp_pair::* member, bool xor_layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
@@ -347,8 +357,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    const vector<mp_pair>& multi_draws = layer->second;
-    mp_pair draw_pair = merge_multi_draws(multi_draws);
+    mp_pair draw_pair = layer->second;
     multi_polygon_type_fp draws = draw_pair.*member;
 
     // First duplicate in the x direction.
@@ -670,12 +679,6 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
           sr1.dist_X == sr2.dist_X &&
           sr1.dist_Y == sr2.dist_Y);
 }
-
-struct PointLessThan {
-  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
 
 /* Convert paths that all need to be drawn with the same diameter into shapes.
  *
