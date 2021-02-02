@@ -180,7 +180,7 @@ void test_one(const string& gerber_file, double max_error_rate) {
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, true, 360).first;
+  multi_polygon_type_fp polys = g.render(false, true, 360).as_shape();
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   bg::expand(bounding_box, g.get_bounding_box());
@@ -225,7 +225,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).as_shape();
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width(bounding_box) * dpi, height(bounding_box) * dpi);
