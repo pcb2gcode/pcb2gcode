@@ -6,9 +6,7 @@
 #ifdef GEOS_VERSION
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
-#include <geos/operation/buffer/BufferOp.h>
 #endif // GEOS_VERSION
-
 
 namespace bg_helpers {
 
