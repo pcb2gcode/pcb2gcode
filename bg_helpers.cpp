@@ -9,6 +9,32 @@
 #include "bg_operators.hpp"
 #include "bg_helpers.hpp"
 
+#ifdef GEOS_VERSION
+template <typename T>
+std::unique_ptr<geos::geom::Geometry> to_geos(const T& mp) {
+  geos::io::WKTReader reader;
+  std::stringstream ss;
+  ss << bg::wkt(mp);
+  return reader.read(ss.str());
+}
+
+multi_polygon_type_fp from_geos(const std::unique_ptr<geos::geom::Geometry>& g) {
+  geos::io::WKTWriter writer;
+  std::string geos_wkt = writer.write(g.get());
+  boost::replace_all(geos_wkt, "EMPTY, ", "");
+  boost::replace_all(geos_wkt, ", EMPTY", "");
+  multi_polygon_type_fp ret;
+  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
+    bg::read_wkt(geos_wkt, ret);
+  } else {
+    polygon_type_fp poly;
+    bg::read_wkt(geos_wkt, poly);
+    ret.push_back(poly);
+  }
+  return ret;
+}
+#endif //GEOS_VERSION
+
 namespace bg_helpers {
 
 // The below implementations of buffer are similar to bg::buffer but
@@ -22,22 +48,10 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
     return geometry_in;
   }
 #ifdef GEOS_VERSION
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(geometry_in);
-  auto geos_in = reader.read(ss.str());
-  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
-  geos::io::WKTWriter writer;
-  auto geos_wkt = writer.write(geos_out.get());
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
+  auto geos_in = to_geos(geometry_in);
+  return from_geos(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
   multi_polygon_type_fp geometry_out;
   bg::buffer(geometry_in, geometry_out,
@@ -83,22 +97,10 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
     return {};
   }
 #ifdef GEOS_VERSION
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(geometry_in);
-  auto geos_in = reader.read(ss.str());
-  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
-  geos::io::WKTWriter writer;
-  auto geos_wkt = writer.write(geos_out.get());
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
+  auto geos_in = to_geos(geometry_in);
+  return from_geos(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
   multi_polygon_type_fp geometry_out;
   bg::buffer(geometry_in, geometry_out,
@@ -120,22 +122,10 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
   // multilinestring to non-intersecting paths seems to help.
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(mls);
-  auto geos_in = reader.read(ss.str());
-  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
-  geos::io::WKTWriter writer;
-  auto geos_wkt = writer.write(geos_out.get());
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
+  auto geos_in = to_geos(mls);
+  return from_geos(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
   if (expand_by == 0) {
     return {};

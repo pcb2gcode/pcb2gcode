@@ -471,7 +471,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         double zdiff_line1 = 0;
         double zdiff_hcircle2 = 0;
         // Distance traveled by one half circle
-        double dist_hcircle = M_PI * millr;
+        double dist_hcircle = boost::math::constants::pi<double>() * millr;
         if (slot) {
           // How much to step down per pass
           double zstep = cutter->zwork / stepcount;
