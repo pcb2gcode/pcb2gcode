@@ -463,30 +463,27 @@ vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
 }
 
 multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
-  const auto area = bg::area(ring); // Positive if the original ring is clockwise, otherwise negative.
-  vector<ring_type_fp> all_rings = get_all_rings(ring);
+  if (ring.size() < 4) {
+    return {};
+  }
+  auto new_mls = eulerian_paths::make_eulerian_paths({linestring_type_fp(ring.cbegin(), ring.cend())}, true, false);
+  if (new_mls.size() != 1 || new_mls[0].front() != new_mls[0].back()) {
+    cerr << "Internal error in gerberimporter" << endl;
+    cerr << bg::wkt(ring) << std::endl;
+    cerr << bg::wkt(new_mls) << std::endl;
+    throw gerber_exception();
+  }
+  ring_type_fp new_ring(new_mls[0].cbegin(), new_mls[0].cend());
+  vector<ring_type_fp> all_rings = get_all_rings(new_ring);
   multi_polygon_type_fp ret;
   for (auto r : all_rings) {
     const auto this_area = bg::area(r);
     if (r.size() < 4 || this_area == 0) {
       continue; // No area so ignore it.
     }
-    if (this_area * area > 0) {
-      auto correct_r = r;
-      bg::correct(correct_r);
-      ret = ret + correct_r;
-    }
-  }
-  for (auto r : all_rings) {
-    const auto this_area = bg::area(r);
-    if (r.size() < 4 || this_area == 0) {
-      continue; // No area so ignore it.
-    }
-    if (this_area * area < 0) {
-      auto correct_r = r;
-      bg::correct(correct_r);
-      ret = ret - multi_polygon_type_fp{{correct_r}};
-    }
+    auto correct_r = r;
+    bg::correct(correct_r);
+    ret = ret ^ multi_polygon_type_fp{{correct_r}};
   }
   return ret;
 }

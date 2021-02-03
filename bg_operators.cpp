@@ -160,9 +160,3 @@ bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygo
 }
 
 template multi_polygon_type_fp operator+(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
-
-template <>
-multi_polygon_type_fp operator+(const multi_polygon_type_fp& lhs, const ring_type_fp& rhs) {
-  multi_polygon_type_fp rhs_mp{polygon_type_fp{rhs}};
-  return lhs + rhs_mp;
-}
