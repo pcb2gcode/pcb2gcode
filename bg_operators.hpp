@@ -30,10 +30,10 @@ template <typename rhs_t>
 multi_linestring_type_fp operator&(const linestring_type_fp& lhs,
                                    const rhs_t& rhs);
 
-template <typename polygon_type_t, typename rhs_t>
+template <typename polygon_type_t>
 bg::model::multi_polygon<polygon_type_t> operator^(
     const bg::model::multi_polygon<polygon_type_t>& lhs,
-    const rhs_t& rhs);
+    const bg::model::multi_polygon<polygon_type_t>& rhs);
 
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator&(const bg::model::multi_polygon<polygon_type_t>& lhs,

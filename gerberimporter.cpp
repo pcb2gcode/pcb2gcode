@@ -485,7 +485,7 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
     if (this_area * area < 0) {
       auto correct_r = r;
       bg::correct(correct_r);
-      ret = ret - correct_r;
+      ret = ret - multi_polygon_type_fp{{correct_r}};
     }
   }
   return ret;
