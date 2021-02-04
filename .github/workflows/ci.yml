@@ -274,7 +274,7 @@ jobs:
               time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
             fi;
             echo "Finished on {}";
-          popd } 2>&1'
+          popd; } 2>&1'
         popd
     - name: Reset coverage
       if: matrix.code_coverage
