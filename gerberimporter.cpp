@@ -313,12 +313,6 @@ struct mp_pair {
     filled_closed_lines(filled_closed_lines) {}
   multi_polygon_type_fp shapes;
   multi_polygon_type_fp filled_closed_lines;
-  const mp_pair operator+(const mp_pair& rhs) const {
-    mp_pair ret;
-    ret.filled_closed_lines = filled_closed_lines ^ rhs.filled_closed_lines;
-    ret.shapes = shapes + rhs.shapes;
-    return ret;
-  }
 };
 
 // To speed up the merging, we do them in pairs so that we're mostly merging
@@ -360,24 +354,25 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
     mp_pair draw_pair = layer->second;
     multi_polygon_type_fp draws = draw_pair.*member;
+    if (stepAndRepeat.X > 0 || stepAndRepeat.Y > 0) {
+      vector<multi_polygon_type_fp> to_sum{draws};
 
-    // First duplicate in the x direction.
-    auto original_draw = draws;
-    for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
-      multi_polygon_type_fp translated_draws;
-      bg::transform(original_draw, translated_draws,
-                    translate(stepAndRepeat.dist_X * sr_x, 0));
-      draws = draws + translated_draws;
+      to_sum.reserve(stepAndRepeat.X * stepAndRepeat.Y);
+      for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++) {
+        for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++) {
+          if (sr_x == 0 && sr_y == 0) {
+            continue; // Already got this one.
+          }
+          multi_polygon_type_fp translated_draws;
+          bg::transform(draws, translated_draws,
+                        translate(stepAndRepeat.dist_X * sr_x,
+                                  stepAndRepeat.dist_Y * sr_y));
+          to_sum.push_back(translated_draws);
+        }
+      }
+      draws = sum(to_sum);
     }
 
-    // Now duplicate in the y direction, with all the x duplicates in there already.
-    original_draw = draws;
-    for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
-      multi_polygon_type_fp translated_draws;
-      bg::transform(original_draw, translated_draws,
-                    translate(0, stepAndRepeat.dist_Y * sr_y));
-      draws = draws + translated_draws;
-    }
     if (xor_layers) {
       output = output ^ draws;
     } else if (polarity == GERBV_POLARITY_DARK) {
@@ -393,12 +388,12 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
 
 multi_polygon_type_fp make_moire(const double * const parameters, unsigned int circle_points) {
   const point_type_fp center(parameters[0], parameters[1]);
-  multi_polygon_type_fp moire;
+  vector<multi_polygon_type_fp> moire_parts;
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
-  moire = moire + make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0);
-  moire = moire + make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0);
+  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0));
   const int max_number_of_rings = parameters[5];
   const double outer_ring_diameter = parameters[2];
   const double ring_thickness = parameters[3];
@@ -410,10 +405,10 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire = moire + make_regular_polygon(center, external_diameter, circle_points, 0,
-                                         internal_diameter, circle_points);
+    moire_parts.push_back(make_regular_polygon(center, external_diameter, circle_points, 0,
+                                               internal_diameter, circle_points));
   }
-  return moire;
+  return sum(moire_parts);
 }
 
 multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,

@@ -214,7 +214,7 @@ multi_polygon_type_fp reduce(const std::vector<multi_polygon_type_fp>& mpolys,
 
 multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
   if (mpolys.size() == 0) {
-    return multi_polygon_type_fp();
+    return {};
   } else if (mpolys.size() == 1) {
     return mpolys[0];
   }
@@ -227,6 +227,9 @@ multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
     }
     geos_mpolys_tmp.push_back(to_geos(mpoly));
     geos_mpolys.push_back(geos_mpolys_tmp.back().get());
+  }
+  if (geos_mpolys.size() == 0) {
+    return {};
   }
   try {
     std::unique_ptr<geos::geom::Geometry> geos_out(
