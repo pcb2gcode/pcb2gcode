@@ -1,39 +1,11 @@
 #include "eulerian_paths.hpp"
 #ifdef GEOS_VERSION
-#include <geos/io/WKTReader.h>
-#include <geos/io/WKTReader.inl>
-#include <geos/io/WKTWriter.h>
 #include <geos/operation/buffer/BufferOp.h>
+#include "geos_helpers.hpp"
 #endif // GEOS_VERSION
 
 #include "bg_operators.hpp"
 #include "bg_helpers.hpp"
-
-#ifdef GEOS_VERSION
-template <typename T>
-std::unique_ptr<geos::geom::Geometry> to_geos(const T& mp) {
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(mp);
-  return reader.read(ss.str());
-}
-
-multi_polygon_type_fp from_geos(const std::unique_ptr<geos::geom::Geometry>& g) {
-  geos::io::WKTWriter writer;
-  std::string geos_wkt = writer.write(g.get());
-  boost::replace_all(geos_wkt, "EMPTY, ", "");
-  boost::replace_all(geos_wkt, ", EMPTY", "");
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
-}
-#endif //GEOS_VERSION
 
 namespace bg_helpers {
 
@@ -49,7 +21,7 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
   }
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
-  return from_geos(
+  return from_geos<multi_polygon_type_fp>(
       std::unique_ptr<geos::geom::Geometry>(
           geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
@@ -98,7 +70,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
   }
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
-  return from_geos(
+  return from_geos<multi_polygon_type_fp>(
       std::unique_ptr<geos::geom::Geometry>(
           geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
@@ -123,7 +95,7 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(mls);
-  return from_geos(
+  return from_geos<multi_polygon_type_fp>(
       std::unique_ptr<geos::geom::Geometry>(
           geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
