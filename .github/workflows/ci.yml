@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
         boost: ['1_66', '1_75']
-        geos: ['3.8.1', 'none']
+        geos: ['3.9.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
@@ -36,7 +36,7 @@ jobs:
           - os: ubuntu
             boost: 1_66
             compiler: g++-8
-            geos: '3.8.1'
+            geos: '3.9.0'
             code_coverage: "--enable-code-coverage"
           - os: windows
             shell: |
@@ -60,7 +60,7 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo
+        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-cmake
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v2
     - name: Setup paths and env
@@ -163,14 +163,14 @@ jobs:
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          for i in {1..5}; do
-            wget -q -T20 -t1 -O "geos-${GEOS}.tar.bz2" "http://download.osgeo.org/geos/geos-${GEOS}.tar.bz2" && break;
-          done
-          tar xjf "geos-${GEOS}.tar.bz2"
-          pushd geos-${GEOS}
-          ./configure --prefix=${LOCAL_INSTALL_PATH}
+          git clone --depth 1 --branch ${GEOS} https://github.com/libgeos/geos.git
+          pushd geos
+          mkdir build
+          pushd build
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           make -j ${NUM_CPUS}
           make install
+          popd
           popd
           popd
         fi
@@ -293,7 +293,7 @@ jobs:
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: make -j ${NUM_CPUS} check-valgrind
     - name: Run integration tests
-      if: matrix.boost == '1_66' && matrix.geos == '3.8.1'
+      if: matrix.boost == '1_66' && matrix.geos == '3.9.0'
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
@@ -318,8 +318,8 @@ jobs:
         if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 ]]; then
           cp -L ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
-        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.8.1.so ]]; then
-          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.8.1.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
+        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.9.0.so ]]; then
+          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.9.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
 
         cat > pcb2gcode-$(./pcb2gcode --version | head -1)/pcb2gcode.sh << EOF
@@ -348,7 +348,7 @@ jobs:
         cp ../../.libs/pcb2gcode.exe .
         cp ../../../.local/bin/libgerbv-1.dll .
         if [[ ${GEOS} != 'none' ]]; then
-          cp ../../../.local/bin/libgeos-$( echo ${GEOS} | tr . - ).dll .
+          cp ../../../.local/bin/libgeos.dll .
         fi
         cp /mingw64/bin/libboost_program_options-mt.dll .
         cp /mingw64/bin/libbrotlicommon.dll .
@@ -440,15 +440,15 @@ jobs:
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
 
-          mv pcb2gcode-windows_1_75_gplusplus_3.8.1/pcb2gcode-windows_1_75_gplusplus_3.8.1.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          mv pcb2gcode-windows_1_75_gplusplus_3.9.0/pcb2gcode-windows_1_75_gplusplus_3.9.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           pushd pcb2gcode-windows
           tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
           popd
 
-          mv pcb2gcode-ubuntu_1_66_gplusplus_3.8.1/pcb2gcode-ubuntu_1_66_gplusplus_3.8.1.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-ubuntu_1_66_gplusplus_3.9.0/pcb2gcode-ubuntu_1_66_gplusplus_3.9.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
 
-          mv pcb2gcode-macos_1_75_gplusplus_3.8.1/pcb2gcode-macos_1_75_gplusplus_3.8.1.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-macos_1_75_gplusplus_3.9.0/pcb2gcode-macos_1_75_gplusplus_3.9.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
