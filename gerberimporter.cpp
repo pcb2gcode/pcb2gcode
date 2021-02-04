@@ -306,9 +306,13 @@ inline static void unsupported_polarity_throw_exception() {
 // or.
 struct mp_pair {
   mp_pair() {}
-  mp_pair(multi_polygon_type_fp mp) : shapes(mp) {}
-  multi_polygon_type_fp filled_closed_lines;
+  mp_pair(multi_polygon_type_fp shapes) : shapes(shapes) {}
+  mp_pair(multi_polygon_type_fp shapes,
+          multi_polygon_type_fp filled_closed_lines) :
+    shapes(shapes),
+    filled_closed_lines(filled_closed_lines) {}
   multi_polygon_type_fp shapes;
+  multi_polygon_type_fp filled_closed_lines;
   const mp_pair operator+(const mp_pair& rhs) const {
     mp_pair ret;
     ret.filled_closed_lines = filled_closed_lines ^ rhs.filled_closed_lines;
@@ -325,17 +329,15 @@ mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   } else if (multi_draws.size() == 1) {
     return multi_draws.front();
   }
-  auto current = multi_draws.cbegin();
-  vector<mp_pair> new_draws;
-  if (multi_draws.size() % 2 == 1) {
-    new_draws.push_back(*current);
-    current++;
+  vector<multi_polygon_type_fp> shapes;
+  vector<multi_polygon_type_fp> filled_closed_lines;
+  shapes.reserve(multi_draws.size());
+  filled_closed_lines.reserve(multi_draws.size());
+  for (const auto& multi_draw : multi_draws) {
+    shapes.push_back(multi_draw.shapes);
+    filled_closed_lines.push_back(multi_draw.filled_closed_lines);
   }
-  // There are at least two and the total number is even.
-  for (; current != multi_draws.cend(); current += 2) {
-    new_draws.push_back(*current + *(current + 1));
-  }
-  return merge_multi_draws(new_draws);
+  return mp_pair(sum(shapes), symdiff(filled_closed_lines));
 }
 
 // layers is a vector of layers.  Each layer has a polarity, which can
@@ -565,7 +567,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   polarity = parameters[0];
                   rotation = parameters[4];
                   break;
-                case GERBV_APTYPE_MACRO_OUTLINE:
+              case GERBV_APTYPE_MACRO_OUTLINE: // 4.5.2.6 Outline, Code 4
                   {
                     ring_type_fp ring;
                     for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
