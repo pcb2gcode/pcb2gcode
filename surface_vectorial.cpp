@@ -1016,7 +1016,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
         buffered_milling_poly = buffered_milling_poly + path_minimum;
       }
     }
-    if (mask) {
+    if (mask && !bg::covered_by(buffered_milling_poly, mask->vectorial_surface->first)) {
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
