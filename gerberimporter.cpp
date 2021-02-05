@@ -306,15 +306,13 @@ inline static void unsupported_polarity_throw_exception() {
 // or.
 struct mp_pair {
   mp_pair() {}
-  mp_pair(multi_polygon_type_fp mp) : shapes(mp) {}
-  multi_polygon_type_fp filled_closed_lines;
+  mp_pair(multi_polygon_type_fp shapes) : shapes(shapes) {}
+  mp_pair(multi_polygon_type_fp shapes,
+          multi_polygon_type_fp filled_closed_lines) :
+    shapes(shapes),
+    filled_closed_lines(filled_closed_lines) {}
   multi_polygon_type_fp shapes;
-  const mp_pair operator+(const mp_pair& rhs) const {
-    mp_pair ret;
-    ret.filled_closed_lines = filled_closed_lines ^ rhs.filled_closed_lines;
-    ret.shapes = shapes + rhs.shapes;
-    return ret;
-  }
+  multi_polygon_type_fp filled_closed_lines;
 };
 
 // To speed up the merging, we do them in pairs so that we're mostly merging
@@ -325,20 +323,28 @@ mp_pair merge_multi_draws(const vector<mp_pair>& multi_draws) {
   } else if (multi_draws.size() == 1) {
     return multi_draws.front();
   }
-  auto current = multi_draws.cbegin();
-  vector<mp_pair> new_draws;
-  if (multi_draws.size() % 2 == 1) {
-    new_draws.push_back(*current);
-    current++;
+  vector<multi_polygon_type_fp> shapes;
+  vector<multi_polygon_type_fp> filled_closed_lines;
+  shapes.reserve(multi_draws.size());
+  filled_closed_lines.reserve(multi_draws.size());
+  for (const auto& multi_draw : multi_draws) {
+    shapes.push_back(multi_draw.shapes);
+    filled_closed_lines.push_back(multi_draw.filled_closed_lines);
   }
-  // There are at least two and the total number is even.
-  for (; current != multi_draws.cend(); current += 2) {
-    new_draws.push_back(*current + *(current + 1));
-  }
-  return merge_multi_draws(new_draws);
+  return mp_pair(sum(shapes), symdiff(filled_closed_lines));
 }
 
-multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<mp_pair>>>& layers,
+// layers is a vector of layers.  Each layer has a polarity, which can
+// be dark meaning to draw, or clear, meaning to erase.  In the end,
+// the output is regions that are drawn and regions that are undrawn.
+// The layers also have two sets of elements to draw: shapes and
+// filled_closed_regions.  The former are actual shapes.  The later
+// are line drawings that maybe need to be treated as shapes, or not,
+// depend on the options provided.  Finally, there is the xor.  xor
+// overrides the layer polarity if set and causes each layer to be
+// xored with the previous layer, instead of drawn or erased (dark or
+// clear).
+multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair>>& layers,
                                       multi_polygon_type_fp mp_pair::* member, bool xor_layers) {
   multi_polygon_type_fp output;
   vector<ring_type_fp> rings;
@@ -346,27 +352,27 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
   for (auto layer = layers.cbegin(); layer != layers.cend(); layer++) {
     const gerbv_polarity_t polarity = layer->first->polarity;
     const gerbv_step_and_repeat_t& stepAndRepeat = layer->first->stepAndRepeat;
-    const vector<mp_pair>& multi_draws = layer->second;
-    mp_pair draw_pair = merge_multi_draws(multi_draws);
+    mp_pair draw_pair = layer->second;
     multi_polygon_type_fp draws = draw_pair.*member;
+    if (stepAndRepeat.X > 0 || stepAndRepeat.Y > 0) {
+      vector<multi_polygon_type_fp> to_sum{draws};
 
-    // First duplicate in the x direction.
-    auto original_draw = draws;
-    for (int sr_x = 1; sr_x < stepAndRepeat.X; sr_x++) {
-      multi_polygon_type_fp translated_draws;
-      bg::transform(original_draw, translated_draws,
-                    translate(stepAndRepeat.dist_X * sr_x, 0));
-      draws = draws + translated_draws;
+      to_sum.reserve(stepAndRepeat.X * stepAndRepeat.Y);
+      for (int sr_x = 0; sr_x < stepAndRepeat.X; sr_x++) {
+        for (int sr_y = 0; sr_y < stepAndRepeat.Y; sr_y++) {
+          if (sr_x == 0 && sr_y == 0) {
+            continue; // Already got this one.
+          }
+          multi_polygon_type_fp translated_draws;
+          bg::transform(draws, translated_draws,
+                        translate(stepAndRepeat.dist_X * sr_x,
+                                  stepAndRepeat.dist_Y * sr_y));
+          to_sum.push_back(translated_draws);
+        }
+      }
+      draws = sum(to_sum);
     }
 
-    // Now duplicate in the y direction, with all the x duplicates in there already.
-    original_draw = draws;
-    for (int sr_y = 1; sr_y < stepAndRepeat.Y; sr_y++) {
-      multi_polygon_type_fp translated_draws;
-      bg::transform(original_draw, translated_draws,
-                    translate(0, stepAndRepeat.dist_Y * sr_y));
-      draws = draws + translated_draws;
-    }
     if (xor_layers) {
       output = output ^ draws;
     } else if (polarity == GERBV_POLARITY_DARK) {
@@ -382,12 +388,12 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, vector<
 
 multi_polygon_type_fp make_moire(const double * const parameters, unsigned int circle_points) {
   const point_type_fp center(parameters[0], parameters[1]);
-  multi_polygon_type_fp moire;
+  vector<multi_polygon_type_fp> moire_parts;
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
-  moire = moire + make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0);
-  moire = moire + make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0);
+  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0));
   const int max_number_of_rings = parameters[5];
   const double outer_ring_diameter = parameters[2];
   const double ring_thickness = parameters[3];
@@ -399,10 +405,10 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire = moire + make_regular_polygon(center, external_diameter, circle_points, 0,
-                                         internal_diameter, circle_points);
+    moire_parts.push_back(make_regular_polygon(center, external_diameter, circle_points, 0,
+                                               internal_diameter, circle_points));
   }
-  return moire;
+  return sum(moire_parts);
 }
 
 multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
@@ -454,30 +460,27 @@ vector<ring_type_fp> get_all_rings(const ring_type_fp& ring) {
 }
 
 multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
-  const auto area = bg::area(ring); // Positive if the original ring is clockwise, otherwise negative.
-  vector<ring_type_fp> all_rings = get_all_rings(ring);
+  if (ring.size() < 4) {
+    return {};
+  }
+  auto new_mls = eulerian_paths::make_eulerian_paths({linestring_type_fp(ring.cbegin(), ring.cend())}, true, false);
+  if (new_mls.size() != 1 || new_mls[0].front() != new_mls[0].back()) {
+    cerr << "Internal error in gerberimporter" << endl;
+    cerr << bg::wkt(ring) << std::endl;
+    cerr << bg::wkt(new_mls) << std::endl;
+    throw gerber_exception();
+  }
+  ring_type_fp new_ring(new_mls[0].cbegin(), new_mls[0].cend());
+  vector<ring_type_fp> all_rings = get_all_rings(new_ring);
   multi_polygon_type_fp ret;
   for (auto r : all_rings) {
     const auto this_area = bg::area(r);
     if (r.size() < 4 || this_area == 0) {
       continue; // No area so ignore it.
     }
-    if (this_area * area > 0) {
-      auto correct_r = r;
-      bg::correct(correct_r);
-      ret = ret + correct_r;
-    }
-  }
-  for (auto r : all_rings) {
-    const auto this_area = bg::area(r);
-    if (r.size() < 4 || this_area == 0) {
-      continue; // No area so ignore it.
-    }
-    if (this_area * area < 0) {
-      auto correct_r = r;
-      bg::correct(correct_r);
-      ret = ret - correct_r;
-    }
+    auto correct_r = r;
+    bg::correct(correct_r);
+    ret = ret ^ multi_polygon_type_fp{{correct_r}};
   }
   return ret;
 }
@@ -559,7 +562,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   polarity = parameters[0];
                   rotation = parameters[4];
                   break;
-                case GERBV_APTYPE_MACRO_OUTLINE:
+              case GERBV_APTYPE_MACRO_OUTLINE: // 4.5.2.6 Outline, Code 4
                   {
                     ring_type_fp ring;
                     for (unsigned int i = 0; i < round(parameters[1]) + 1; i++){
@@ -669,12 +672,6 @@ bool layers_equivalent(const gerbv_layer_t* const layer1, const gerbv_layer_t* c
           sr1.dist_X == sr2.dist_X &&
           sr1.dist_Y == sr2.dist_Y);
 }
-
-struct PointLessThan {
-  bool operator()(const point_type_fp& a, const point_type_fp& b) const {
-    return std::tie(a.x(), a.y()) < std::tie(b.x(), b.y());
-  }
-};
 
 /* Convert paths that all need to be drawn with the same diameter into shapes.
  *
@@ -892,11 +889,16 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     }
     linear_circular_paths.clear();
   }
-  auto result = generate_layers(layers, &mp_pair::filled_closed_lines, fill_closed_lines);
+  vector<pair<const gerbv_layer_t *, mp_pair>> merged_layers;
+  merged_layers.reserve(layers.size());
+  for (const auto& layer : layers) {
+    merged_layers.emplace_back(layer.first, merge_multi_draws(layer.second));
+  }
+  auto result = generate_layers(merged_layers, &mp_pair::filled_closed_lines, fill_closed_lines);
   if (fill_closed_lines) {
-    result = result - generate_layers(layers, &mp_pair::shapes, false);
+    result = result - generate_layers(merged_layers, &mp_pair::shapes, false);
   } else {
-    result = result + generate_layers(layers, &mp_pair::shapes, false);
+    result = result + generate_layers(merged_layers, &mp_pair::shapes, false);
   }
 
   if (gerber->netlist->state->unit == GERBV_UNIT_MM) {

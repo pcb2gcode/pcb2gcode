@@ -1,9 +1,7 @@
 #include "eulerian_paths.hpp"
 #ifdef GEOS_VERSION
-#include <geos/io/WKTReader.h>
-#include <geos/io/WKTReader.inl>
-#include <geos/io/WKTWriter.h>
 #include <geos/operation/buffer/BufferOp.h>
+#include "geos_helpers.hpp"
 #endif // GEOS_VERSION
 
 #include "bg_operators.hpp"
@@ -22,22 +20,10 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
     return geometry_in;
   }
 #ifdef GEOS_VERSION
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(geometry_in);
-  auto geos_in = reader.read(ss.str());
-  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
-  geos::io::WKTWriter writer;
-  auto geos_wkt = writer.write(geos_out.get());
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
+  auto geos_in = to_geos(geometry_in);
+  return from_geos<multi_polygon_type_fp>(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
   multi_polygon_type_fp geometry_out;
   bg::buffer(geometry_in, geometry_out,
@@ -82,6 +68,12 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
   if (expand_by == 0) {
     return {};
   }
+#ifdef GEOS_VERSION
+  auto geos_in = to_geos(geometry_in);
+  return from_geos<multi_polygon_type_fp>(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
+#else
   multi_polygon_type_fp geometry_out;
   bg::buffer(geometry_in, geometry_out,
              bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
@@ -90,6 +82,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
              bg::strategy::buffer::end_round(points_per_circle),
              bg::strategy::buffer::point_circle(points_per_circle));
   return geometry_out;
+#endif
 }
 
 template<typename CoordinateType>
@@ -101,22 +94,10 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
   // multilinestring to non-intersecting paths seems to help.
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
-  geos::io::WKTReader reader;
-  std::stringstream ss;
-  ss << bg::wkt(mls);
-  auto geos_in = reader.read(ss.str());
-  std::unique_ptr<geos::geom::Geometry> geos_out(geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4));
-  geos::io::WKTWriter writer;
-  auto geos_wkt = writer.write(geos_out.get());
-  multi_polygon_type_fp ret;
-  if (strncmp(geos_wkt.c_str(), "MULTIPOLYGON", 12) == 0) {
-    bg::read_wkt(geos_wkt, ret);
-  } else {
-    polygon_type_fp poly;
-    bg::read_wkt(geos_wkt, poly);
-    ret.push_back(poly);
-  }
-  return ret;
+  auto geos_in = to_geos(mls);
+  return from_geos<multi_polygon_type_fp>(
+      std::unique_ptr<geos::geom::Geometry>(
+          geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));
 #else
   if (expand_by == 0) {
     return {};

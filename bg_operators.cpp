@@ -1,8 +1,16 @@
 #include "geometry.hpp"
 #include "geometry_int.hpp"
 #include "bg_helpers.hpp"
+#ifdef GEOS_VERSION
+#include <geos/operation/union/CascadedUnion.h>
+#include <geos/util/TopologyException.h>
+#include "geos_helpers.hpp"
+#endif // GEOS_VERSION
 
 #include "bg_operators.hpp"
+
+using std::unique_ptr;
+using std::vector;
 
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator-(
@@ -17,11 +25,6 @@ bg::model::multi_polygon<polygon_type_t> operator-(
 }
 
 template multi_polygon_type_fp operator-(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
-
-template <> multi_polygon_type_fp operator-(const multi_polygon_type_fp& lhs, const ring_type_fp& rhs) {
-  multi_polygon_type_fp rhs_mp{polygon_type_fp{rhs}};
-  return lhs - rhs_mp;
-}
 
 template <typename rhs_t>
 multi_polygon_type_fp operator-(const box_type_fp& lhs, const rhs_t& rhs) {
@@ -118,10 +121,10 @@ multi_polygon_type_fp operator&(const bg::model::polygon<point_type_t>& lhs,
 
 template multi_polygon_type_fp operator&(polygon_type_fp const&, multi_polygon_type_fp const&);
 
-template <typename polygon_type_t, typename rhs_t>
+template <typename polygon_type_t>
 bg::model::multi_polygon<polygon_type_t> operator^(
     const bg::model::multi_polygon<polygon_type_t>& lhs,
-    const rhs_t& rhs) {
+    const bg::model::multi_polygon<polygon_type_t>& rhs) {
   if (bg::area(rhs) <= 0) {
     return lhs;
   }
@@ -137,7 +140,7 @@ template multi_polygon_type_fp operator^(const multi_polygon_type_fp&, const mul
 
 template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
-                                                                 const rhs_t& rhs) {
+                                                   const rhs_t& rhs) {
   if (bg::area(rhs) <= 0) {
     return lhs;
   }
@@ -166,8 +169,91 @@ bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygo
 
 template multi_polygon_type_fp operator+(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
 
-template <>
-multi_polygon_type_fp operator+(const multi_polygon_type_fp& lhs, const ring_type_fp& rhs) {
-  multi_polygon_type_fp rhs_mp{polygon_type_fp{rhs}};
-  return lhs + rhs_mp;
+template <typename Addition>
+multi_polygon_type_fp reduce(const std::vector<multi_polygon_type_fp>& mpolys,
+                          const Addition& adder,
+                          const std::vector<box_type_fp>& bboxes) {
+  if (mpolys.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (mpolys.size() == 1) {
+    return mpolys.front();
+  }
+  size_t current = 0;
+  std::vector<multi_polygon_type_fp> new_mpolys;
+  std::vector<box_type_fp> new_bboxes;
+  if (mpolys.size() % 2 == 1) {
+    new_mpolys.push_back(mpolys[current]);
+    new_bboxes.push_back(bboxes[current]);
+    current++;
+  }
+  // There are at least two and the total number is even.
+  for (; current < mpolys.size(); current += 2) {
+    box_type_fp new_bbox = bboxes[current];
+    bg::expand(new_bbox, bboxes[current+1]);
+    new_bboxes.push_back(new_bbox);
+    if (!bg::intersects(bboxes[current], bboxes[current+1])) {
+      new_mpolys.push_back(mpolys[current]);
+      new_mpolys.back().insert(new_mpolys.back().cend(), mpolys[current+1].cbegin(), mpolys[current+1].cend());
+    } else {
+      new_mpolys.push_back(adder(mpolys[current], mpolys[current+1]));
+    }
+  }
+  return reduce(new_mpolys, adder, new_bboxes);
+}
+
+template <typename Addition>
+multi_polygon_type_fp reduce(const std::vector<multi_polygon_type_fp>& mpolys,
+                             const Addition& adder) {
+  std::vector<box_type_fp> bboxes;
+  bboxes.reserve(mpolys.size());
+  for (const auto& mpoly : mpolys) {
+    bboxes.push_back(bg::return_envelope<box_type_fp>(mpoly));
+  }
+  return reduce(mpolys, adder, bboxes);
+}
+
+multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
+  if (mpolys.size() == 0) {
+    return {};
+  } else if (mpolys.size() == 1) {
+    return mpolys[0];
+  }
+#ifdef GEOS_VERSION
+  std::vector<geos::geom::Geometry*> geos_mpolys;
+  std::vector<std::unique_ptr<geos::geom::Geometry>> geos_mpolys_tmp;
+  for (const auto& mpoly : mpolys) {
+    if (bg::area(mpoly) == 0) {
+      continue;
+    }
+    geos_mpolys_tmp.push_back(to_geos(mpoly));
+    geos_mpolys.push_back(geos_mpolys_tmp.back().get());
+  }
+  if (geos_mpolys.size() == 0) {
+    return {};
+  }
+  try {
+    std::unique_ptr<geos::geom::Geometry> geos_out(
+        geos::operation::geounion::CascadedUnion::Union(&geos_mpolys));
+    return from_geos<multi_polygon_type_fp>(geos_out);
+  } catch (const geos::util::TopologyException& e) {
+    std::cerr << "\nError: Internal error with libgeos.  Upgrading geos may help." << std::endl;
+    throw;
+  }
+#else // !GEOS_VERSION
+  return reduce(mpolys, operator+<polygon_type_fp, multi_polygon_type_fp>);
+#endif // GEOS_VERSION
+}
+
+multi_polygon_type_fp symdiff(const std::vector<multi_polygon_type_fp>& mpolys) {
+  if (mpolys.size() == 0) {
+    return multi_polygon_type_fp();
+  } else if (mpolys.size() == 1) {
+    return mpolys[0];
+  }
+  std::vector<box_type_fp> bboxes;
+  bboxes.reserve(mpolys.size());
+  for (const auto& mpoly : mpolys) {
+    bboxes.push_back(bg::return_envelope<box_type_fp>(mpoly));
+  }
+  return reduce(mpolys, operator^<polygon_type_fp>);
 }
