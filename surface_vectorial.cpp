@@ -950,12 +950,12 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     coordinate_type_fp offset) const {
   // The polygons to add to the PNG debugging output files.
   // Mask the polygon that we need to mill.
-  multi_polygon_type_fp milling_poly;
-  milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
+  multi_polygon_type_fp milling_poly{do_voronoi ? voronoi_polygon : *input};  // Milling voronoi or trace?
+  coordinate_type_fp thermal_offset = 0;
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
     // slightly to accommodate the thickness of the millbit.
-    milling_poly = bg_helpers::buffer(milling_poly, -diameter/2 - offset);
+    thermal_offset = -diameter/2 - offset;
   }
   // This is the area that the milling must not cross so that it
   // doesn't dig into the trace.  We only need this if there is an
@@ -1008,7 +1008,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       expand_by = (diameter - overlap) * factor;
     }
 
-    multi_polygon_type_fp buffered_milling_poly = bg_helpers::buffer(milling_poly, expand_by + offset);
+    multi_polygon_type_fp buffered_milling_poly = bg_helpers::buffer(milling_poly, expand_by + offset + thermal_offset);
     if (expand_by + offset != 0) {
       if (!do_voronoi) {
         buffered_milling_poly = buffered_milling_poly & voronoi_polygon;
