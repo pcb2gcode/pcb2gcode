@@ -3,10 +3,6 @@
 
 #include "eulerian_paths.hpp"
 #include <boost/functional/hash/hash.hpp>
-#ifdef GEOS_VERSION
-#include <geos/io/WKTReader.h>
-#include <geos/io/WKTWriter.h>
-#endif // GEOS_VERSION
 
 namespace bg_helpers {
 

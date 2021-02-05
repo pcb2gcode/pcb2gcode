@@ -57,7 +57,7 @@ PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 
-# Optional GEOS, as a slower but more reliable replacement for Boost geometry.
+# Optional GEOS, as a faster and more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
       [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy and speed.])],

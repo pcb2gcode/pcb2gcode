@@ -47,6 +47,9 @@ template <typename polygon_type_t, typename rhs_t>
 bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygon<polygon_type_t>& lhs,
                                                    const rhs_t& rhs);
 
+multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys);
+multi_polygon_type_fp symdiff(const std::vector<multi_polygon_type_fp>& mpolys);
+
 // It's not great to insert definitions into the bg namespace but they
 // are useful for sorting and maps.
 
