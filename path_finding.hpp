@@ -102,14 +102,35 @@ extern inline bool point_in_ring(const point_type_fp& point, const ring_type_fp&
   return winding_number != 0;
 }
 
-using nested_multipolygon_type_fp = std::vector<std::pair<multi_polygon_type_fp, std::vector<multi_polygon_type_fp>>>;
+class nested_polygon_type_fp {
+ public:
+  nested_polygon_type_fp(
+      const multi_polygon_type_fp& outer_,
+      const std::vector<multi_polygon_type_fp> inners_) :
+    outer_(outer_),
+    inners_(inners_) {}
+  nested_polygon_type_fp(
+      const multi_polygon_type_fp& outer_) :
+    outer_(outer_) {}
+  const multi_polygon_type_fp& outer() const { return outer_; }
+  multi_polygon_type_fp& outer() { return outer_; }
+  const std::vector<multi_polygon_type_fp>& inners() const { return inners_; }
+  std::vector<multi_polygon_type_fp>& inners() { return inners_; }
+ private:
+  multi_polygon_type_fp outer_;
+  std::vector<multi_polygon_type_fp> inners_;
+};
 
-using RingIndices = std::vector<std::pair<size_t, std::vector<size_t>>>;
+using nested_multipolygon_type_fp = std::vector<nested_polygon_type_fp>;
 
-std::vector<size_t> inside_multipolygon(const point_type_fp& p,
-                                        const multi_polygon_type_fp& mp);
-std::vector<size_t> outside_multipolygon(const point_type_fp& p,
-                                         const multi_polygon_type_fp& mp);
+
+using MPRingIndices = std::vector<std::pair<size_t, std::vector<size_t>>>;
+using RingIndices = std::vector<std::pair<size_t, std::vector<std::pair<size_t, MPRingIndices>>>>;
+
+MPRingIndices inside_multipolygon(const point_type_fp& p,
+                                  const multi_polygon_type_fp& mp);
+MPRingIndices outside_multipolygon(const point_type_fp& p,
+                                   const multi_polygon_type_fp& mp);
 RingIndices inside_multipolygons(
     const point_type_fp& p,
     const nested_multipolygon_type_fp& mp);

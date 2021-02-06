@@ -125,9 +125,7 @@ PathFindingSurface::PathFindingSurface(const optional<multi_polygon_type_fp>& ke
     total_keep_in_grown.emplace();
     for (const auto& poly : total_keep_in) {
       all_vertices.emplace_back(poly.outer().cbegin(), poly.outer().cend());
-      total_keep_in_grown->emplace_back(
-          bg_helpers::buffer_miter(poly.outer(), tolerance),
-          vector<multi_polygon_type_fp>());
+      total_keep_in_grown->emplace_back(bg_helpers::buffer_miter(poly.outer(), tolerance));
       for (const auto& inner : poly.inners()) {
         all_vertices.emplace_back(inner.cbegin(), inner.cend());
         // Because the inner is reversed, we need to reverse it so
@@ -136,15 +134,13 @@ PathFindingSurface::PathFindingSurface(const optional<multi_polygon_type_fp>& ke
         bg::reverse(temp_inner);
         // tolerance needs to be inverted because growing a shape
         // shrinks the holes in it.
-        total_keep_in_grown->back().second.push_back(bg_helpers::buffer_miter(temp_inner, -tolerance));
+        total_keep_in_grown->back().inners().push_back(bg_helpers::buffer_miter(temp_inner, -tolerance));
       }
     }
   } else {
     for (const auto& poly : keep_out){
       all_vertices.emplace_back(poly.outer().cbegin(), poly.outer().cend());
-      keep_out_shrunk.emplace_back(
-          bg_helpers::buffer_miter(poly.outer(), -tolerance),
-          vector<multi_polygon_type_fp>());
+      keep_out_shrunk.emplace_back(bg_helpers::buffer_miter(poly.outer(), -tolerance));
       for (const auto& inner : poly.inners()) {
         all_vertices.emplace_back(inner.cbegin(), inner.cend());
         // Because the inner is reversed, we need to reverse it so
@@ -153,7 +149,7 @@ PathFindingSurface::PathFindingSurface(const optional<multi_polygon_type_fp>& ke
         bg::reverse(temp_inner);
         // tolerance needs to be inverted because shrinking a shape
         // grows the holes in it.
-        keep_out_shrunk.back().second.push_back(bg_helpers::buffer_miter(temp_inner, tolerance));
+        keep_out_shrunk.back().inners().push_back(bg_helpers::buffer_miter(temp_inner, tolerance));
       }
     }
   }
@@ -164,69 +160,63 @@ PathFindingSurface::PathFindingSurface(const optional<multi_polygon_type_fp>& ke
   }
 }
 
-vector<size_t> inside_multipolygon(const point_type_fp& p,
-                                   const multi_polygon_type_fp& mp) {
-  size_t current_ring_index = 0;
-  for (const auto& poly : mp) {
+MPRingIndices inside_multipolygon(const point_type_fp& p,
+                                  const multi_polygon_type_fp& mp) {
+  for (size_t poly_index = 0; poly_index < mp.size(); poly_index++) {
+    const auto& poly = mp[poly_index];
     if (point_in_ring(p, poly.outer())) {
       // Might be part of this shape but only if the point isn't in
       // the inners.
-      vector<size_t> ring_indices{current_ring_index};
-      current_ring_index++;
-      for (const auto& inner : poly.inners()) {
+      MPRingIndices ring_indices{{poly_index, {0}}};
+      for (size_t inner_index = 0; inner_index < poly.inners().size(); inner_index++) {
+        const auto& inner = poly.inners()[inner_index];
         if (!point_in_ring(p, inner)) {
           // We'll have to make sure not to cross this inner.
-          ring_indices.push_back(current_ring_index);
-          current_ring_index++;
+          ring_indices.back().second.emplace_back(inner_index+1);
         } else {
           break; // We're inside one of the inners so give up.
         }
       }
-      if (ring_indices.size() == poly.inners().size() + 1) {
-        // We're inside this shape so we're done.
+      if (ring_indices.back().second.size() == poly.inners().size() + 1) {
+        // We never hit the break so we're inside this shape so we're
+        // done.
         return ring_indices;
-      } else {
-        // We're inside the outer but also inside an inner!  It might
-        // be an outer in an inner so we'll ignore this one and keep
-        // searching.  Reset the current_ring_index to what it was.
-        current_ring_index = ring_indices.front();
-        ring_indices.clear();
       }
+      // We're inside the outer but also inside an inner!  There might
+      // be another shape inside this hold so we'll ignore this one
+      // and keep searching.
     }
-    current_ring_index += 1 + poly.inners().size();
   }
   return {};
 }
 
-vector<size_t> outside_multipolygon(const point_type_fp& p,
-                                    const multi_polygon_type_fp& mp) {
-  vector<size_t> ring_indices;
-  size_t current_ring_index = 0;
-  for (const auto& poly : mp) {
+MPRingIndices outside_multipolygon(const point_type_fp& p,
+                                   const multi_polygon_type_fp& mp) {
+  MPRingIndices ring_indices;
+  for (size_t poly_index = 0; poly_index < mp.size(); poly_index++) {
+    const auto& poly = mp[poly_index];
     if (point_in_ring(p, poly.outer())) {
       // We're inside the outer, maybe we're in an inner?  If not, we
       // aren't outside at all and we'll just give up.
-      bool in_inner = false;
+      bool in_any_inner = false;
       for (size_t i = 0; i < poly.inners().size(); i++) {
         const auto& inner = poly.inners()[i];
         if (point_in_ring(p, inner)) {
-          in_inner = true;
-          ring_indices.push_back(current_ring_index + i + 1);
+          in_any_inner = true;
+          ring_indices.emplace_back(poly_index, vector<size_t>{i+1});
           break;
         }
       }
-      if (!in_inner) {
+      if (!in_any_inner) {
         // We're inside the outer but not in any of the inners, so
         // we're in the shape, but we want to be outside the shape, so
         // we've failed.
         return {};
       }
-      current_ring_index += 1 + poly.inners().size();
     } else {
       // We need to keep out of this outer.
-      ring_indices.push_back(current_ring_index);
+      ring_indices.emplace_back(poly_index, vector<size_t>{0});
       // No need to examine the inners which we can't possibly be inside.
-      current_ring_index += 1 + poly.inners().size();
     }
   }
   return ring_indices;
@@ -235,38 +225,32 @@ vector<size_t> outside_multipolygon(const point_type_fp& p,
 RingIndices inside_multipolygons(
     const point_type_fp& p,
     const nested_multipolygon_type_fp& mp){
-  size_t current_ring_index = 0;
-  for (const auto& poly : mp) {
-    // The loop always starts on an outer.
-    auto inside_mp = inside_multipolygon(p, poly.first);
+  for (size_t poly_index = 0; poly_index < mp.size(); poly_index++) {
+    const auto& poly = mp[poly_index];
+    MPRingIndices inside_mp = inside_multipolygon(p, poly.outer());
     if (inside_mp.size() > 0) {
       // Might be part of this shape but only if the point isn't in
       // the inners.
-      RingIndices ring_indices{{current_ring_index, inside_mp}};
-      current_ring_index++;
-      for (const auto& inner : poly.second) {
+      RingIndices ring_indices{{poly_index, {{0, inside_mp}}}};
+      for (size_t inner_index = 0; inner_index < poly.inners().size(); inner_index++) {
+        const auto& inner = poly.inners()[inner_index];
         auto outside_mp = outside_multipolygon(p, inner);
         if (outside_mp.size() > 0) {
           // We'll have to make sure not to cross this inner.
-          ring_indices.push_back({current_ring_index, outside_mp});
-          current_ring_index++;
+          ring_indices.back().second.emplace_back(inner_index+1, outside_mp);
         } else {
           break; // We're inside one of the inners so give up.
         }
       }
-      if (ring_indices.size() == poly.second.size() + 1) {
+      if (ring_indices.back().second.size() == poly.inners().size() + 1) {
         // We never hit the break so we're inside this shape so we're
         // done.
         return ring_indices;
-      } else {
-        // We're inside the outer but also inside an inner!  It might
-        // be an outer in an inner so we'll ignore this one and keep
-        // searching.  Reset the current_ring_index to what it was.
-        current_ring_index = ring_indices.front().first;
-        ring_indices.clear();
       }
+      // We're inside the outer but also inside an inner!  It might
+      // be an outer in an inner so we'll ignore this one and keep
+      // searching.
     }
-    current_ring_index += 1 + poly.second.size();
   }
   return {};
 }
@@ -275,34 +259,31 @@ RingIndices outside_multipolygons(
     const point_type_fp& p,
     const nested_multipolygon_type_fp& mp) {
   RingIndices ring_indices;
-  size_t current_ring_index = 0;
-  for (const auto& poly : mp) {
-    auto outside_mp = outside_multipolygon(p, poly.first);
+  for (size_t poly_index = 0; poly_index < mp.size(); poly_index++) {
+    const auto& poly = mp[poly_index];
+    auto outside_mp = outside_multipolygon(p, poly.outer());
     if (outside_mp.size() == 0) {
       // We're inside the outer, maybe we're in an inner?  If not, we
       // aren't outside at all and we'll just give up.
-      bool in_inner = false;
-      for (size_t i = 0; i < poly.second.size(); i++) {
-        const auto& inner = poly.second[i];
+      bool in_any_inner = false;
+      for (size_t inner_index = 0; inner_index < poly.inners().size(); inner_index++) {
+        const auto& inner = poly.inners()[inner_index];
         auto inside_mp = inside_multipolygon(p, inner);
         if (inside_mp.size() > 0) {
-          in_inner = true;
-          ring_indices.push_back({current_ring_index + i + 1, inside_mp});
+          in_any_inner = true;
+          ring_indices.emplace_back(poly_index, vector<pair<size_t, MPRingIndices>>{{inner_index + 1, inside_mp}});
           break;
         }
       }
-      if (!in_inner) {
+      if (!in_any_inner) {
         // We're inside the outer but not in any of the inners, so
         // we're in the shape, but we want to be outside the shape, so
         // we've failed.
         return {};
       }
-      current_ring_index += 1 + poly.second.size();
     } else {
       // We need to keep out of this outer.
-      ring_indices.push_back({current_ring_index, outside_mp});
-      // No need to examine the inners which we can't possibly be inside.
-      current_ring_index += 1 + poly.second.size();
+      ring_indices.emplace_back(poly_index, vector<pair<size_t, MPRingIndices>>{{0, outside_mp}});
     }
   }
   return ring_indices;
@@ -334,70 +315,40 @@ bool is_intersecting(const point_type_fp& a, const point_type_fp& b, const ring_
 
 bool is_intersecting(
     const point_type_fp& a, const point_type_fp& b,
-    const vector<size_t>& ring_indices,
+    const MPRingIndices& ring_indices,
     const multi_polygon_type_fp& poly_to_search) {
-  size_t current_ring = 0;
-  size_t current_index = 0;
-  for (const auto& poly : poly_to_search) {
-    if (ring_indices[current_index] == current_ring) {
-      if (is_intersecting(a, b, poly.outer())) {
-        return true;
-      }
-      current_index++;
-      if (current_index >= ring_indices.size()) {
-        return false; // We've finished our search.
-      }
-    }
-    for (const auto& inner : poly.inners()) {
-      current_ring++;
-      if (ring_indices[current_index] == current_ring) {
-        if (is_intersecting(a, b, inner)) {
+  for (const auto& poly_index : ring_indices) {
+    const auto& current_poly = poly_to_search[poly_index.first];
+    for (const auto& ring_index : poly_index.second) {
+      if (ring_index == 0) {
+        if (is_intersecting(a, b, current_poly.outer())) {
           return true;
         }
-        current_index++;
-        if (current_index >= ring_indices.size()) {
-          return false; // We've finished our search.
-        }
+      } else if (is_intersecting(a, b, current_poly.inners()[ring_index - 1])) {
+        return true;
       }
     }
-    current_ring++;
   }
-  throw std::logic_error("There were more rings to search than rings.  "
-                         "This should never happen.");
+  return false;
 }
 
 bool is_intersecting(
     const point_type_fp& a, const point_type_fp& b,
     const RingIndices& ring_indices,
-    const nested_multipolygon_type_fp* poly_to_search) {
-  size_t current_ring = 0;
-  size_t current_index = 0;
-  for (const auto& poly : *poly_to_search) {
-    if (ring_indices[current_index].first == current_ring) {
-      if (is_intersecting(a, b, ring_indices[current_index].second, poly.first)) {
-         return true;
-      }
-      current_index++;
-      if (current_index >= ring_indices.size()) {
-         return false; // We're finished our search.
+    const nested_multipolygon_type_fp& poly_to_search) {
+  for (const auto& poly_index : ring_indices) {
+    const auto& current_poly = poly_to_search[poly_index.first];
+    for (const auto& ring_index : poly_index.second) {
+      if (ring_index.first == 0) {
+        if (is_intersecting(a, b, ring_index.second, current_poly.outer())) {
+          return true;
+        }
+      } else if (is_intersecting(a, b, ring_index.second, current_poly.inners()[ring_index.first - 1])) {
+        return true;
       }
     }
-    for (const auto& inner : poly.second) {
-      current_ring++;
-      if (ring_indices[current_index].first == current_ring) {
-        if (is_intersecting(a, b, ring_indices[current_index].second, inner)) {
-           return true;
-        }
-        current_index++;
-        if (current_index >= ring_indices.size()) {
-           return false; // We're finished our search.
-        }
-      }
-    }
-    current_ring++;
   }
-  throw std::logic_error("There were more rings to search than rings.  "
-                         "This should never happen.");
+  return false;
 }
 
 // Return true if this edge from a to b is part of the path finding surface.
@@ -418,7 +369,7 @@ bool PathFindingSurface::in_surface(
   } else {
     poly_to_search = &keep_out_shrunk;
   }
-  auto found_intersection = is_intersecting(a, b, ring_indices, poly_to_search);
+  auto found_intersection = is_intersecting(a, b, ring_indices, *poly_to_search);
   in_surface_memo.emplace(key, !found_intersection);
   return !found_intersection;
 }
