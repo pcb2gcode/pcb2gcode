@@ -1056,12 +1056,12 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     coordinate_type_fp offset) const {
   // The polygons to add to the PNG debugging output files.
   // Mask the polygon that we need to mill.
-  multi_polygon_type_fp masked_milling_poly;
-  masked_milling_poly.push_back(do_voronoi ? voronoi_polygon : *input);  // Milling voronoi or trace?
+  multi_polygon_type_fp milling_poly{do_voronoi ? voronoi_polygon : *input};  // Milling voronoi or trace?
+  coordinate_type_fp thermal_offset = 0;
   if (!input) {
     // This means that we are milling a thermal so we need to move inward
     // slightly to accommodate the thickness of the millbit.
-    masked_milling_poly = bg_helpers::buffer(masked_milling_poly, -diameter/2 - offset);
+    thermal_offset = -diameter/2 - offset;
   }
   // This is the area that the milling must not cross so that it
   // doesn't dig into the trace.  We only need this if there is an
@@ -1071,11 +1071,10 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     path_minimum = bg_helpers::buffer(*input, diameter/2 + offset);
   }
 
-  multi_polygon_type_fp masked_milling_polys;
   // We need to crop the area that we'll mill if it extends outside the PCB's
   // outline.  This saves time in milling.
   if (mask) {
-    masked_milling_polys = masked_milling_poly & mask->vectorial_surface->first;
+    milling_poly = milling_poly & mask->vectorial_surface->first;
   } else {
     // Increase the size of the bounding box to accommodate all milling.
     box_type_fp new_bounding_box;
@@ -1087,7 +1086,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     } else {
       bg::buffer(bounding_box, new_bounding_box, diameter / 2 + (diameter - overlap) * (steps - 1));
     }
-    masked_milling_polys = masked_milling_poly & new_bounding_box;
+    milling_poly = milling_poly & new_bounding_box;
   }
 
   vector<multi_polygon_type_fp> polygons;
@@ -1115,35 +1114,29 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       expand_by = (diameter - overlap) * factor;
     }
 
-    multi_polygon_type_fp mpoly;
-    multi_polygon_type_fp mpoly_temp = bg_helpers::buffer(masked_milling_polys, expand_by + offset);
-    if (expand_by + offset == 0) {
-      mpoly = mpoly_temp;
-    } else {
+    multi_polygon_type_fp buffered_milling_poly = bg_helpers::buffer(milling_poly, expand_by + offset + thermal_offset);
+    if (expand_by + offset != 0) {
       if (!do_voronoi) {
-        mpoly = mpoly_temp & voronoi_polygon;
+        buffered_milling_poly = buffered_milling_poly & voronoi_polygon;
       } else {
-        mpoly = mpoly_temp + path_minimum;
+        buffered_milling_poly = buffered_milling_poly + path_minimum;
       }
     }
-    multi_polygon_type_fp masked_expanded_milling_polys;
-    if (mask) {
+    if (mask && !bg::covered_by(buffered_milling_poly, mask->vectorial_surface->first)) {
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
-      masked_expanded_milling_polys = ((mpoly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
-    } else {
-      masked_expanded_milling_polys = mpoly;
+      buffered_milling_poly = ((buffered_milling_poly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
     }
     if (invert_gerbers) {
-      masked_expanded_milling_polys = masked_expanded_milling_polys & bounding_box;
+      buffered_milling_poly = buffered_milling_poly & bounding_box;
     }
-    if (polygons.size() > 0 && bg::equals(masked_expanded_milling_polys, polygons.back())) {
+    if (polygons.size() > 0 && bg::equals(buffered_milling_poly, polygons.back())) {
       // Once we start getting repeats, we can expect that all the rest will be
       // the same so we're done.
       break;
     }
-    polygons.push_back(masked_expanded_milling_polys);
+    polygons.push_back(buffered_milling_poly);
   }
 
   return polygons;
