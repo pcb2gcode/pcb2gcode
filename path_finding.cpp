@@ -447,6 +447,17 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
   direct_ls.push_back(goal);
   try {
     if (in_surface(start, goal, ring_indices)) {
+      if (0 >= path_finding_limit) {
+        throw path_finding::GiveUp();
+      }
+      // Return true if this path needs to be clipped.  The distance from
+      // a to target so far is length.  At best, we'll have a straight
+      // line from there to the goal, b.
+      const auto potential_horizontal_distance =
+          bg::distance(start, goal);
+      if (potential_horizontal_distance > max_g1_distance) {
+        return boost::none; // clip this path
+      }
       return direct_ls;
     }
   } catch (GiveUp g) {
@@ -462,7 +473,7 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
   unordered_map<point_type_fp, point_type_fp> came_from;
   unordered_map<point_type_fp, coordinate_type_fp> g_score; // Empty should be considered infinity.
   g_score[start] = 0;
-  size_t tries;
+  size_t tries = 1;
   while (!open_set.empty()) {
     const auto current = open_set.top().second;
     open_set.pop();
