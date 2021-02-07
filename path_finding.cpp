@@ -54,7 +54,7 @@ bool Neighbors::iterator::operator==(const Neighbors::iterator& other) const {
   return !(*this != other);
 }
 
-const point_type_fp& Neighbors::iterator::operator*() const {
+const point_type_fp& Neighbors::iterator::operator*() {
   if (ring_index == 0) {
     return neighbors->start;
   } else if (ring_index == 1) {
@@ -64,27 +64,48 @@ const point_type_fp& Neighbors::iterator::operator*() const {
   }
 }
 
+bool Neighbors::path_limiter(const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) {
+  if (tries >= path_finding_limit) {
+    throw path_finding::GiveUp();
+  }
+  tries++;
+  // Return true if this path needs to be clipped.  The distance from
+  // a to target so far is length.  At best, we'll have a straight
+  // line from there to the goal, b.
+  const auto potential_horizontal_distance =
+      length_so_far +
+      bg::distance(waypoint, goal);
+  if (potential_horizontal_distance > max_g1_distance) {
+    return true; // clip this path
+  }
+  return false;
+}
+
 Neighbors::Neighbors(const point_type_fp& start, const point_type_fp& goal,
                      const point_type_fp& current,
                      const RingIndices& ring_indices,
                      coordinate_type_fp g_score_current,
-                     const PathLimiter path_limiter,
+                     size_t path_finding_limit,
+                     coordinate_type_fp max_g1_distance,
+                     size_t& tries,
                      const PathFindingSurface* pfs) :
     start(start),
     goal(goal),
     current(current),
     ring_indices(ring_indices),
     g_score_current(g_score_current),
-    path_limiter(path_limiter),
+    path_finding_limit(path_finding_limit),
+    max_g1_distance(max_g1_distance),
+    tries(tries),
     pfs(pfs) {}
 
 // Returns a valid neighbor index that is either the one provided or
 // the next higher valid one.
-bool Neighbors::is_neighbor(const point_type_fp p) const {
+bool Neighbors::is_neighbor(const point_type_fp p) {
   if (p == current) {
     return false;
   }
-  if (path_limiter != nullptr && path_limiter(p, g_score_current + bg::distance(current, p))) {
+  if (path_limiter(p, g_score_current + bg::distance(current, p))) {
     return false;
   }
   if (!pfs->in_surface(current, p, ring_indices)) {
@@ -93,7 +114,7 @@ bool Neighbors::is_neighbor(const point_type_fp p) const {
   return true;
 }
 
-Neighbors::iterator Neighbors::begin() const {
+Neighbors::iterator Neighbors::begin() {
   auto ret = iterator(this, 0, 0);
   if (ret == end()) {
     // Can't dereferfence the end.
@@ -109,7 +130,7 @@ Neighbors::iterator Neighbors::begin() const {
   }
 }
 
-Neighbors::iterator Neighbors::end() const {
+Neighbors::iterator Neighbors::end() {
   return iterator(this, 2+pfs->vertices().size(), 0);
 }
 
@@ -377,12 +398,16 @@ bool PathFindingSurface::in_surface(
 // Return all possible neighbors of current.  A neighbor can be
 // start, end, or any of the points in all_vertices.  But only the
 // ones that are in_surface are returned.
-Neighbors PathFindingSurface::neighbors(const point_type_fp& start, const point_type_fp& end,
+Neighbors PathFindingSurface::neighbors(const point_type_fp& start, const point_type_fp& goal,
                                         const RingIndices& ring_indices,
                                         coordinate_type_fp g_score_current,
-                                        const PathLimiter path_limiter,
+                                        size_t path_finding_limit,
+                                        coordinate_type_fp max_g1_distance,
+                                        size_t& tries,
                                         const point_type_fp& current) const {
-  return Neighbors(start, end, current, ring_indices, g_score_current, path_limiter, this);
+  return Neighbors(start, goal, current, ring_indices,
+                   g_score_current, path_finding_limit,
+                   max_g1_distance, tries, this);
 }
 
 // Return a path from the start to the current.  Always return at
@@ -402,7 +427,8 @@ linestring_type_fp build_path(
 
 optional<linestring_type_fp> PathFindingSurface::find_path(
     const point_type_fp& start, const point_type_fp& goal,
-    const PathLimiter& path_limiter) const {
+    size_t path_finding_limit,
+    coordinate_type_fp max_g1_distance) const {
   RingIndices ring_indices;
   ring_indices = in_surface(start);
   if (ring_indices.size() == 0) {
@@ -420,8 +446,7 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
   direct_ls.push_back(start);
   direct_ls.push_back(goal);
   try {
-    if (in_surface(start, goal, ring_indices) &&
-        (path_limiter == nullptr || !path_limiter(goal, bg::distance(start, goal)))) {
+    if (in_surface(start, goal, ring_indices)) {
       return direct_ls;
     }
   } catch (GiveUp g) {
@@ -437,6 +462,7 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
   unordered_map<point_type_fp, point_type_fp> came_from;
   unordered_map<point_type_fp, coordinate_type_fp> g_score; // Empty should be considered infinity.
   g_score[start] = 0;
+  size_t tries;
   while (!open_set.empty()) {
     const auto current = open_set.top().second;
     open_set.pop();
@@ -449,8 +475,9 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
       continue;
     }
     try {
-      const auto current_neighbors = neighbors(
-          start, goal, ring_indices, g_score.at(current), path_limiter, current);
+      auto current_neighbors = neighbors(
+          start, goal, ring_indices, g_score.at(current),
+          path_finding_limit, max_g1_distance, tries, current);
       for (const auto& neighbor : current_neighbors) {
         const auto tentative_g_score = g_score.at(current) + bg::distance(current, neighbor);
         if (g_score.count(neighbor) == 0 || tentative_g_score < g_score.at(neighbor)) {

@@ -147,16 +147,16 @@ class Neighbors {
  public:
   class iterator {
    public:
-    iterator(const Neighbors* neighbors, size_t ring_index, size_t point_index) :
+    iterator(Neighbors* neighbors, size_t ring_index, size_t point_index) :
       neighbors(neighbors),
       ring_index(ring_index),
       point_index(point_index) {}
     iterator operator++();
     bool operator!=(const iterator& other) const;
     bool operator==(const iterator& other) const;
-    const point_type_fp& operator*() const;
+    const point_type_fp& operator*();
    private:
-    const Neighbors* neighbors;
+    Neighbors* neighbors;
     // 0 means start, 1 means goal, everything else is an index into a ring +2.
     size_t ring_index;
     // Ignored for start and goal, otherwise an index into a ring.
@@ -167,11 +167,14 @@ class Neighbors {
             const point_type_fp& current,
             const RingIndices& ring_indices,
             coordinate_type_fp g_score_current,
-            const PathLimiter path_limiter,
+            size_t path_finding_limit,
+            coordinate_type_fp max_g1_distance,
+            size_t& tries,
             const PathFindingSurface* pfs);
-  bool is_neighbor(const point_type_fp p) const;
-  iterator begin() const;
-  iterator end() const;
+  bool path_limiter(const point_type_fp& waypoint, const coordinate_type_fp& length_so_far);
+  bool is_neighbor(const point_type_fp p);
+  iterator begin();
+  iterator end();
 
  private:
   point_type_fp start;
@@ -179,7 +182,9 @@ class Neighbors {
   point_type_fp current;
   RingIndices ring_indices;
   coordinate_type_fp g_score_current;
-  PathLimiter path_limiter;
+  size_t path_finding_limit;
+  coordinate_type_fp max_g1_distance;
+  size_t& tries;
   const PathFindingSurface* pfs;
 };
 
@@ -199,12 +204,15 @@ class PathFindingSurface {
   Neighbors neighbors(const point_type_fp& start, const point_type_fp& goal,
                       const RingIndices& ring_indices,
                       coordinate_type_fp g_score_current,
-                      const PathLimiter path_limiter,
+                      size_t path_finding_limit,
+                      coordinate_type_fp max_g1_distance,
+                      size_t& tries,
                       const point_type_fp& current) const;
   // Find a path from start to goal in the available surface.
   boost::optional<linestring_type_fp> find_path(
       const point_type_fp& start, const point_type_fp& goal,
-      const PathLimiter& path_limiter) const;
+      size_t path_finding_limit,
+      coordinate_type_fp max_g1_distance) const;
   const std::vector<std::vector<point_type_fp>>& vertices() const { return all_vertices; };
 
  private:

@@ -694,23 +694,8 @@ Surface_vectorial::PathFinder Surface_vectorial::make_path_finder(
            const double vertG1speed = mill->vertfeed;
            const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
            const double max_g1_distance = g0_time * horizontalG1speed;
-           size_t tries = 0;
-           path_finding::PathLimiter path_limiter =
-               [&](const point_type_fp& waypoint, const coordinate_type_fp& length_so_far) -> bool {
-                 if (tries >= mill->path_finding_limit) {
-                   throw path_finding::GiveUp();
-                 }
-                 tries++;
-                 // Return true if this path needs to be clipped.  The distance from
-                 // a to target so far is length.  At best, we'll have a straight
-                 // line from there to the goal, b.
-                 const auto potential_horizontal_distance = length_so_far + bg::distance(waypoint, b);
-                 if (potential_horizontal_distance > max_g1_distance) {
-                   return true; // clip this path
-                 }
-                 return false;
-               };
-           return path_finding_surface.find_path(a, b, path_limiter);
+           return path_finding_surface.find_path(
+               a, b, mill->path_finding_limit, max_g1_distance);
          };
 }
 
