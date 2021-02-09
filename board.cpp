@@ -21,6 +21,7 @@
 #include "board.hpp"
 #include <memory>
 using std::shared_ptr;
+using std::make_shared;
 using std::dynamic_pointer_cast;
 
 #include <string>
@@ -125,20 +126,20 @@ void Board::createLayers()
       shared_ptr<GerberImporter> importer = get<0>(prepared_layer.second);
       const bool fill = fill_outline && prepared_layer.first == "outline";
 
-      shared_ptr<Surface_vectorial> surface(new Surface_vectorial(
+      auto surface = make_shared<Surface_vectorial>(
           30,
           bounding_box,
           prepared_layer.first, outputdir, tsp_2opt,
           mill_feed_direction, invert_gerbers,
-          render_paths_to_shapes || (prepared_layer.first == "outline")));
+          render_paths_to_shapes || (prepared_layer.first == "outline"));
       if (fill) {
         surface->enable_filling();
       }
       surface->render(importer, get<1>(prepared_layer.second)->optimise);
-      shared_ptr<Layer> layer(new Layer(prepared_layer.first,
+      auto layer = make_shared<Layer>(prepared_layer.first,
                                         surface,
                                         get<1>(prepared_layer.second),
-                                        get<2>(prepared_layer.second))); // see comment for prep_t in board.hpp
+                                        get<2>(prepared_layer.second)); // see comment for prep_t in board.hpp
       layers.insert(std::make_pair(layer->get_name(), layer));
     }
 
