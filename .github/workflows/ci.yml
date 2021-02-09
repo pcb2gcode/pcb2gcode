@@ -263,8 +263,8 @@ jobs:
       run: |
         pushd testing/gerbv_example
         ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
-          { pushd {};
-            echo "Running on {}";
+          { echo "::group::Running on {}";
+            pushd {};
             if [[ -f "no-valgrind" ]]; then
               cat no-valgrind;
             fi;
@@ -273,8 +273,9 @@ jobs:
             else
               time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
             fi;
-            echo "Finished on {}";
-          popd; } 2>&1'
+            popd;
+            echo "::endgroup::";
+          } 2>&1'
         popd
     - name: Reset coverage
       if: matrix.code_coverage
