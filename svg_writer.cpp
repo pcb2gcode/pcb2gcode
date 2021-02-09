@@ -7,6 +7,7 @@
 
 using std::string;
 using std::unique_ptr;
+using std::make_unique;
 
 svg_writer::svg_writer(string filename, box_type_fp bounding_box) :
     output_file(filename),
@@ -25,8 +26,8 @@ svg_writer::svg_writer(string filename, box_type_fp bounding_box) :
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
-    mapper = unique_ptr<bg::svg_mapper<point_type_fp>>
-        (new bg::svg_mapper<point_type_fp>(output_file, viewBox_width, viewBox_height, svg_dimensions));
+    mapper = make_unique<bg::svg_mapper<point_type_fp>>(
+        output_file, viewBox_width, viewBox_height, svg_dimensions);
     mapper->add(bounding_box);
 }
 

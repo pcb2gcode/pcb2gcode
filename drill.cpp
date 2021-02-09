@@ -117,7 +117,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 
     preamble += "G90       (Absolute coordinates.)\n";
 
-    tiling = std::unique_ptr<Tiling>(new Tiling(tileInfo, cfactor, ocodes.getUniqueCode()));
+    tiling = std::make_unique<Tiling>(tileInfo, cfactor, ocodes.getUniqueCode());
 }
 
 /******************************************************************************/
@@ -699,12 +699,10 @@ void ExcellonProcessor::save_svg(
 
 gerbv_project_t* ExcellonProcessor::parse_project(const string& filename) {
   gerbv_project_t* project = gerbv_create_project();
-  const char* cfilename = filename.c_str();
-  char *gerb_filename = new char[strlen(cfilename) + 1];
-  strcpy(gerb_filename, cfilename);
+  auto gerb_filename = std::make_unique<char[]>(filename.size() + 1);
+  strcpy(gerb_filename.get(), filename.c_str());
 
-  gerbv_open_layer_from_filename(project, gerb_filename);
-  delete[] gerb_filename;
+  gerbv_open_layer_from_filename(project, gerb_filename.get());
 
   if (project->file[0] == NULL) {
     throw drill_exception();

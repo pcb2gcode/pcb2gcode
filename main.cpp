@@ -34,6 +34,7 @@ using std::endl;
 using std::flush;
 using std::fstream;
 using std::shared_ptr;
+using std::make_shared;
 
 #include <string>
 using std::string;
@@ -92,8 +93,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     if (vm.count("front") || vm.count("back"))
     {
-        isolator = shared_ptr<Isolator>(new Isolator());
-        // TODO: support more than one mill-diameter.
+        isolator = make_shared<Isolator>();
         for (const auto& tool_diameter : flatten(vm["mill-diameters"].as<std::vector<CommaSeparated<Length>>>())) {
           isolator->tool_diameters_and_overlap_widths.push_back(
               std::make_pair(
@@ -135,7 +135,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         isolator->spindown_time = spindown_time;
     }
 
-    shared_ptr<Cutter> cutter(new Cutter());
+    auto cutter = make_shared<Cutter>();
 
     if (vm.count("outline") ||
         (vm.count("drill") &&
@@ -173,7 +173,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     if (vm.count("drill"))
     {
-        driller = shared_ptr<Driller>(new Driller());
+        driller = make_shared<Driller>();
         driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
         driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
@@ -259,14 +259,13 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     //---------------------------------------------------------------------------
 
-    shared_ptr<Board> board(
-        new Board(
+    auto board = make_shared<Board>(
             vm["fill-outline"].as<bool>(),
             outputdir,
             vm["tsp-2opt"].as<bool>(),
             vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
             vm["invert-gerbers"].as<bool>(),
-            !vm["draw-gerber-lines"].as<bool>()));
+            !vm["draw-gerber-lines"].as<bool>());
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))
@@ -280,7 +279,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing front side... " << flush;
     if (vm.count("front") > 0) {
       string frontfile = vm["front"].as<string>();
-      shared_ptr<GerberImporter> importer(new GerberImporter());
+      auto importer = make_shared<GerberImporter>();
       if (!importer->load_file(frontfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -293,7 +292,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing back side... " << flush;
     if (vm.count("back") > 0) {
       string backfile = vm["back"].as<string>();
-      shared_ptr<GerberImporter> importer(new GerberImporter());
+      auto importer = make_shared<GerberImporter>();
       if (!importer->load_file(backfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -306,7 +305,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing outline... " << flush;
     if (vm.count("outline") > 0) {
       string outline = vm["outline"].as<string>();
-      shared_ptr<GerberImporter> importer(new GerberImporter());
+      auto importer = make_shared<GerberImporter>();
       if (!importer->load_file(outline)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -321,7 +320,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "DONE.\n";
 
     if (!vm["no-export"].as<bool>()) {
-      shared_ptr<NGC_Exporter> exporter(new NGC_Exporter(board));
+      auto exporter = make_shared<NGC_Exporter>(board);
       exporter->add_header(PACKAGE_STRING);
 
       if (vm.count("preamble") || vm.count("preamble-text")) {
@@ -352,7 +351,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             //best we can do)
             if(board->get_layersnum() == 0)
             {
-              shared_ptr<GerberImporter> importer(new GerberImporter());
+              auto importer = make_shared<GerberImporter>();
               if (!importer->load_file(vm["drill"].as<string>())) {
                 options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
               }

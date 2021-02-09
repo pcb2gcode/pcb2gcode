@@ -737,7 +737,6 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     bool render_paths_to_shapes,
     unsigned int points_per_circle) const {
   ring_type_fp region;
-  unique_ptr<multi_polygon_type_fp> temp_mpoly (new multi_polygon_type_fp());
   bool contour = false; // Are we in contour mode?
 
   vector<pair<const gerbv_layer_t *, vector<mp_pair>>> layers(1);
