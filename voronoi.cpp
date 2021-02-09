@@ -18,9 +18,6 @@
  */
 
  #include <iostream>
- using std::cerr;
- using std::cout;
- using std::endl;
 
 #include "voronoi.hpp"
 #include "voronoi_visual_utils.hpp"
@@ -140,7 +137,7 @@ multi_polygon_type_fp Voronoi::build_voronoi(
               bg::append(ring, discrete_edge.at(i));
             }
 
-            current_edge->color(current_edge->color() | 1);  // Mark used
+            current_edge->color(current_edge->color() | VISITED);  // Mark used
             current_edge = current_edge->next();
 
             // Check that we are still circling the same polygon for
@@ -248,7 +245,6 @@ void Voronoi::sample_curved_edge(const edge_type *edge, const vector<segment_typ
 
     sampled_edge.push_back(point_type_fp_p(edge->vertex0()->x(), edge->vertex0()->y()));
     sampled_edge.push_back(point_type_fp_p(edge->vertex1()->x(), edge->vertex1()->y()));
-
     boost::polygon::voronoi_visual_utils<coordinate_type_fp>::discretize(point, segment, max_dist, &sampled_edge);
 }
 

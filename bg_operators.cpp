@@ -171,8 +171,8 @@ template multi_polygon_type_fp operator+(const multi_polygon_type_fp&, const mul
 
 template <typename Addition>
 multi_polygon_type_fp reduce(const std::vector<multi_polygon_type_fp>& mpolys,
-                          const Addition& adder,
-                          const std::vector<box_type_fp>& bboxes) {
+                             const Addition& adder,
+                             const std::vector<box_type_fp>& bboxes) {
   if (mpolys.size() == 0) {
     return multi_polygon_type_fp();
   } else if (mpolys.size() == 1) {
@@ -212,6 +212,26 @@ multi_polygon_type_fp reduce(const std::vector<multi_polygon_type_fp>& mpolys,
   return reduce(mpolys, adder, bboxes);
 }
 
+void round(ring_type_fp& ring) {
+  for (auto& point : ring) {
+    point.x(std::round(point.x() * 1e10)/1e10);
+    point.y(std::round(point.y() * 1e10)/1e10);
+  }
+}
+
+void round(polygon_type_fp& p) {
+  round(p.outer());
+  for (auto& inner : p.inners()) {
+    round(inner);
+  }
+}
+
+void round(multi_polygon_type_fp& mp) {
+  for (auto& p : mp) {
+    round(p);
+  }
+}
+
 multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
   if (mpolys.size() == 0) {
     return {};
@@ -225,7 +245,9 @@ multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
     if (bg::area(mpoly) == 0) {
       continue;
     }
-    geos_mpolys_tmp.push_back(to_geos(mpoly));
+    auto mpoly_temp = mpoly;
+    round(mpoly_temp);
+    geos_mpolys_tmp.push_back(to_geos(mpoly_temp));
     geos_mpolys.push_back(geos_mpolys_tmp.back().get());
   }
   if (geos_mpolys.size() == 0) {
