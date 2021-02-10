@@ -1,5 +1,6 @@
 #define BOOST_TEST_MODULE gerberimporter tests
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 
 #include "gerberimporter.hpp"
 #include <sys/types.h>
@@ -257,35 +258,49 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
   write_to_png(cairo_surface, gerber_file);
 }
 
-BOOST_AUTO_TEST_CASE(all_gerbers) {
+BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
+                     boost::unit_test::data::make(
+                         std::vector<std::tuple<std::string, double>>{
+                           {"overlapping_lines.gbr",       0.006},
+                           {"levels.gbr",                  0.0007},
+                           {"levels_step_and_repeat.gbr",  0.006},
+                           {"code22_lower_left_line.gbr",  0.011},
+                           {"code4_outline.gbr",           0.023},
+                           {"code5_polygon.gbr",           0.00008},
+                           {"code21_center_line.gbr",      0.015},
+                           {"polygon.gbr",                 0.017},
+                           {"wide_oval.gbr",               0.00011},
+                           {"tall_oval.gbr",               0.00006},
+                           {"circle_oval.gbr",             0.00016},
+                           {"rectangle.gbr",               0.00007},
+                           {"circle.gbr",                  0.00008},
+                           {"code1_circle.gbr",            0.009},
+                           {"code20_vector_line.gbr",      0.013},
+                           {"g01_rectangle.gbr",           0.0008},
+                           {"moire.gbr",                   0.020},
+                           {"thermal.gbr",                 0.011},
+                           {"cutins.gbr",                  0.000}}),
+                     gerber_file, max_error_rate) {
   const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
   if (skip_test != nullptr) {
-    std::cout << "Skipping many gerberimporter tests because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
+    std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
+  test_one(gerber_file, max_error_rate);
+}
 
-  test_one("overlapping_lines.gbr",       0.006);
-  test_one("levels.gbr",                  0.0007);
-  test_one("levels_step_and_repeat.gbr",  0.006);
-  test_one("code22_lower_left_line.gbr",  0.011);
-  test_one("code4_outline.gbr",           0.023);
-  test_one("code5_polygon.gbr",           0.00008);
-  test_one("code21_center_line.gbr",      0.015);
-  test_one("polygon.gbr",                 0.017);
-  test_one("wide_oval.gbr",               0.00011);
-  test_one("tall_oval.gbr",               0.00006);
-  test_one("circle_oval.gbr",             0.00016);
-  test_one("rectangle.gbr",               0.00007);
-  test_one("circle.gbr",                  0.00008);
-  test_one("code1_circle.gbr",            0.009);
-  test_one("code20_vector_line.gbr",      0.013);
-  test_one("g01_rectangle.gbr",           0.0008);
-  test_one("moire.gbr",                   0.020);
-  test_one("thermal.gbr",                 0.011);
-  test_one("cutins.gbr",                  0.000);
-
-  test_visual("circular_arcs.gbr", false, 0.077,    0.078);
-  test_visual("broken_box.gbr",    true,  0.700,    0.701);
+BOOST_DATA_TEST_CASE(gerberimporter_visual,
+                     boost::unit_test::data::make(
+                         std::vector<std::tuple<std::string, bool, double, double>>{
+                           {"circular_arcs.gbr", false, 0.077,    0.078},
+                           {"broken_box.gbr",    true,  0.700,    0.701}}),
+                     gerber_file, fill_closed_lines, min_set_ratio, max_set_ratio) {
+  const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
+  if (skip_test != nullptr) {
+    std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
+    return;
+  }
+  test_visual(gerber_file, fill_closed_lines, min_set_ratio, max_set_ratio);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
