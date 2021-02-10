@@ -262,7 +262,7 @@ jobs:
       if: '! matrix.code_coverage'
       run: |
         pushd testing/gerbv_example
-        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
+        ls | parallel -k -j ${NUM_CPUS} --halt now,fail=1 '
           { echo "::group::Running on {}";
             pushd {};
             if [[ -f "no-valgrind" ]]; then
