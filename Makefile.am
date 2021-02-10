@@ -79,7 +79,8 @@ EXTRA_DIST = millproject
 
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
-                 autoleveller_tests common_tests backtrack_tests trim_paths_tests outline_bridges_tests
+                 autoleveller_tests common_tests backtrack_tests trim_paths_tests outline_bridges_tests \
+                 geos_helpers_tests
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp  bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
@@ -95,6 +96,7 @@ common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cp
 backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 outline_bridges_tests_SOURCES = outline_bridges_tests.cpp outline_bridges.hpp outline_bridges.cpp bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp boost_unit_test.cpp merge_near_points.hpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
+geos_helpers_tests_SOURCES = geos_helpers_tests.cpp geos_helpers.cpp geos_helpers.hpp boost_unit_test.cpp bg_operators.cpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp
 
 TESTS = $(check_PROGRAMS)
 
