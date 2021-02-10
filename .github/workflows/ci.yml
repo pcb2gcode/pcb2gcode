@@ -286,13 +286,14 @@ jobs:
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check
+      run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
     - name: Run unit tests with valgrind
       if: matrix.os == 'ubuntu'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check-valgrind
+      run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
+
     - name: Run integration tests
       if: matrix.boost == '1_66' && matrix.geos == '3.9.0'
       run: |
