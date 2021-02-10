@@ -74,12 +74,12 @@ multi_linestring_type_fp from_geos(const std::unique_ptr<geos::geom::MultiLineSt
 
 template <>
 multi_polygon_type_fp from_geos(const std::unique_ptr<geos::geom::Geometry>& g) {
-  auto mp = boost::dynamic_pointer_cast<geos::geom::MultiPolygon>(g->clone());
-  if (mp) {
+  if (dynamic_cast<geos::geom::MultiPolygon*>(g.get())) {
+    auto mp = boost::dynamic_pointer_cast<geos::geom::MultiPolygon>(g->clone());
     return from_geos(mp);
   }
+  if (dynamic_cast<geos::geom::Polygon*>(g.get())) {
   auto p = boost::dynamic_pointer_cast<geos::geom::Polygon>(g->clone());
-  if (p) {
     return multi_polygon_type_fp{from_geos(p)};
   }
   geos::io::WKTWriter writer;

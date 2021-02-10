@@ -25,6 +25,7 @@ bg::model::multi_polygon<polygon_type_t> operator-(
 }
 
 template multi_polygon_type_fp operator-(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
+template multi_polygon_type_fp operator-(const multi_polygon_type_fp&, const box_type_fp&);
 
 template <typename rhs_t>
 multi_polygon_type_fp operator-(const box_type_fp& lhs, const rhs_t& rhs) {

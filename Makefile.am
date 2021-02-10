@@ -96,7 +96,7 @@ common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cp
 backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 outline_bridges_tests_SOURCES = outline_bridges_tests.cpp outline_bridges.hpp outline_bridges.cpp bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp boost_unit_test.cpp merge_near_points.hpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
-geos_helpers_tests_SOURCES = geos_helpers_tests.cpp geos_helpers.cpp geos_helpers.hpp boost_unit_test.cpp
+geos_helpers_tests_SOURCES = geos_helpers_tests.cpp geos_helpers.cpp geos_helpers.hpp boost_unit_test.cpp bg_operators.cpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp
 
 TESTS = $(check_PROGRAMS)
 
