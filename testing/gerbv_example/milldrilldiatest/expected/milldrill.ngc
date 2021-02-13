@@ -1,4 +1,4 @@
-( pcb2gcode 2.2.2 )
+( pcb2gcode 2.2.3 )
 ( Software-independent Gcode )
 ( This file uses a mill head of 1.00000mm to drill the 5 hole sizes. )
 ( Hole sizes: [1.2mm] [1.4mm] [1.6mm] [1.8mm] [2mm] )
