@@ -37,6 +37,8 @@ pcb2gcode_SOURCES = \
     ngc_exporter.cpp \
     path_finding.hpp \
     path_finding.cpp \
+    segment_tree.hpp \
+    segment_tree.cpp \
     segmentize.hpp \
     segmentize.cpp \
     surface_vectorial.hpp \
@@ -80,11 +82,13 @@ EXTRA_DIST = millproject
 check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_tests units_tests \
                  available_drills_tests gerberimporter_tests options_tests path_finding_tests \
                  autoleveller_tests common_tests backtrack_tests trim_paths_tests outline_bridges_tests \
-                 geos_helpers_tests
+                 geos_helpers_tests disjoint_set_tests segment_tree_tests
+
+
 voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp  bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
-path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp eulerian_paths.cpp eulerian_paths.hpp segmentize.hpp segmentize.cpp merge_near_points.cpp merge_near_points.hpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
+path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp eulerian_paths.cpp eulerian_paths.hpp segmentize.hpp segmentize.cpp merge_near_points.cpp merge_near_points.hpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp options.hpp options.cpp segment_tree.cpp segment_tree.hpp
 tsp_solver_tests_SOURCES = tsp_solver_tests.cpp tsp_solver.hpp boost_unit_test.cpp
 units_tests_SOURCES = units_tests.cpp units.hpp boost_unit_test.cpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp boost_unit_test.cpp
@@ -97,6 +101,8 @@ backtrack_tests_SOURCES = backtrack.hpp backtrack.cpp backtrack_tests.cpp boost_
 trim_paths_tests_SOURCES = trim_paths.hpp trim_paths.cpp trim_paths_tests.cpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 outline_bridges_tests_SOURCES = outline_bridges_tests.cpp outline_bridges.hpp outline_bridges.cpp bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp boost_unit_test.cpp merge_near_points.hpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
 geos_helpers_tests_SOURCES = geos_helpers_tests.cpp geos_helpers.cpp geos_helpers.hpp boost_unit_test.cpp bg_operators.cpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp
+disjoint_set_tests_SOURCES = disjoint_set_tests.cpp disjoint_set.hpp boost_unit_test.cpp
+segment_tree_tests_SOURCES = segment_tree_tests.cpp segment_tree.cpp boost_unit_test.cpp
 
 TESTS = $(check_PROGRAMS)
 
