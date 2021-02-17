@@ -166,6 +166,17 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
   return holes;
 }
 
+void Surface_vectorial::write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
+                const multi_linestring_type_fp& toolpaths,
+                coordinate_type_fp tolerance, bool find_contentions) const {
+  vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths;
+  new_trace_toolpaths.emplace({});
+  for (const auto& ls : toolpaths) {
+    new_trace_toolpaths.front().push_back(make_pair(ls, true));
+  }
+  write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, tolerance, find_contentions);
+}
+
 void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp tool_diameter,
                                    const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                                    coordinate_type_fp tolerance, bool find_contentions) const {
@@ -862,6 +873,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, mill->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, new_toolpath);
+      write_svgs("_final" + tool_suffix, tool_diameter, combined_toolpath, isolator->tolerance, tool_index == tool_count - 1);
       results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror));
     }
     // Now process any lines that need drawing.
