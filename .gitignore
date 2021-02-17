@@ -58,7 +58,9 @@ testing/gerbv_example/*/old
 testing/gerbv_example/*/new
 testing/gerbv_example/*/*.png
 testing/gerbv_example/*/*.ngc
+testing/gerbv_example/*/*.nc
 testing/gerbv_example/*/*.svg
+*.orig
 
 #make check output files
 *.log
