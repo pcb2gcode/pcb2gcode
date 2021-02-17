@@ -137,9 +137,9 @@ void Board::createLayers()
       }
       surface->render(importer, get<1>(prepared_layer.second)->optimise);
       auto layer = make_shared<Layer>(prepared_layer.first,
-                                        surface,
-                                        get<1>(prepared_layer.second),
-                                        get<2>(prepared_layer.second)); // see comment for prep_t in board.hpp
+                                      surface,
+                                      get<1>(prepared_layer.second),
+                                      get<2>(prepared_layer.second)); // see comment for prep_t in board.hpp
       layers.insert(std::make_pair(layer->get_name(), layer));
     }
 
