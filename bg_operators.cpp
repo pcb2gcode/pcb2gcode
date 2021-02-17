@@ -150,6 +150,10 @@ bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygo
     bg::convert(rhs, ret);
     return ret;
   }
+#ifdef GEOS_VERSION
+  auto geos_rhs = to_geos(rhs);
+  return from_geos<multi_polygon_type_fp>(to_geos(lhs)->Union(geos_rhs.get()));
+#else // !GEOS_VERSION
   // This optimization fixes a bug in boost geometry when shapes are bordering
   // somwhat but not overlapping.  This is exposed by EasyEDA that makes lots of
   // shapes like that.
@@ -166,6 +170,7 @@ bg::model::multi_polygon<polygon_type_t> operator+(const bg::model::multi_polygo
   bg::model::multi_polygon<polygon_type_t> ret;
   bg::union_(lhs, rhs, ret);
   return ret;
+#endif //GEOS_VERSION
 }
 
 template multi_polygon_type_fp operator+(const multi_polygon_type_fp&, const multi_polygon_type_fp&);
