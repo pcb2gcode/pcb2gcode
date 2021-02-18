@@ -61,6 +61,7 @@ using boost::make_optional;
 #include "units.hpp"
 #include "path_finding.hpp"
 #include "trim_paths.hpp"
+#include "svg_writer.hpp"
 
 using std::max;
 using std::max_element;
@@ -146,7 +147,6 @@ multi_linestring_type_fp mirror_toolpath(
 vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& milling_surface,
                                              const coordinate_type_fp tolerance) {
   // For each shape, see if it has any holes that are empty.
-  optional<svg_writer> image;
   vector<polygon_type_fp> holes;
   for (const auto& p : milling_surface) {
     for (const auto& inner : p.inners()) {
