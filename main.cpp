@@ -260,12 +260,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     //---------------------------------------------------------------------------
 
     auto board = make_shared<Board>(
-            vm["fill-outline"].as<bool>(),
-            outputdir,
-            vm["tsp-2opt"].as<bool>(),
-            vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
-            vm["invert-gerbers"].as<bool>(),
-            !vm["draw-gerber-lines"].as<bool>());
+        vm["fill-outline"].as<bool>(),
+        outputdir,
+        vm["tsp-2opt"].as<bool>(),
+        vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>(),
+        vm["invert-gerbers"].as<bool>(),
+        !vm["draw-gerber-lines"].as<bool>());
 
     // this is currently disabled, use --outline instead
     if (vm.count("margins"))

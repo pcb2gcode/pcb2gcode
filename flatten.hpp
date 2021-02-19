@@ -1,6 +1,8 @@
 #ifndef FLATTEN_HPP
 #define FLATTEN_HPP
 
+#include <vector>
+
 template <typename T>
 std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
   std::size_t total_size = 0;
