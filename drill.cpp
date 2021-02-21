@@ -122,16 +122,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
 
 /******************************************************************************/
 /*
- Destructor
- */
-/******************************************************************************/
-ExcellonProcessor::~ExcellonProcessor()
-{
-    gerbv_destroy_project(project);
-}
-
-/******************************************************************************/
-/*
  */
 /******************************************************************************/
 void ExcellonProcessor::add_header(string header)
@@ -697,12 +687,12 @@ void ExcellonProcessor::save_svg(
     }
 }
 
-gerbv_project_t* ExcellonProcessor::parse_project(const string& filename) {
-  gerbv_project_t* project = gerbv_create_project();
+std::unique_ptr<gerbv_project_t, ExcellonProcessor::GerbvDeleter> ExcellonProcessor::parse_project(const string& filename) {
+  auto project = std::unique_ptr<gerbv_project_t, GerbvDeleter>(gerbv_create_project());
   auto gerb_filename = std::make_unique<char[]>(filename.size() + 1);
   strcpy(gerb_filename.get(), filename.c_str());
 
-  gerbv_open_layer_from_filename(project, gerb_filename.get());
+  gerbv_open_layer_from_filename(project.get(), gerb_filename.get());
 
   if (project->file[0] == NULL) {
     throw drill_exception();
