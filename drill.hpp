@@ -79,7 +79,6 @@ class ExcellonProcessor
 public:
     ExcellonProcessor(const boost::program_options::variables_map& options,
                       const point_type_fp min, const point_type_fp max);
-    ~ExcellonProcessor();
     void add_header(std::string);
     void set_preamble(std::string);
     void set_postamble(std::string);
@@ -93,7 +92,10 @@ public:
     std::shared_ptr< std::map<int, multi_linestring_type_fp> > get_holes();
 
 private:
-  gerbv_project_t* parse_project(const std::string& filename);
+  struct GerbvDeleter {
+    void operator()(gerbv_project_t* p) { gerbv_destroy_project(p); }
+  };
+  std::unique_ptr<gerbv_project_t, GerbvDeleter> parse_project(const std::string& filename);
   std::map<int, drillbit> parse_bits();
   std::map<int, multi_linestring_type_fp> parse_holes();
 
@@ -116,7 +118,7 @@ private:
     const box_type_fp board_dimensions;
     const coordinate_type_fp board_center_x;
 
-    gerbv_project_t * const project;
+    std::unique_ptr<gerbv_project_t, GerbvDeleter> const project;
     const bool bMetricOutput;   //Flag to indicate metric output
     const std::map<int, drillbit> parsed_bits;
     const std::map<int, multi_linestring_type_fp> parsed_holes;
