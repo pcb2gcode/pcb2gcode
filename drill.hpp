@@ -99,12 +99,10 @@ private:
                   double stop_x, double stop_y,
                   std::shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
-    std::string drill_to_string(drillbit drillbit);
 
   std::map<int, multi_linestring_type_fp> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
                                                          const boost::optional<Length>& min_diameter,
                                                          const boost::optional<Length>& max_diameter);
-  std::map<int, drillbit> optimize_bits();
 
     void save_svg(
         const std::map<int, drillbit>& bits, const std::map<int, multi_linestring_type_fp>& holes,

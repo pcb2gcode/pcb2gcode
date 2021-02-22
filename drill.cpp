@@ -153,7 +153,7 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     return retval;
 }
 
-string ExcellonProcessor::drill_to_string(drillbit drillbit) {
+string drill_to_string(drillbit drillbit, bool bMetricOutput) {
     auto diameter = drillbit.diameter;
     if (drillbit.unit == "mm" && !bMetricOutput) {
         diameter /= 25.4; // convert mm to inches
@@ -216,14 +216,16 @@ linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_di
     return holes;
 }
 
-map<int, drillbit> ExcellonProcessor::optimize_bits() {
+map<int, drillbit> optimize_bits(const std::vector<AvailableDrill> available_drills,
+                                 const map<int, drillbit>& parsed_bits,
+                                 bool bMetricOutput, double inputFactor) {
   map<int, drillbit> bits(parsed_bits);
     // If there is a list of available bits, round the holes to the nearest
     // available bit.
     if (available_drills.size() > 0) {
         for (auto& wanted_drill : bits) {
             auto& wanted_drill_bit = wanted_drill.second;
-            auto old_string = drill_to_string(wanted_drill_bit);
+            auto old_string = drill_to_string(wanted_drill_bit, bMetricOutput);
             const Length& wanted_length = wanted_drill_bit.as_length();
             auto best_available_drill = std::min_element(
                 available_drills.begin(), available_drills.end(),
@@ -236,7 +238,7 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
                 wanted_drill_bit.unit = "inch";
                 cerr << "Info: bit " << wanted_drill.first << " ("
                    << old_string << ") is rounded to "
-                   << drill_to_string(wanted_drill_bit) << std::endl;
+                     << drill_to_string(wanted_drill_bit, bMetricOutput) << std::endl;
             }
         }
     }
@@ -269,7 +271,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "\nM9      (Coolant off.)\n"
                          "M2      (Program end.)\n\n");
 
-    map<int, drillbit> bits = optimize_bits();
+    // Figure out which bits will be used for which holes.
+    map<int, drillbit> bits = optimize_bits(available_drills, parsed_bits, bMetricOutput, inputFactor);
     const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
 
     //open output file
@@ -293,7 +296,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         of << "( Bit sizes:";
         for (const auto& hole : holes) {
             const auto& bit = bits.at(hole.first);
-            of << " [" << drill_to_string(bit) << "]";
+            of << " [" << drill_to_string(bit, bMetricOutput) << "]";
         }
         of << " )\n\n";
     }
@@ -320,7 +323,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
            << hole.first << "\n" << "M5      (Spindle stop.)\n"
            << "G04 P" << driller->spindown_time
            << "\n(MSG, Change tool bit to drill size "
-           << drill_to_string(bit) << ")\n"
+           << drill_to_string(bit, bMetricOutput) << ")\n"
            << "M6      (Tool change.)\n"
            << "M0      (Temporary machine stop.)\n"
            << "M3      (Spindle on clockwise.)\n"
@@ -613,7 +616,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     of << "( Hole sizes:";
     for (const auto& hole : holes) {
         const auto& bit = bits.at(hole.first);
-        of << " [" << drill_to_string(bit) << "]";
+        of << " [" << drill_to_string(bit, bMetricOutput) << "]";
     }
     of << " )\n\n";
 
@@ -758,7 +761,7 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::parse_holes() {
   for (const auto& bit : parsed_bits) {
     if (holes.count(bit.first) == 0) { //If a bit has no associated holes
       cerr << "Warning: bit " << bit.first << " ("
-           << drill_to_string(bit.second) << ") has no associated holes; "
+           << drill_to_string(bit.second, bMetricOutput) << ") has no associated holes; "
           "removing it." << std::endl;
       // We don't really remove the bit.  If there are no holes
       // associated, we'll remove the hole later and there will be no
@@ -802,11 +805,11 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
 
   //If there are multiple drills with the same size, combine them.
   for (auto bit0 = holes.begin(); bit0 != holes.end(); bit0++) {
-    const auto& bit_string0 = drill_to_string(bits.at(bit0->first));
+    const auto& bit_string0 = drill_to_string(bits.at(bit0->first), bMetricOutput);
     for (auto bit1 = std::next(bit0); bit1 != holes.end(); bit1++) {
       // If the two bits are the same size, copy the holes to
       // drill from bit1 to bit0.
-      const auto& bit_string1 = drill_to_string(bits.at(bit1->first));
+      const auto& bit_string1 = drill_to_string(bits.at(bit1->first), bMetricOutput);
       if (bit_string0 == bit_string1) {
         const auto& drill_num0 = bit0->first;
         const auto& drill_num1 = bit1->first;
