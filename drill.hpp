@@ -82,7 +82,6 @@ public:
     void add_header(std::string);
     void set_preamble(std::string);
     void set_postamble(std::string);
-    linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_diameter);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
                     std::shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,

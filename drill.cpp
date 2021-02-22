@@ -166,7 +166,7 @@ string ExcellonProcessor::drill_to_string(drillbit drillbit) {
     return ss.str();
 }
 
-linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& line, double drill_diameter) {
+linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_diameter) {
     auto start_x = line.front().x();
     auto start_y = line.front().y();
     auto stop_x = line.back().x();
