@@ -176,7 +176,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         driller = make_shared<Driller>();
         driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
         driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-        driller->feed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
+        driller->vertfeed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
         driller->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
         driller->tolerance = tolerance;
         driller->explicit_tolerance = explicit_tolerance;

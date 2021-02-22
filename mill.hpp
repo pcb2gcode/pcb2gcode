@@ -29,7 +29,6 @@ class Mill {
  public:
   virtual ~Mill() {}
 
-  double feed;  // Horizontal speed.
   double vertfeed; // Vertical speed.
   int speed; // Rotational speed.
   double zchange; // Height at which to change tools.
@@ -48,6 +47,7 @@ class Mill {
 // or for etching a line in it.
 class RoutingMill: public Mill {
  public:
+  double feed;  // Horizontal speed.
   double optimise; // Should we optimize this path with Douglas-Peucker algorithm?
   bool eulerian_paths; // Should we combine paths using eulerian walk?
   size_t path_finding_limit; // How much effort to make in path finding?

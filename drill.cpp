@@ -331,11 +331,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
            << "G04 P" << driller->spinup_time << "\n\n";
 
         if( nog81 )
-            of << "G1 F" << driller->feed * cfactor << '\n';
+            of << "G1 F" << driller->vertfeed * cfactor << '\n';
         else
         {
             of << "G81 R" << driller->zsafe * cfactor << " Z"
-               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
+               << driller->zwork * cfactor << " F" << driller->vertfeed * cfactor << " ";
         }
 
         double drill_diameter = bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter;
