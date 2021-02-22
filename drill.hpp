@@ -87,9 +87,6 @@ public:
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
                     std::shared_ptr<Cutter> target, bool zchange_absolute);
 
-    std::shared_ptr< std::map<int, drillbit> > get_bits();
-    std::shared_ptr< std::map<int, multi_linestring_type_fp> > get_holes();
-
 private:
   struct GerbvDeleter {
     void operator()(gerbv_project_t* p) { gerbv_destroy_project(p); }
