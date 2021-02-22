@@ -397,7 +397,9 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             ep.export_ngc(outputdir, milldrill_filename, cutter,
                           vm["zchange-absolute"].as<bool>());
             ep.export_ngc(outputdir, drill_filename,
-                          driller, vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
+                          driller,
+                          flatten(vm["drills-available"].as<std::vector<AvailableDrills>>()),
+                          vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
                           vm["zchange-absolute"].as<bool>());
 
             cout << "DONE. The board should be drilled from the " << ( workSide(vm, "drill") ? "FRONT" : "BACK" ) << " side.\n";

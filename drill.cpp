@@ -92,7 +92,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     mirror_axis(options["mirror-axis"].as<Length>()),
     min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
     mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
-    available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
     ocodes(1),
     globalVars(100),
     tileInfo(Tiling::generateTileInfo(options, max.y() - min.y(), max.x() - min.x())) {
@@ -255,7 +254,9 @@ map<int, drillbit> optimize_bits(const std::vector<AvailableDrill> available_dri
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                   shared_ptr<Driller> driller, bool onedrill,
+                                   shared_ptr<Driller> driller,
+                                   const vector<AvailableDrill> available_drills,
+                                   bool onedrill,
                                    bool nog81, bool zchange_absolute) {
     stringstream zchange;
 
@@ -569,7 +570,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
 // milldrill holes
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                   shared_ptr<Cutter> target, bool zchange_absolute) {
+                                   shared_ptr<Cutter> target,
+                                   bool zchange_absolute) {
     unsigned int badHoles = 0;
     stringstream zchange;
 

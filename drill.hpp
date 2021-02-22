@@ -82,9 +82,12 @@ public:
     void set_preamble(std::string);
     void set_postamble(std::string);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
-                    std::shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
+                    std::shared_ptr<Driller> target,
+                    const std::vector<AvailableDrill> available_drills,
+                    bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
-                    std::shared_ptr<Cutter> target, bool zchange_absolute);
+                    std::shared_ptr<Cutter> target,
+                    bool zchange_absolute);
 
 private:
   struct GerbvDeleter {
@@ -130,7 +133,6 @@ private:
     // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
     const boost::optional<Length> min_milldrill_diameter;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
-    const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;
