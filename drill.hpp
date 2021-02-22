@@ -56,7 +56,6 @@ public:
     //Variables, constants, flags...
     double diameter;
     std::string unit;
-    int drill_count;
     Length as_length() const {
         std::ostringstream os;
         os << diameter << unit;
