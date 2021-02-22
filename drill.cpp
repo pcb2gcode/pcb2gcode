@@ -216,6 +216,33 @@ linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_di
     return holes;
 }
 
+map<int, drillbit> ExcellonProcessor::optimize_bits() {
+  map<int, drillbit> bits(parsed_bits);
+    // If there is a list of available bits, round the holes to the nearest
+    // available bit.
+    if (available_drills.size() > 0) {
+        for (auto& wanted_drill : bits) {
+            auto& wanted_drill_bit = wanted_drill.second;
+            auto old_string = drill_to_string(wanted_drill_bit);
+            const Length& wanted_length = wanted_drill_bit.as_length();
+            auto best_available_drill = std::min_element(
+                available_drills.begin(), available_drills.end(),
+                [&](AvailableDrill a, AvailableDrill b) {
+                    return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
+                        b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
+                });
+            if (best_available_drill->difference(wanted_length, inputFactor)) {
+                wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
+                wanted_drill_bit.unit = "inch";
+                cerr << "Info: bit " << wanted_drill.first << " ("
+                   << old_string << ") is rounded to "
+                   << drill_to_string(wanted_drill_bit) << std::endl;
+            }
+        }
+    }
+    return bits;
+}
+
 /******************************************************************************/
 /*
  Exports the ngc file for drilling
@@ -811,37 +838,6 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
   }
 
   return holes;
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-map<int, drillbit> ExcellonProcessor::optimize_bits() {
-  map<int, drillbit> bits(parsed_bits);
-    // If there is a list of available bits, round the holes to the nearest
-    // available bit.
-    if (available_drills.size() > 0) {
-        for (auto& wanted_drill : bits) {
-            auto& wanted_drill_bit = wanted_drill.second;
-            auto old_string = drill_to_string(wanted_drill_bit);
-            const Length& wanted_length = wanted_drill_bit.as_length();
-            auto best_available_drill = std::min_element(
-                available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill a, AvailableDrill b) {
-                    return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
-                        b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
-                });
-            if (best_available_drill->difference(wanted_length, inputFactor)) {
-                wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
-                wanted_drill_bit.unit = "inch";
-                cerr << "Info: bit " << wanted_drill.first << " ("
-                   << old_string << ") is rounded to "
-                   << drill_to_string(wanted_drill_bit) << std::endl;
-            }
-        }
-    }
-    return bits;
 }
 
 /******************************************************************************/
