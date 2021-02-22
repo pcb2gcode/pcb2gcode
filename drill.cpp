@@ -78,7 +78,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                                      const point_type_fp min,
                                      const point_type_fp max)
   : board_dimensions(min, max),
-    board_center_x(((min + max)/2).x()),
     project(parse_project(options["drill"].as<string>())),
     bMetricOutput(options["metricoutput"].as<bool>()),
     parsed_bits(parse_bits()),

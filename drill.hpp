@@ -109,7 +109,6 @@ private:
         const std::string& of_dir, const std::string& of_name);
 
     const box_type_fp board_dimensions;
-    const coordinate_type_fp board_center_x;
 
     std::unique_ptr<gerbv_project_t, GerbvDeleter> const project;
     const bool bMetricOutput;   //Flag to indicate metric output
