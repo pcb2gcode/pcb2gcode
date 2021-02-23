@@ -22,4 +22,6 @@ zcut=-0.13mm
 fill-outline=true
 zsafe=0.08
 zchange=1.0
-drills-available=0.01inches:+0.01inches:-0, 0.15inches:0.01inches
+tools=name=skinny:diameter=0.01inches:max-diameter=0.02inches:min-diameter=0.01inches
+tools=name=fat:diameter=0.15inches:min-diameter=0.14inches:max-diameter=0.16inches
+drills=skinny,fat

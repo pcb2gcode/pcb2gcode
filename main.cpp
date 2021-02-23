@@ -45,6 +45,9 @@ using std::string;
 #include "drill.hpp"
 #include "options.hpp"
 #include "units.hpp"
+#include "kvmap.hpp"
+#include <unordered_map>
+using std::unordered_map;
 
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
@@ -169,20 +172,144 @@ void do_pcb2gcode(int argc, const char* argv[]) {
         cutter->bridges_height = cutter->zsafe;
     }
 
-    shared_ptr<Driller> driller;
+    vector<shared_ptr<Driller>> drillers;
+    vector<shared_ptr<Milldriller>> milldrillers;
+    unordered_map<std::string, KVMap> tools;
+    auto kvmaps = flatten(vm["tools"].as<std::vector<KVMaps>>());
+    for (const auto &kvmap : kvmaps) {
+      std::string name;
+      if (kvmap.count("name") > 0) {
+        name = kvmap.at("name");
+      } else if (kvmap.count("id") > 0) {
+        name = kvmap.at("id");
+      } else {
+        options::maybe_throw("Error: tools must have at least a name or an id", ERR_INVALIDPARAMETER);
+      }
+      if (tools.count(name)) {
+        options::maybe_throw("Error: tool with name " + name + " is defined more than once", ERR_INVALIDPARAMETER);
+      }
+      tools.emplace(name, kvmap);
+    }
 
-    if (vm.count("drill"))
-    {
-        driller = make_shared<Driller>();
-        driller->zwork = vm["zdrill"].as<Length>().asInch(unit);
-        driller->zsafe = vm["zsafe"].as<Length>().asInch(unit);
-        driller->vertfeed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
-        driller->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
-        driller->tolerance = tolerance;
-        driller->explicit_tolerance = explicit_tolerance;
-        driller->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
-        driller->spindown_time = spindown_time;
-        driller->zchange = vm["zchange"].as<Length>().asInch(unit);
+    if (vm.count("drill")) {
+      // There is a file to be drilled.
+      auto drills = flatten(vm["drills"].as<std::vector<CommaSeparated<std::string>>>());
+      if (drills.size() > 0) {
+        // Drills were specified by name.
+        for (const auto& drill : drills) {
+          if (tools.count(drill) == 0) {
+            options::maybe_throw("Error: tool with name " + drill + " not found", ERR_INVALIDPARAMETER);
+          }
+          drillers.push_back(make_shared<Driller>());
+          // First insert all the defaults.
+          drillers.back()->vertfeed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
+          drillers.back()->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
+          drillers.back()->zchange = vm["zchange"].as<Length>().asInch(unit);
+          drillers.back()->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+          drillers.back()->zwork = vm["zdrill"].as<Length>().asInch(unit);
+          drillers.back()->tolerance = tolerance;
+          drillers.back()->explicit_tolerance = explicit_tolerance;
+          drillers.back()->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+          drillers.back()->spindown_time = spindown_time;
+          drillers.back()->max_diameter = std::numeric_limits<double>::infinity();
+          drillers.back()->min_diameter = -std::numeric_limits<double>::infinity();
+          // Now override from the key-value map.
+          for (const auto& kv : tools.at(drill)) {
+            drillers.back()->update(kv.first, kv.second, unit);
+          }
+        }
+      } else {
+        drillers.push_back(make_shared<Driller>());
+        drillers.back()->vertfeed = vm["drill-feed"].as<Velocity>().asInchPerMinute(unit);
+        drillers.back()->speed = vm["drill-speed"].as<Rpm>().asRpm(1);
+        drillers.back()->zchange = vm["zchange"].as<Length>().asInch(unit);
+        drillers.back()->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        drillers.back()->zwork = vm["zdrill"].as<Length>().asInch(unit);
+        drillers.back()->tolerance = tolerance;
+        drillers.back()->explicit_tolerance = explicit_tolerance;
+        drillers.back()->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+        drillers.back()->spindown_time = spindown_time;
+        drillers.back()->max_diameter = -std::numeric_limits<double>::infinity();
+        drillers.back()->min_diameter = std::numeric_limits<double>::infinity();
+      }
+      auto milldrills = flatten(vm["milldrills"].as<std::vector<CommaSeparated<std::string>>>());
+      if (milldrills.size() > 0) {
+        // Milldrills were specified by name.
+        for (const auto& milldrill : milldrills) {
+          if (tools.count(milldrill) == 0) {
+            options::maybe_throw("Error: tool with name " + milldrill + " not found", ERR_INVALIDPARAMETER);
+          }
+          milldrillers.emplace_back(make_shared<Milldriller>());
+          // First insert all the defaults.
+          milldrillers.back()->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+          if (vm.count("milldrill-diameter")) {
+            milldrillers.back()->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+          }
+          if (vm.count("zmilldrill")) {
+            milldrillers.back()->zwork = vm["zmilldrill"].as<Length>().asInch(unit);
+          } else {
+            milldrillers.back()->zwork = vm["zdrill"].as<Length>().asInch(unit);
+          }
+          milldrillers.back()->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+          milldrillers.back()->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
+          if (vm.count("cut-vertfeed"))
+            milldrillers.back()->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
+          else
+            milldrillers.back()->vertfeed = cutter->feed / 2;
+          milldrillers.back()->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
+          milldrillers.back()->zchange = vm["zchange"].as<Length>().asInch(unit);
+          milldrillers.back()->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
+          milldrillers.back()->optimise = vm["optimise"].as<Length>().asInch(unit);
+          milldrillers.back()->offset = vm["offset"].as<Length>().asInch(unit);
+          milldrillers.back()->eulerian_paths = vm["eulerian-paths"].as<bool>();
+          milldrillers.back()->path_finding_limit = vm["path-finding-limit"].as<size_t>();
+          milldrillers.back()->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
+          milldrillers.back()->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
+          milldrillers.back()->tolerance = tolerance;
+          milldrillers.back()->explicit_tolerance = explicit_tolerance;
+          milldrillers.back()->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+          milldrillers.back()->spindown_time = spindown_time;
+          milldrillers.back()->max_diameter = std::numeric_limits<double>::infinity();
+          milldrillers.back()->min_diameter = -std::numeric_limits<double>::infinity();
+          // Now override from the key-value map.
+          for (const auto& kv : tools.at(milldrill)) {
+            milldrillers.back()->update(kv.first, kv.second, unit);
+          }
+        }
+      } else {
+        milldrillers.emplace_back(make_shared<Milldriller>());
+        // First insert all the defaults.
+        milldrillers.back()->tool_diameter = vm["cutter-diameter"].as<Length>().asInch(unit);
+        if (vm.count("milldrill-diameter")) {
+          milldrillers.back()->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
+        }
+        if (vm.count("zmilldrill")) {
+          milldrillers.back()->zwork = vm["zmilldrill"].as<Length>().asInch(unit);
+        } else {
+          milldrillers.back()->zwork = vm["zdrill"].as<Length>().asInch(unit);
+        }
+        milldrillers.back()->zsafe = vm["zsafe"].as<Length>().asInch(unit);
+        milldrillers.back()->feed = vm["cut-feed"].as<Velocity>().asInchPerMinute(unit);
+        if (vm.count("cut-vertfeed"))
+          milldrillers.back()->vertfeed = vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit);
+        else
+          milldrillers.back()->vertfeed = cutter->feed / 2;
+        milldrillers.back()->speed = vm["cut-speed"].as<Rpm>().asRpm(1);
+        milldrillers.back()->zchange = vm["zchange"].as<Length>().asInch(unit);
+        milldrillers.back()->stepsize = vm["cut-infeed"].as<Length>().asInch(unit);
+        milldrillers.back()->optimise = vm["optimise"].as<Length>().asInch(unit);
+        milldrillers.back()->offset = vm["offset"].as<Length>().asInch(unit);
+        milldrillers.back()->eulerian_paths = vm["eulerian-paths"].as<bool>();
+        milldrillers.back()->path_finding_limit = vm["path-finding-limit"].as<size_t>();
+        milldrillers.back()->g0_vertical_speed = vm["g0-vertical-speed"].as<Velocity>().asInchPerMinute(unit);
+        milldrillers.back()->g0_horizontal_speed = vm["g0-horizontal-speed"].as<Velocity>().asInchPerMinute(unit);
+        milldrillers.back()->tolerance = tolerance;
+        milldrillers.back()->explicit_tolerance = explicit_tolerance;
+        milldrillers.back()->spinup_time = vm["spinup-time"].as<Time>().asMillisecond(1);
+        milldrillers.back()->spindown_time = spindown_time;
+        milldrillers.back()->max_diameter = -std::numeric_limits<double>::infinity();
+        milldrillers.back()->min_diameter = std::numeric_limits<double>::infinity();
+      }
     }
 
     //---------------------------------------------------------------------------
@@ -385,20 +512,10 @@ void do_pcb2gcode(int argc, const char* argv[]) {
                 drill_filename = boost::none;
                 milldrill_filename = boost::none;
             }
-            // We can modify the cutter because we're not going to use it again.
-            if (vm.count("milldrill-diameter")) {
-              cutter->tool_diameter = vm["milldrill-diameter"].as<Length>().asInch(unit);
-            }
-            if (vm.count("zmilldrill")) {
-              cutter->zwork = vm["zmilldrill"].as<Length>().asInch(unit);
-            } else {
-              cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
-            }
-            ep.export_ngc(outputdir, milldrill_filename, cutter,
+            ep.export_ngc(outputdir, milldrill_filename, milldrillers,
                           vm["zchange-absolute"].as<bool>());
             ep.export_ngc(outputdir, drill_filename,
-                          driller,
-                          flatten(vm["drills-available"].as<std::vector<AvailableDrills>>()),
+                          drillers,
                           vm["onedrill"].as<bool>(), vm["nog81"].as<bool>(),
                           vm["zchange-absolute"].as<bool>());
 
