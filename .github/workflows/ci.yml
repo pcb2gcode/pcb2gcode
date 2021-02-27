@@ -268,7 +268,7 @@ jobs:
             if [[ -f "no-valgrind" ]]; then
               cat no-valgrind;
             fi;
-            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
+            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" || "${{ matrix.compiler }}" == "clang++" ]]; then
               time ../../../pcb2gcode || exit;
             else
               time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
@@ -282,13 +282,13 @@ jobs:
       continue-on-error: true
       run: lcov --directory . -z
     - name: Run unit tests
-      if: matrix.os != 'ubuntu'
+      if: matrix.os != 'ubuntu' || matrix.compiler == 'clang++'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
     - name: Run unit tests with valgrind
-      if: matrix.os == 'ubuntu'
+      if: matrix.os == 'ubuntu' && matrix.compiler != 'clang++'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
