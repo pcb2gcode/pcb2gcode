@@ -1105,10 +1105,10 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       double factor = (1-double(steps+2))/2;
       auto expand_by = (diameter - overlap) * factor;
       bg::buffer(bounding_box, new_bounding_box, -expand_by);
+      milling_poly = milling_poly & new_bounding_box;
     } else {
       bg::buffer(bounding_box, new_bounding_box, diameter / 2 + (diameter - overlap) * (steps - 1));
     }
-    milling_poly = milling_poly & new_bounding_box;
   }
 
   vector<multi_polygon_type_fp> polygons;
