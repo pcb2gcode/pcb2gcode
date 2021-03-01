@@ -1131,6 +1131,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     path_minimum = bg_helpers::buffer(*input, diameter/2 + offset);
   }
 
+  auto voronoi_shrunk = (bg_helpers::buffer(voronoi_polygon, -diameter/2 + overlap/2) + path_minimum) & voronoi_polygon;
   // We need to crop the area that we'll mill if it extends outside the PCB's
   // outline.  This saves time in milling.
   if (mask) {
@@ -1177,7 +1178,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     multi_polygon_type_fp buffered_milling_poly = bg_helpers::buffer(milling_poly, expand_by + offset + thermal_offset);
     if (expand_by + offset != 0) {
       if (!do_voronoi) {
-        buffered_milling_poly = buffered_milling_poly & voronoi_polygon;
+        buffered_milling_poly = buffered_milling_poly & voronoi_shrunk;
       } else {
         buffered_milling_poly = buffered_milling_poly + path_minimum;
       }
