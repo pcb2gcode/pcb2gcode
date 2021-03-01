@@ -580,7 +580,10 @@ static optional<point_type_fp> get_prev_point(const linestring_type_fp& ls, size
 }
 
 // Gets all the spikes needed for this ring.
-static void add_spikes(ring_type_fp& ring, coordinate_type_fp offset, bool reverse, coordinate_type_fp tolerance, const multi_linestring_type_fp& polygons_ls) {
+static void add_spikes(ring_type_fp& ring, coordinate_type_fp offset,
+                       bool reverse, coordinate_type_fp tolerance,
+                       const boost::optional<multi_polygon_type_fp>& spikes_keep_in,
+                       const boost::optional<multi_polygon_type_fp>& spikes_keep_out) {
   if (offset == 0 || ring.size() < 3) {
     return;
   }
@@ -614,16 +617,30 @@ static void add_spikes(ring_type_fp& ring, coordinate_type_fp offset, bool rever
       // long if the buffer math worked out unfortunately.  Just in case
       // of that, we'll limit the length of the spike so that it won't
       // overlap the previous pass.
-      multi_point_type_fp intersections;
-      bg::intersection(polygons_ls, linestring_type_fp{current, *spike}, intersections);
-      for (const auto& intersection : intersections) {
-        if (intersection != current && bg::distance(current, intersection) < bg::distance(current, *spike)) {
-          // This shouldn't cancel the segment, just shorten it.
-          *spike = intersection;
+      multi_linestring_type_fp masked{linestring_type_fp{current, *spike}};
+      if (spikes_keep_out) {
+        masked = masked - *spikes_keep_out;
+      }
+      if (spikes_keep_in) {
+        masked = masked & *spikes_keep_in;
+      }
+      bool found = false;
+      for (const auto& ls : masked) {
+        if (ls.front() == current) {
+          *spike = ls.back();
+          found = true;
+          break;
+        }
+        if (ls.back() == current) {
+          *spike = ls.front();
+          found = true;
+          break;
         }
       }
-      ring.insert(ring.begin() + ring_index, {current, *spike});
-      ring_index+=2;
+      if (found) {
+        ring.insert(ring.begin() + ring_index, {current, *spike});
+        ring_index+=2;
+      }
     }
   }
 }
@@ -639,12 +656,13 @@ void attach_ring(const ring_type_fp& ring,
                  const MillFeedDirection::MillFeedDirection& dir,
                  const multi_polygon_type_fp& already_milled_shrunk,
                  const Surface_vectorial::PathFinder& path_finder,
-                 const coordinate_type_fp offset,
+                 const coordinate_type_fp spike_offset,
                  const bool reverse_spikes,
                  const coordinate_type_fp tolerance,
-                 const multi_linestring_type_fp& polygons_ls) {
+                 const boost::optional<multi_polygon_type_fp>& spikes_keep_in,
+                 const boost::optional<multi_polygon_type_fp>& spikes_keep_out) {
   ring_type_fp ring_copy = ring;
-  add_spikes(ring_copy, offset, reverse_spikes, tolerance, polygons_ls);
+  add_spikes(ring_copy, spike_offset, reverse_spikes, tolerance, spikes_keep_in, spikes_keep_out);
   multi_linestring_type_fp ring_paths;
   ring_paths.push_back(linestring_type_fp(ring_copy.cbegin(), ring_copy.cend())); // Make a copy into an mls.
   attach_mls(ring_paths, toolpaths, dir, already_milled_shrunk, path_finder);
@@ -658,14 +676,17 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
                      const MillFeedDirection::MillFeedDirection& dir,
                      const multi_polygon_type_fp& already_milled_shrunk,
                      const Surface_vectorial::PathFinder& path_finder,
-                     const coordinate_type_fp offset,
+                     const coordinate_type_fp spike_offset,
                      const bool reverse_spikes,
                      const coordinate_type_fp tolerance,
-                     const multi_linestring_type_fp& polygons_ls) {
+                     const boost::optional<multi_polygon_type_fp>& spikes_keep_in,
+                     const boost::optional<multi_polygon_type_fp>& spikes_keep_out) {
   // Loop through the polygons by ring index because that will lead to better
   // connections between loops.
   for (const auto& poly : polygons) {
-    attach_ring(poly.outer(), toolpaths, dir, already_milled_shrunk, path_finder, offset, reverse_spikes, tolerance, polygons_ls);
+    attach_ring(poly.outer(), toolpaths, dir, already_milled_shrunk,
+                path_finder, spike_offset, reverse_spikes, tolerance,
+                spikes_keep_in, spikes_keep_out);
   }
   bool found_one = true;
   for (size_t i = 0; found_one; i++) {
@@ -673,7 +694,9 @@ void attach_polygons(const multi_polygon_type_fp& polygons,
     for (const auto& poly : polygons) {
       if (poly.inners().size() > i) {
         found_one = true;
-        attach_ring(poly.inners()[i], toolpaths, dir, already_milled_shrunk, path_finder, offset, reverse_spikes, tolerance, polygons_ls);
+        attach_ring(poly.inners()[i], toolpaths, dir, already_milled_shrunk,
+                    path_finder, spike_offset, reverse_spikes, tolerance,
+                    spikes_keep_in, spikes_keep_out);
       }
     }
   }
@@ -797,30 +820,41 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         // This is on the back so all loops are reversed.
         dir = invert(dir);
       }
-      coordinate_type_fp spike_offset = polygon_index > 0 ? diameter - overlap : 0;
+      coordinate_type_fp spike_offset;
+      boost::optional<multi_polygon_type_fp> spikes_keep_in;
+      boost::optional<multi_polygon_type_fp> spikes_keep_out;
       bool reverse_spikes = do_voronoi && trace_index < voronoi.size();
-      if (reverse_spikes) {
+      if (!reverse_spikes) {
+        if (polygon_index > 0) {
+          spike_offset = diameter - overlap;
+          spikes_keep_out = make_optional(multi_polygon_type_fp{polygons[polygon_index - 1]});
+        } else {
+          spike_offset = 0;
+        }
+      } else {
         // voronoi is done from inside to outward.  The very center
         // voronoi paths are only a half-width apart if the number of
         // passes is even.
         if (extra_passes % 2 == 0) {
-          spike_offset = polygon_index < polygons.size() - 1 ? diameter - overlap : 0;
+          if (polygon_index + 1 < polygons.size()) {
+            spike_offset = diameter - overlap;
+            spikes_keep_in = make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
+          } else {
+            spike_offset = 0;
+          }
         } else {
-          spike_offset = polygon_index < polygons.size() - 1 ? diameter - overlap : (diameter - overlap)/2;
-        }
-      }
-      // Collect every linestring for fixing spikes.
-      multi_linestring_type_fp polygons_ls;
-      for (const auto& other_poly : polygons) {
-        for (const auto& poly : other_poly) {
-          polygons_ls.push_back(linestring_type_fp(poly.outer().cbegin(), poly.outer().cend()));
-          for (const auto& i : poly.inners()) {
-            polygons_ls.push_back(linestring_type_fp(i.cbegin(), i.cend()));
+          if (polygon_index + 1 < polygons.size()) {
+            spike_offset = diameter - overlap;
+            spikes_keep_in = make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
+          } else {
+            spike_offset = (diameter - overlap)/2;
+            spikes_keep_in = make_optional(multi_polygon_type_fp{current_voronoi});
           }
         }
       }
       attach_polygons(polygon, toolpath, dir, already_milled_shrunk, path_finder,
-                      spike_offset, reverse_spikes, mill->tolerance, polygons_ls);
+                      spike_offset, reverse_spikes, mill->tolerance,
+                      spikes_keep_in, spikes_keep_out);
     }
 
     return toolpath;
@@ -1068,7 +1102,11 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
 // from the trace outward.  The offset is how far to kee away from any
 // trace, useful if the milling bit has some diameter that it is
 // guaranteed to mill but also some slop that causes it to sometimes
-// mill beyond its diameter.
+// mill beyond its diameter.  The return value is rings to be milled
+// and the number of them matches the number of steps.  The first one
+// is always the one closest to the trace.  For both voronoi and for
+// regular milling, that means it's the one with the least area.  For
+// thermal holes, it would be the one with the most area.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
