@@ -271,7 +271,7 @@ jobs:
             if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
               time ../../../pcb2gcode || exit;
             else
-              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -- ../../../pcb2gcode || exit;
+              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes -- ../../../pcb2gcode || exit;
             fi;
             popd;
             echo "::endgroup::";
