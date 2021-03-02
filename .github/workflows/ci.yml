@@ -211,7 +211,7 @@ jobs:
         if ! valgrind --version; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 git://sourceware.org/git/valgrind.git
+          git clone --depth=1 https://github.com/eyal0/valgrind.git
           pushd valgrind
           sh autogen.sh
           ./configure --prefix=${LOCAL_INSTALL_PATH}
