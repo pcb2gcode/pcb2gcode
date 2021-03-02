@@ -208,7 +208,7 @@ jobs:
     - name: Install valgrind
       if: matrix.os == 'ubuntu'
       run: |
-        if ! valgrind --version; then
+        if true; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth=1 git://sourceware.org/git/valgrind.git
