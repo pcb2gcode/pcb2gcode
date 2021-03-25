@@ -409,6 +409,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
+        flag-name: ci-${{ steps.sanitize-key.outputs.key }}
         parallel: true
     - name: Save version number
       if: matrix.code_coverage
