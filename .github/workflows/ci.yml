@@ -129,12 +129,18 @@ jobs:
         else
           echo "::set-output name=path::${{ matrix.local_install_path }}"
         fi
+    - name: Get a random number
+      run: echo "RANDOM_SUFFIX=${RANDOM}${RANDOM}" >> $GITHUB_ENV
     - name: Cache local install path
       uses: eyal0/cache@main
       with:
         path: ${{ steps.sanitize-key.outputs.path }}
-        key: ${{ steps.sanitize-key.outputs.key }}
+        key: ${{ steps.sanitize-key.outputs.key }}-${{ env.RANDOM_SUFFIX }}
+        restore-keys: |
+          ${{ steps.sanitize-key.outputs.key }}-
         update-env-variable: "UPDATE_CACHE"
+    - name: Default don't update cache
+      run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
