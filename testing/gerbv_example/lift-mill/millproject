@@ -36,4 +36,5 @@ nog81=true
 zdrill=-0.06
 drill-feed=30
 drill-speed=30000
-drills-available=0.1
+tools=name=0.1:diameter=0.1
+drills=0.1

@@ -57,7 +57,6 @@ using std::map;
 #include "tsp_solver.hpp"
 #include "common.hpp"
 #include "units.hpp"
-#include "available_drills.hpp"
 #include "bg_operators.hpp"
 
 using std::pair;
@@ -78,7 +77,6 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
                                      const point_type_fp min,
                                      const point_type_fp max)
   : board_dimensions(min, max),
-    board_center_x(((min + max)/2).x()),
     project(parse_project(options["drill"].as<string>())),
     bMetricOutput(options["metricoutput"].as<bool>()),
     parsed_bits(parse_bits()),
@@ -91,9 +89,9 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     yoffset((options["zero-start"].as<bool>() ? min.y() : 0) -
             options["y-offset"].as<Length>().asInch(inputFactor)),
     mirror_axis(options["mirror-axis"].as<Length>()),
-    min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
+    min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>().asInch(
+                               options["metric"].as<bool>() ? 1.0/25.4 : 1)),
     mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
-    available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
     ocodes(1),
     globalVars(100),
     tileInfo(Tiling::generateTileInfo(options, max.y() - min.y(), max.x() - min.x())) {
@@ -153,20 +151,17 @@ double ExcellonProcessor::get_xvalue(double xvalue)
     return retval;
 }
 
-string ExcellonProcessor::drill_to_string(drillbit drillbit) {
-    auto diameter = drillbit.diameter;
-    if (drillbit.unit == "mm" && !bMetricOutput) {
-        diameter /= 25.4; // convert mm to inches
-    } else if (drillbit.unit != "mm" && bMetricOutput) {
-        diameter *= 25.4; // convert inches to mm
-    }
-    auto unit = bMetricOutput ? "mm" : "inch";
-    std::ostringstream ss;
-    ss << diameter << unit;
-    return ss.str();
+string drill_to_string(double diameter, bool bMetricOutput) {
+  if (bMetricOutput) {
+    diameter *= 25.4; // convert inches to mm
+  }
+  auto unit = bMetricOutput ? "mm" : "inch";
+  std::ostringstream ss;
+  ss << diameter << unit;
+  return ss.str();
 }
 
-linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& line, double drill_diameter) {
+linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_diameter) {
     auto start_x = line.front().x();
     auto start_y = line.front().y();
     auto stop_x = line.back().x();
@@ -216,6 +211,49 @@ linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& li
     return holes;
 }
 
+template <typename mill_t>
+map<int, mill_t> optimize_bits(
+    const vector<shared_ptr<mill_t>>& drillers,
+    const map<int, drillbit>& parsed_bits,
+    bool bMetricOutput, double inputFactor) {
+  map<int, mill_t> bits;
+  // If there is a list of available bits, round the holes to the nearest
+  // available bit.
+  for (const auto& wanted_drill : parsed_bits) {
+    auto& wanted_drill_bit = wanted_drill.second;
+    const Length& wanted_length = wanted_drill_bit.as_length();
+    auto best = std::min_element(
+        drillers.cbegin(), drillers.cend(),
+        [&](const shared_ptr<mill_t>& a, const shared_ptr<mill_t>& b) {
+          auto a_diff = std::numeric_limits<double>::infinity();
+          if (wanted_length.asInch(inputFactor) >= a->min_diameter &&
+              wanted_length.asInch(inputFactor) <= a->max_diameter) {
+            a_diff = std::abs(wanted_length.asInch(inputFactor) - a->tool_diameter);
+          }
+          auto b_diff = std::numeric_limits<double>::infinity();
+          if (wanted_length.asInch(inputFactor) >= b->min_diameter &&
+              wanted_length.asInch(inputFactor) <= b->max_diameter) {
+            b_diff = std::abs(wanted_length.asInch(inputFactor) - b->tool_diameter);
+          }
+          return a_diff < b_diff;
+        });
+    bits.emplace(wanted_drill.first, **best);
+    if (wanted_length.asInch(inputFactor) >= (*best)->min_diameter &&
+        wanted_length.asInch(inputFactor) <= (*best)->max_diameter) {
+      // This drill bit is in range.
+      auto old_string = drill_to_string(bits.at(wanted_drill.first).tool_diameter, bMetricOutput);
+      bits.at(wanted_drill.first).tool_diameter = (*best)->tool_diameter;
+      cerr << "Info: bit " << wanted_drill.first << " ("
+           << old_string << ") is rounded to "
+           << drill_to_string(bits.at(wanted_drill.first).tool_diameter, bMetricOutput) << std::endl;
+    } else {
+      // Even the best is out of range so just use the wanted diameter.
+      bits.at(wanted_drill.first).tool_diameter = wanted_length.asInch(inputFactor);
+    }
+  }
+  return bits;
+}
+
 /******************************************************************************/
 /*
  Exports the ngc file for drilling
@@ -227,23 +265,28 @@ linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& li
  */
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                   shared_ptr<Driller> driller, bool onedrill,
+                                   vector<shared_ptr<Driller>>& drillers,
+                                   bool onedrill,
                                    bool nog81, bool zchange_absolute) {
     stringstream zchange;
 
     cout << "Exporting drill... ";
 
-    zchange << setprecision(3) << fixed << driller->zchange * cfactor;
+    zchange << setprecision(3) << fixed << drillers.back()->zchange * cfactor;
 
     tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
-                         " ( All done -- retract )\n" + postamble_ext +
-                         "\nM5      (Spindle off.)\nG04 P" +
-                         to_string(driller->spindown_time) +
+                        " ( All done -- retract )\n" + postamble_ext +
+                        "\nM5      (Spindle off.)\nG04 P" +
+                        to_string(drillers.back()->spindown_time) +
                         "\nM9      (Coolant off.)\n"
-                         "M2      (Program end.)\n\n");
+                        "M2      (Program end.)\n\n");
 
-    map<int, drillbit> bits = optimize_bits();
-    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
+    // Figure out which bits will be used for which holes.
+    map<int, Driller> bits = optimize_bits(drillers, parsed_bits, bMetricOutput, inputFactor);
+    const map<int, multi_linestring_type_fp> holes = optimize_holes(
+        bits, onedrill,
+        -std::numeric_limits<double>::infinity(),
+        min_milldrill_diameter);
 
     //open output file
     std::ofstream of;
@@ -266,7 +309,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         of << "( Bit sizes:";
         for (const auto& hole : holes) {
             const auto& bit = bits.at(hole.first);
-            of << " [" << drill_to_string(bit) << "]";
+            of << " [" << drill_to_string(bit.tool_diameter, bMetricOutput) << "]";
         }
         of << " )\n\n";
     }
@@ -280,35 +323,35 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
     of << preamble_ext;        //insert external preamble file
     of << preamble;            //insert internal preamble
-    of << "G00 S" << left << driller->speed << "     (RPM spindle speed.)\n" << "\n";
+    of << "G00 S" << left << drillers.front()->speed << "     (RPM spindle speed.)\n" << "\n";
 
     //tiling->header( of );     // See TODO #2
 
     for (const auto& hole : holes) {
-        const auto& bit = bits.at(hole.first);
+        const auto& driller = bits.at(hole.first);
         if (zchange_absolute) {
             of << "G53 ";
         }
-        of << "G00 Z" << driller->zchange * cfactor << " (Retract)\n" << "T"
+        of << "G00 Z" << driller.zchange * cfactor << " (Retract)\n" << "T"
            << hole.first << "\n" << "M5      (Spindle stop.)\n"
-           << "G04 P" << driller->spindown_time
+           << "G04 P" << driller.spindown_time
            << "\n(MSG, Change tool bit to drill size "
-           << drill_to_string(bit) << ")\n"
+           << drill_to_string(driller.tool_diameter, bMetricOutput) << ")\n"
            << "M6      (Tool change.)\n"
            << "M0      (Temporary machine stop.)\n"
            << "M3      (Spindle on clockwise.)\n"
-           << "G0 Z" << driller->zsafe * cfactor << "\n"
-           << "G04 P" << driller->spinup_time << "\n\n";
+           << "G0 Z" << driller.zsafe * cfactor << "\n"
+           << "G04 P" << driller.spinup_time << "\n\n";
 
         if( nog81 )
-            of << "G1 F" << driller->feed * cfactor << '\n';
+            of << "G1 F" << driller.vertfeed * cfactor << '\n';
         else
         {
-            of << "G81 R" << driller->zsafe * cfactor << " Z"
-               << driller->zwork * cfactor << " F" << driller->feed * cfactor << " ";
+            of << "G81 R" << driller.zsafe * cfactor << " Z"
+               << driller.zwork * cfactor << " F" << driller.vertfeed * cfactor << " ";
         }
 
-        double drill_diameter = bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter;
+        double drill_diameter = driller.tool_diameter;
         for( unsigned int i = 0; i < tileInfo.tileY; i++ )
         {
             const double yoffsetTot = yoffset - i * tileInfo.boardHeight;
@@ -327,8 +370,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                             of << "G0 X"
                                << ( get_xvalue(x) - xoffsetTot ) * cfactor
                                << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
-                            of << "G1 Z" << driller->zwork * cfactor << '\n';
-                            of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                            of << "G1 Z" << driller.zwork * cfactor << '\n';
+                            of << "G1 Z" << driller.zsafe * cfactor << '\n';
                         }
                         else
                         {
@@ -362,7 +405,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 /******************************************************************************/
 bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start_y,
                                  double stop_x, double stop_y,
-                                 shared_ptr<Cutter> cutter,
+                                 shared_ptr<Milldriller> cutter,
                                  double holediameter)
 {
 
@@ -540,22 +583,26 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
 // milldrill holes
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                   shared_ptr<Cutter> target, bool zchange_absolute) {
+                                   const vector<shared_ptr<Milldriller>>& cutters,
+                                   bool zchange_absolute) {
     unsigned int badHoles = 0;
     stringstream zchange;
 
     cout << "Exporting milldrill... " << flush;
 
-    zchange << setprecision(6) << fixed << target->zchange * cfactor;
+    zchange << setprecision(6) << fixed << cutters.front()->zchange * cfactor;
     tiling->setGCodeEnd((zchange_absolute ? "G53 " : "") + string("G00 Z") + zchange.str() +
                         " ( All done -- retract )\n" + postamble_ext +
                         "\nM5      (Spindle off.)\nG04 P" +
-                        to_string(target->spindown_time) +
+                        to_string(cutters.back()->spindown_time) +
                         "\nM9      (Coolant off.)\n"
                         "M2      (Program end.)\n\n");
 
-    map<int, drillbit> bits = parsed_bits;
-    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
+    map<int, Milldriller> bits = optimize_bits(cutters, parsed_bits, bMetricOutput, inputFactor);
+    const map<int, multi_linestring_type_fp> holes = optimize_holes(
+        bits, false,
+        min_milldrill_diameter,
+        std::numeric_limits<double>::infinity());
 
     // open output file
     std::ofstream of;
@@ -579,31 +626,31 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     of.setf(ios_base::fixed);      //write floating-point values in fixed-point notation
     of.precision(5);              //Set floating-point decimal precision
 
-    of << "( This file uses a mill head of " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter)
+    of << "( This file uses a mill head of " << (bMetricOutput ? (cutters.front()->tool_diameter * 25.4) : cutters.front()->tool_diameter)
        << (bMetricOutput ? "mm" : "inch") << " to drill the " << holes.size()
        << " hole sizes. )" << "\n";
 
     of << "( Hole sizes:";
     for (const auto& hole : holes) {
         const auto& bit = bits.at(hole.first);
-        of << " [" << drill_to_string(bit) << "]";
+        of << " [" << drill_to_string(bit.tool_diameter, bMetricOutput) << "]";
     }
     of << " )\n\n";
 
     //preamble
     of << preamble_ext << preamble
-       << "S" << left << target->speed << "    (RPM spindle speed.)\n\n"
-       << "G01 F" << target->feed * cfactor << " (Feedrate)\n"
-       << "G00 Z" << target->zchange * cfactor << " (Retract)\n"
+       << "S" << left << cutters.front()->speed << "    (RPM spindle speed.)\n\n"
+       << "G01 F" << cutters.front()->feed * cfactor << " (Feedrate)\n"
+       << "G00 Z" << cutters.front()->zchange * cfactor << " (Retract)\n"
        << "T" << (*holes.begin()).first << "\n"
        << "M5        (Spindle stop.)\n"
-       << "G04 P" << target->spindown_time << "\n"
-       << "(MSG, Change tool bit to drill size " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter) << (bMetricOutput ? "mm" : "inch") << ")\n"
+       << "G04 P" << cutters.front()->spindown_time << "\n"
+       << "(MSG, Change tool bit to drill size " << (bMetricOutput ? (cutters.front()->tool_diameter * 25.4) : cutters.front()->tool_diameter) << (bMetricOutput ? "mm" : "inch") << ")\n"
        << "M6        (Tool change.)\n"
        << "M0        (Temporary machine stop.)\n"
        << "M3        (Spindle on clockwise.)\n"
-       << "G04 P" << target->spinup_time << "\n"
-       << "G00 Z" << target->zsafe * cfactor << "\n\n";
+       << "G04 P" << cutters.front()->spinup_time << "\n"
+       << "G00 Z" << cutters.front()->zsafe * cfactor << "\n\n";
 
     tiling->header( of );
 
@@ -620,7 +667,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
             for (const auto& hole : holes) {
                 const auto& bit = bits.at(hole.first);
-                double diameter = bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter;
+                double diameter = bit.tool_diameter;
                 for (const auto& line : hole.second) {
                     const auto& start_x = line.front().x();
                     const auto& start_y = line.front().y();
@@ -629,7 +676,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                     if (!millhole(of,
                                   get_xvalue(start_x) - xoffsetTot, start_y - yoffsetTot,
                                   get_xvalue(end_x  ) - xoffsetTot,   end_y - yoffsetTot,
-                                  target, diameter)) {
+                                  cutters.front(), diameter)) {
                         ++badHoles;
                     }
                 }
@@ -655,8 +702,9 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 /*
  */
 /******************************************************************************/
+template <typename mill_t>
 void ExcellonProcessor::save_svg(
-    const map<int, drillbit>& bits, const map<int, multi_linestring_type_fp>& holes,
+    const map<int, mill_t>& bits, const map<int, multi_linestring_type_fp>& holes,
     const string& of_dir, const string& of_name) {
     if (holes.size() == 0) {
       return;
@@ -677,7 +725,7 @@ void ExcellonProcessor::save_svg(
 
     for (const auto& hole : holes) {
         const auto& bit = bits.at(hole.first);
-        const double radius = bit.unit == "mm" ? (bit.diameter / 25.4) / 2 : bit.diameter / 2;
+        const double radius = bit.tool_diameter / 2;
 
         for (const linestring_type_fp& line : hole.second) {
             for (auto& hole : line_to_holes(line, radius*2)) {
@@ -710,7 +758,6 @@ map<int, drillbit> ExcellonProcessor::parse_bits() {
     drillbit curBit;
     curBit.diameter = currentDrill->drill_size;
     curBit.unit = currentDrill->drill_unit == nullptr ? "" : string(currentDrill->drill_unit);
-    curBit.drill_count = currentDrill->drill_count;
 
     bits.insert(pair<int, drillbit>(currentDrill->drill_num, curBit));
   }
@@ -732,7 +779,7 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::parse_holes() {
   for (const auto& bit : parsed_bits) {
     if (holes.count(bit.first) == 0) { //If a bit has no associated holes
       cerr << "Warning: bit " << bit.first << " ("
-           << drill_to_string(bit.second) << ") has no associated holes; "
+           << drill_to_string(bit.second.as_length().asInch(inputFactor), bMetricOutput) << ") has no associated holes; "
           "removing it." << std::endl;
       // We don't really remove the bit.  If there are no holes
       // associated, we'll remove the hole later and there will be no
@@ -747,17 +794,17 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::parse_holes() {
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
+template <typename mill_t>
 map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
-    map<int, drillbit>& bits, bool onedrill,
-    const boost::optional<Length>& min_diameter,
-    const boost::optional<Length>& max_diameter) {
+    map<int, mill_t>& bits, bool onedrill,
+    double min_diameter,
+    double max_diameter) {
   map<int, multi_linestring_type_fp> holes(parsed_holes);
 
   // Holes that are larger than max_diameter or smaller than min_diameter are removed.
-  for (auto path = holes.begin(); path != holes.end(); ) {
-    const auto& bit_diameter = bits.at(path->first).as_length();
-    if ((max_diameter && bit_diameter >= *max_diameter) ||
-        (min_diameter && bit_diameter < *min_diameter)) {
+  for (auto path = holes.cbegin(); path != holes.cend(); ) {
+    const auto& bit_diameter = parsed_bits.at(path->first).as_length().asInch(inputFactor);
+    if (bit_diameter >= max_diameter || bit_diameter < min_diameter) {
       path = holes.erase(path); // remove because it's outside the range.
     } else {
       path++;
@@ -774,14 +821,12 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
     }
   }
 
-  //If there are multiple drills with the same size, combine them.
+  //If there are multiple identical drills, combine them.
   for (auto bit0 = holes.begin(); bit0 != holes.end(); bit0++) {
-    const auto& bit_string0 = drill_to_string(bits.at(bit0->first));
     for (auto bit1 = std::next(bit0); bit1 != holes.end(); bit1++) {
       // If the two bits are the same size, copy the holes to
       // drill from bit1 to bit0.
-      const auto& bit_string1 = drill_to_string(bits.at(bit1->first));
-      if (bit_string0 == bit_string1) {
+      if (bits.at(bit0->first) == bits.at(bit1->first)) {
         const auto& drill_num0 = bit0->first;
         const auto& drill_num1 = bit1->first;
         holes[drill_num0].insert(holes[drill_num0].end(),
@@ -812,37 +857,6 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
   }
 
   return holes;
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-map<int, drillbit> ExcellonProcessor::optimize_bits() {
-  map<int, drillbit> bits(parsed_bits);
-    // If there is a list of available bits, round the holes to the nearest
-    // available bit.
-    if (available_drills.size() > 0) {
-        for (auto& wanted_drill : bits) {
-            auto& wanted_drill_bit = wanted_drill.second;
-            auto old_string = drill_to_string(wanted_drill_bit);
-            const Length& wanted_length = wanted_drill_bit.as_length();
-            auto best_available_drill = std::min_element(
-                available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill a, AvailableDrill b) {
-                    return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
-                        b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
-                });
-            if (best_available_drill->difference(wanted_length, inputFactor)) {
-                wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
-                wanted_drill_bit.unit = "inch";
-                cerr << "Info: bit " << wanted_drill.first << " ("
-                   << old_string << ") is rounded to "
-                   << drill_to_string(wanted_drill_bit) << std::endl;
-            }
-        }
-    }
-    return bits;
 }
 
 /******************************************************************************/

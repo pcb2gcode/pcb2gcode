@@ -29,7 +29,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/variant.hpp>
 #include "units.hpp"
-#include "available_drills.hpp"
+#include "kvmap.hpp"
 
 #include <string>
 using std::string;
@@ -190,6 +190,20 @@ options::options()
        ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
        ("help,?", "produce help message")
        ("version,V", "show the current software version");
+   po::options_description tool_options("Tool options, for specifying tools");
+
+   tool_options.add_options()
+       ("tools", po::value<std::vector<KVMaps>>()
+        ->default_value(std::vector<KVMaps>{}, "")
+        ->multitoken(), "Tool specifications")
+       ("drills", po::value<std::vector<CommaSeparated<std::string>>>()
+        ->default_value(std::vector<CommaSeparated<std::string>>{}, "")
+        ->multitoken(), "Drills to use from the list of tools")
+       ("milldrills", po::value<std::vector<CommaSeparated<std::string>>>()
+        ->default_value(std::vector<CommaSeparated<std::string>>{}, "")
+        ->multitoken(), "Milldrills to use from the list of tools");
+   cfg_options.add(tool_options);
+
    po::options_description drilling_options("Drilling options, for making holes in the PCB");
 
    drilling_options.add_options()
@@ -205,9 +219,6 @@ options::options()
        ("drill-front", po::value<bool>()->implicit_value(true), "[DEPRECATED, use drill-side instead] drill through the front side of board")
        ("drill-side", po::value<BoardSide::BoardSide>()->default_value(BoardSide::AUTO),
         "drill side; valid choices are front, back or auto (default)")
-       ("drills-available", po::value<std::vector<AvailableDrills>>()
-        ->default_value(std::vector<AvailableDrills>{})
-        ->multitoken(), "list of drills available")
        ("onedrill", po::value<bool>()->default_value(false)->implicit_value(true), "use only one drill bit size")
        ("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
        ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")

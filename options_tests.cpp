@@ -6,7 +6,6 @@ namespace po = boost::program_options;
 
 #include "options.hpp"
 #include "units.hpp"
-#include "available_drills.hpp"
 
 using namespace std;
 
@@ -49,15 +48,6 @@ int get_count(const std::string& args, const std::string& variable) {
 
 BOOST_AUTO_TEST_CASE(foo) {
   BOOST_CHECK_EQUAL(get_error_code("pcb2gcode --foo"), 101);
-}
-
-BOOST_AUTO_TEST_CASE(available_drills) {
-  std::stringstream drills_text;
-  auto drills = get_value<std::vector<AvailableDrills>>(
-      "pcb2gcode --drills-available 5mm --drills-available 15mm",
-      "drills-available");
-  drills_text << drills;
-  BOOST_CHECK_EQUAL(drills_text.str(), "0.005 m, 0.015 m");
 }
 
 BOOST_AUTO_TEST_CASE(offset) {

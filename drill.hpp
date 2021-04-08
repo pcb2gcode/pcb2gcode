@@ -44,7 +44,6 @@ class drill_exception: virtual std::exception, virtual boost::exception
 #include "tile.hpp"
 #include "unique_codes.hpp"
 #include "units.hpp"
-#include "available_drills.hpp"
 
 /******************************************************************************/
 /*
@@ -56,7 +55,6 @@ public:
     //Variables, constants, flags...
     double diameter;
     std::string unit;
-    int drill_count;
     Length as_length() const {
         std::ostringstream os;
         os << diameter << unit;
@@ -82,14 +80,12 @@ public:
     void add_header(std::string);
     void set_preamble(std::string);
     void set_postamble(std::string);
-    linestring_type_fp line_to_holes(const linestring_type_fp& line, double drill_diameter);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
-                    std::shared_ptr<Driller> target, bool onedrill, bool nog81, bool zchange_absolute);
+                    std::vector<std::shared_ptr<Driller>>& drillers,
+                    bool onedrill, bool nog81, bool zchange_absolute);
     void export_ngc(const std::string of_dir, const boost::optional<std::string>& of_name,
-                    std::shared_ptr<Cutter> target, bool zchange_absolute);
-
-    std::shared_ptr< std::map<int, drillbit> > get_bits();
-    std::shared_ptr< std::map<int, multi_linestring_type_fp> > get_holes();
+                    const std::vector<std::shared_ptr<Milldriller>>& cutters,
+                    bool zchange_absolute);
 
 private:
   struct GerbvDeleter {
@@ -102,21 +98,22 @@ private:
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
                   double stop_x, double stop_y,
-                  std::shared_ptr<Cutter> cutter, double holediameter);
+                  std::shared_ptr<Milldriller> cutter, double holediameter);
     double get_xvalue(double);
-    std::string drill_to_string(drillbit drillbit);
 
-  std::map<int, multi_linestring_type_fp> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
-                                                         const boost::optional<Length>& min_diameter,
-                                                         const boost::optional<Length>& max_diameter);
-  std::map<int, drillbit> optimize_bits();
+  template <typename mill_t>
+  std::map<int, multi_linestring_type_fp> optimize_holes(
+      std::map<int, mill_t>& bits, bool onedrill,
+      double min_diameter,
+      double max_diameter);
 
-    void save_svg(
-        const std::map<int, drillbit>& bits, const std::map<int, multi_linestring_type_fp>& holes,
-        const std::string& of_dir, const std::string& of_name);
+  template <typename mill_t>
+  void save_svg(
+      const std::map<int, mill_t>& bits,
+      const std::map<int, multi_linestring_type_fp>& holes,
+      const std::string& of_dir, const std::string& of_name);
 
     const box_type_fp board_dimensions;
-    const coordinate_type_fp board_center_x;
 
     std::unique_ptr<gerbv_project_t, GerbvDeleter> const project;
     const bool bMetricOutput;   //Flag to indicate metric output
@@ -135,10 +132,10 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
-    // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
-    const boost::optional<Length> min_milldrill_diameter;
+    // The minimum size hole that is milldrilled.  Below this, holes
+    // are drilled regularly.
+    const double min_milldrill_diameter;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
-    const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
     uniqueCodes globalVars;
     const Tiling::TileInfo tileInfo;

@@ -110,7 +110,6 @@ class pcb2gcode_parse_exception : public std::exception {
   ErrorCodes error_code;
 };
 
-
 /******************************************************************************/
 /*
  */
