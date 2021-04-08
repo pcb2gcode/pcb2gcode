@@ -91,6 +91,7 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     yoffset((options["zero-start"].as<bool>() ? min.y() : 0) -
             options["y-offset"].as<Length>().asInch(inputFactor)),
     mirror_axis(options["mirror-axis"].as<Length>()),
+    mirror_yaxis(options["mirror-yaxis"].as<bool>()),
     min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
     mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
     available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
@@ -141,13 +142,29 @@ double ExcellonProcessor::get_xvalue(double xvalue)
 {
     double retval;
 
-    if (drillfront)        //drill from the front, no calculation needed
+    if (drillfront || mirror_yaxis) //drill from the front, no calculation needed
     {
         retval = xvalue;
     }
     else
     {
         retval = 2 * (xoffset + mirror_axis.asInch(inputFactor)) - xvalue - (tileInfo.tileX-1) * (tileInfo.boardWidth);
+    }
+
+    return retval;
+}
+
+double ExcellonProcessor::get_yvalue(double yvalue)
+{
+    double retval;
+
+    if (drillfront || !mirror_yaxis)
+    {
+        retval = yvalue;
+    }
+    else
+    {
+        retval = 2 * (yoffset + mirror_axis.asInch(inputFactor)) - yvalue - (tileInfo.tileY-1) * (tileInfo.boardHeight);
     }
 
     return retval;
@@ -324,18 +341,15 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
                         if( nog81 )
                         {
-                            of << "G0 X"
-                               << ( get_xvalue(x) - xoffsetTot ) * cfactor
-                               << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                            of << "G0 X" << ( ( get_xvalue(x) - xoffsetTot ) * cfactor)
+                               <<   " Y" << ( ( get_yvalue(y) - yoffsetTot ) * cfactor) << "\n";
                             of << "G1 Z" << driller->zwork * cfactor << '\n';
                             of << "G1 Z" << driller->zsafe * cfactor << '\n';
                         }
                         else
                         {
-                            of << "X"
-                               << ( get_xvalue(x) - xoffsetTot )
-                                * cfactor
-                                   << " Y" << ( ( y - yoffsetTot ) * cfactor) << "\n";
+                            of << "X" << ( ( get_xvalue(x) - xoffsetTot ) * cfactor)
+                              << " Y" << ( ( get_yvalue(y) - yoffsetTot ) * cfactor) << "\n";
                         }
                     }
                 }
@@ -627,8 +641,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                     const auto& end_x = line.back().x();
                     const auto& end_y = line.back().y();
                     if (!millhole(of,
-                                  get_xvalue(start_x) - xoffsetTot, start_y - yoffsetTot,
-                                  get_xvalue(end_x  ) - xoffsetTot,   end_y - yoffsetTot,
+                                  get_xvalue(start_x) - xoffsetTot, get_yvalue(start_y) - yoffsetTot,
+                                  get_xvalue(end_x  ) - xoffsetTot, get_yvalue(  end_y) - yoffsetTot,
                                   target, diameter)) {
                         ++badHoles;
                     }
@@ -805,9 +819,9 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
   //Optimize the holes path
   for (auto& path : holes) {
     if (tsp_2opt) {
-      tsp_solver::tsp_2opt(path.second, point_type_fp(get_xvalue(0) + xoffset, yoffset));
+      tsp_solver::tsp_2opt(path.second, point_type_fp(get_xvalue(0) + xoffset, get_yvalue(0) + yoffset));
     } else {
-      tsp_solver::nearest_neighbour(path.second, point_type_fp(get_xvalue(0) + xoffset, yoffset));
+      tsp_solver::nearest_neighbour(path.second, point_type_fp(get_xvalue(0) + xoffset, get_yvalue(0) + yoffset));
     }
   }
 

@@ -59,7 +59,7 @@ class Surface_vectorial: private boost::noncopyable {
                     bool invert_gerbers, bool render_paths_to_shapes);
 
   std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpath(
-      std::shared_ptr<RoutingMill> mill, bool mirror);
+      std::shared_ptr<RoutingMill> mill, bool mirror, bool ymirror);
   void save_debug_image(std::string message);
   void enable_filling();
   void add_mask(std::shared_ptr<Surface_vectorial> surface);

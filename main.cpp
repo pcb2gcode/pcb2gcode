@@ -84,6 +84,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     //---------------------------------------------------------------------------
     //prepare environment:
 
+    const bool ymirror = vm["mirror-yaxis"].as<bool>();
     const double tolerance = vm["tolerance"].as<double>() * unit;
     const bool explicit_tolerance = !vm["nog64"].as<bool>();
     const string outputdir = vm["output-dir"].as<string>();
@@ -283,7 +284,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       if (!importer->load_file(frontfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      board->prepareLayer("front", importer, isolator, false);
+      board->prepareLayer("front", importer, isolator, false, ymirror);
       cout << "DONE.\n";
     } else {
       cout << "not specified.\n";
@@ -296,7 +297,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       if (!importer->load_file(backfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      board->prepareLayer("back", importer, isolator, true);
+      board->prepareLayer("back", importer, isolator, true, ymirror);
       cout << "DONE.\n";
     } else {
       cout << "not specified.\n";
@@ -309,7 +310,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       if (!importer->load_file(outline)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"));
+      board->prepareLayer("outline", importer, cutter, !workSide(vm, "cut"), ymirror);
       cout << "DONE.\n";
     } else {
       cout << "not specified.\n";

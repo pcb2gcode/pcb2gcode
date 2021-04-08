@@ -69,9 +69,9 @@ double Board::get_height() {
   return layers.begin()->second->surface->get_height_in();
 }
 
-void Board::prepareLayer(string layername, shared_ptr<GerberImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside) {
+void Board::prepareLayer(string layername, shared_ptr<GerberImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror) {
   // see comment for prep_t in board.hpp
-  prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside)));
+  prepared_layers.insert(std::make_pair(layername, make_tuple(importer, manufacturer, backside, ymirror)));
 }
 
 /******************************************************************************/
@@ -139,7 +139,8 @@ void Board::createLayers()
       auto layer = make_shared<Layer>(prepared_layer.first,
                                       surface,
                                       get<1>(prepared_layer.second),
-                                      get<2>(prepared_layer.second)); // see comment for prep_t in board.hpp
+                                      get<2>(prepared_layer.second),
+                                      get<3>(prepared_layer.second)); // see comment for prep_t in board.hpp
       layers.insert(std::make_pair(layer->get_name(), layer));
     }
 

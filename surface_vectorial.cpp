@@ -137,16 +137,17 @@ MillFeedDirection::MillFeedDirection invert(const MillFeedDirection::MillFeedDir
   }
 }
 
-multi_linestring_type_fp mirror_toolpath(
-    const multi_linestring_type_fp& mls, bool mirror) {
+multi_linestring_type_fp mirror_toolpath(const multi_linestring_type_fp& mls, bool mirror, bool ymirror) {
   multi_linestring_type_fp result;
   for (const auto& ls : mls) {
     linestring_type_fp new_ls;
     for (const auto& point : ls) {
       new_ls.push_back(
-          point_type_fp(
-              (mirror ? -point.x() : point.x()),
-              point.y()));
+        point_type_fp(
+          (mirror && !ymirror ? -point.x() : point.x()),
+          (mirror &&  ymirror ? -point.y() : point.y())
+        )
+      );
     }
     result.push_back(new_ls);
   }
@@ -941,7 +942,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::final_path_finder(
 
 // A bunch of pairs.  Each pair is the tool diameter followed by a vector of paths to mill.
 vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::get_toolpath(
-    shared_ptr<RoutingMill> mill, bool mirror) {
+    shared_ptr<RoutingMill> mill, bool mirror, bool ymirror) {
   bg::unique(vectorial_surface->first);
   for (auto& diameter_and_path : vectorial_surface->second) {
     bg::unique(diameter_and_path.second);
@@ -1023,7 +1024,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       auto new_toolpath = flatten(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(mill, make_optional(&path_finding_surface), new_toolpath);
       write_svgs("_final" + tool_suffix, tool_diameter, combined_toolpath, isolator->tolerance, tool_index == tool_count - 1);
-      results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror));
+      results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror));
     }
     // Now process any lines that need drawing.
     for (const auto& diameter_and_paths : vectorial_surface->second) {
@@ -1042,7 +1043,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
       write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, boost::none, new_trace_toolpath);
-      results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror)));
+      results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror)));
     }
     return results;
   }
@@ -1059,7 +1060,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
     write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, boost::none, new_toolpath);
-    return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror))};
+    return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror))};
   }
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
