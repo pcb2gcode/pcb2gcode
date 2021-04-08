@@ -1048,7 +1048,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    const auto path_finding_surface = path_finding::PathFindingSurface(boost::none, multi_polygon_type_fp(), cutter->tolerance);
+    const auto path_finding_surface = path_finding::PathFindingSurface(multi_polygon_type_fp(), multi_polygon_type_fp(), cutter->tolerance);
     const auto trace_count = vectorial_surface->first.size();
     vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
