@@ -44,6 +44,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "edge-cuts-inside-cuts",
                   "example_board_new_default",
                   "example_board_new_mirror_x",
+                  "example_board_new_mirror_y",
                   "example_board_new_zero_start",
                   "example_board_al_custom",
                   "example_board_al_custom_tiled",
