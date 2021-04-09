@@ -418,6 +418,9 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
         // in_surface builds up some structures that are only efficient if
         // we're doing many tries.
         return {{start, goal}};
+      } else {
+        // If the straight line was too long then there is no way to connect.
+        return boost::none;
       }
     }
   } catch (GiveUp g) {

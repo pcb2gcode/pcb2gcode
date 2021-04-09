@@ -710,13 +710,18 @@ Surface_vectorial::PathFinder Surface_vectorial::make_path_finder(
            // risetime at G0 + horizontal distance G0 + plunge G1 ==
            // travel time at G1
            // The horizontal G0 move is for the maximum of the X and Y coordinates.
-           // We'll assume that G0 Z is 50inches/minute and G0 X or Y is 100 in/min, taken from Nomad Carbide 883.
            const auto vertical_distance = mill->zsafe - mill->zwork;
            const auto max_manhattan = std::max(std::abs(a.x() - b.x()), std::abs(a.y() - b.y()));
            const double horizontalG1speed = mill->feed;
            const double vertG1speed = mill->vertfeed;
            const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
-           const double max_g1_distance = g0_time * horizontalG1speed;
+           // The time saved by milling would be g0_time - g1_distance/g1_horizontal_speed.
+           // The extra wear on the mill is g1_distance.
+           // Wear is limited by the backtrack value (in distance/time).
+           // g1_distance/time_saved < backtrack => g1_distance < backtrack/time_saved
+           const double max_g1_distance = std::isinf(mill->backtrack) ?
+               g0_time * horizontalG1speed :
+               mill->backtrack*g0_time / (1 + mill->backtrack/horizontalG1speed);
            return path_finding_surface.find_path(a, b, max_g1_distance, make_optional(mill->path_finding_limit));
          };
 }
@@ -736,7 +741,13 @@ Surface_vectorial::PathFinderRingIndices Surface_vectorial::make_path_finder_rin
            const double horizontalG1speed = mill->feed;
            const double vertG1speed = mill->vertfeed;
            const double g0_time = vertical_distance/mill->g0_vertical_speed + max_manhattan/mill->g0_horizontal_speed + vertical_distance/vertG1speed;
-           const double max_g1_distance = g0_time * horizontalG1speed;
+           // The time saved by milling would be g0_time - g1_distance/g1_horizontal_speed.
+           // The extra wear on the mill is g1_distance.
+           // Wear is limited by the backtrack value (in distance/time).
+           // g1_distance/time_saved < backtrack => g1_distance < backtrack/time_saved
+           const double max_g1_distance = std::isinf(mill->backtrack) ?
+               g0_time * horizontalG1speed :
+               mill->backtrack*g0_time / (1 + mill->backtrack/horizontalG1speed);
            return path_finding_surface.find_path(a, b, max_g1_distance, mill->path_finding_limit, search_key);
          };
 }
