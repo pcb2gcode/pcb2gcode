@@ -104,6 +104,7 @@ private:
                   double stop_x, double stop_y,
                   std::shared_ptr<Cutter> cutter, double holediameter);
     double get_xvalue(double);
+    double get_yvalue(double);
     std::string drill_to_string(drillbit drillbit);
 
   std::map<int, multi_linestring_type_fp> optimize_holes(std::map<int, drillbit>& bits, bool onedrill,
@@ -135,6 +136,7 @@ private:
     const double xoffset;
     const double yoffset;
     const Length mirror_axis;
+    const bool mirror_yaxis;
     // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
     const boost::optional<Length> min_milldrill_diameter;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;

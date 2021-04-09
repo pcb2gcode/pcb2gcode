@@ -41,10 +41,11 @@ using std::endl;
  */
 /******************************************************************************/
 Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
-             shared_ptr<RoutingMill> manufacturer, bool backside)
+             shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror)
 {
     this->name = name;
     this->mirrored = backside;
+    this->ymirrored = ymirror;
     this->surface = surface;
     this->manufacturer = manufacturer;
 }
@@ -53,7 +54,7 @@ Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
 
 /******************************************************************************/
 vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Layer::get_toolpaths() {
-  return surface->get_toolpath(manufacturer, mirrored);
+  return surface->get_toolpath(manufacturer, mirrored, ymirrored);
 }
 
 /******************************************************************************/

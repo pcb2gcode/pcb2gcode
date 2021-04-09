@@ -97,8 +97,13 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
         yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
         if (layername == "back" ||
             (layername == "outline" && !workSide(options, "cut"))) {
-            xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.tileX-1);
-            xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+            if (options["mirror-yaxis"].as<bool>()) {
+                yoffset = -yoffset + tileInfo.boardHeight*(tileInfo.tileY-1);
+                yoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+            } else {
+                xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.tileX-1);
+                xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+            }
         }
 
         boost::optional<autoleveller> leveller = boost::none;

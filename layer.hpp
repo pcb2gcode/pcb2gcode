@@ -33,7 +33,7 @@
 class Layer : private boost::noncopyable {
  public:
   Layer(const std::string& name, std::shared_ptr<Surface_vectorial> surface,
-        std::shared_ptr<RoutingMill> manufacturer, bool backside);
+        std::shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror);
 
   std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpaths();
   std::shared_ptr<RoutingMill> get_manufacturer();
@@ -46,6 +46,7 @@ class Layer : private boost::noncopyable {
  private:
   std::string name;
   bool mirrored;
+  bool ymirrored;
   std::shared_ptr<Surface_vectorial> surface;
   std::shared_ptr<RoutingMill> manufacturer;
 
