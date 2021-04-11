@@ -1,4 +1,4 @@
-( pcb2gcode 2.3.1 )
+( pcb2gcode 2.4.0 )
 ( Gcode for linuxcnc )
 
 G94 ( Inches per minute feed rate. )
