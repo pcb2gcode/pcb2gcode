@@ -279,6 +279,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"g01_rectangle.gbr",           0.0008},
                            {"moire.gbr",                   0.020},
                            {"thermal.gbr",                 0.011},
+                           {"unclosed_contour.gbr",        0.0003},
                            {"cutins.gbr",                  0.000}}),
                      gerber_file, max_error_rate) {
   const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");

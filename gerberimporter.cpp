@@ -815,7 +815,10 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
         }
       } else if (currentNet->aperture_state == GERBV_APERTURE_STATE_OFF) {
         if (contour) {
-          bg::append(region, stop);
+          if (region.size() > 0 && region.front() != region.back()) {
+            cerr << "Repairing invalid contour (EasyEDA makes these sometimes): " << bg::wkt(region) << std::endl;
+            bg::append(region, region.front());
+          }
           draws.push_back(simplify_cutins(region));
           region.clear();
         }
@@ -826,6 +829,10 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
       contour = true;
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_PAREA_END) {
       contour = false;
+      if (region.size() > 0 && region.front() != region.back()) {
+        cerr << "Repairing invalid contour (EasyEDA makes these sometimes): " << bg::wkt(region) << std::endl;
+        bg::append(region, region.front());
+      }
       draws.push_back(simplify_cutins(region));
       region.clear();
     } else if (currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR ||
