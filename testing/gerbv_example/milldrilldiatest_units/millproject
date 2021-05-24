@@ -1,0 +1,17 @@
+drill=milldrilldiatest.drl
+
+metric=true
+metricoutput=true
+zchange=10.0000
+zsafe=1.5000
+drill-feed=100
+drill-speed=10000
+zdrill=-1.7500mm
+cut-feed=600
+cut-infeed=0.3
+cut-speed=2000
+cutter-diameter=2.0
+zcut=-1.6500
+min-milldrill-hole-diameter=1.2
+milldrill-diameter=1.0mm
+drills-available=0.4,0.6,0.8,1.0,1.2
