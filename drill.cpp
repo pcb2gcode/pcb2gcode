@@ -769,9 +769,9 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
 
   // Holes that are larger than max_diameter or smaller than min_diameter are removed.
   for (auto path = holes.begin(); path != holes.end(); ) {
-    const auto& bit_diameter = bits.at(path->first).as_length();
-    if ((max_diameter && bit_diameter >= *max_diameter) ||
-        (min_diameter && bit_diameter < *min_diameter)) {
+    const auto& bit_diameter = bits.at(path->first).as_length().asInch(inputFactor);
+    if ((max_diameter && bit_diameter >= (*max_diameter).asInch(inputFactor)) ||
+        (min_diameter && bit_diameter < (*min_diameter).asInch(inputFactor))) {
       path = holes.erase(path); // remove because it's outside the range.
     } else {
       path++;
