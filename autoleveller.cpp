@@ -93,9 +93,9 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     initialYOffsetVar( globalVars->getUniqueCode() ),
     ocodes( ocodes )
 {
-    callSub2[Software::LINUXCNC] = "o%1$s call [%2$s] [%3$s] [%4$s]\n";
-    callSub2[Software::MACH4] = "G65 P%1$s A%2$s B%3$s C%4$s\n";
-    callSub2[Software::MACH3] = "#" + globalVar0 + "=%2$s\n%5$s#" + globalVar1 + "=%3$s\n%6$s#" + globalVar2 + "=%4$s\n%7$sM98 P%1$s\n";
+    callSub2[Software::LINUXCNC] = "o%1$s call [%2$.5f] [%3$.5f] [%4$.5f]\n";
+    callSub2[Software::MACH4] = "G65 P%1$s A%2$.5f B%3$.5f C%4$.5f\n";
+    callSub2[Software::MACH3] = "#" + globalVar0 + "=%2$.5f\n%5$s#" + globalVar1 + "=%3$.5f\n%6$s#" + globalVar2 + "=%4$.5f\n%7$sM98 P%1$s\n";
 }
 
 string autoleveller::getVarName(unsigned int i, unsigned int j) {
