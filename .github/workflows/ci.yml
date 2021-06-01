@@ -16,14 +16,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
-        boost: ['1_66', '1_75']
+        boost: ['1_66', '1_76']
         geos: ['3.9.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
             boost: '1_66'
           - os: ubuntu
-            boost: '1_75'
+            boost: '1_76'
           - os: macos
             compiler: 'g++-8'
           - os: windows
@@ -103,13 +103,13 @@ jobs:
         brew upgrade python@3
         brew reinstall -s libtool
         brew unlink parallel
-        brew install boost@1.75 gtkmm moreutils gettext librsvg automake pkg-config
+        brew install boost@1.76 gtkmm moreutils gettext librsvg automake pkg-config
         brew upgrade wget
         hash -r
         ln -f -s `which glibtoolize` ${LOCAL_INSTALL_PATH}/bin/libtoolize
         ln -f -s `which glibtool` ${LOCAL_INSTALL_PATH}/bin/libtool
         hash -r
-        echo "BOOST_ROOT=/usr/local/opt/boost@1.75" >> $GITHUB_ENV
+        echo "BOOST_ROOT=/usr/local/opt/boost@1.76" >> $GITHUB_ENV
         echo "NUM_CPUS=$((`sysctl -n hw.logicalcpu` * 4))" >> $GITHUB_ENV
         echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
         echo "CPPFLAGS_gerbv=-DQUARTZ" >> $GITHUB_ENV
@@ -449,7 +449,7 @@ jobs:
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
 
-          mv pcb2gcode-windows_1_75_gplusplus_3.9.0/pcb2gcode-windows_1_75_gplusplus_3.9.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          mv pcb2gcode-windows_1_76_gplusplus_3.9.0/pcb2gcode-windows_1_76_gplusplus_3.9.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           pushd pcb2gcode-windows
           tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
@@ -457,7 +457,7 @@ jobs:
 
           mv pcb2gcode-ubuntu_1_66_gplusplus_3.9.0/pcb2gcode-ubuntu_1_66_gplusplus_3.9.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
 
-          mv pcb2gcode-macos_1_75_gplusplus_3.9.0/pcb2gcode-macos_1_75_gplusplus_3.9.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-macos_1_76_gplusplus_3.9.0/pcb2gcode-macos_1_76_gplusplus_3.9.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
