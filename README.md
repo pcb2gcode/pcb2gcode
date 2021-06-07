@@ -30,7 +30,7 @@ This development version of pcb2gcode does not get into repositories of distros.
     make
     su -c 'make install'
 	```
-    
+
 * done.
 
 #### Debian, Ubuntu:
@@ -172,13 +172,13 @@ You can find all the DLLs in &lt;msys2 installation folder&gt;/mingw32/bin; copy
 You can build the latest pcb2gcode version with [Homebrew](http://brew.sh). If Homebrew is not installed yet, install it with the following command:
 
      $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-     
+
 You might need some build tools that typically are not present:
 
      $ brew install autoconf automake libtool
 
 Then you can download and build the git version with
-     
+
      $ brew install --HEAD pcb2gcode
 
 or (if pcb2gcode is already installed)
@@ -186,3 +186,10 @@ or (if pcb2gcode is already installed)
      $ brew upgrade --HEAD pcb2gcode
 
 For further details, see INSTALL.
+
+#### An other docker way: Insolante
+You can use the insolante docker image to use this tool throught a web interface.
+This project is under active development and need your feedback but give it a try and let us know.
+
+You can find it in [dockerhub](https://hub.docker.com/r/ngargaud/insolante) for arm and x64 architecture.
+The current embedded version of pcb2gcode is 2.1.0.
