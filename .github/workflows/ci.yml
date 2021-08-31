@@ -198,10 +198,11 @@ jobs:
         if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
-        if ! gerbv --version; then
+        if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
+          git ls-remote https://github.com/eyal0/gerbv.git heads/master > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 https://github.com/eyal0/gerbv.git
+          git clone --depth=1 --branch=master https://github.com/eyal0/gerbv.git
           pushd gerbv
           sh autogen.sh
           ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${LOCAL_INSTALL_PATH}
@@ -213,8 +214,8 @@ jobs:
     - name: Install valgrind
       if: matrix.os == 'ubuntu'
       run: |
-        if ! valgrind --version || ! grep -qx "$(git ls-remote https://github.com/eyal0/valgrind.git master)" ~/.local/bin/valgrind.version; then
-          git ls-remote https://github.com/eyal0/valgrind.git master > ~/.local/bin/valgrind.version
+        if ! valgrind --version || ! grep -qx "$(git ls-remote https://github.com/eyal0/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
+          git ls-remote https://github.com/eyal0/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth=1 --branch=master https://github.com/eyal0/valgrind.git
