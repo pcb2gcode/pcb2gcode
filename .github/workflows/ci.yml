@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
         boost: ['1_66', '1_76']
-        geos: ['3.9.0', 'none']
+        geos: ['3.10.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
@@ -36,7 +36,7 @@ jobs:
           - os: ubuntu
             boost: 1_66
             compiler: g++-8
-            geos: '3.9.0'
+            geos: '3.10.0'
             code_coverage: "--enable-code-coverage"
           - os: windows
             shell: msys2 {0}
