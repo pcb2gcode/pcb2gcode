@@ -178,7 +178,7 @@ jobs:
           pushd geos
           mkdir build
           pushd build
-          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           make -j ${NUM_CPUS}
           make install
           popd
