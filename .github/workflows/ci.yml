@@ -139,6 +139,13 @@ jobs:
         update-env-variable: "UPDATE_CACHE"
     - name: Default don't update cache
       run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+    - name: Display information about build environment
+      run: |
+        env
+        if command -v g++; then g++ --version; fi
+        if command -v clang++; then clang++ --version; fi
+        if command -v pkg-config; then pkg-config --version; fi
+        if command -v m4; then m4 --version; fi
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
@@ -188,13 +195,6 @@ jobs:
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r
         lcov --version
-    - name: Display information about build environment
-      run: |
-        env
-        if command -v g++; then g++ --version; fi
-        if command -v clang++; then clang++ --version; fi
-        if command -v pkg-config; then pkg-config --version; fi
-        if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
         if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
