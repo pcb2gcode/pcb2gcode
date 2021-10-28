@@ -39,9 +39,7 @@ jobs:
             geos: '3.9.0'
             code_coverage: "--enable-code-coverage"
           - os: windows
-            shell: |
-              powershell -command "[System.Environment]::SetEnvironmentVariable('GITHUB_SCRIPT', ('{0}' -replace '\\','\\')); [System.Environment]::SetEnvironmentVariable('PKG_CONFIG_PATH_MSYS', $Env:PKG_CONFIG_PATH); [System.Environment]::SetEnvironmentVariable('PATH_MSYS', $Env:Path);"
-              msys2 -c 'if [[ -v MSYSTEM ]]; then sed -i 1d $(cygpath $GITHUB_SCRIPT); sed -i \$d $(cygpath $GITHUB_SCRIPT); if [[ -v PKG_CONFIG_PATH_MSYS ]]; then export PKG_CONFIG_PATH=$PKG_CONFIG_PATH_MSYS; fi; if [[ -v PATH_MSYS && ! ( $PATH_MSYS =~ ^D:\\\\a\\\\_temp\\\\msys\\;C:\\\\Users ) ]]; then export PATH=$(echo $PATH_MSYS | sed s/D:\\\\\\\\a\\\\\\\\_temp\\\\\\\\msys\;// | sed s/\;/:/g); fi; fi; source $(cygpath $GITHUB_SCRIPT)'
+            shell: msys2 {0}
             local_install_path: '/d/a/pcb2gcode/.local'
           - os: ubuntu
             shell: bash
@@ -61,6 +59,7 @@ jobs:
         msystem: MINGW64
         update: true
         install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-cmake
+        path-type: inherit
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v2
     - name: Setup paths and env
