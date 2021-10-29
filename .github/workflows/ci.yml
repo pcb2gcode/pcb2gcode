@@ -77,6 +77,8 @@ jobs:
       if: matrix.os == 'windows'
       run: |
         echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
+        which c++.exe
+        c++.exe --version
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
