@@ -176,7 +176,7 @@ jobs:
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth 1 --branch ${GEOS} https://github.com/eyal0/geos.git
+          git clone --depth 1 --branch main https://github.com/eyal0/geos.git
           pushd geos
           mkdir build
           pushd build
