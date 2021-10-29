@@ -2,8 +2,8 @@
 #include "geometry_int.hpp"
 #include "bg_helpers.hpp"
 #ifdef GEOS_VERSION
-#include <geos/operation/union/CascadedUnion.h>
 #include <geos/util/TopologyException.h>
+#include <geos/geom/GeometryFactory.h>
 #include "geos_helpers.hpp"
 #endif // GEOS_VERSION
 
@@ -245,7 +245,6 @@ multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
     return mpolys[0];
   }
 #ifdef GEOS_VERSION
-  std::vector<geos::geom::Geometry*> geos_mpolys;
   std::vector<std::unique_ptr<geos::geom::Geometry>> geos_mpolys_tmp;
   for (const auto& mpoly : mpolys) {
     if (bg::area(mpoly) == 0) {
@@ -254,14 +253,15 @@ multi_polygon_type_fp sum(const std::vector<multi_polygon_type_fp>& mpolys) {
     auto mpoly_temp = mpoly;
     round(mpoly_temp);
     geos_mpolys_tmp.push_back(to_geos(mpoly_temp));
-    geos_mpolys.push_back(geos_mpolys_tmp.back().get());
   }
-  if (geos_mpolys.size() == 0) {
+  auto geos_factory = geos::geom::GeometryFactory::create();
+  auto geos_collection = geos_factory->buildGeometry(std::move(geos_mpolys_tmp));
+  if (geos_collection->isEmpty()) {
     return {};
   }
   try {
     std::unique_ptr<geos::geom::Geometry> geos_out(
-        geos::operation::geounion::CascadedUnion::Union(&geos_mpolys));
+        geos_collection->Union());
     return from_geos<multi_polygon_type_fp>(geos_out);
   } catch (const geos::util::TopologyException& e) {
     std::cerr << "\nError: Internal error with libgeos.  Upgrading geos may help." << std::endl;
