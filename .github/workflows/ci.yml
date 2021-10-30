@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
         boost: ['1_66', '1_76']
-        geos: ['3.9.0', 'none']
+        geos: ['3.10.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos
@@ -36,7 +36,7 @@ jobs:
           - os: ubuntu
             boost: 1_66
             compiler: g++-8
-            geos: '3.9.0'
+            geos: '3.10.0'
             code_coverage: "--enable-code-coverage"
           - os: windows
             shell: |
@@ -168,7 +168,7 @@ jobs:
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth 1 --branch ${GEOS} https://github.com/libgeos/geos.git
+          git clone --depth 1 --branch main https://github.com/libgeos/geos.git
           pushd geos
           mkdir build
           pushd build
@@ -302,7 +302,7 @@ jobs:
       run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
 
     - name: Run integration tests
-      if: matrix.boost == '1_66' && matrix.geos == '3.9.0'
+      if: matrix.boost == '1_66' && matrix.geos == '3.10.0'
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
@@ -327,8 +327,8 @@ jobs:
         if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 ]]; then
           cp -L ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
-        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.9.0.so ]]; then
-          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.9.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
+        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.10.0.so ]]; then
+          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.10.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
 
         cat > pcb2gcode-$(./pcb2gcode --version | head -1)/pcb2gcode.sh << EOF
@@ -450,15 +450,15 @@ jobs:
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
 
-          mv pcb2gcode-windows_1_76_gplusplus_3.9.0/pcb2gcode-windows_1_76_gplusplus_3.9.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          mv pcb2gcode-windows_1_76_gplusplus_3.10.0/pcb2gcode-windows_1_76_gplusplus_3.10.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           pushd pcb2gcode-windows
           tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
           popd
 
-          mv pcb2gcode-ubuntu_1_66_gplusplus_3.9.0/pcb2gcode-ubuntu_1_66_gplusplus_3.9.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-ubuntu_1_66_gplusplus_3.10.0/pcb2gcode-ubuntu_1_66_gplusplus_3.10.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
 
-          mv pcb2gcode-macos_1_76_gplusplus_3.9.0/pcb2gcode-macos_1_76_gplusplus_3.9.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-macos_1_76_gplusplus_3.10.0/pcb2gcode-macos_1_76_gplusplus_3.10.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
