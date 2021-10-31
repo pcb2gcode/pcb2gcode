@@ -848,7 +848,7 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
                         b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
                 });
 
-            auto difference = best_available_drill->difference(wanted_length, inputFactor);
+            const auto difference = best_available_drill->difference(wanted_length, inputFactor);
             if (difference) {
                 wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
                 wanted_drill_bit.unit = "inch";
