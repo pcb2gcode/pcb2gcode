@@ -852,7 +852,7 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
             if (difference) {
                 wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
                 wanted_drill_bit.unit = "inch";
-                if (difference > 1e-6 || difference < -1e-6) {
+                if (difference && abs(*difference) > 1e-6) {
                     cerr << "Info: bit " << wanted_drill.first << " ("
                        << old_string << ") is rounded to "
                        << drill_to_string(wanted_drill_bit) << std::endl;
