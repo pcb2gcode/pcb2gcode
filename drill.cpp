@@ -343,8 +343,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         {
                             of << "G0 X" << ( ( get_xvalue(x) - xoffsetTot ) * cfactor)
                                <<   " Y" << ( ( get_yvalue(y) - yoffsetTot ) * cfactor) << "\n";
-                            of << "G1 Z" << driller->zwork * cfactor << '\n';
-                            of << "G1 Z" << driller->zsafe * cfactor << '\n';
+                            of << "G1 Z" << driller->zwork * cfactor << " F" << driller->feed * cfactor << '\n';
+                            of << "G1 Z" << driller->zsafe * cfactor << " F120" << '\n';
                         }
                         else
                         {
@@ -852,7 +852,7 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
             if (difference) {
                 wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
                 wanted_drill_bit.unit = "inch";
-                if (difference && abs(*difference) > 1e-6) {
+                if (abs(*difference) > 1e-6) {
                     cerr << "Info: bit " << wanted_drill.first << " ("
                        << old_string << ") is rounded to "
                        << drill_to_string(wanted_drill_bit) << std::endl;
