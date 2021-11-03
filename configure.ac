@@ -57,6 +57,11 @@ PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 
+# 2.46 for rsvg_handle_render_document
+PKG_CHECK_MODULES(RSVG_HANDLE_RENDER_DOCUMENT, librsvg-2.0 >= 2.46,
+  [AC_DEFINE(HAVE_RSVG_HANDLE_RENDER_DOCUMENT,1,[Define to 1 if your librsvg has rsvg_handle_render_document().])],
+  [:])
+
 # Optional GEOS, as a faster and more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],

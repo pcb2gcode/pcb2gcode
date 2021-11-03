@@ -18,6 +18,8 @@ using std::string;
 #include <map>
 using std::map;
 
+#include "config.h"
+
 struct Fixture {
   Fixture() {
     Glib::init();
@@ -116,8 +118,18 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, const box_type
                                                       svg_string.size(),
                                                       &gerror);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
-  //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
+#ifdef HAVE_RSVG_HANDLE_RENDER_DOCUMENT
+  RsvgDimensionData dimensions;
+  rsvg_handle_get_dimensions(rsvg_handle, &dimensions);
+  RsvgRectangle viewport;
+  viewport.x = 0;
+  viewport.y = 0;
+  viewport.width = dimensions.width;
+  viewport.height = dimensions.height;
+  BOOST_REQUIRE(rsvg_handle_render_document(rsvg_handle, cr->cobj(), &viewport, nullptr));
+#else /*!HAVE_RSVG_HANDLE_RENDER_DOCUMENT*/
   BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+#endif
   g_object_unref(rsvg_handle);
 }
 
