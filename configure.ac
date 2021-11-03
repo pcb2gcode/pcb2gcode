@@ -86,9 +86,9 @@ CFLAGS+=" ${gerbv_CFLAGS}"
 AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
 # Ignore GTK 2.0 warnings for linux and macos and windows
-AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/usr/include/gtk-2.0,-isystem /usr/include/gtk-2.0,$(gerbv_CFLAGS))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,-isystem /usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM1))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/_temp/msys64/mingw64/include/glib-2.0,-isystem D:/a/_temp/msys64/mingw64/include/glib-2.0,$(gerbv_CFLAGS_SYSTEM2))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/usr/include,-isystem /usr/include,$(gerbv_CFLAGS))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include,-isystem /usr/local/Cellar/gtk+/2.24.33/include,$(gerbv_CFLAGS_SYSTEM1))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/_temp/msys64/mingw64/include,-isystem D:/a/_temp/msys64/mingw64/include,$(gerbv_CFLAGS_SYSTEM2))'])
 
 # Checks for header files.
 AC_HEADER_STDC
