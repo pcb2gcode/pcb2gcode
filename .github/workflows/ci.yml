@@ -20,8 +20,6 @@ jobs:
         geos: ['3.10.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
-          # TODO: Re-enable Windows.
-          - os: windows
           - os: macos
             boost: '1_66'
           - os: ubuntu
@@ -40,12 +38,9 @@ jobs:
             compiler: g++-8
             geos: '3.10.0'
             code_coverage: "--enable-code-coverage"
-          # TODO: Re-enable Windows.
-          #- os: windows
-          #  shell: |
-          #    powershell -command "[System.Environment]::SetEnvironmentVariable('GITHUB_SCRIPT', ('{0}' -replace '\\','\\')); [System.Environment]::SetEnvironmentVariable('PKG_CONFIG_PATH_MSYS', $Env:PKG_CONFIG_PATH); [System.Environment]::SetEnvironmentVariable('PATH_MSYS', $Env:Path);"
-          #    msys2 -c 'if [[ -v MSYSTEM ]]; then sed -i 1d $(cygpath $GITHUB_SCRIPT); sed -i \$d $(cygpath $GITHUB_SCRIPT); if [[ -v PKG_CONFIG_PATH_MSYS ]]; then export PKG_CONFIG_PATH=$PKG_CONFIG_PATH_MSYS; fi; if [[ -v PATH_MSYS && ! ( $PATH_MSYS =~ ^D:\\\\a\\\\_temp\\\\msys\\;C:\\\\Users ) ]]; then export PATH=$(echo $PATH_MSYS | sed s/D:\\\\\\\\a\\\\\\\\_temp\\\\\\\\msys\;// | sed s/\;/:/g); fi; fi; source $(cygpath $GITHUB_SCRIPT)'
-          #  local_install_path: '/d/a/pcb2gcode/.local'
+          - os: windows
+            shell: msys2 {0}
+            local_install_path: '/d/a/pcb2gcode/.local'
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
