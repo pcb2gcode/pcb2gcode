@@ -122,6 +122,14 @@ jobs:
       if: matrix.geos != 'none' && matrix.os == 'macos'
       run:
         brew install geos
+    - name: Display information about build environment
+      run: |
+        cat ~/.bash_profile
+        env
+        if command -v g++; then g++ --version; fi
+        if command -v clang++; then clang++ --version; fi
+        if command -v pkg-config; then pkg-config --version; fi
+        if command -v m4; then m4 --version; fi
     - name: Sanitize cache key
       id: sanitize-key
       run: |
@@ -192,13 +200,6 @@ jobs:
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r
         lcov --version
-    - name: Display information about build environment
-      run: |
-        env
-        if command -v g++; then g++ --version; fi
-        if command -v clang++; then clang++ --version; fi
-        if command -v pkg-config; then pkg-config --version; fi
-        if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
         if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
