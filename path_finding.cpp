@@ -440,7 +440,7 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
     open_set.pop();
     if (current == goal) {
       // We're done.
-      return make_optional(build_path(current, came_from));
+      return boost::make_optional(build_path(current, came_from));
     }
     if (closed_set.count(current) > 0) {
       // Skip this because we already "removed it", sort of.

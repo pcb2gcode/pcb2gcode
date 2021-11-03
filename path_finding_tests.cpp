@@ -7,7 +7,6 @@
 #include "bg_helpers.hpp"
 
 #include <boost/optional.hpp>
-using boost::make_optional;
 
 #include <boost/optional/optional_io.hpp>
 
@@ -126,7 +125,7 @@ BOOST_AUTO_TEST_CASE(box) {
   multi_polygon_type_fp mp;
   box_type_fp box{point_type_fp{0,0}, {10,10}};
   bg::convert(box, mp);
-  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), make_optional(MPRingIndices({{0, {0}}})));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), boost::make_optional(MPRingIndices({{0, {0}}})));
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), boost::none);
 }
 
@@ -149,10 +148,10 @@ BOOST_AUTO_TEST_CASE(doughnuts) {
   bg::convert(hole, hole_mp);
   mp = mp - hole_mp;
 
-  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), make_optional(MPRingIndices({{0, {0, 1}}})));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), boost::make_optional(MPRingIndices({{0, {0, 1}}})));
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), boost::none);
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{5,5}, mp), boost::none);
-  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,1}, mp), make_optional(MPRingIndices({{1, {0, 1, 2}}})));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,1}, mp), boost::make_optional(MPRingIndices({{1, {0, 1, 2}}})));
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{23.5,3.5}, mp), boost::none);
 }
 
@@ -171,9 +170,9 @@ BOOST_AUTO_TEST_CASE(nested_doughnuts) {
   hole = {point_type_fp{30,30}, {70,70}};
   bg::convert(hole, hole_mp);
   mp = mp - hole_mp;
-  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), make_optional(MPRingIndices({{0, {0, 1}}})));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{1,1}, mp), boost::make_optional(MPRingIndices({{0, {0, 1}}})));
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{11,11}, mp), boost::none);
-  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,21}, mp), make_optional(MPRingIndices({{1, {0, 1}}})));
+  BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{21,21}, mp), boost::make_optional(MPRingIndices({{1, {0, 1}}})));
   BOOST_CHECK_EQUAL(inside_multipolygon(point_type_fp{31,31}, mp), boost::none);
 }
 
@@ -190,7 +189,7 @@ BOOST_AUTO_TEST_CASE(box) {
   box_type_fp box{point_type_fp{0,0}, {10,10}};
   bg::convert(box, mp);
   BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), boost::none);
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), make_optional(MPRingIndices({{0, {0}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), boost::make_optional(MPRingIndices({{0, {0}}})));
 }
 
 BOOST_AUTO_TEST_CASE(doughnuts) {
@@ -213,10 +212,10 @@ BOOST_AUTO_TEST_CASE(doughnuts) {
   mp = mp - hole_mp;
 
   BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), boost::none);
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), make_optional(MPRingIndices({{0, {0}}, {1, {0}}})));
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{5,5}, mp), make_optional(MPRingIndices({{0, {1}}, {1, {0}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), boost::make_optional(MPRingIndices({{0, {0}}, {1, {0}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{5,5}, mp), boost::make_optional(MPRingIndices({{0, {1}}, {1, {0}}})));
   BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{21,1}, mp), boost::none);
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{23.5,3.5}, mp), make_optional(MPRingIndices({{0, {0}}, {1, {1}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{23.5,3.5}, mp), boost::make_optional(MPRingIndices({{0, {0}}, {1, {1}}})));
 }
 
 BOOST_AUTO_TEST_CASE(nested_doughnuts) {
@@ -236,9 +235,9 @@ BOOST_AUTO_TEST_CASE(nested_doughnuts) {
   mp = mp - hole_mp;
 
   BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{1,1}, mp), boost::none);
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), make_optional(MPRingIndices({{0, {1}}, {1, {0}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{11,11}, mp), boost::make_optional(MPRingIndices({{0, {1}}, {1, {0}}})));
   BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{21,21}, mp), boost::none);
-  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{31,31}, mp), make_optional(MPRingIndices({{0, {1}}, {1, {1}}})));
+  BOOST_CHECK_EQUAL(outside_multipolygon(point_type_fp{31,31}, mp), boost::make_optional(MPRingIndices({{0, {1}}, {1, {1}}})));
 }
 
 BOOST_AUTO_TEST_SUITE_END() // outside_multipolygon_tests
@@ -247,16 +246,16 @@ BOOST_AUTO_TEST_SUITE(nested_multipolygon_type_fp)
 
 BOOST_AUTO_TEST_CASE(open_space) {
   auto surface = PathFindingSurface(boost::none, multi_polygon_type_fp(), 5);
-  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), boost::make_optional(size_t(0)));
 }
 
 BOOST_AUTO_TEST_CASE(barbell) {
   multi_polygon_type_fp barbell{{{{0,0}, {0,100}, {40,100}, {40,2}, {60,2},
                                   {60,100}, {100,100}, {100,0}, {0,0}}}};
   auto surface = PathFindingSurface(boost::none, barbell, 5);
-  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), boost::make_optional(size_t(0)));
   BOOST_CHECK_EQUAL(surface.in_surface({6,6}), boost::none);
-  BOOST_CHECK_EQUAL(surface.in_surface({-10,-10}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({-10,-10}), boost::make_optional(size_t(0)));
   BOOST_CHECK_EQUAL(surface.in_surface({10,10}), boost::none);
 }
 
@@ -266,12 +265,12 @@ BOOST_AUTO_TEST_CASE(almost_doughnut) {
                                           {51,80}, {51,100}, {100,100},
                                           {100,0}, {0,0}}}};
   auto surface = PathFindingSurface(almost_doughnut, multi_polygon_type_fp(), 5);
-  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), make_optional(size_t(0)));
-  BOOST_CHECK_EQUAL(surface.in_surface({6,6}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({1,1}), boost::make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({6,6}), boost::make_optional(size_t(0)));
   BOOST_CHECK_EQUAL(surface.in_surface({-10,-10}), boost::none);
-  BOOST_CHECK_EQUAL(surface.in_surface({50,1}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({50,1}), boost::make_optional(size_t(0)));
   BOOST_CHECK_EQUAL(surface.in_surface({50,50}), boost::none);
-  BOOST_CHECK_EQUAL(surface.in_surface({50,90}), make_optional(size_t(0)));
+  BOOST_CHECK_EQUAL(surface.in_surface({50,90}), boost::make_optional(size_t(0)));
 }
 
 BOOST_AUTO_TEST_SUITE_END() // nested_multipolygon_type_fp
@@ -285,7 +284,7 @@ BOOST_AUTO_TEST_CASE(open_space) {
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(simple) {
@@ -299,7 +298,7 @@ BOOST_AUTO_TEST_CASE(simple) {
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(simple_limit0) {
@@ -309,7 +308,7 @@ BOOST_AUTO_TEST_CASE(simple_limit0) {
   bg::convert(bounding_box, keep_in);
   auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
   auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(1,1),
-                               infinity, make_optional(size_t(0)));
+                               infinity, boost::make_optional(size_t(0)));
   BOOST_CHECK_EQUAL(ret, boost::none);
 }
 
@@ -320,11 +319,11 @@ BOOST_AUTO_TEST_CASE(simple_limit1) {
   bg::convert(bounding_box, keep_in);
   auto surface = PathFindingSurface(keep_in, multi_polygon_type_fp(), 0.1);
   auto ret = surface.find_path(point_type_fp(0,0), point_type_fp(1,1),
-                               infinity, make_optional(size_t(1)));
+                               infinity, boost::make_optional(size_t(1)));
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(simple_limit_length200) {
@@ -338,7 +337,7 @@ BOOST_AUTO_TEST_CASE(simple_limit_length200) {
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(100, 100));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(simple_limit_length100) {
@@ -368,7 +367,7 @@ BOOST_AUTO_TEST_CASE(hole) {
   linestring_type_fp expected;
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(1, 1));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(hole_unreachable) {
@@ -410,7 +409,7 @@ BOOST_AUTO_TEST_CASE(box) {
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(3, 7));
   expected.push_back(point_type_fp(10, 10));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(box_no_keep_in) {
@@ -434,7 +433,7 @@ BOOST_AUTO_TEST_CASE(box_no_keep_in) {
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(3, 7));
   expected.push_back(point_type_fp(10, 10));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(unreachable_box) {
@@ -485,7 +484,7 @@ BOOST_AUTO_TEST_CASE(reuse_surface) {
   expected.push_back(point_type_fp(0, 0));
   expected.push_back(point_type_fp(3, 7));
   expected.push_back(point_type_fp(10, 10));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(u_shape) {
@@ -512,7 +511,7 @@ BOOST_AUTO_TEST_CASE(u_shape) {
   expected.push_back(point_type_fp(3, 3));
   expected.push_back(point_type_fp(7, 3));
   expected.push_back(point_type_fp(9, 9));
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(doughnut) {
@@ -526,7 +525,7 @@ BOOST_AUTO_TEST_CASE(doughnut) {
                                infinity, boost::none);
 
   linestring_type_fp expected{{10, 10},{30, 70},{51, 80},{90, 90}};
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_CASE(barbell_search) {
@@ -542,7 +541,7 @@ BOOST_AUTO_TEST_CASE(barbell_search_limit) {
   multi_polygon_type_fp barbell{{{{0,0}, {0,50}, {40,50}, {40,2}, {60,2},
                                   {60,50}, {100,50}, {100,0}, {0,0}}}};
   auto surface = PathFindingSurface(boost::none, barbell, 5);
-  BOOST_CHECK_EQUAL(surface.find_path({-10,-10},{110,60},infinity, make_optional(size_t(2))),
+  BOOST_CHECK_EQUAL(surface.find_path({-10,-10},{110,60},infinity, boost::make_optional(size_t(2))),
                     boost::none);
 }
 
@@ -563,7 +562,7 @@ BOOST_AUTO_TEST_CASE(u_shape_keep_out) {
   auto ret = surface.find_path({5,5}, point_type_fp(-1,-1),
                                infinity, boost::none);
   linestring_type_fp expected{{5,5},{3,10},{0,10},{-1,-1}};
-  BOOST_CHECK_EQUAL(ret, make_optional(expected));
+  BOOST_CHECK_EQUAL(ret, boost::make_optional(expected));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
