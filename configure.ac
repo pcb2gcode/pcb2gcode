@@ -85,9 +85,10 @@ AC_ARG_VAR([pcb2gcode_LDFLAGS_EXTRA], [Additional flags when linking pcb2gcode])
 CFLAGS+=" ${gerbv_CFLAGS}"
 AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
-# Ignore GTK 2.0 warnings for linux and macos.
+# Ignore GTK 2.0 warnings for linux and macos and windows
 AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/usr/include/gtk-2.0,-isystem /usr/include/gtk-2.0,$(gerbv_CFLAGS))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,-isystem /usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM1))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,-isystem /usr/local/Cellar/gtk+/2.24.33/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM1))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/_temp/msys64/mingw64/include/glib-2.0,-isystem D:/a/_temp/msys64/mingw64/include/glib-2.0,$(gerbv_CFLAGS_SYSTEM2))'])
 
 # Checks for header files.
 AC_HEADER_STDC
