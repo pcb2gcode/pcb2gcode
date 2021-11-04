@@ -72,7 +72,7 @@ ACLOCAL_AMFLAGS = -I m4
 GIT_VERSION = `git describe --dirty --always --tags`
 GERBV_VERSION = `pkg-config --modversion libgerbv`
 
-AM_CPPFLAGS = $(BOOST_CPPFLAGS_SYSTEM) $(glibmm_CFLAGS) $(gdkmm_CFLAGS_SYSTEM) $(gerbv_CFLAGS_SYSTEM) $(CODE_COVERAGE_CPPFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -Wall -Wpedantic -Wextra $(pcb2gcode_CPPFLAGS_EXTRA) $(GEOS_CFLAGS_SYSTEM) $(GEOS_EXTRA)
+AM_CPPFLAGS = $(BOOST_CPPFLAGS_SYSTEM) $(gerbv_CFLAGS_SYSTEM) $(CODE_COVERAGE_CPPFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -Wall -Wpedantic -Wextra $(pcb2gcode_CPPFLAGS_EXTRA) $(GEOS_CFLAGS_SYSTEM) $(GEOS_EXTRA)
 AM_CXXFLAGS = $(CODE_COVERAGE_CXXFLAGS) -DGIT_VERSION=\"$(GIT_VERSION)\" -DGERBV_VERSION=\"$(GERBV_VERSION)\"
 AM_LDFLAGS = $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(pcb2gcode_LDFLAGS_EXTRA)
 LIBS = $(gerbv_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(CODE_COVERAGE_LIBS) $(GEOS_CC_LIBS)
@@ -94,6 +94,7 @@ units_tests_SOURCES = units_tests.cpp units.hpp boost_unit_test.cpp
 available_drills_tests_SOURCES = available_drills_tests.cpp available_drills.hpp boost_unit_test.cpp
 gerberimporter_tests_SOURCES = gerberimporter.hpp gerberimporter.cpp gerberimporter_tests.cpp merge_near_points.hpp merge_near_points.cpp eulerian_paths.cpp eulerian_paths.hpp segmentize.cpp segmentize.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 gerberimporter_tests_LDFLAGS = $(glibmm_LIBS) $(gdkmm_LIBS) $(rsvg_LIBS)
+gerberimporter_tests_CPPFLAGS = $(AM_CPPFLAGS) $(glibmm_CFLAGS) $(gdkmm_CFLAGS) $(rsvg_CFLAGS)
 options_tests_SOURCES = options_tests.cpp options.hpp options.cpp boost_unit_test.cpp
 autoleveller_tests_SOURCES = autoleveller_tests.cpp autoleveller.hpp autoleveller.cpp options.cpp options.hpp boost_unit_test.cpp bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.hpp eulerian_paths.cpp segmentize.hpp segmentize.cpp merge_near_points.hpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
 common_tests_SOURCES = common.hpp common.cpp common_tests.cpp boost_unit_test.cpp

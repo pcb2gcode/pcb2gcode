@@ -723,7 +723,7 @@ Surface_vectorial::PathFinder Surface_vectorial::make_path_finder(
            const double max_g1_distance = std::isinf(mill->backtrack) ?
                g0_time * horizontalG1speed :
                mill->backtrack*g0_time / (1 + mill->backtrack/horizontalG1speed);
-           return path_finding_surface.find_path(a, b, max_g1_distance, make_optional(mill->path_finding_limit));
+           return path_finding_surface.find_path(a, b, max_g1_distance, boost::make_optional(mill->path_finding_limit));
          };
 }
 
@@ -839,7 +839,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
       if (!reverse_spikes) {
         if (polygon_index > 0) {
           spike_offset = diameter - overlap;
-          spikes_keep_out = make_optional(multi_polygon_type_fp{polygons[polygon_index - 1]});
+          spikes_keep_out = boost::make_optional(multi_polygon_type_fp{polygons[polygon_index - 1]});
         } else {
           spike_offset = 0;
         }
@@ -850,17 +850,17 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         if (extra_passes % 2 == 0) {
           if (polygon_index + 1 < polygons.size()) {
             spike_offset = diameter - overlap;
-            spikes_keep_in = make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
+            spikes_keep_in = boost::make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
           } else {
             spike_offset = 0;
           }
         } else {
           if (polygon_index + 1 < polygons.size()) {
             spike_offset = diameter - overlap;
-            spikes_keep_in = make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
+            spikes_keep_in = boost::make_optional(multi_polygon_type_fp{polygons[polygon_index + 1]});
           } else {
             spike_offset = (diameter - overlap)/2;
-            spikes_keep_in = make_optional(multi_polygon_type_fp{current_voronoi});
+            spikes_keep_in = boost::make_optional(multi_polygon_type_fp{current_voronoi});
           }
         }
       }
@@ -985,7 +985,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       for (const auto& poly : vectorial_surface->first) {
         keep_outs.push_back(bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset));
       }
-      const auto path_finding_surface = path_finding::PathFindingSurface(mask ? make_optional(mask->vectorial_surface->first) : boost::none, sum(keep_outs), isolator->tolerance);
+      const auto path_finding_surface = path_finding::PathFindingSurface(mask ? boost::make_optional(mask->vectorial_surface->first) : boost::none, sum(keep_outs), isolator->tolerance);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk =
             bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
@@ -1033,7 +1033,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
       write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, isolator->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
-      multi_linestring_type_fp combined_toolpath = post_process_toolpath(mill, make_optional(&path_finding_surface), new_toolpath);
+      multi_linestring_type_fp combined_toolpath = post_process_toolpath(mill, boost::make_optional(&path_finding_surface), new_toolpath);
       write_svgs("_final" + tool_suffix, tool_diameter, combined_toolpath, isolator->tolerance, tool_index == tool_count - 1);
       results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror));
     }

@@ -18,6 +18,8 @@ using std::string;
 #include <map>
 using std::map;
 
+#include "config.h"
+
 struct Fixture {
   Fixture() {
     Glib::init();
@@ -84,9 +86,9 @@ string render_svg(const multi_polygon_type_fp& polys, const box_type_fp& boundin
     const double svg_width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x());
     const double svg_height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y());
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"%3% %4% %5% %6%\"")
-            % "100%"
-            % "100%"
+        str(boost::format("width=\"%1%px\" height=\"%2%px\" viewBox=\"%3% %4% %5% %6%\"")
+            % (svg_width * dpi)
+            % (svg_height * dpi)
             % ((bounding_box.min_corner().x() - svg_bounding_box.min_corner().x()) * dpi)
             // max and not min because the origin is in a different corner for svg vs gbr
             % ((svg_bounding_box.max_corner().y() - bounding_box.max_corner().y()) * dpi)
@@ -116,8 +118,24 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, const box_type
                                                       svg_string.size(),
                                                       &gerror);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
-  //cr->set_operator(Cairo::Operator::OPERATOR_XOR);
+#ifdef HAVE_RSVG_HANDLE_RENDER_DOCUMENT
+  RsvgRectangle viewport;
+  viewport.x = 0;
+  viewport.y = 0;
+#ifdef HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS
+  rsvg_handle_set_dpi(rsvg_handle, 96);
+  BOOST_REQUIRE(rsvg_handle_get_intrinsic_size_in_pixels(
+                    rsvg_handle, &viewport.width, &viewport.height));
+#else // !HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS
+  RsvgDimensionData dimensions;
+  rsvg_handle_get_dimensions(rsvg_handle, &dimensions);
+  viewport.width = dimensions.width;
+  viewport.height = dimensions.height;
+#endif
+  BOOST_REQUIRE(rsvg_handle_render_document(rsvg_handle, cr->cobj(), &viewport, nullptr));
+#else // !HAVE_RSVG_HANDLE_RENDER_DOCUMENT
   BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+#endif // HAVE_RSVG_HANDLE_RENDER_DOCUMENT
   g_object_unref(rsvg_handle);
 }
 

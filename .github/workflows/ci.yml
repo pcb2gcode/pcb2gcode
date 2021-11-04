@@ -17,11 +17,9 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
         boost: ['1_66', '1_76']
-        geos: ['3.10.0', 'none']
+        geos: ['3.11.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
-          # TODO: Re-enable Windows.
-          - os: windows
           - os: macos
             boost: '1_66'
           - os: ubuntu
@@ -38,19 +36,16 @@ jobs:
           - os: ubuntu
             boost: 1_66
             compiler: g++-8
-            geos: '3.10.0'
+            geos: '3.11.0'
             code_coverage: "--enable-code-coverage"
-          # TODO: Re-enable Windows.
-          #- os: windows
-          #  shell: |
-          #    powershell -command "[System.Environment]::SetEnvironmentVariable('GITHUB_SCRIPT', ('{0}' -replace '\\','\\')); [System.Environment]::SetEnvironmentVariable('PKG_CONFIG_PATH_MSYS', $Env:PKG_CONFIG_PATH); [System.Environment]::SetEnvironmentVariable('PATH_MSYS', $Env:Path);"
-          #    msys2 -c 'if [[ -v MSYSTEM ]]; then sed -i 1d $(cygpath $GITHUB_SCRIPT); sed -i \$d $(cygpath $GITHUB_SCRIPT); if [[ -v PKG_CONFIG_PATH_MSYS ]]; then export PKG_CONFIG_PATH=$PKG_CONFIG_PATH_MSYS; fi; if [[ -v PATH_MSYS && ! ( $PATH_MSYS =~ ^D:\\\\a\\\\_temp\\\\msys\\;C:\\\\Users ) ]]; then export PATH=$(echo $PATH_MSYS | sed s/D:\\\\\\\\a\\\\\\\\_temp\\\\\\\\msys\;// | sed s/\;/:/g); fi; fi; source $(cygpath $GITHUB_SCRIPT)'
-          #  local_install_path: '/d/a/pcb2gcode/.local'
+          - os: windows
+            shell: msys2 {0}
+            local_install_path: '/d/a/pcb2gcode/.local'
           - os: ubuntu
-            shell: bash
+            shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
           - os: macos
-            shell: bash
+            shell: '/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
     runs-on: ${{ matrix.os }}-latest
     defaults:
@@ -70,28 +65,29 @@ jobs:
       run: |
         mkdir -p ${{ matrix.local_install_path }}/bin
         mkdir -p ${{ matrix.local_install_path }}/lib/pkgconfig
-        echo "PKG_CONFIG_PATH=${{ matrix.local_install_path }}/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-        echo "LD_LIBRARY_PATH=${{ matrix.local_install_path }}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-        echo "PATH=${{ matrix.local_install_path }}/bin:$PATH" >> $GITHUB_ENV
-        echo "LOCAL_INSTALL_PATH=${{ matrix.local_install_path }}" >> $GITHUB_ENV
+        rm -f ~/.bash_profile
+        echo "export PKG_CONFIG_PATH='${{ matrix.local_install_path }}/lib/pkgconfig:$PKG_CONFIG_PATH'" >> ~/.bash_profile
+        echo "export LD_LIBRARY_PATH='${{ matrix.local_install_path }}/lib:$LD_LIBRARY_PATH'" >> ~/.bash_profile
+        echo "export PATH='${{ matrix.local_install_path }}/bin:$PATH'" >> ~/.bash_profile
+        echo "export LOCAL_INSTALL_PATH='${{ matrix.local_install_path }}'" >> ~/.bash_profile
         echo $GITHUB_JSON
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
       if: matrix.os == 'windows'
       run: |
-        echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
+        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
-        echo "NUM_CPUS=$((`nproc --all` * 4))" >> $GITHUB_ENV
+        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
     - name: Set clang as default compiler
       if: matrix.compiler == 'clang++'
       run: |
-        echo "CC=`which clang`" >> $GITHUB_ENV
-        echo "CXX=`which clang++`" >> $GITHUB_ENV
+        echo "export CC='`which clang`'" >> ~/.bash_profile
+        echo "export CXX='`which clang++`'" >> ~/.bash_profile
     - name: g++-8 specific setup
       if: matrix.compiler == 'g++-8'
       run: |
@@ -112,16 +108,24 @@ jobs:
         ln -f -s `which glibtoolize` ${LOCAL_INSTALL_PATH}/bin/libtoolize
         ln -f -s `which glibtool` ${LOCAL_INSTALL_PATH}/bin/libtool
         hash -r
-        echo "BOOST_ROOT=/usr/local/opt/boost@1.76" >> $GITHUB_ENV
-        echo "NUM_CPUS=$((`sysctl -n hw.logicalcpu` * 4))" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig" >> $GITHUB_ENV
-        echo "CPPFLAGS_gerbv=-DQUARTZ" >> $GITHUB_ENV
-        echo "PATH=/usr/local/opt/gettext/bin:$PATH" >> $GITHUB_ENV
+        echo "export BOOST_ROOT='/usr/local/opt/boost@1.76'" >> ~/.bash_profile
+        echo "export NUM_CPUS='$((`sysctl -n hw.logicalcpu` * 4))'" >> ~/.bash_profile
+        echo "export PKG_CONFIG_PATH='$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig'" >> ~/.bash_profile
+        echo "export CPPFLAGS_gerbv='-DQUARTZ'" >> ~/.bash_profile
+        echo "export PATH='/usr/local/opt/gettext/bin:$PATH'" >> ~/.bash_profile
         rm /usr/local/include/boost
     - name: Macos geos
       if: matrix.geos != 'none' && matrix.os == 'macos'
       run:
         brew install geos
+    - name: Display information about build environment
+      run: |
+        cat ~/.bash_profile
+        env
+        if command -v g++; then g++ --version; fi
+        if command -v clang++; then clang++ --version; fi
+        if command -v pkg-config; then pkg-config --version; fi
+        if command -v m4; then m4 --version; fi
     - name: Sanitize cache key
       id: sanitize-key
       run: |
@@ -132,7 +136,7 @@ jobs:
           echo "::set-output name=path::${{ matrix.local_install_path }}"
         fi
     - name: Get a random number
-      run: echo "RANDOM_SUFFIX=${RANDOM}${RANDOM}" >> $GITHUB_ENV
+      run: echo "export RANDOM_SUFFIX='${RANDOM}${RANDOM}'" >> ~/.bash_profile
     - name: Cache local install path
       uses: eyal0/cache@main
       with:
@@ -142,14 +146,14 @@ jobs:
           ${{ steps.sanitize-key.outputs.key }}-
         update-env-variable: "UPDATE_CACHE"
     - name: Default don't update cache
-      run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+      run: echo "export UPDATE_CACHE='false'" >> ~/.bash_profile
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
         BOOST: ${{ matrix.boost }}_0
       run: |
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/boost" ]; then
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           for i in {1..5}; do
             wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
@@ -162,14 +166,14 @@ jobs:
           popd
           popd
         fi
-        echo "BOOST_ROOT=$(echo ${LOCAL_INSTALL_PATH})" >> $GITHUB_ENV
+        echo "export BOOST_ROOT='$(echo ${LOCAL_INSTALL_PATH})'" >> ~/.bash_profile
     - name: Build and install geos
       if: matrix.os != 'macos' && matrix.geos != 'none'
       env:
         GEOS: ${{ matrix.geos }}
       run: |
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           git clone --depth 1 --branch main https://github.com/libgeos/geos.git
           pushd geos
@@ -192,18 +196,11 @@ jobs:
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r
         lcov --version
-    - name: Display information about build environment
-      run: |
-        env
-        if command -v g++; then g++ --version; fi
-        if command -v clang++; then clang++ --version; fi
-        if command -v pkg-config; then pkg-config --version; fi
-        if command -v m4; then m4 --version; fi
     - name: Install gerbv
       run: |
         if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
           git ls-remote https://github.com/eyal0/gerbv.git heads/master > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           git clone --depth=1 --branch=master https://github.com/eyal0/gerbv.git
           pushd gerbv
@@ -219,7 +216,7 @@ jobs:
       run: |
         if ! valgrind --version || ! grep -qx "$(git ls-remote https://github.com/eyal0/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
           git ls-remote https://github.com/eyal0/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           git clone --depth=1 --branch=master https://github.com/eyal0/valgrind.git
           pushd valgrind
@@ -233,7 +230,7 @@ jobs:
     - name: Install parallel
       run: |
         if ! parallel --version; then
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           for i in {1..5}; do
             wget -q -T5 -t1 -O "parallel-latest.tar.bz2" 'https://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2' && break;
@@ -305,7 +302,7 @@ jobs:
       run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
 
     - name: Run integration tests
-      if: matrix.boost == '1_66' && matrix.geos == '3.10.0'
+      if: matrix.boost == '1_66' && matrix.geos == '3.11.0'
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
@@ -330,8 +327,8 @@ jobs:
         if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 ]]; then
           cp -L ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
-        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.10.0.so ]]; then
-          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.10.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
+        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.11.0.so ]]; then
+          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.11.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
 
         cat > pcb2gcode-$(./pcb2gcode --version | head -1)/pcb2gcode.sh << EOF
@@ -360,7 +357,7 @@ jobs:
         cp ../../.libs/pcb2gcode.exe .
         cp ../../../.local/bin/libgerbv-1.dll .
         if [[ ${GEOS} != 'none' ]]; then
-          cp ../../../.local/bin/libgeos.dll .
+          cp ../../../.local/bin/libgeos-${GEOS}.dll .
         fi
         cp /mingw64/bin/libboost_program_options-mt.dll .
         cp /mingw64/bin/libbrotlicommon.dll .
@@ -448,20 +445,20 @@ jobs:
     steps:
       - name: Download the artifacts to release
         uses: actions/download-artifact@v2
-      - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
+      - run: echo "export PCB2GCODE_VERSION='$(cat version/version.txt)'" >> ~/.bash_profile
       - name: Prepare the artifacts
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
 
-          mv pcb2gcode-windows_1_76_gplusplus_3.10.0/pcb2gcode-windows_1_76_gplusplus_3.10.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+          mv pcb2gcode-windows_1_76_gplusplus_3.11.0/pcb2gcode-windows_1_76_gplusplus_3.11.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           pushd pcb2gcode-windows
           tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
           popd
 
-          mv pcb2gcode-ubuntu_1_66_gplusplus_3.10.0/pcb2gcode-ubuntu_1_66_gplusplus_3.10.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-ubuntu_1_66_gplusplus_3.11.0/pcb2gcode-ubuntu_1_66_gplusplus_3.11.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
 
-          mv pcb2gcode-macos_1_76_gplusplus_3.10.0/pcb2gcode-macos_1_76_gplusplus_3.10.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          mv pcb2gcode-macos_1_76_gplusplus_3.11.0/pcb2gcode-macos_1_76_gplusplus_3.11.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"

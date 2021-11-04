@@ -57,6 +57,16 @@ PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gerbv], [libgerbv >= 2.1.0])
 PKG_CHECK_MODULES([rsvg], [librsvg-2.0 >= 2.0])
 
+# 2.46 for rsvg_handle_render_document
+PKG_CHECK_MODULES(RSVG_HANDLE_RENDER_DOCUMENT, librsvg-2.0 >= 2.46,
+  [AC_DEFINE(HAVE_RSVG_HANDLE_RENDER_DOCUMENT,1,[Define to 1 if your librsvg has rsvg_handle_render_document().])],
+  [:])
+
+# 2.52 for rsvg_handle_get_intrinsic_size_in_pixels
+PKG_CHECK_MODULES(RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS, librsvg-2.0 >= 2.52,
+  [AC_DEFINE(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS,1,[Define to 1 if your librsvg has rsvg_handle_get_intrinsic_size_in_pixels().])],
+  [:])
+
 # Optional GEOS, as a faster and more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
@@ -80,9 +90,10 @@ AC_ARG_VAR([pcb2gcode_LDFLAGS_EXTRA], [Additional flags when linking pcb2gcode])
 CFLAGS+=" ${gerbv_CFLAGS}"
 AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
-# Ignore GTK 2.0 warnings for linux and macos.
-AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/usr/include/gtk-2.0,-isystem /usr/include/gtk-2.0,$(gerbv_CFLAGS))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -I/usr/local/Cellar/gtk+/2.24.32_3/include/gtk-2.0,-isystem /usr/local/Cellar/gtk+/2.24.32_3/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM1))'])
+# Ignore GTK 2.0 warnings for linux and macos and windows
+AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/usr/include,-isystem /usr/include,$(gerbv_CFLAGS))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include,-isystem /usr/local/Cellar/gtk+/2.24.33/include,$(gerbv_CFLAGS_SYSTEM1))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/_temp/msys64/mingw64/include,-isystem D:/a/_temp/msys64/mingw64/include,$(gerbv_CFLAGS_SYSTEM2))'])
 
 # Checks for header files.
 AC_HEADER_STDC
