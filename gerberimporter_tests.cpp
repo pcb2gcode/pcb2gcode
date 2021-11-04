@@ -119,17 +119,23 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, const box_type
                                                       &gerror);
   Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(cairo_surface);
 #ifdef HAVE_RSVG_HANDLE_RENDER_DOCUMENT
-  RsvgDimensionData dimensions;
-  rsvg_handle_get_dimensions(rsvg_handle, &dimensions);
   RsvgRectangle viewport;
   viewport.x = 0;
   viewport.y = 0;
+#ifdef HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS
+  rsvg_handle_set_dpi(rsvg_handle, 96);
+  BOOST_REQUIRE(rsvg_handle_get_intrinsic_size_in_pixels(
+                    rsvg_handle, &viewport.width, &viewport.height));
+#else // !HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS
+  RsvgDimensionData dimensions;
+  rsvg_handle_get_dimensions(rsvg_handle, &dimensions);
   viewport.width = dimensions.width;
   viewport.height = dimensions.height;
-  BOOST_REQUIRE(rsvg_handle_render_document(rsvg_handle, cr->cobj(), &viewport, nullptr));
-#else /*!HAVE_RSVG_HANDLE_RENDER_DOCUMENT*/
-  BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
 #endif
+  BOOST_REQUIRE(rsvg_handle_render_document(rsvg_handle, cr->cobj(), &viewport, nullptr));
+#else // !HAVE_RSVG_HANDLE_RENDER_DOCUMENT
+  BOOST_REQUIRE(rsvg_handle_render_cairo(rsvg_handle, cr->cobj()));
+#endif // HAVE_RSVG_HANDLE_RENDER_DOCUMENT
   g_object_unref(rsvg_handle);
 }
 

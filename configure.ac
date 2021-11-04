@@ -62,6 +62,11 @@ PKG_CHECK_MODULES(RSVG_HANDLE_RENDER_DOCUMENT, librsvg-2.0 >= 2.46,
   [AC_DEFINE(HAVE_RSVG_HANDLE_RENDER_DOCUMENT,1,[Define to 1 if your librsvg has rsvg_handle_render_document().])],
   [:])
 
+# 2.52 for rsvg_handle_get_intrinsic_size_in_pixels
+PKG_CHECK_MODULES(RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS, librsvg-2.0 >= 2.52,
+  [AC_DEFINE(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS,1,[Define to 1 if your librsvg has rsvg_handle_get_intrinsic_size_in_pixels().])],
+  [:])
+
 # Optional GEOS, as a faster and more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
