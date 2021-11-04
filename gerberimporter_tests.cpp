@@ -86,9 +86,9 @@ string render_svg(const multi_polygon_type_fp& polys, const box_type_fp& boundin
     const double svg_width = (svg_bounding_box.max_corner().x() - svg_bounding_box.min_corner().x());
     const double svg_height = (svg_bounding_box.max_corner().y() - svg_bounding_box.min_corner().y());
     const string svg_dimensions =
-        str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"%3% %4% %5% %6%\"")
-            % "100%"
-            % "100%"
+        str(boost::format("width=\"%1%px\" height=\"%2%px\" viewBox=\"%3% %4% %5% %6%\"")
+            % (svg_width * dpi)
+            % (svg_height * dpi)
             % ((bounding_box.min_corner().x() - svg_bounding_box.min_corner().x()) * dpi)
             // max and not min because the origin is in a different corner for svg vs gbr
             % ((svg_bounding_box.max_corner().y() - bounding_box.max_corner().y()) * dpi)
