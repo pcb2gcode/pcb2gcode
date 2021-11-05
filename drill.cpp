@@ -343,8 +343,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         {
                             of << "G0 X" << ( ( get_xvalue(x) - xoffsetTot ) * cfactor)
                                <<   " Y" << ( ( get_yvalue(y) - yoffsetTot ) * cfactor) << "\n";
-                            of << "G1 Z" << driller->zwork * cfactor << " F" << driller->feed * cfactor << '\n';
-                            of << "G1 Z" << driller->zsafe * cfactor << " F120" << '\n';
+                            of << "G1 Z" << driller->zwork * cfactor << '\n';
+                            of << "G1 Z" << driller->zsafe * cfactor << '\n';
                         }
                         else
                         {
