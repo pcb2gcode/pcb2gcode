@@ -445,7 +445,7 @@ jobs:
     steps:
       - name: Download the artifacts to release
         uses: actions/download-artifact@v2
-      - run: echo "export PCB2GCODE_VERSION='$(cat version/version.txt)'" >> ~/.bash_profile
+      - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
       - name: Prepare the artifacts
         run: |
           mkdir -p pcb2gcode-{windows,ubuntu,macos}
