@@ -847,12 +847,16 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
                     return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
                         b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
                 });
-            if (best_available_drill->difference(wanted_length, inputFactor)) {
+
+            const auto difference = best_available_drill->difference(wanted_length, inputFactor);
+            if (difference) {
                 wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
                 wanted_drill_bit.unit = "inch";
-                cerr << "Info: bit " << wanted_drill.first << " ("
-                   << old_string << ") is rounded to "
-                   << drill_to_string(wanted_drill_bit) << std::endl;
+                if (abs(*difference) > 1e-6) {
+                    cerr << "Info: bit " << wanted_drill.first << " ("
+                       << old_string << ") is rounded to "
+                       << drill_to_string(wanted_drill_bit) << std::endl;
+                }
             }
         }
     }
