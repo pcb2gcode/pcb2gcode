@@ -101,7 +101,6 @@ jobs:
         rm /usr/local/bin/2to3
         brew upgrade python@3
         brew reinstall -s libtool
-        brew unlink parallel
         brew install boost@1.76 gtkmm moreutils gettext librsvg automake pkg-config
         brew upgrade wget
         hash -r
