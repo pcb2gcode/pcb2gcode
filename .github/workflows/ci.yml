@@ -58,7 +58,7 @@ jobs:
       with:
         msystem: MINGW64
         update: true
-        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-cmake
+        install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-cmake autoconf automake libtool
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v2
     - name: Setup paths and env
