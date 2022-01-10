@@ -165,7 +165,27 @@ string options::help()
 void options::parse_files()
 {
 
+    std::string global_file("~/.millproject");
     std::string file("millproject");
+
+    char const* home = getenv("HOME");
+    if (home or ((home = getenv("USERPROFILE")))) {
+        global_file.replace(0, 1, home);
+    } else {
+        char const *hdrive = getenv("HOMEDRIVE"), *hpath = getenv("HOMEPATH");
+        assert(hdrive);
+        assert(hpath);
+        global_file.replace(0, 1, std::string(hdrive) + hpath);
+    }
+
+    try {
+        std::ifstream stream(global_file.c_str());
+        po::store(po::parse_config_file(stream, instance().cfg_options),
+                  instance().vm);
+    } catch (std::exception& e) {
+      maybe_throw("Error parsing configuration file \"" + global_file + "\": " +
+                  e.what(), ERR_INVALIDPARAMETER);
+    }
 
     try {
         std::ifstream stream(file.c_str());
