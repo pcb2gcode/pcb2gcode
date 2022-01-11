@@ -120,7 +120,8 @@ class options : private boost::noncopyable
 
 public:
     static void parse(int argc, const char** argv);
-    static void parse_files();
+    static void parse_files(const std::vector<std::string>& config_files,
+                            const bool defaulted);
     static void check_parameters();
     static po::variables_map& get_vm()
     {
