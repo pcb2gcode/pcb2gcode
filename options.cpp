@@ -27,6 +27,7 @@
 #include <list>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <boost/variant.hpp>
 #include "units.hpp"
 #include "available_drills.hpp"
@@ -99,8 +100,12 @@ void options::parse(int argc, const char** argv) {
 
     po::notify(instance().vm);
 
-    if( !instance().vm["noconfigfile"].as<bool>() )
-        parse_files();
+    if (!instance().vm["noconfigfile"].as<bool>()) {
+      parse_files(
+          flatten(
+              instance().vm["config"].as<std::vector<CommaSeparated<string>>>()),
+          instance().vm["config"].defaulted());
+    }
 
     if (instance().vm.count("basename")) {
       /*
@@ -162,21 +167,28 @@ string options::help()
 /*
  */
 /******************************************************************************/
-void options::parse_files()
-{
-
-    std::string file("millproject");
-
+void options::parse_files(const std::vector<std::string>& config_files,
+                          const bool defaulted) {
+  // We do it in serve order so that the latter config file in the
+  // list overrides the former.
+  for (const auto& file : boost::adaptors::reverse(config_files)) {
     try {
-        std::ifstream stream(file.c_str());
-        po::store(po::parse_config_file(stream, instance().cfg_options),
-                  instance().vm);
+      std::ifstream stream(file);
+      if (!defaulted && stream.fail()) {
+        // If the user explicitly specified the config files to use
+        // then we will throw an error if any of those files are not
+        // found.
+        maybe_throw("Missing configuration file \"" + file + "\"",
+                    ERR_INVALIDPARAMETER);
+      }
+      po::store(po::parse_config_file(stream, instance().cfg_options),
+                instance().vm);
     } catch (std::exception& e) {
       maybe_throw("Error parsing configuration file \"" + file + "\": " +
                   e.what(), ERR_INVALIDPARAMETER);
     }
-
-    po::notify(instance().vm);
+  }
+  po::notify(instance().vm);
 }
 
 /******************************************************************************/
@@ -188,6 +200,10 @@ options::options()
 
    cli_options.add_options()
        ("noconfigfile", po::value<bool>()->default_value(false)->implicit_value(true), "ignore any configuration file")
+       ("config",
+        po::value<std::vector<CommaSeparated<string>>>()->
+        default_value(std::vector<CommaSeparated<string>>{{"millproject"}})->multitoken(),
+        "list of comma-separated config files")
        ("help,?", "produce help message")
        ("version,V", "show the current software version");
    po::options_description drilling_options("Drilling options, for making holes in the PCB");

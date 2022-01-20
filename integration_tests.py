@@ -107,6 +107,12 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "slots-with-drill-metric",
                   "slots-with-drills-available",
               ]] +
+              [TestCase("split config csv", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
+                        ["--config=millproject,millproject2"], 0)] +
+              [TestCase("split config", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
+                        ["--config=millproject", "--config=millproject2"], 0)] +
+              [TestCase("split config", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
+                        [], 14)] +
               [TestCase("multivibrator_bad_" + x,
                         os.path.join(EXAMPLES_PATH, "multivibrator"),
                         ["--" + x + "=non_existant_file"], 100)
@@ -114,7 +120,8 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase("broken_" + x,
                         os.path.join(BROKEN_EXAMPLES_PATH, x),
                         [], 100)
-               for x in ("invalid-config",)
+               for x in ("invalid-config",
+                         )
               ] +
               [TestCase("version",
                         os.path.join(EXAMPLES_PATH),
@@ -144,6 +151,14 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                         os.path.join(BROKEN_EXAMPLES_PATH, "invalid-config"),
                         ["--ignore-warnings"],
                         0)] +
+              [TestCase("provided config",
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--config=millproject"],
+                        0)] +
+              [TestCase("missing config",
+                        os.path.join(EXAMPLES_PATH, "am-test"),
+                        ["--config=millproject_file_does_not_exist"],
+                        100)] +
               [TestCase("invalid_millfeedirection",
                         os.path.join(EXAMPLES_PATH),
                         ["--mill-feed-direction=invalid_value"],
