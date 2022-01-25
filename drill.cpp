@@ -607,8 +607,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     //preamble
     of << preamble_ext << preamble
        << "S" << left << target->speed << "    (RPM spindle speed.)\n\n"
-       << "G01 F" << target->feed * cfactor << " (Feedrate)\n"
-       << "G00 Z" << target->zchange * cfactor << " (Retract)\n"
+       << "G01 F" << target->feed * cfactor << " (Feedrate)\n";
+    if (zchange_absolute) {
+       of << "G53 ";
+    }
+    of << "G00 Z" << target->zchange * cfactor << " (Retract to tool change height)\n"
        << "T" << (*holes.begin()).first << "\n"
        << "M5        (Spindle stop.)\n"
        << "G04 P" << target->spindown_time << "\n"

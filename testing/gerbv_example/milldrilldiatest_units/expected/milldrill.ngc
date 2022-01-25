@@ -10,7 +10,7 @@ G90       (Absolute coordinates.)
 S2000    (RPM spindle speed.)
 
 G01 F600.00000 (Feedrate)
-G00 Z10.00000 (Retract)
+G00 Z10.00000 (Retract to tool change height)
 T6
 M5        (Spindle stop.)
 G04 P1.00000
