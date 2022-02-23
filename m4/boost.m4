@@ -22,7 +22,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 m4_define([_BOOST_SERIAL], [m4_translit([
-# serial 30
+# serial 37
 ], [#
 ], [])])
 
@@ -664,6 +664,10 @@ LDFLAGS=$boost_filesystem_save_LDFLAGS
 # * The signatures of make_fcontext() and jump_fcontext were changed in 1.56.0
 # * A dependency on boost_thread appears in 1.57.0
 # * The implementation details were moved to boost::context::detail in 1.61.0
+# * 1.61 also introduces execution_context_v2, which is the "lowest common
+#   denominator" for boost::context presence since then.
+# * boost::context::fiber was introduced in 1.69 and execution_context_v2 was
+#   removed in 1.72
 BOOST_DEFUN([Context],
 [boost_context_save_LIBS=$LIBS
  boost_context_save_LDFLAGS=$LDFLAGS
@@ -674,27 +678,55 @@ if test $boost_major_version -ge 157; then
   LDFLAGS="$LDFLAGS $BOOST_THREAD_LDFLAGS"
 fi
 
-if test $boost_major_version -ge 161; then
+if test $boost_major_version -ge 169; then
+
 BOOST_FIND_LIB([context], [$1],
-                [boost/context/continuation.hpp], [[
+                [boost/context/fiber.hpp], [[
 namespace ctx=boost::context;
 int a;
-ctx::continuation source=ctx::callcc(
-    [&a](ctx::continuation && sink){
-        a=0;
+ctx::fiber source{[&a](ctx::fiber&& sink){
+    a=0;
+    int b=1;
+    for(;;){
+        sink=std::move(sink).resume();
+        int next=a+b;
+        a=b;
+        b=next;
+    }
+    return std::move(sink);
+}};
+for (int j=0;j<10;++j) {
+    source=std::move(source).resume();
+}
+return a == 34;
+]], [], [], [$2])
+
+elif test $boost_major_version -ge 161; then
+
+BOOST_FIND_LIB([context], [$1],
+                [boost/context/execution_context_v2.hpp], [[
+namespace ctx=boost::context;
+int res=0;
+int n=35;
+ctx::execution_context<int> source(
+    [n, &res](ctx::execution_context<int> sink, int) mutable {
+        int a=0;
         int b=1;
-        for(;;){
-            sink=sink.resume();
-            int next=a+b;
+        while(n-->0){
+            auto result=sink(a);
+            sink=std::move(std::get<0>(result));
+            auto next=a+b;
             a=b;
             b=next;
         }
-        return std::move(sink);
+        return sink;
     });
-for (int j=0;j<10;++j) {
-    source=source.resume();
+for(int i=0;i<10;++i){
+    auto result=source(i);
+    source=std::move(std::get<0>(result));
+    res = std::get<1>(result);
 }
-return a == 34;
+return res == 34;
 ]], [], [], [$2])
 
 else
@@ -1517,10 +1549,11 @@ AC_CACHE_CHECK([for the flags needed to use pthreads], [boost_cv_pthread_flag],
                            -pthreads -mthreads -lpthread --thread-safe -mt";;
   esac
   # Generate the test file.
-  AC_LANG_CONFTEST([AC_LANG_PROGRAM([#include <pthread.h>],
-    [pthread_t th; pthread_join(th, 0);
-    pthread_attr_init(0); pthread_cleanup_push(0, 0);
-    pthread_create(0,0,0,0); pthread_cleanup_pop(0);])])
+  AC_LANG_CONFTEST([AC_LANG_PROGRAM([#include <pthread.h>
+    void *f(void*){ return 0; }],
+    [pthread_t th; pthread_create(&th,0,f,0); pthread_join(th,0);
+    pthread_attr_t attr; pthread_attr_init(&attr); pthread_cleanup_push(0, 0);
+    pthread_cleanup_pop(0);])])
   for boost_pthread_flag in '' $boost_pthread_flags; do
     boost_pthread_ok=false
 dnl Re-use the test file already generated.
@@ -1582,6 +1615,12 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    "defined __clang__ && __clang_major__ == 13 && __clang_minor__ == 0 @ clang130" \
+    "defined __clang__ && __clang_major__ == 12 && __clang_minor__ == 0 @ clang120" \
+    "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 1 @ clang111" \
+    "defined __clang__ && __clang_major__ == 11 && __clang_minor__ == 0 @ clang110" \
+    "defined __clang__ && __clang_major__ == 10 && __clang_minor__ == 0 @ clang100" \
+    "defined __clang__ && __clang_major__ == 9 && __clang_minor__ == 0 @ clang90" \
     "defined __clang__ && __clang_major__ == 8 && __clang_minor__ == 0 @ clang80" \
     "defined __clang__ && __clang_major__ == 7 && __clang_minor__ == 0 @ clang70" \
     "defined __clang__ && __clang_major__ == 6 && __clang_minor__ == 0 @ clang60" \
@@ -1590,10 +1629,26 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(11, 1) \
+    _BOOST_gcc_test(11, 1) \
+    _BOOST_mingw_test(10, 3) \
+    _BOOST_gcc_test(10, 3) \
+    _BOOST_mingw_test(10, 2) \
+    _BOOST_gcc_test(10, 2) \
+    _BOOST_mingw_test(10, 1) \
+    _BOOST_gcc_test(10, 1) \
+    _BOOST_mingw_test(9, 3) \
+    _BOOST_gcc_test(9, 3) \
+    _BOOST_mingw_test(9, 2) \
+    _BOOST_gcc_test(9, 2) \
     _BOOST_mingw_test(9, 1) \
     _BOOST_gcc_test(9, 1) \
     _BOOST_mingw_test(9, 0) \
     _BOOST_gcc_test(9, 0) \
+    _BOOST_mingw_test(8, 5) \
+    _BOOST_gcc_test(8, 5) \
+    _BOOST_mingw_test(8, 4) \
+    _BOOST_gcc_test(8, 4) \
     _BOOST_mingw_test(8, 3) \
     _BOOST_gcc_test(8, 3) \
     _BOOST_mingw_test(8, 2) \
@@ -1602,6 +1657,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(8, 1) \
     _BOOST_mingw_test(8, 0) \
     _BOOST_gcc_test(8, 0) \
+    _BOOST_mingw_test(7, 4) \
+    _BOOST_gcc_test(7, 4) \
     _BOOST_mingw_test(7, 3) \
     _BOOST_gcc_test(7, 3) \
     _BOOST_mingw_test(7, 2) \
@@ -1610,6 +1667,8 @@ if test x$boost_cv_inc_path != xno; then
     _BOOST_gcc_test(7, 1) \
     _BOOST_mingw_test(7, 0) \
     _BOOST_gcc_test(7, 0) \
+    _BOOST_mingw_test(6, 5) \
+    _BOOST_gcc_test(6, 5) \
     _BOOST_mingw_test(6, 4) \
     _BOOST_gcc_test(6, 4) \
     _BOOST_mingw_test(6, 3) \
