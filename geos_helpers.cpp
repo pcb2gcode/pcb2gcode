@@ -3,7 +3,6 @@
 #include "geos_helpers.hpp"
 #include "geometry.hpp"
 #include <geos/io/WKTReader.h>
-#include <geos/io/WKTReader.inl>
 #include <geos/io/WKTWriter.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Coordinate.h>
