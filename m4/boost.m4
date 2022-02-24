@@ -214,7 +214,7 @@ AC_LANG_POP([C++])dnl
         $2
         ;;#(
       yes)
-        BOOST_CPPFLAGS=foo
+        BOOST_CPPFLAGS=
         ;;#(
       *)
         AC_SUBST([BOOST_CPPFLAGS], ["-I$boost_cv_inc_path"])dnl
