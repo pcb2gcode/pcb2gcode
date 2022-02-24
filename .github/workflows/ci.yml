@@ -15,45 +15,45 @@ jobs:
     name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
+        os: ['ubuntu-latest', 'macos-latest', 'windows-2019']
         boost: ['1_66', 'latest']
         geos: ['3.11.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
-          - os: macos
+          - os: macos-latest
             boost: '1_66'
-          - os: ubuntu
+          - os: ubuntu-latest
             boost: 'latest'
-          - os: macos
+          - os: macos-latest
             compiler: 'g++-8'
-          - os: windows
+          - os: windows-2019
             compiler: 'g++-8'
-          - os: windows
+          - os: windows-2019
             compiler: 'clang++'
-          - os: windows
+          - os: windows-2019
             boost: '1_66'
         include:
-          - os: ubuntu
+          - os: ubuntu-latest
             boost: 1_66
             compiler: g++-8
             geos: '3.11.0'
             code_coverage: "--enable-code-coverage"
-          - os: windows
+          - os: windows-2019
             shell: msys2 {0}
             local_install_path: '/d/a/pcb2gcode/.local'
-          - os: ubuntu
+          - os: ubuntu-latest
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
-          - os: macos
+          - os: macos-latest
             shell: '/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
-    runs-on: ${{ matrix.os }}-latest
+    runs-on: "${{ matrix.os }}"
     defaults:
       run:
         shell: ${{ matrix.shell }}
     steps:
     - name: Setup msys2
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows-2019'
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
@@ -74,11 +74,11 @@ jobs:
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows-2019'
       run: |
         echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
     - name: Ubuntu specific setup
-      if: matrix.os == 'ubuntu'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg
@@ -95,7 +95,7 @@ jobs:
         sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
         sudo update-alternatives --set gcc /usr/bin/gcc-8
     - name: Macos specific setup
-      if: matrix.os == 'macos'
+      if: matrix.os == 'macos-latest'
       run: |
         brew update
         rm /usr/local/bin/2to3
@@ -114,7 +114,7 @@ jobs:
         echo "export PATH='/usr/local/opt/gettext/bin:$PATH'" >> ~/.bash_profile
         rm /usr/local/include/boost
     - name: Macos geos
-      if: matrix.geos != 'none' && matrix.os == 'macos'
+      if: matrix.geos != 'none' && matrix.os == 'macos-latest'
       run:
         brew install geos
     - name: Display information about build environment
@@ -147,7 +147,7 @@ jobs:
     - name: Default don't update cache
       run: echo "export UPDATE_CACHE='false'" >> ~/.bash_profile
     - name: Build and install boost
-      if: matrix.os == 'ubuntu'
+      if: matrix.os == 'ubuntu-latest'
       env:
         BOOST: ${{ matrix.boost }}_0
       run: |
@@ -167,7 +167,7 @@ jobs:
         fi
         echo "export BOOST_ROOT='$(echo ${LOCAL_INSTALL_PATH})'" >> ~/.bash_profile
     - name: Build and install geos
-      if: matrix.os != 'macos' && matrix.geos != 'none'
+      if: matrix.os != 'macos-latest' && matrix.geos != 'none'
       env:
         GEOS: ${{ matrix.geos }}
       run: |
@@ -212,7 +212,7 @@ jobs:
           popd
         fi
     - name: Install valgrind
-      if: matrix.os == 'ubuntu'
+      if: matrix.os == 'ubuntu-latest'
       run: |
         if ! valgrind --version || ! grep -qx "$(git ls-remote https://github.com/eyal0/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
           git ls-remote https://github.com/eyal0/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
@@ -275,7 +275,7 @@ jobs:
             if [[ -f "no-valgrind" ]]; then
               cat no-valgrind;
             fi;
-            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
+            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu-latest" ]]; then
               time ../../../pcb2gcode || exit;
             else
               time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes -- ../../../pcb2gcode || exit;
@@ -289,13 +289,13 @@ jobs:
       continue-on-error: true
       run: lcov --directory . -z
     - name: Run unit tests
-      if: matrix.os != 'ubuntu'
+      if: matrix.os != 'ubuntu-latest'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
     - name: Run unit tests with valgrind
-      if: matrix.os == 'ubuntu'
+      if: matrix.os == 'ubuntu-latest'
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
@@ -319,7 +319,7 @@ jobs:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-lcov.info
     - name: Prepare build for upload for Ubuntu and Macos
-      if: matrix.os != 'windows'
+      if: matrix.os != 'windows-2019'
       run: |
         mkdir pcb2gcode-$(./pcb2gcode --version | head -1)
         mkdir pcb2gcode-$(./pcb2gcode --version | head -1)/.libs
@@ -347,7 +347,7 @@ jobs:
         tar cvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar pcb2gcode-$(./pcb2gcode --version | head -1)
         gzip pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
     - name: Prepare build for upload for Windows
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows-2019'
       run: |
         mkdir pcb2gcode-$(./pcb2gcode --version | head -1)
         pushd pcb2gcode-$(./pcb2gcode --version | head -1)
@@ -398,13 +398,13 @@ jobs:
       env:
         GEOS: ${{ matrix.geos }}
     - name: Upload build for Ubuntu and Macos
-      if: matrix.os != 'windows'
+      if: matrix.os != 'windows-2019'
       uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar.gz
     - name: Upload build for Windows
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows-2019'
       uses: actions/upload-artifact@v2
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
