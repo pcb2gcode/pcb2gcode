@@ -77,7 +77,7 @@ jobs:
       if: matrix.os == 'windows'
       run: |
         echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
-        echo "export BOOST_ROOT='/mingw64/include/boost'" >> ~/.bash_profile
+        echo "export BOOST_ROOT='/mingw64/include'" >> ~/.bash_profile
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
