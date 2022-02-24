@@ -6,9 +6,7 @@
 #include <geos/io/WKTWriter.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Coordinate.h>
-#include <geos/geom/Coordinate.inl>
 #include <geos/geom/GeometryFactory.h>
-#include <geos/geom/GeometryFactory.inl>
 #include <boost/pointer_cast.hpp>
 
 linestring_type_fp from_geos(const geos::geom::LineString* ls) {
