@@ -113,10 +113,6 @@ jobs:
         echo "export CPPFLAGS_gerbv='-DQUARTZ'" >> ~/.bash_profile
         echo "export PATH='/usr/local/opt/gettext/bin:$PATH'" >> ~/.bash_profile
         rm /usr/local/include/boost
-    - name: Macos geos
-      if: matrix.geos != 'none' && matrix.os == 'macos'
-      run:
-        brew install geos
     - name: Display information about build environment
       run: |
         cat ~/.bash_profile
@@ -167,9 +163,7 @@ jobs:
         fi
         echo "export BOOST_ROOT='$(echo ${LOCAL_INSTALL_PATH})'" >> ~/.bash_profile
     - name: Build and install geos
-      if: matrix.os != 'macos' && matrix.geos != 'none'
-      env:
-        GEOS: ${{ matrix.geos }}
+      if: matrix.geos != 'none'
       run: |
         if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
           git ls-remote https://github.com/libgeos/geos.git heads/main > ${LOCAL_INSTALL_PATH}/bin/geos.version
