@@ -50,7 +50,7 @@ BOOST_FORMAT
 BOOST_OPTIONAL
 BOOST_VARIANT
 
-AC_SUBST([BOOST_CPPFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(BOOST_CPPFLAGS))'])
+AC_SUBST([BOOST_CPPFLAGS_SYSTEM], ['$(subst -I,-I,$(BOOST_CPPFLAGS))'])
 
 PKG_CHECK_MODULES([glibmm], [glibmm-2.4 >= 2.8])
 PKG_CHECK_MODULES([gdkmm], [gdkmm-2.4 >= 2.8])
@@ -75,10 +75,10 @@ AS_IF([test "x$HAVE_GEOS" = "xyes"],
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
       [AC_SUBST(GEOS_EXTRA, ["-DUSE_UNSTABLE_GEOS_CPP_API -DGEOS_VERSION=\\\"\$(GEOS_VERSION)\\\""])])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
-      [AC_SUBST(GEOS_CFLAGS_SYSTEM, ['$(subst -I,-isystem ,$(GEOS_CFLAGS))'])])
+      [AC_SUBST(GEOS_CFLAGS_SYSTEM, ['$(subst -I,-I,$(GEOS_CFLAGS))'])])
 
 
-AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-isystem ,$(gdkmm_CFLAGS))'])
+AC_SUBST([gdkmm_CFLAGS_SYSTEM], ['$(subst -I,-I,$(gdkmm_CFLAGS))'])
 
 AC_SUBST(gerbv_LIBS)
 AC_SUBST(gerbv_CFLAGS)
