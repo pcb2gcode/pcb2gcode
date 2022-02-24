@@ -253,7 +253,7 @@ jobs:
       run: autoreconf -fvi
     - name: Configure pcb2gcode
       run: >-
-        ./configure pcb2gcode_CPPFLAGS_EXTRA=-Werror
+        ./configure
         --disable-dependency-tracking
         --disable-silent-rules
         --enable-static-boost
