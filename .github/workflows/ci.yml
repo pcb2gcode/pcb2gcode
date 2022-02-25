@@ -20,7 +20,6 @@ jobs:
         geos: ['3.11.0', 'none']
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
-          - os: macos # Temporarily disable until fixed
           - os: macos
             boost: '1_66'
           - os: ubuntu
@@ -45,9 +44,9 @@ jobs:
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
-          #- os: macos
-          #  shell: '/bin/bash -l -e -o pipefail {0}'
-          #  local_install_path: '$HOME/.local'
+          - os: macos
+            shell: '/bin/bash -l -e -o pipefail {0}'
+            local_install_path: '$HOME/.local'
     runs-on: ${{ matrix.os }}-latest
     defaults:
       run:
