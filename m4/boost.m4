@@ -1629,6 +1629,8 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(11, 2) \
+    _BOOST_gcc_test(11, 2) \
     _BOOST_mingw_test(11, 1) \
     _BOOST_gcc_test(11, 1) \
     _BOOST_mingw_test(10, 3) \
