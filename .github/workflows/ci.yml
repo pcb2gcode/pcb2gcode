@@ -170,10 +170,9 @@ jobs:
         echo "export BOOST_ROOT='$(echo ${LOCAL_INSTALL_PATH})'" >> ~/.bash_profile
     - name: Build and install geos
       if: matrix.os != 'macos' && matrix.geos != 'none'
-      env:
-        GEOS: ${{ matrix.geos }}
       run: |
-        if [ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]; then
+        if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
+          git ls-remote https://github.com/libgeos/geos.git heads/main > ${LOCAL_INSTALL_PATH}/bin/geos.version
           echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
           pushd ~
           git clone --depth 1 --branch main https://github.com/libgeos/geos.git
