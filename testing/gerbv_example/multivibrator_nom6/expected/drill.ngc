@@ -1,0 +1,95 @@
+( pcb2gcode 2.4.0 )
+( Software-independent Gcode )
+
+( This file uses 2 drill bit sizes. )
+( Bit sizes: [0.0314961inch] [0.0394094inch] )
+
+G94       (Inches per minute feed rate.)
+G20       (Units == INCHES.)
+G91.1     (Incremental arc distance mode.)
+G90       (Absolute coordinates.)
+G00 S12000     (RPM spindle speed.)
+
+G00 Z1.00000 (Retract)
+T1
+M5      (Spindle stop.)
+G04 P1.00000
+(MSG, Change tool bit to drill size 0.0314961inch)
+M0      (Temporary machine stop.)
+M3      (Spindle on clockwise.)
+G0 Z0.08000
+G04 P1.00000
+
+G81 R0.08000 Z-0.06299 F30.00000 X-3.40000 Y-2.85000
+X-3.49843 Y-2.85000
+X-3.40000 Y-3.17126
+X-3.40000 Y-3.25000
+X-3.40000 Y-3.32874
+X-4.45157 Y-2.85000
+X-4.55000 Y-2.85000
+X-4.50000 Y-3.17126
+X-4.50000 Y-3.25000
+X-4.50000 Y-3.32874
+G80
+
+G00 Z1.00000 (Retract)
+T2
+M5      (Spindle stop.)
+G04 P1.00000
+(MSG, Change tool bit to drill size 0.0394094inch)
+M0      (Temporary machine stop.)
+M3      (Spindle on clockwise.)
+G0 Z0.08000
+G04 P1.00000
+
+G81 R0.08000 Z-0.06299 F30.00000 X-3.25000 Y-2.95000
+X-3.25000 Y-2.55000
+X-3.65000 Y-2.55000
+X-3.81500 Y-2.66535
+X-3.81500 Y-2.58665
+X-3.81500 Y-2.62163
+X-3.81500 Y-2.63912
+X-3.81500 Y-2.60414
+X-3.81500 Y-2.64787
+X-3.81500 Y-2.63038
+X-3.81500 Y-2.61289
+X-3.81500 Y-2.59540
+X-3.81500 Y-2.65661
+X-3.96067 Y-2.50791
+X-4.03933 Y-2.50791
+X-4.00437 Y-2.50791
+X-3.98689 Y-2.50791
+X-4.02185 Y-2.50791
+X-3.97815 Y-2.50791
+X-3.99563 Y-2.50791
+X-4.01311 Y-2.50791
+X-4.03059 Y-2.50791
+X-3.96941 Y-2.50791
+X-4.03933 Y-2.74409
+X-3.96067 Y-2.74409
+X-3.99563 Y-2.74409
+X-4.01311 Y-2.74409
+X-3.97815 Y-2.74409
+X-4.02185 Y-2.74409
+X-4.00437 Y-2.74409
+X-3.98689 Y-2.74409
+X-3.96941 Y-2.74409
+X-4.03059 Y-2.74409
+X-3.65000 Y-2.95000
+X-3.75000 Y-3.30000
+X-3.85000 Y-3.30000
+X-4.05000 Y-3.30000
+X-4.15000 Y-3.30000
+X-4.30000 Y-2.95000
+X-4.70000 Y-2.95000
+X-4.30000 Y-2.55000
+X-4.70000 Y-2.55000
+G80
+
+G00 Z1.000 ( All done -- retract )
+
+M5      (Spindle off.)
+G04 P1.000000
+M9      (Coolant off.)
+M2      (Program end.)
+
