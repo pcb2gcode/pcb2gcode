@@ -245,7 +245,7 @@ linestring_type_fp ExcellonProcessor::line_to_holes(const linestring_type_fp& li
 /******************************************************************************/
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
                                    shared_ptr<Driller> driller, bool onedrill,
-                                   bool nog81, bool zchange_absolute) {
+                                   bool nog81, bool nom6, bool zchange_absolute) {
     stringstream zchange;
 
     cout << "Exporting drill... ";
@@ -311,7 +311,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
            << "G04 P" << driller->spindown_time
            << "\n(MSG, Change tool bit to drill size "
            << drill_to_string(bit) << ")\n"
-           << "M6      (Tool change.)\n"
+           << (nom6?"":"M6      (Tool change.)\n")
            << "M0      (Temporary machine stop.)\n"
            << "M3      (Spindle on clockwise.)\n"
            << "G0 Z" << driller->zsafe * cfactor << "\n"

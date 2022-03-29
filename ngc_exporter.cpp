@@ -77,6 +77,8 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     bMetricinput = options["metric"].as<bool>();      //set flag for metric input
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
     bZchangeG53 = options["zchange-absolute"].as<bool>();
+    nom6 = options["nom6"].as<bool>();
+    
     string outputdir = options["output-dir"].as<string>();
     
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
@@ -336,7 +338,7 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       } else {
         of << tool_diameter << "in)" << endl;
       }
-      of << "M6      (Tool change.)" << endl
+      of << (nom6?"":"M6      (Tool change.)\n")
          << "M0      (Temporary machine stop.)" << endl
          << "M3 ( Spindle on clockwise. )" << endl
          << "G04 P" << mill->spinup_time << " (Wait for spindle to get up to speed)" << endl;

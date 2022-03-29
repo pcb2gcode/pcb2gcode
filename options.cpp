@@ -228,6 +228,7 @@ options::options()
        ("drill-output", po::value<string>()->default_value("drill.ngc"), "output file for drilling")
        ("nog91-1", po::value<bool>()->default_value(false)->implicit_value(true), "do not explicitly set G91.1 in drill headers")
        ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
+       ("nom6", po::value<bool>()->default_value(false)->implicit_value(true), "do not emit M6 on tool changes")
        ("milldrill-output", po::value<string>()->default_value("milldrill.ngc"), "output file for milldrilling");
    cfg_options.add(drilling_options);
 

@@ -65,6 +65,7 @@ protected:
     bool bMetricinput;      //if true, input parameters are in metric units
     bool bMetricoutput;     //if true, metric g-code output
     bool bZchangeG53;
+    bool nom6; // missing m6
 
     bool bTile;
 
