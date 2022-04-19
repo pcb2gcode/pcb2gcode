@@ -77,7 +77,7 @@ jobs:
     - name: Windows specific setup
       if: matrix.os == 'windows'
       run: |
-        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
+        echo "export NUM_CPUS='$((`nproc --all`))'" >> ~/.bash_profile
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
