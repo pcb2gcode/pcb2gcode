@@ -1,0 +1,29 @@
+[DESCRIPTION]
+This manual page documents briefly the \fBpcb2gcode\fP command.
+.PP
+\fBpcb2gcode\fP is a program that takes the files typically produced by PCB
+(printed circuit board) designing tools, in particular Gerber (RS-274X) and
+Excellon (an RS-274C variant) files as parsed by \fBgerbv\fP, and produces
+files that can be used to control a CNC (computer numerical control) milling
+machine. These files are in G code format (RS-274D/NGC) that can be read, for
+example, by the linuxcnc EMC2 system.
+
+When these files are executed, an engraving bit is used to remove the surface
+from a copper covered circuit board, thus creating isolated areas. In another
+step, holes are drilled into the board at the appropriate positions, and it can
+be cut out in another step. (For each step, a separate output file is created.)
+
+These programs follow the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of options is included below.
+
+Instead of passing all options on the command line, nearly all options can be
+stored in a file named \fImillproject\fP. There, options are given one per line
+as \fIoption\fP=\fIvalue\fP pairs (without the two dashes), and can be
+separated by blank lines and commented (everything after a `#` character is
+treated as a comment). Options that don't take an argument (like
+\fB\-\-metric\fP) are entered as \fIoption\fP=true or \fIoption\fP=1 there.
+
+Unless configured otherwise, numeric values are in units of inch and
+inch/minute. When the \fB\-\-metric\fP option is given, they are in mm and
+mm/minute.
