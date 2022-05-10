@@ -571,7 +571,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
 
         if (!vm.count("zchange")) {
           options::maybe_throw("Error: Drill bit changing height (--zchange) not specified.", ERR_NOZCHANGE);
-        } else if (vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
+        } else if (!vm["zchange-absolute"].as<bool>() && vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
           options::maybe_throw("Error: The safety height --zsafe is lower than the tool "
                                "change height --zchange!", ERR_ZSAFELOWERZCHANGE);
         }

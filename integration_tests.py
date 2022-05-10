@@ -87,6 +87,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator_pre_post_milling_gcode",
                   "multivibrator_xy_offset",
                   "multivibrator_xy_offset_zero_start",
+                  "multivibrator-zchange-absolute",
                   "multi_outline",
                   "null_drill",
                   "overlapping_edge_cuts",
@@ -163,7 +164,11 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               [TestCase("invalid_millfeedirection",
                         os.path.join(EXAMPLES_PATH),
                         ["--mill-feed-direction=invalid_value"],
-                        101)]
+                        101)] +
+              [TestCase("zchange_below_zdrill",
+                        os.path.join(EXAMPLES_PATH, "multivibrator-zchange-absolute"),
+                        ["--zchange-absolute=false"],
+                        19)]
 )
 
 def colored(text, **color):
