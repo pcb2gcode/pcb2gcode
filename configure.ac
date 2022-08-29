@@ -93,7 +93,8 @@ AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.
 # Ignore GTK 2.0 warnings for linux and macos and windows
 AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/home/runner/.local/include,-isystem /home/runner/.local/include,$(gerbv_CFLAGS))'])
 AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include,-I/usr/local/Cellar/gtk+/2.24.33/include,$(gerbv_CFLAGS_SYSTEM1))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/pcb2gcode/.local/include,-isystem D:/a/pcb2gcode/.local/include,$(gerbv_CFLAGS_SYSTEM2))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM3], ['$(subst -I/usr/include/gtk-2.0,-isystem /usr/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM2))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/pcb2gcode/.local/include,-isystem D:/a/pcb2gcode/.local/include,$(gerbv_CFLAGS_SYSTEM3))'])
 
 # Checks for header files.
 AC_HEADER_STDC
