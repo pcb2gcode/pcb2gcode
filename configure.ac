@@ -69,9 +69,29 @@ PKG_CHECK_MODULES(RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS, librsvg-2.0 >= 2.52,
 
 # Optional GEOS, as a faster and more reliable replacement for Boost geometry.
 GEOS_INIT([3.8.1])
+
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
-      [AC_MSG_NOTICE([Found geos, we'll use it instead of some of the boost geometry for greater accuracy and speed.])],
-      [AC_MSG_NOTICE([Didn't find geos, we'll use boost geometry for all geometry functions.  If you see inaccuracies or you want faster run times, try geos.])])
+      [AC_MSG_NOTICE([Found geos, is it geos++?])],
+      [AC_MSG_NOTICE([Didn't find geos.])])
+
+AC_LANG_CPLUSPLUS
+if test "x$HAVE_GEOS" = "xyes"
+then
+  saved_ldflags="${LDFLAGS}"
+  saved_cppflags="${CPPFLAGS}"
+  LDFLAGS="${LDFLAGS} ${GEOS_CC_LIBS}"
+  CPPFLAGS="${CPPFLAGS} ${GEOS_CFLAGS}"
+  AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([#include <geos/geom/Geometry.h>], [geos::geom::geosversion])],
+    [HAVE_GEOS="yes"],
+    [HAVE_GEOS="no"] [GEOS_CC_LIBS=""] [GEOS_CFLAGS=""])
+  LDFLAGS="${saved_ldflags}"
+  CPPFLAGS="${saved_cppflags}"
+fi
+
+AS_IF([test "x$HAVE_GEOS" = "xyes"],
+      [AC_MSG_NOTICE([Found geos++, we'll use it instead of some of the boost geometry for greater accuracy and speed.])],
+      [AC_MSG_NOTICE([Didn't find geos++, we'll use boost geometry for all geometry functions.  If you see inaccuracies or you want faster run times, try geos.])])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
       [AC_SUBST(GEOS_EXTRA, ["-DUSE_UNSTABLE_GEOS_CPP_API -DGEOS_VERSION=\\\"\$(GEOS_VERSION)\\\""])])
 AS_IF([test "x$HAVE_GEOS" = "xyes"],
@@ -87,13 +107,14 @@ AC_ARG_VAR([pcb2gcode_LDFLAGS_EXTRA], [Additional flags when linking pcb2gcode])
 
 # GERBV_INTERPOLATION_LINEARx10 isn't available in older gerbv.h's, but
 # we want to use the new symbol
-CFLAGS+=" ${gerbv_CFLAGS}"
+CPPFLAGS+=" ${gerbv_CFLAGS}"
 AX_C_COMPILE_VALUE(GERBV_INTERPOLATION_LINEARx10,NEW_LINEARX10,[#include "gerbv.h"])
 
 # Ignore GTK 2.0 warnings for linux and macos and windows
 AC_SUBST([gerbv_CFLAGS_SYSTEM1], ['$(subst -I/home/runner/.local/include,-isystem /home/runner/.local/include,$(gerbv_CFLAGS))'])
 AC_SUBST([gerbv_CFLAGS_SYSTEM2], ['$(subst -I/usr/local/Cellar/gtk+/2.24.33/include,-I/usr/local/Cellar/gtk+/2.24.33/include,$(gerbv_CFLAGS_SYSTEM1))'])
-AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/pcb2gcode/.local/include,-isystem D:/a/pcb2gcode/.local/include,$(gerbv_CFLAGS_SYSTEM2))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM3], ['$(subst -I/usr/include/gtk-2.0,-isystem /usr/include/gtk-2.0,$(gerbv_CFLAGS_SYSTEM2))'])
+AC_SUBST([gerbv_CFLAGS_SYSTEM], ['$(subst -ID:/a/pcb2gcode/.local/include,-isystem D:/a/pcb2gcode/.local/include,$(gerbv_CFLAGS_SYSTEM3))'])
 
 # Checks for header files.
 AC_HEADER_STDC
