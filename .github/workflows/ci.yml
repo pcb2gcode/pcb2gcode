@@ -21,6 +21,7 @@ jobs:
         compiler: ['g++', 'g++-8', 'clang++']
         exclude:
           - os: macos # Temporarily disable until fixed
+          - os: windows # Temporarily disable until fixed
           - os: macos
             boost: '1_66'
           - os: ubuntu
@@ -39,9 +40,9 @@ jobs:
             compiler: g++-8
             geos: '3.11.0'
             code_coverage: "--enable-code-coverage"
-          - os: windows
-            shell: msys2 {0}
-            local_install_path: '/d/a/pcb2gcode/.local'
+          #- os: windows
+          #  shell: msys2 {0}
+          #  local_install_path: '/d/a/pcb2gcode/.local'
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
