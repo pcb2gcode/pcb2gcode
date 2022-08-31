@@ -446,18 +446,24 @@ jobs:
       - name: Download the artifacts to release
         uses: actions/download-artifact@v2
       - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
-      - name: Prepare the artifacts
+      - name: Prepare the windows artifacts
+        if: matrix.os == 'windows'
         run: |
-          mkdir -p pcb2gcode-{windows,ubuntu,macos}
-
+          mkdir -p pcb2gcode-windows
           mv pcb2gcode-windows_latest_gplusplus_3.11.0/pcb2gcode-windows_latest_gplusplus_3.11.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           pushd pcb2gcode-windows
           tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
           zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
           popd
-
+      - name: Prepare the ubuntu artifacts
+        if: matrix.os == 'ubuntu'
+        run: |
+          mkdir -p pcb2gcode-ubuntu
           mv pcb2gcode-ubuntu_1_66_gplusplus_3.11.0/pcb2gcode-ubuntu_1_66_gplusplus_3.11.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
-
+          mkdir -p pcb2gcode-{windows,ubuntu,macos}
+      - name: Prepare the macos artifacts
+        if: matrix.os == 'macos'
+        run: |
           mv pcb2gcode-macos_latest_gplusplus_3.11.0/pcb2gcode-macos_latest_gplusplus_3.11.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -466,6 +472,4 @@ jobs:
           prerelease: ${{ startsWith(github.ref, 'refs/heads') }}
           title: ${{ startsWith(github.ref, 'refs/heads') && 'Development Build' || null }}
           files: |
-            pcb2gcode-windows/pcb2gcode-windows-${{ env.PCB2GCODE_VERSION }}.zip
-            pcb2gcode-ubuntu/pcb2gcode-ubuntu-${{ env.PCB2GCODE_VERSION }}.tar.gz
-            pcb2gcode-macos/pcb2gcode-macos-${{ env.PCB2GCODE_VERSION }}.tar.gz
+            pcb2gcode-*/pcb2gcode-*-${{ env.PCB2GCODE_VERSION }}.*
