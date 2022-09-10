@@ -14,4 +14,4 @@ cutter-diameter=2.0
 zcut=-1.6500
 min-milldrill-hole-diameter=1.2
 milldrill-diameter=1.0mm
-drills-available=0.4,0.6,0.8,1.0,1.2
+drills-available=0.45,0.6
