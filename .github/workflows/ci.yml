@@ -447,24 +447,27 @@ jobs:
         uses: actions/download-artifact@v2
       - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
       - name: Prepare the windows artifacts
-        if: matrix.os == 'windows'
         run: |
-          mkdir -p pcb2gcode-windows
-          mv pcb2gcode-windows_latest_gplusplus_3.11.0/pcb2gcode-windows_latest_gplusplus_3.11.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
-          pushd pcb2gcode-windows
-          tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
-          zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
-          popd
+          if [[ -f pcb2gcode-windows_latest_gplusplus_3.11.0/pcb2gcode-windows_latest_gplusplus_3.11.0.tar ]]; then
+            mkdir -p pcb2gcode-windows
+            mv pcb2gcode-windows_latest_gplusplus_3.11.0/pcb2gcode-windows_latest_gplusplus_3.11.0.tar pcb2gcode-windows/pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+            pushd pcb2gcode-windows
+            tar xvf pcb2gcode-windows-${PCB2GCODE_VERSION}.tar
+            zip -r pcb2gcode-windows-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
+            popd
+          fi
       - name: Prepare the ubuntu artifacts
-        if: matrix.os == 'ubuntu'
         run: |
-          mkdir -p pcb2gcode-ubuntu
-          mv pcb2gcode-ubuntu_1_66_gplusplus_3.11.0/pcb2gcode-ubuntu_1_66_gplusplus_3.11.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
-          mkdir -p pcb2gcode-{windows,ubuntu,macos}
+          if [[ -f pcb2gcode-ubuntu_1_66_gplusplus_3.11.0/pcb2gcode-ubuntu_1_66_gplusplus_3.11.0.tar.gz ]]; then
+            mkdir -p pcb2gcode-ubuntu
+            mv pcb2gcode-ubuntu_1_66_gplusplus_3.11.0/pcb2gcode-ubuntu_1_66_gplusplus_3.11.0.tar.gz pcb2gcode-ubuntu/pcb2gcode-ubuntu-${PCB2GCODE_VERSION}.tar.gz
+            mkdir -p pcb2gcode-{windows,ubuntu,macos}
+          fi
       - name: Prepare the macos artifacts
-        if: matrix.os == 'macos'
         run: |
-          mv pcb2gcode-macos_latest_gplusplus_3.11.0/pcb2gcode-macos_latest_gplusplus_3.11.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          if [[ -f pcb2gcode-macos_latest_gplusplus_3.11.0/pcb2gcode-macos_latest_gplusplus_3.11.0.tar.gz ]]; then
+            mv pcb2gcode-macos_latest_gplusplus_3.11.0/pcb2gcode-macos_latest_gplusplus_3.11.0.tar.gz pcb2gcode-macos/pcb2gcode-macos-${PCB2GCODE_VERSION}.tar.gz
+          fi
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
