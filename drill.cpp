@@ -844,6 +844,11 @@ map<int, drillbit> ExcellonProcessor::optimize_bits() {
       auto& wanted_drill_bit = wanted_drill.second;
       auto old_string = drill_to_string(wanted_drill_bit);
       const Length& wanted_length = wanted_drill_bit.as_length();
+      if (min_milldrill_diameter &&
+          wanted_length.asInch(inputFactor) >= min_milldrill_diameter->asInch(inputFactor)) {
+        // We're not going to drill this one anyway so don't adjust it.
+        continue;
+      }
       auto best_available_drill = std::min_element(
           available_drills.begin(), available_drills.end(),
           [&](AvailableDrill a, AvailableDrill b) {

@@ -9,12 +9,7 @@ xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
 <circle cx="39.3701" cy="47.2441" r="17.7165" style=""/>
 <circle cx="39.3701" cy="247.244" r="17.7165" style=""/>
-<circle cx="39.3701" cy="847.244" r="23.622" style=""/>
-<circle cx="39.3701" cy="647.244" r="23.622" style=""/>
 <circle cx="39.3701" cy="447.244" r="23.622" style=""/>
-<circle cx="839.37" cy="47.2441" r="23.622" style=""/>
-<circle cx="839.37" cy="247.244" r="23.622" style=""/>
-<circle cx="839.37" cy="447.244" r="23.622" style=""/>
-<circle cx="839.37" cy="647.244" r="23.622" style=""/>
-<circle cx="839.37" cy="847.244" r="23.622" style=""/>
+<circle cx="39.3701" cy="647.244" r="23.622" style=""/>
+<circle cx="39.3701" cy="847.244" r="23.622" style=""/>
 </svg>
