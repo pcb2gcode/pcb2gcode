@@ -837,33 +837,38 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
 /******************************************************************************/
 map<int, drillbit> ExcellonProcessor::optimize_bits() {
   map<int, drillbit> bits(parsed_bits);
-    // If there is a list of available bits, round the holes to the nearest
-    // available bit.
-    if (available_drills.size() > 0) {
-        for (auto& wanted_drill : bits) {
-            auto& wanted_drill_bit = wanted_drill.second;
-            auto old_string = drill_to_string(wanted_drill_bit);
-            const Length& wanted_length = wanted_drill_bit.as_length();
-            auto best_available_drill = std::min_element(
-                available_drills.begin(), available_drills.end(),
-                [&](AvailableDrill a, AvailableDrill b) {
-                    return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
-                        b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
-                });
+  // If there is a list of available bits, round the holes to the nearest
+  // available bit.
+  if (available_drills.size() > 0) {
+    for (auto& wanted_drill : bits) {
+      auto& wanted_drill_bit = wanted_drill.second;
+      auto old_string = drill_to_string(wanted_drill_bit);
+      const Length& wanted_length = wanted_drill_bit.as_length();
+      if (min_milldrill_diameter &&
+          wanted_length.asInch(inputFactor) >= min_milldrill_diameter->asInch(inputFactor)) {
+        // We're not going to drill this one anyway so don't adjust it.
+        continue;
+      }
+      auto best_available_drill = std::min_element(
+          available_drills.begin(), available_drills.end(),
+          [&](AvailableDrill a, AvailableDrill b) {
+            return a.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity()) <
+                b.difference(wanted_length, inputFactor).value_or(std::numeric_limits<double>::infinity());
+          });
 
-            const auto difference = best_available_drill->difference(wanted_length, inputFactor);
-            if (difference) {
-                wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
-                wanted_drill_bit.unit = "inch";
-                if (abs(*difference) > 1e-6) {
-                    cerr << "Info: bit " << wanted_drill.first << " ("
-                       << old_string << ") is rounded to "
-                       << drill_to_string(wanted_drill_bit) << std::endl;
-                }
-            }
+      const auto difference = best_available_drill->difference(wanted_length, inputFactor);
+      if (difference) {
+        wanted_drill_bit.diameter = best_available_drill->diameter().asInch(inputFactor);
+        wanted_drill_bit.unit = "inch";
+        if (abs(*difference) > 1e-6) {
+          cerr << "Info: bit " << wanted_drill.first << " ("
+               << old_string << ") is rounded to "
+               << drill_to_string(wanted_drill_bit) << std::endl;
         }
+      }
     }
-    return bits;
+  }
+  return bits;
 }
 
 /******************************************************************************/
