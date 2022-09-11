@@ -145,14 +145,14 @@ jobs:
           ${{ steps.sanitize-key.outputs.key }}-
         update-env-variable: "UPDATE_CACHE"
     - name: Default don't update cache
-      run: echo "export UPDATE_CACHE='false'" >> ~/.bash_profile
+      run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
     - name: Build and install boost
       if: matrix.os == 'ubuntu'
       env:
         BOOST: ${{ matrix.boost }}_0
       run: |
         if [ ! -d "${LOCAL_INSTALL_PATH}/include/boost" ]; then
-          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           for i in {1..5}; do
             wget -q -T20 -t1 -O "boost_${BOOST}.tar.bz2" "https://github.com/pcb2gcode/pcb2gcode/releases/download/v2.0.0/boost_${BOOST}.tar.bz2" && break;
@@ -171,7 +171,7 @@ jobs:
       run: |
         if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
           git ls-remote https://github.com/libgeos/geos.git heads/main > ${LOCAL_INSTALL_PATH}/bin/geos.version
-          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth 1 --branch main https://github.com/libgeos/geos.git
           pushd geos
@@ -198,7 +198,7 @@ jobs:
       run: |
         if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
           git ls-remote https://github.com/eyal0/gerbv.git heads/master > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
-          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth=1 --branch=master https://github.com/eyal0/gerbv.git
           pushd gerbv
@@ -214,7 +214,7 @@ jobs:
       run: |
         if ! valgrind --version || ! grep -qx "$(git ls-remote https://github.com/eyal0/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
           git ls-remote https://github.com/eyal0/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
-          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth=1 --branch=master https://github.com/eyal0/valgrind.git
           pushd valgrind
@@ -228,7 +228,7 @@ jobs:
     - name: Install parallel
       run: |
         if ! parallel --version; then
-          echo "export UPDATE_CACHE='true'" >> ~/.bash_profile
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           for i in {1..5}; do
             wget -q -T5 -t1 -O "parallel-latest.tar.bz2" 'https://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2' && break;
