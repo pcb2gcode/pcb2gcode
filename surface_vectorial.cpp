@@ -840,6 +840,7 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         if (polygon_index > 0) {
           spike_offset = diameter - overlap;
           spikes_keep_out = boost::make_optional(multi_polygon_type_fp{polygons[polygon_index - 1]});
+          spikes_keep_in = boost::make_optional(multi_polygon_type_fp{current_voronoi});
         } else {
           spike_offset = 0;
         }
