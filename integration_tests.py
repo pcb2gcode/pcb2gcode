@@ -91,6 +91,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multi_outline",
                   "null_drill",
                   "overlapping_edge_cuts",
+                  "project-controller",
                   "Rotary-Encoder-Breakout",
                   "round_pcb_3",
                   "round_pcb_4",
