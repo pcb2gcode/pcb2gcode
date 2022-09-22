@@ -196,11 +196,12 @@ jobs:
         lcov --version
     - name: Install gerbv
       run: |
-        if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/master)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
-          git ls-remote https://github.com/eyal0/gerbv.git heads/master > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
+        echo "gerbv/main commit sha is $(git ls-remote https://github.com/gerbv/gerbv.git heads/main)"
+        if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/gerbv/gerbv.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
+          git ls-remote https://github.com/gerbv/gerbv.git heads/main > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 --branch=master https://github.com/eyal0/gerbv.git
+          git clone --depth=1 --branch=main https://github.com/gerbv/gerbv.git
           pushd gerbv
           sh autogen.sh
           ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${LOCAL_INSTALL_PATH}
