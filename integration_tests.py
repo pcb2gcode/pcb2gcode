@@ -112,6 +112,9 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               ]] +
               [TestCase("split config csv", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
                         ["--config=millproject,millproject2"], 0)] +
+              [TestCase("bad output dir " + x, os.path.join(EXAMPLES_PATH, x),
+                        ["--output-dir=/tmp/nonexistantpath"], 1)
+               for x in ("multivibrator", "slots-with-drill", "slots-milldrill")] +
               [TestCase("split config", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
                         ["--config=millproject", "--config=millproject2"], 0)] +
               [TestCase("split config", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
@@ -219,7 +222,10 @@ class IntegrationTests(unittest2.TestCase):
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
     try:
-      cmd = [pcb2gcode, "--output-dir", actual_output_path] + (args or [])
+      cmd = [pcb2gcode]
+      if not any("output-dir" in x for x in args):
+        cmd += ["--output-dir", actual_output_path]
+      cmd += args or []
       print("Running {}".format(" ".join("'{}'".format(x) for x in cmd)))
       proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
       result = proc.communicate()
