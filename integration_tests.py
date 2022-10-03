@@ -112,6 +112,8 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
               ]] +
               [TestCase("split config csv", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
                         ["--config=millproject,millproject2"], 0)] +
+              [TestCase("bad output dir", os.path.join(BROKEN_EXAMPLES_PATH, "split_config"),
+                        ["--config=millproject,millproject2", "--output-dir=/tmp/nonexistantpath"], -6)] +
               [TestCase("bad output dir " + x, os.path.join(EXAMPLES_PATH, x),
                         ["--output-dir=/tmp/nonexistantpath"], 1)
                for x in ("multivibrator", "slots-with-drill", "slots-milldrill")] +
