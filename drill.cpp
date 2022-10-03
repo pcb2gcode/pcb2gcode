@@ -266,8 +266,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     std::ofstream of;
     if (of_name && holes.size() > 0) {
         of.open(build_filename(of_dir, *of_name));
-    } else {
-        of.open("");
     }
     //write header to .ngc file
     for (string s : header)
@@ -575,8 +573,6 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     std::ofstream of;
     if (of_name && holes.size() > 0) {
         of.open(build_filename(of_dir, *of_name));
-    } else {
-        of.open("");
     }
 
     // write header to .ngc file
