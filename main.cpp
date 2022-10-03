@@ -427,7 +427,7 @@ int main(int argc, const char* argv[]) {
     // Catch these and return more gracefully so that coverage works
     // better.
     cerr << e.what() << endl;
-    return EXIT_FAILURE;
+    return SIGABRT;
   }
   return 0;
 }
