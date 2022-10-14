@@ -253,7 +253,12 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
 
     // open output file
     std::ofstream of;
-    of.open(of_name.c_str());
+    of.open(of_name);
+    if (!of.is_open()) {
+      std::stringstream error_message;
+      error_message << "Can't open for writing: " << of_name;
+      throw std::invalid_argument(error_message.str());
+    }
 
     // write header to .ngc file
     for ( string s : header )

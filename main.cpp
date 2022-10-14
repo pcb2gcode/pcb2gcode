@@ -423,6 +423,11 @@ int main(int argc, const char* argv[]) {
   } catch (const pcb2gcode_parse_exception& e) {
     cerr << e.what() << endl;
     return e.code();
+  } catch (const std::exception& e) {
+    // Catch these and return more gracefully so that coverage works
+    // better.
+    cerr << e.what() << endl;
+    return EXIT_FAILURE;
   }
   return 0;
 }
