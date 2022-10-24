@@ -265,9 +265,13 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     //open output file
     std::ofstream of;
     if (of_name && holes.size() > 0) {
-        of.open(build_filename(of_dir, *of_name));
-    } else {
-        of.open("");
+      auto filename = build_filename(of_dir, *of_name);
+      of.open(filename);
+      if (!of.is_open()) {
+        std::stringstream error_message;
+        error_message << "Can't open for writing: " << filename;
+        throw std::invalid_argument(error_message.str());
+      }
     }
     //write header to .ngc file
     for (string s : header)
@@ -574,9 +578,13 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
     // open output file
     std::ofstream of;
     if (of_name && holes.size() > 0) {
-        of.open(build_filename(of_dir, *of_name));
-    } else {
-        of.open("");
+      auto filename = build_filename(of_dir, *of_name);
+      of.open(filename);
+      if (!of.is_open()) {
+        std::stringstream error_message;
+        error_message << "Can't open for writing: " << filename;
+        throw std::invalid_argument(error_message.str());
+      }
     }
 
     // write header to .ngc file
