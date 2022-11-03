@@ -62,7 +62,7 @@ jobs:
         update: true
         install: mingw-w64-x86_64-gtkmm git base-devel bash mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-cairo mingw-w64-x86_64-cmake autoconf automake libtool
     - name: Checkout pcb2gcode source
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Setup paths and env
       run: |
         mkdir -p ${{ matrix.local_install_path }}/bin
@@ -313,7 +313,7 @@ jobs:
         lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
     - name: Upload coverage artifact
       if: matrix.code_coverage
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.1
       with:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-lcov.info
@@ -398,13 +398,13 @@ jobs:
         GEOS: ${{ matrix.geos }}
     - name: Upload build for Ubuntu and Macos
       if: matrix.os != 'windows'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.1
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar.gz
     - name: Upload build for Windows
       if: matrix.os == 'windows'
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.1
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
@@ -421,7 +421,7 @@ jobs:
       run: echo "$(./pcb2gcode --version | head -1)" > version.txt
     - name: Upload version artifact
       if: matrix.code_coverage
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3.1.1
       with:
         name: version
         path: version.txt
