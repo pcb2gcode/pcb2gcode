@@ -189,7 +189,7 @@ jobs:
       run: |
         sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl
         pushd ~
-        git clone --depth=1 https://github.com/linux-test-project/lcov.git
+        git clone --branch=v1.16 --depth=1 https://github.com/linux-test-project/lcov.git
         pushd lcov
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r
