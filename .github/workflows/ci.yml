@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu, macos, windows]
         boost: ['1_66', 'latest']
         geos: ['3.11.0', 'none']
-        compiler: ['g++', 'g++-8', 'clang++']
+        compiler: ['g++', 'g++-10', 'clang++']
         exclude:
           - os: macos # Temporarily disable until fixed
           - os: windows # Temporarily disable until fixed
@@ -27,9 +27,9 @@ jobs:
           - os: ubuntu
             boost: 'latest'
           - os: macos
-            compiler: 'g++-8'
+            compiler: 'g++-10'
           - os: windows
-            compiler: 'g++-8'
+            compiler: 'g++-10'
           - os: windows
             compiler: 'clang++'
           - os: windows
@@ -37,7 +37,7 @@ jobs:
         include:
           - os: ubuntu
             boost: 1_66
-            compiler: g++-8
+            compiler: g++-10
             geos: '3.11.0'
             code_coverage: "--enable-code-coverage"
           #- os: windows
@@ -90,12 +90,12 @@ jobs:
       run: |
         echo "export CC='`which clang`'" >> ~/.bash_profile
         echo "export CXX='`which clang++`'" >> ~/.bash_profile
-    - name: g++-8 specific setup
-      if: matrix.compiler == 'g++-8'
+    - name: g++-10 specific setup
+      if: matrix.compiler == 'g++-10'
       run: |
-        sudo apt-get install g++-8
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 80 --slave /usr/bin/g++ g++ /usr/bin/g++-8 --slave /usr/bin/gcov gcov /usr/bin/gcov-8
-        sudo update-alternatives --set gcc /usr/bin/gcc-8
+        sudo apt-get install g++-10
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
+        sudo update-alternatives --set gcc /usr/bin/gcc-10
     - name: Macos specific setup
       if: matrix.os == 'macos'
       run: |
@@ -187,9 +187,9 @@ jobs:
     - name: coverage specific setup
       if: matrix.code_coverage
       run: |
-        sudo apt-get install libperlio-gzip-perl libjson-perl
+        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl
         pushd ~
-        git clone --depth=1 https://github.com/linux-test-project/lcov.git
+        git clone --branch=v1.16 --depth=1 https://github.com/linux-test-project/lcov.git
         pushd lcov
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r

@@ -19,7 +19,7 @@ import xml.etree.ElementTree
 import colour_runner.runner
 import in_place
 import termcolor
-import unittest2
+import unittest
 
 from concurrencytest import ConcurrentTestSuite, fork_for_tests
 
@@ -181,7 +181,7 @@ def colored(text, **color):
     return termcolor.colored(text, **color)
   return text
 
-class IntegrationTests(unittest2.TestCase):
+class IntegrationTests(unittest.TestCase):
   """Run integration tests."""
   def fix_up_expected(self, path):
     """Fix up any files made in the output directory
@@ -376,7 +376,7 @@ if __name__ == '__main__':
       print("Done.\nYou now need to run:\n" +
             '\n'.join('git add ' + x for x in files_patched))
   else:
-    test_loader = unittest2.TestLoader()
+    test_loader = unittest.TestLoader()
     all_test_names = ["test_" + t.name for t in TEST_CASES]
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
-      test_result = unittest2.TextTestRunner(verbosity=2).run(suite)
+      test_result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
             './integration_tests.py --fix\n' +

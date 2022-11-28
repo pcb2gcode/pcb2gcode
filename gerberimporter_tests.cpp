@@ -207,11 +207,10 @@ void test_one(const string& gerber_file, double max_error_rate) {
   bitmap_from_gerber(g, bounding_box.min_corner(), cairo_surface);
   boost_bitmap_from_gerber(polys, bounding_box, cairo_surface);
   map<uint32_t, size_t> counts = get_counts(cairo_surface);
-  size_t background = 0, errors = 0, both = 0;
+  size_t errors = 0, both = 0;
   for (const auto& kv : counts) {
     switch (kv.first) {
       case NEW_BACKGROUND_COLOR:
-        background += kv.second;
         break;
       case NEW_BOTH_COLOR:
         both += kv.second;
