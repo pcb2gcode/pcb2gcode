@@ -17,7 +17,7 @@ jobs:
       matrix:
         os: [ubuntu, macos, windows]
         boost: ['1_66', 'latest']
-        geos: ['3.11.0', 'none']
+        geos: ['3.9.0', 'main', 'none']
         compiler: ['g++', 'g++-10', 'clang++']
         exclude:
           - os: macos # Temporarily disable until fixed
@@ -38,7 +38,7 @@ jobs:
           - os: ubuntu
             boost: 1_66
             compiler: g++-10
-            geos: '3.11.0'
+            geos: 'main'
             code_coverage: "--enable-code-coverage"
           #- os: windows
           #  shell: msys2 {0}
@@ -169,11 +169,11 @@ jobs:
     - name: Build and install geos
       if: matrix.os != 'macos' && matrix.geos != 'none'
       run: |
-        if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
-          git ls-remote https://github.com/libgeos/geos.git heads/main > ${LOCAL_INSTALL_PATH}/bin/geos.version
+        if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git ${{ matrix.geos }} )" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
+          git ls-remote https://github.com/libgeos/geos.git ${{ matrix.geos }} > ${LOCAL_INSTALL_PATH}/bin/geos.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth 1 --branch main https://github.com/libgeos/geos.git
+          git clone --depth 1 --branch ${{ matrix.geos }} https://github.com/libgeos/geos.git
           pushd geos
           mkdir build
           pushd build
@@ -301,7 +301,7 @@ jobs:
       run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
 
     - name: Run integration tests
-      if: matrix.boost == '1_66' && matrix.geos == '3.11.0'
+      if: matrix.boost == '1_66' && matrix.geos == 'main'
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
@@ -326,8 +326,8 @@ jobs:
         if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 ]]; then
           cp -L ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
-        if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgeos-3.11.0.so ]]; then
-          cp -L ${LOCAL_INSTALL_PATH}/lib/libgeos-3.11.0.so pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
+        if ls "${LOCAL_INSTALL_PATH}/lib/libgeos*" ]]; then
+          cp -L "${LOCAL_INSTALL_PATH}/lib/libgeos*" pcb2gcode-$(./pcb2gcode --version | head -1)/.libs;
         fi
 
         cat > pcb2gcode-$(./pcb2gcode --version | head -1)/pcb2gcode.sh << EOF
