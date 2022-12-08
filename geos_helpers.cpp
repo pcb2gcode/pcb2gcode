@@ -4,10 +4,19 @@
 #include "geometry.hpp"
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
-#include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Coordinate.h>
 #include <geos/geom/GeometryFactory.h>
 #include <boost/pointer_cast.hpp>
+#include <geos/version.h>
+#include <geos/util.h>
+#if ((GEOS_VERSION_MAJOR > 3) ||                           \
+     (GEOS_VERSION_MAJOR == 3 && GEOS_VERSION_MINOR > 11))
+  #define CoordinateArraySequence CoordinateSequence
+  #include <geos/geom/CoordinateSequence.h>
+#else
+  #include <geos/geom/CoordinateArraySequence.h>
+#endif
+
 
 linestring_type_fp from_geos(const geos::geom::LineString* ls) {
   linestring_type_fp ret;
@@ -86,8 +95,7 @@ multi_polygon_type_fp from_geos(const std::unique_ptr<geos::geom::Geometry>& g) 
 std::unique_ptr<geos::geom::LineString> to_geos(
     const linestring_type_fp& ls) {
   auto geom_factory = geos::geom::GeometryFactory::create();
-  auto coord_factory = geom_factory->getCoordinateSequenceFactory();
-  auto coords = coord_factory->create(ls.size(), 2 /* dimensions */);
+  auto coords = geos::detail::make_unique<geos::geom::CoordinateArraySequence>(ls.size(), 2 /* dimensions */);
   for (size_t i = 0; i < ls.size(); i++) {
     coords->setAt(geos::geom::Coordinate(ls[i].x(), ls[i].y()), i);
   }
@@ -96,8 +104,7 @@ std::unique_ptr<geos::geom::LineString> to_geos(
 
 std::unique_ptr<geos::geom::LinearRing> to_geos(const ring_type_fp& ring) {
   auto geom_factory = geos::geom::GeometryFactory::create();
-  auto coord_factory = geom_factory->getCoordinateSequenceFactory();
-  auto coords = coord_factory->create(ring.size(), 2 /* dimensions */);
+  auto coords = geos::detail::make_unique<geos::geom::CoordinateArraySequence>(ring.size(), 2 /* dimensions */);
   for (size_t i = 0; i < ring.size(); i++) {
     // reverse rings for geos.
     coords->setAt(geos::geom::Coordinate(ring[i].x(), ring[i].y()), i);
