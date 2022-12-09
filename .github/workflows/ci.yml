@@ -410,7 +410,7 @@ jobs:
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}.tar
     - name: Upload coverage to coveralls
       if: matrix.code_coverage
-      uses: coverallsapp/github-action@master
+      uses: eyal0/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: pcb2gcode-lcov.info
@@ -432,7 +432,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Finalize coverage
-      uses: coverallsapp/github-action@master
+      uses: eyal0/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
