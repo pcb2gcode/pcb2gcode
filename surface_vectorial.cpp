@@ -986,7 +986,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       for (const auto& poly : vectorial_surface->first) {
         keep_outs.push_back(bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset));
       }
-      const auto path_finding_surface = path_finding::PathFindingSurface(mask ? boost::make_optional(mask->vectorial_surface->first) : boost::none, sum(keep_outs), isolator->tolerance);
+      const auto path_finding_surface = path_finding::PathFindingSurface(mask, sum(keep_outs), isolator->tolerance);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk =
             bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
@@ -1096,10 +1096,10 @@ void Surface_vectorial::enable_filling() {
 }
 
 void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
-  mask = surface;
-  vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
+  mask = surface->vectorial_surface->first;
+  vectorial_surface->first = vectorial_surface->first & *mask;
   for (auto& diameter_and_path : vectorial_surface->second) {
-    diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
+    diameter_and_path.second = diameter_and_path.second & *mask;
   }
 }
 
@@ -1148,7 +1148,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // We need to crop the area that we'll mill if it extends outside the PCB's
   // outline.  This saves time in milling.
   if (mask) {
-    milling_poly = milling_poly & mask->vectorial_surface->first;
+    milling_poly = milling_poly & *mask;
   } else {
     // Increase the size of the bounding box to accommodate all milling.
     box_type_fp new_bounding_box;
@@ -1196,11 +1196,11 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
         buffered_milling_poly = buffered_milling_poly + path_minimum;
       }
     }
-    if (mask && !bg::covered_by(buffered_milling_poly, mask->vectorial_surface->first)) {
+    if (mask && !bg::covered_by(buffered_milling_poly, *mask)) {
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
-      buffered_milling_poly = ((buffered_milling_poly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
+      buffered_milling_poly = ((buffered_milling_poly & *mask) + path_minimum) & voronoi_polygon;
     }
     if (invert_gerbers) {
       buffered_milling_poly = buffered_milling_poly & bounding_box;

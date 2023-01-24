@@ -96,7 +96,7 @@ protected:
   std::vector<polygon_type_fp> thermal_holes;
 
 
-  std::shared_ptr<Surface_vectorial> mask;
+  boost::optional<multi_polygon_type_fp> mask;
 
   std::vector<std::pair<linestring_type_fp, bool>> get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
