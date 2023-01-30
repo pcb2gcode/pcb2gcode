@@ -66,14 +66,6 @@ class Surface_vectorial {
   // processing.
   void render(GerberImporter const& importer, double tolerance);
 
-  inline coordinate_type_fp get_width_in() {
-    return bounding_box.max_corner().x() - bounding_box.min_corner().x();
-  }
-
-  inline coordinate_type_fp get_height_in() {
-    return bounding_box.max_corner().y() - bounding_box.min_corner().y();
-  }
-
 protected:
   const box_type_fp bounding_box;
   const std::string name;
