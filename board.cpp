@@ -56,17 +56,13 @@ Board::Board(bool fill_outline, string outputdir, bool tsp_2opt,
     render_paths_to_shapes(render_paths_to_shapes) {}
 
 double Board::get_width() {
-  if (layers.size() < 1) {
-    return 0;
-  }
-  return layers.begin()->second->surface->get_width_in();
+  auto width = get_bounding_box().max_corner().x() - get_bounding_box().min_corner().x();
+  return std::max(width, 0.0);
 }
 
 double Board::get_height() {
-  if (layers.size() < 1) {
-    return 0;
-  }
-  return layers.begin()->second->surface->get_height_in();
+  auto height = get_bounding_box().max_corner().y() - get_bounding_box().min_corner().y();
+  return std::max(height, 0.0);
 }
 
 void Board::prepareLayer(string layername, shared_ptr<GerberImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror) {

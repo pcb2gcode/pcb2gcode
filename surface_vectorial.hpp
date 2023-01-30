@@ -68,14 +68,6 @@ class Surface_vectorial: private boost::noncopyable {
   // processing.
   void render(std::shared_ptr<GerberImporter> importer, double tolerance);
 
-  inline coordinate_type_fp get_width_in() {
-    return bounding_box.max_corner().x() - bounding_box.min_corner().x();
-  }
-
-  inline coordinate_type_fp get_height_in() {
-    return bounding_box.max_corner().y() - bounding_box.min_corner().y();
-  }
-
 protected:
   const unsigned int points_per_circle;
   const box_type_fp bounding_box;
