@@ -260,7 +260,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                          "M2      (Program end.)\n\n");
 
     map<int, drillbit> bits = optimize_bits();
-    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
+    const auto holes = optimize_holes(bits, onedrill, boost::none, min_milldrill_diameter);
 
     //open output file
     std::ofstream of;
@@ -573,7 +573,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
                         "M2      (Program end.)\n\n");
 
     map<int, drillbit> bits = parsed_bits;
-    const map<int, multi_linestring_type_fp> holes = optimize_holes(bits, false, min_milldrill_diameter, boost::none);
+    const auto holes =
+        optimize_holes(bits, false, min_milldrill_diameter, boost::none);
 
     // open output file
     std::ofstream of;
@@ -620,7 +621,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
        of << "G53 ";
     }
     of << "G00 Z" << target->zchange * cfactor << " (Retract to tool change height)\n"
-       << "T" << (*holes.begin()).first << "\n"
+       << "T" << (holes.size() > 0 ? (*holes.begin()).first : 0) << "\n"
        << "M5        (Spindle stop.)\n"
        << "G04 P" << target->spindown_time << "\n"
        << "(MSG, Change tool bit to drill size " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter) << (bMetricOutput ? "mm" : "inch") << ")\n"
@@ -681,7 +682,8 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
  */
 /******************************************************************************/
 void ExcellonProcessor::save_svg(
-    const map<int, drillbit>& bits, const map<int, multi_linestring_type_fp>& holes,
+    const map<int, drillbit>& bits,
+    const vector<pair<int, multi_linestring_type_fp>>& holes,
     const string& of_dir, const string& of_name) {
     if (holes.size() == 0) {
       return;
@@ -772,7 +774,7 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::parse_holes() {
  Optimisation of the hole path with a TSP Nearest Neighbour algorithm
  */
 /******************************************************************************/
-map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
+vector<pair<int, multi_linestring_type_fp>> ExcellonProcessor::optimize_holes(
     map<int, drillbit>& bits, bool onedrill,
     const boost::optional<Length>& min_diameter,
     const boost::optional<Length>& max_diameter) {
@@ -836,7 +838,16 @@ map<int, multi_linestring_type_fp> ExcellonProcessor::optimize_holes(
     }
   }
 
-  return holes;
+  // Sort the holes in ascending drill size order.
+  //  vector<pair<int, multi_linestring_type_fp>> sorted_holes(holes.cbegin(), holes.cend());
+  vector<pair<int, multi_linestring_type_fp>> sorted_holes(holes.cbegin(), holes.cend());
+
+  std::sort(sorted_holes.begin(), sorted_holes.end(), [&bits](const auto& a, const auto& b) {
+    return bits[a.first].as_length().asInch(1) < bits[b.first].as_length().asInch(1);
+  });
+
+
+  return sorted_holes;
 }
 
 /******************************************************************************/
