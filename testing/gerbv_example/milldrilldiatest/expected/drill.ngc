@@ -11,7 +11,7 @@ G90       (Absolute coordinates.)
 G00 S10000     (RPM spindle speed.)
 
 G00 Z10.00000 (Retract)
-T1
+T9
 M5      (Spindle stop.)
 G04 P1.00000
 (MSG, Change tool bit to drill size 0.4mm)
@@ -21,12 +21,12 @@ M3      (Spindle on clockwise.)
 G0 Z1.50000
 G04 P1.00000
 
-G81 R1.50000 Z-1.75000 F100.00000 X120.00000 Y-90.00000
-X120.00000 Y-92.54000
+G81 R1.50000 Z-1.75000 F100.00000 X120.00000 Y-92.54000
+X120.00000 Y-90.00000
 G80
 
 G00 Z10.00000 (Retract)
-T3
+T8
 M5      (Spindle stop.)
 G04 P1.00000
 (MSG, Change tool bit to drill size 0.6mm)
@@ -40,7 +40,7 @@ G81 R1.50000 Z-1.75000 F100.00000 X120.00000 Y-95.08000
 G80
 
 G00 Z10.00000 (Retract)
-T4
+T7
 M5      (Spindle stop.)
 G04 P1.00000
 (MSG, Change tool bit to drill size 0.8mm)
@@ -54,7 +54,7 @@ G81 R1.50000 Z-1.75000 F100.00000 X120.00000 Y-97.62000
 G80
 
 G00 Z10.00000 (Retract)
-T5
+T6
 M5      (Spindle stop.)
 G04 P1.00000
 (MSG, Change tool bit to drill size 1mm)
