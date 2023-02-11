@@ -41,7 +41,7 @@ There are pcb2gcode packages in the official repositories. You can install the w
 Unfortunately, these packages are seriously outdated. If you want to download the latest development version, go to "Installation from GIT".
 
 #### Windows
-Windows prebuilt binaries (with all the required DLLs) are available in the [release](https://github.com/pcb2gcode/pcb2gcode/releases) page.
+Windows prebuilt binaries (with all the required DLLs) may be available in the [release](https://github.com/pcb2gcode/pcb2gcode/releases) page. Due to difficulties with the CI pipeline, these are not reliably built and may be missing for certain releases. See below for instructions how to build pcb2gcode yourself.
 
 #### Mac OS X
 pcb2gcode is available in [Homebrew](http://brew.sh/). To install it open the "Terminal" app and run the following commands; pcb2gcode and the required dependencies will be automatically downloaded and installed:
@@ -101,23 +101,26 @@ Then follow the [common build steps](#commonbuild)
     $ sudo make install
 
 ### Windows
-You can easily build pcb2gcode for Windows with MSYS2 (http://sourceforge.net/projects/msys2/).
-Download MSYS2 and install it somewhere, then run "MinGW-w64 Win32 Shell" (if you want a i686 binary) or "MinGW-w64 Win64 Shell" (if you want a x86_64 binary). The following commands are for the i686 binary, if you want the x86_64 binary replace all the "/mingw32" with "/mingw64" and all the mingw-w64-i686-* packages with mingw-w64-x86_64-*
+You can build pcb2gcode for Windows with MSYS2 (https://www.msys2.org/).
+Download MSYS2 and install it somewhere, then run "MSYS MINGW64" (if you want a 64-bit x86_64 binary) or "MSYS MINGW32" (if you want a 32-bit i686 binary).
+
+The following commands are for the x86_64 binary, if you want the i686 binary replace all the "/mingw64" with "/mingw32" and all the mingw-w64-x86_64-* packages with mingw-w64-i686-*
 
     $ pacman -Sy
     $ pacman --needed -S bash pacman pacman-mirrors msys2-runtime
 
 Close and reopen the shell
 
-    $ pacman -Su
-    $ pacman --needed -S base-devel git mingw-w64-i686-gcc mingw-w64-i686-boost mingw-w64-i686-gtkmm
+    $ pacman -Su  # This may also close the shell; if so, reopen it.
+    $ pacman --needed -S base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-gtkmm libtool mingw-w64-x86_64-autotool
 
-Now let's download, build and install gerbv (version 2.6.1 is broken, don't use it)
+Now let's download, build and install gerbv:
 
-    $ wget downloads.sourceforge.net/gerbv/gerbv-2.6.0.tar.gz
-    $ tar -xzf gerbv-2.6.0.tar.gz
-    $ cd gerbv-2.6.0/    
-    $ ./configure --prefix=/mingw32 --disable-update-desktop-database
+    $ git clone https://github.com/gerbv/gerbv.git
+    $ cd gerbv
+    $ git checkout v2.9.6  # Optional step. This version is known to work with pcb2gcode 2.5.0.
+    $ ./autogen.sh
+    $ ./configure --disable-update-desktop-database
     $ make
     $ make install
 
@@ -127,11 +130,19 @@ Finally, download and build pcb2gcode
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode/
     $ autoreconf -fvi
-    $ ./configure --prefix=/mingw32
+    $ ./configure
     $ make LDFLAGS='-s'
 
 The dynamically linked binary is &lt;msys2 installation folder&gt;/home/&lt;user&gt;/pcb2gcode/.libs/pcb2gcode.exe.
-You can find all the DLLs in &lt;msys2 installation folder&gt;/mingw32/bin; copy them in the same folder of pcb2gcode. The required DLLs are:
+You can find all the DLLs in &lt;msys2 installation folder&gt;/mingw32/bin; copy them in the same folder of pcb2gcode.
+These steps can be automated with:
+
+    $ mkdir my-pcb2gcode-build
+    $ cp .libs/pcb2gcode.exe my-pcb2gcode-build
+    $ cd my-pcb2gcode-build
+    $ cp $(ldd pcb2gcode.exe  | cut -d'>' -f2 | cut -d'(' -f1 | grep mingw64 | sort -u) .
+
+The required DLLs are:
  * libatk-1.0-0.dll
  * libboost_program_options-mt.dll
  * libbz2-1.dll
