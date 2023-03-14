@@ -6,6 +6,7 @@
 
 #include "bg_operators.hpp"
 #include "bg_helpers.hpp"
+#include "common.hpp"
 
 namespace bg_helpers {
 
@@ -13,7 +14,6 @@ namespace bg_helpers {
 // always convert to floating-point before doing work, if needed, and
 // convert back afterward, if needed.  Also, they work if expand_by is
 // 0, unlike bg::buffer.
-const int points_per_circle = 32;
 
 multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordinate_type_fp expand_by) {
   if (expand_by == 0 || geometry_in.size() == 0) {
