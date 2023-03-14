@@ -593,18 +593,18 @@ G01 X-4.12756 Y-2.72085
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.12796 Y-2.48339 ( rapid move to begin. )
+G00 X-4.12795 Y-2.48339 ( rapid move to begin. )
 G01 F0.50000
 ( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F1.00000
-G01 X-4.12796 Y-2.48339
+G01 X-4.12795 Y-2.48339
 G01 X-4.12795 Y-2.55239
 G01 X-4.12755 Y-2.55303
 G01 X-4.12795 Y-2.55239
 G01 X-4.17395 Y-2.52939
-G01 X-4.12796 Y-2.48339
+G01 X-4.12795 Y-2.48339
 G01 X-4.12755 Y-2.48243
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
@@ -617,11 +617,11 @@ G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F1.00000
 G01 X-3.85847 Y-2.47765
 G01 X-3.85751 Y-2.47805
-G01 X-3.82738 Y-2.47805
+G01 X-3.83752 Y-2.49804
 G01 X-3.80739 Y-2.49804
 G01 X-3.80642 Y-2.49844
 G01 X-3.80739 Y-2.49804
-G01 X-3.83752 Y-2.49804
+G01 X-3.82738 Y-2.47805
 G01 X-3.85751 Y-2.47805
 
 G00 Z1.00000 (Retract to tool change height)
@@ -905,17 +905,17 @@ G01 X-4.07217 Y-2.81519
 G01 X-4.07109 Y-2.81627
 G01 X-4.07041 Y-2.81664
 G01 X-4.06890 Y-2.81694
-G01 X-3.97722 Y-2.81694
+G01 X-3.97723 Y-2.81694
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G00 Z0.08000 ( retract )
 
-G00 X-4.07284 Y-2.56056 ( rapid move to begin. )
+G00 X-4.07284 Y-2.56057 ( rapid move to begin. )
 G01 F0.50000
 ( Mill infeed pass 1/1 )
 G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F1.00000
-G01 X-4.07284 Y-2.56056
+G01 X-4.07284 Y-2.56057
 G01 X-4.20222 Y-2.57688
 G01 X-4.25673 Y-2.54962
 G01 X-4.25759 Y-2.54141
@@ -1324,7 +1324,7 @@ G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F1.00000
 G01 X-3.42910 Y-2.87734
-G01 X-3.48002 Y-2.87295
+G01 X-3.48000 Y-2.87294
 G01 X-3.47838 Y-2.87165
 G01 X-3.47431 Y-2.86701
 G01 X-3.47130 Y-2.86163
@@ -1383,7 +1383,7 @@ G01 X-3.69240 Y-2.54141
 G01 X-3.69092 Y-2.53656
 G01 X-3.80455 Y-2.42294
 G01 X-4.14545 Y-2.42294
-G01 X-4.16063 Y-2.43812
+G01 X-4.16062 Y-2.43811
 G01 X-4.14529 Y-2.60534
 G01 X-4.01345 Y-2.67126
 G01 X-3.93110 Y-2.67126

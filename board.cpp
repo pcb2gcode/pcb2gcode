@@ -56,17 +56,13 @@ Board::Board(bool fill_outline, string outputdir, bool tsp_2opt,
     render_paths_to_shapes(render_paths_to_shapes) {}
 
 double Board::get_width() {
-  if (layers.size() < 1) {
-    return 0;
-  }
-  return layers.begin()->second->surface->get_width_in();
+  auto width = get_bounding_box().max_corner().x() - get_bounding_box().min_corner().x();
+  return std::max(width, 0.0);
 }
 
 double Board::get_height() {
-  if (layers.size() < 1) {
-    return 0;
-  }
-  return layers.begin()->second->surface->get_height_in();
+  auto height = get_bounding_box().max_corner().y() - get_bounding_box().min_corner().y();
+  return std::max(height, 0.0);
 }
 
 void Board::prepareLayer(string layername, shared_ptr<GerberImporter> importer, shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror) {
@@ -93,7 +89,22 @@ void Board::createLayers()
       shared_ptr<Cutter> outline_mill = static_pointer_cast<Cutter>(get<1>(outline->second));
       const auto& importer = get<0>(outline->second);
       coordinate_type_fp tool_diameter = outline_mill->tool_diameter;
-      bounding_box = bg::return_buffer<box_type_fp>(importer->get_bounding_box(), tool_diameter);
+
+      // The milling will try to extend beyond the cutting tool in
+      // order to remove burrs so we account for that overlap, too.
+      coordinate_type_fp max_overlap = 0;
+      for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
+        const auto current_layer = prepared_layers.find(layer_name);
+        if (current_layer != prepared_layers.cend()) {
+          shared_ptr<Isolator> trace_mill = static_pointer_cast<Isolator>(get<1>(current_layer->second));
+          for (const auto& tool : trace_mill->tool_diameters_and_overlap_widths) {
+            auto overlap_width = tool.second;
+            max_overlap = std::max(max_overlap, overlap_width);
+          }
+        }
+      }
+      bounding_box = bg::return_buffer<box_type_fp>(importer->get_bounding_box(),
+                                                    tool_diameter + max_overlap);
     } else {
       for (const auto& layer_name : std::vector<std::string>{"front", "back"}) {
         const auto current_layer = prepared_layers.find(layer_name);

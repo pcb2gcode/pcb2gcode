@@ -62,19 +62,12 @@ class Surface_vectorial: private boost::noncopyable {
       std::shared_ptr<RoutingMill> mill, bool mirror, bool ymirror);
   void save_debug_image(std::string message);
   void enable_filling();
-  void add_mask(std::shared_ptr<Surface_vectorial> surface);
+  void add_mask(std::shared_ptr<Surface_vectorial> surface,
+                std::shared_ptr<RoutingMill> manufacturer);
   // The importer provides the path.  The tolerance is used for
   // removing some of the finer detail in the path, to save time on
   // processing.
   void render(std::shared_ptr<GerberImporter> importer, double tolerance);
-
-  inline coordinate_type_fp get_width_in() {
-    return bounding_box.max_corner().x() - bounding_box.min_corner().x();
-  }
-
-  inline coordinate_type_fp get_height_in() {
-    return bounding_box.max_corner().y() - bounding_box.min_corner().y();
-  }
 
 protected:
   const unsigned int points_per_circle;
@@ -96,7 +89,8 @@ protected:
   std::vector<polygon_type_fp> thermal_holes;
 
 
-  std::shared_ptr<Surface_vectorial> mask;
+  boost::optional<multi_polygon_type_fp> mask;
+  coordinate_type_fp cutter_diameter;
 
   std::vector<std::pair<linestring_type_fp, bool>> get_single_toolpath(
       std::shared_ptr<RoutingMill> mill, const size_t trace_index, bool mirror, const double tool_diameter,
@@ -117,6 +111,7 @@ protected:
       const boost::optional<polygon_type_fp>& input,
       const polygon_type_fp& voronoi,
       coordinate_type_fp diameter,
+      coordinate_type_fp overlap_width,
       coordinate_type_fp overlap,
       unsigned int steps, bool do_voronoi,
       coordinate_type_fp offset) const;

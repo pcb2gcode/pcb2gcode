@@ -34,6 +34,7 @@ using std::string;
 using std::make_shared;
 using std::shared_ptr;
 using std::unique_ptr;
+using std::static_pointer_cast;
 
 #include <vector>
 using std::vector;
@@ -801,7 +802,8 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const auto& current_voronoi = trace_index < voronoi.size() ? voronoi[trace_index] : thermal_holes[trace_index - voronoi.size()];
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi,
-                       diameter, overlap, extra_passes + 1, do_voronoi, mill->offset);
+                       diameter, overlap_width, overlap,
+                       extra_passes + 1, do_voronoi, mill->offset);
 
     // Find if a distance between two points should be milled or retract, move
     // fast, and plunge.  Milling is chosen if it's faster and also the path is
@@ -986,7 +988,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       for (const auto& poly : vectorial_surface->first) {
         keep_outs.push_back(bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset));
       }
-      const auto path_finding_surface = path_finding::PathFindingSurface(mask ? boost::make_optional(mask->vectorial_surface->first) : boost::none, sum(keep_outs), isolator->tolerance);
+      const auto path_finding_surface = path_finding::PathFindingSurface(mask, sum(keep_outs), isolator->tolerance);
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
         multi_polygon_type_fp already_milled_shrunk =
             bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
@@ -1095,11 +1097,14 @@ void Surface_vectorial::enable_filling() {
     fill = true;
 }
 
-void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
-  mask = surface;
-  vectorial_surface->first = vectorial_surface->first & mask->vectorial_surface->first;
+void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface,
+                                 std::shared_ptr<RoutingMill> manufacturer) {
+  shared_ptr<Cutter> outline_cutter = static_pointer_cast<Cutter>(manufacturer);
+  cutter_diameter = outline_cutter->tool_diameter;
+  mask = surface->vectorial_surface->first;
+  vectorial_surface->first = vectorial_surface->first & *mask;
   for (auto& diameter_and_path : vectorial_surface->second) {
-    diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
+    diameter_and_path.second = diameter_and_path.second & *mask;
   }
 }
 
@@ -1124,6 +1129,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     const optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     coordinate_type_fp diameter,
+    coordinate_type_fp overlap_width,
     coordinate_type_fp overlap,
     unsigned int steps, bool do_voronoi,
     coordinate_type_fp offset) const {
@@ -1145,10 +1151,14 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   }
 
   auto voronoi_shrunk = (bg_helpers::buffer(voronoi_polygon, -diameter/2 + overlap/2) + path_minimum) & voronoi_polygon;
-  // We need to crop the area that we'll mill if it extends outside the PCB's
-  // outline.  This saves time in milling.
-  if (mask) {
-    milling_poly = milling_poly & mask->vectorial_surface->first;
+  // We need to crop the area that we'll mill if it extends outside
+  // the PCB's outline.  This saves time in milling.  We will allow
+  // milling beyond the outline by overlap_width to remove burrs.
+  auto deburr_mask = mask ?
+                     boost::make_optional(bg_helpers::buffer(*mask, cutter_diameter - diameter/2 + overlap_width)) :
+                     boost::none;
+  if (deburr_mask) {
+    milling_poly = milling_poly & *deburr_mask;
   } else {
     // Increase the size of the bounding box to accommodate all milling.
     box_type_fp new_bounding_box;
@@ -1196,11 +1206,11 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
         buffered_milling_poly = buffered_milling_poly + path_minimum;
       }
     }
-    if (mask && !bg::covered_by(buffered_milling_poly, mask->vectorial_surface->first)) {
+    if (deburr_mask && !bg::covered_by(buffered_milling_poly, *deburr_mask)) {
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
-      buffered_milling_poly = ((buffered_milling_poly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
+      buffered_milling_poly = ((buffered_milling_poly & *deburr_mask) + path_minimum) & voronoi_polygon;
     }
     if (invert_gerbers) {
       buffered_milling_poly = buffered_milling_poly & bounding_box;
