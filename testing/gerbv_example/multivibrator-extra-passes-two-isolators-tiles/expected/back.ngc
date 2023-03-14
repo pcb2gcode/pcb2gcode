@@ -11,7 +11,7 @@ G01 F360.00000 ( Feedrate. )
 
 
 G00 Z1.00000 (Retract to tool change height)
-T0
+T1
 M5      (Spindle stop.)
 G04 P1.00000 (Wait for spindle to stop)
 (MSG, Change tool bit to mill diameter 0.00787in)
@@ -14973,7 +14973,7 @@ G01 X-7.29151 Y-1.96087
 G01 X-7.29098 Y-1.95550
 
 G00 Z1.00000 (Retract to tool change height)
-T1
+T2
 M5      (Spindle stop.)
 G04 P1.00000 (Wait for spindle to stop)
 (MSG, Change tool bit to mill diameter 0.00394in)
