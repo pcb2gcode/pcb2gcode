@@ -690,7 +690,7 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
   }
   // This converts the many small line segments into the longest paths possible.
   multi_linestring_type_fp euler_paths_with_rings =
-      eulerian_paths::make_eulerian_paths(paths, true, true);
+      eulerian_paths::make_eulerian_paths(new_paths, true, true);
   multi_linestring_type_fp euler_paths;
   for (const auto& ls : euler_paths_with_rings) {
     auto all_ls = get_all_ls(ls);
