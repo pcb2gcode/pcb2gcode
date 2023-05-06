@@ -40,6 +40,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "backtrack",
                   "backtrack_0",
                   "D1MiniGSR",
+                  "Easy-SDR_HF_Upconverter_SMD_Gerbers",
                   "edge-cuts-broken-loop",
                   "edge-cuts-inside-cuts",
                   "example_board_new_default",
