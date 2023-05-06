@@ -1,0 +1,13 @@
+( pcb2gcode 2.5.0 )
+( Software-independent Gcode )
+
+G94 ( Millimeters per minute feed rate. )
+G21 ( Units == Millimeters. )
+
+G90 ( Absolute coordinates. )
+G00 S7000 ( RPM spindle speed. )
+G01 F12.00000 ( Feedrate. )
+
+M9 ( Coolant off. )
+M2 ( Program end. )
+
