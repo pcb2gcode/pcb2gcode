@@ -137,7 +137,9 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
  * bridge segment and the segments on either side form a straight line. */
 void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, const linestring_type_fp& path,
                                   const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot) {
-  const unsigned int steps_num = ceil(-cutter->zwork / cutter->stepsize);
+  const unsigned int steps_num = cutter->stepsize == 0 ?
+                                 1 :
+                                 std::max(ceil(-cutter->zwork / cutter->stepsize), 1.0);
 
   for (unsigned int i = 0; i < steps_num; i++) {
     const double z = cutter->zwork / steps_num * (i + 1);
@@ -193,7 +195,9 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
     of << "( end pre-milling-gcode )\n";
   }
 
-  const unsigned int steps_num = ceil(-mill->zwork / mill->stepsize);
+  const unsigned int steps_num = mill->stepsize == 0 ?
+                                 1 :
+                                 std::max(ceil(-mill->zwork / mill->stepsize), 1.0);
 
   for (unsigned int i = 0; i < steps_num; i++) {
     const double z = mill->zwork / steps_num * (i + 1);
