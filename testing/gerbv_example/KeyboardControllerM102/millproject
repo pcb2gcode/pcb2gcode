@@ -1,0 +1,31 @@
+# This is an example config file for pcb2gcode.
+# Rename this file "millproject" and place it in the same directory as your
+# gerber files to save typing
+# <option>=false is implicit, it is present just for clearness
+
+# You may want to uncomment and change those in local project files (or you
+# can specify them directly as command line arguments)
+front=KeyboardControllerM102-F_Silkscreen.gbr
+back=KeyboardControllerM102-B_Silkscreen.gbr
+basename=KeyboardControllerM102Silkscreen
+preamble=laser-start.ngc
+postamble=laser-end.ngc
+ignore-warnings=true
+
+# Common options
+metric=true
+metricoutput=true
+zchange=10.00
+zero-start=true
+zsafe=0.0
+nom6=true
+nog81=false
+
+# Mill options
+draw-gerber-lines=true
+invert-gerbers=true
+mill-diameters=0.2536, 0.12633
+extra-passes=0
+mill-feed=200
+mill-speed=12000
+zwork=0.0

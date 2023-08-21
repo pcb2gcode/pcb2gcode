@@ -1,0 +1,1755 @@
+( pcb2gcode 2.5.0 )
+( Software-independent Gcode )
+
+
+G94 ( Millimeters per minute feed rate. )
+G21 ( Units == Millimeters. )
+
+G90 ( Absolute coordinates. )
+G00 S12000 ( RPM spindle speed. )
+G64 P0.01016 ( set maximum deviation from commanded toolpath )
+G01 F200.00000 ( Feedrate. )
+
+
+G00 Z10.00000 (Retract to tool change height)
+T3
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to mill diameter 0.12000mm)
+M0      (Temporary machine stop.)
+M3 ( Spindle on clockwise. )
+G04 P1.00000 (Wait for spindle to get up to speed)
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X1.36566 Y34.59130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X1.61567 Y34.84131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.17046 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.21046 Y30.53632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.25047 Y30.53731 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.29047 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.33048 Y30.54031 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.37046 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.41046 Y30.54732 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.45047 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.49047 Y30.55532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.69047 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.65047 Y30.58031 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.61046 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.57046 Y30.56632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.53048 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.73048 Y30.59631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.77046 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.81046 Y30.61531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.85047 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.89146 Y30.63632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.93147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.97147 Y30.66131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.09146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.05146 Y30.68831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.01148 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.13147 Y30.71831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.17147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.21148 Y30.75131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.25146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.29146 Y30.78732 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.33147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.37147 Y30.82631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.41148 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.45145 Y30.86931 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.49146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.53146 Y30.91630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.57147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.61147 Y30.96731 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.65148 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.69146 Y31.02131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.73146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.77147 Y31.08130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.81147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.85148 Y31.14531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.89146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.93146 Y31.21531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.97147 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.01147 Y31.29032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.05148 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.09146 Y31.37330 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.13146 Y32.07632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.17147 Y31.46332 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.77147 Y32.83230 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.73146 Y33.63431 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.69146 Y32.43931 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.65148 Y33.92130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.61147 Y32.20131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.57147 Y34.12732 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.53146 Y32.01831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.49146 Y34.29430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.45148 Y31.86532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.17147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.13146 Y34.81531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.09146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.05148 Y34.90131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.01147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.97147 Y34.98030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.93146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.89146 Y35.05330 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.85148 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.81147 Y35.12031 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.77147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.73146 Y35.18132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.69146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.65148 Y35.23832 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.61147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.57147 Y35.29130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.53146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.49146 Y35.34032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.45145 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.41148 Y35.38432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.37147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.33147 Y35.42630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.29146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.25146 Y35.46430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.21148 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.17147 Y35.49831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.13147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.09146 Y35.53032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.05146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.01148 Y35.55831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.97147 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.93147 Y35.58432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.89146 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.85047 Y35.60730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.81046 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.77046 Y35.62732 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.73048 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.69047 Y35.64431 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.65047 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.61046 Y35.65932 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.57046 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.53048 Y35.67230 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.49047 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.45047 Y35.68132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.41046 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.37046 Y35.68932 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.33048 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.29047 Y35.69432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.25047 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.21046 Y35.69630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.17046 Y34.15630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.21147 Y34.72130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.25148 Y31.56230 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.29146 Y34.61632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.41147 Y31.79730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.37147 Y34.49930 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.33146 Y31.67330 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X13.62566 Y36.40032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X21.48566 Y40.85032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X9.26567 Y45.75031 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X34.04647 Y34.28630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X44.06248 Y43.24132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X42.79248 Y45.90131 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X7.71048 Y11.73430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X0.09048 Y9.79432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X0.09048 Y4.71432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X1.36048 Y8.22430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X7.71048 Y6.65430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X34.14147 Y23.30232 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X34.06646 Y16.25230 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X51.33846 Y4.41430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X51.33846 Y5.68430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X52.19243 Y13.05030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X49.64446 Y16.86030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X56.95448 Y16.86030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X58.73248 Y13.05030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X63.62459 Y17.06530 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X63.87458 Y16.81532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.42936 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.46937 Y18.17030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.50935 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.54935 Y18.16832 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.82936 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.78936 Y18.14630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.74935 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.70935 Y18.15532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.66937 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.62936 Y18.16332 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.58936 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.86937 Y18.13332 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.90935 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.94935 Y18.11831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.98936 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.02936 Y18.10132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.06937 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.10935 Y18.08130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.15037 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.19035 Y18.05832 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.23035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.27036 Y18.03231 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.31036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.35037 Y18.00432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.39035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.43035 Y17.97231 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.47036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.51036 Y17.93830 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.55037 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.59034 Y17.90030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.63035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.67036 Y17.85832 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.71036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.75037 Y17.81432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.79034 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.83035 Y17.76530 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.87035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.91036 Y17.71232 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.95036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.99034 Y17.65532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.03035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.15036 Y17.52730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.11036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.07035 Y17.59431 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.19034 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.23035 Y17.45430 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.27035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.31036 Y17.37531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.35036 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.39034 Y17.28931 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.43035 Y16.63030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.47035 Y17.19530 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.51036 Y14.03630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.55036 Y17.09032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.59034 Y14.14730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.71036 Y16.84130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.67035 Y14.27130 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.63035 Y16.97330 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.75036 Y14.41232 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X69.03035 Y15.87432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.99037 Y15.07234 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.95036 Y16.26731 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.91036 Y14.78532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.87035 Y16.50531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.83035 Y14.57930 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.79037 Y16.68832 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.43035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.39034 Y13.89132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.35036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.31036 Y13.80531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.27035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.23035 Y13.72632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.19034 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.15036 Y13.65335 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.11036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.07035 Y13.58632 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X68.03035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.99034 Y13.52530 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.95036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.91036 Y13.46831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.87035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.83035 Y13.41532 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.79034 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.75037 Y13.36630 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.71036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.67036 Y13.32233 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.63035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.59034 Y13.28032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.55037 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.51036 Y13.24235 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.23035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.27036 Y13.14834 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.31036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.35037 Y13.17633 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.39035 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.43035 Y13.20831 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.47036 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.19035 Y13.12231 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.15037 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.10935 Y13.09932 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.06937 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X67.02936 Y13.07931 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.98936 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.94935 Y13.06231 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.74935 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.78936 Y13.03432 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.82936 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.86937 Y13.04730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.90935 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.70935 Y13.02531 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.66937 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.62936 Y13.01730 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.58936 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.54935 Y13.01230 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.50935 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.46937 Y13.01032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X66.42936 Y14.55032 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X64.03846 Y4.16030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X65.36848 Y1.56030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X84.44246 Y7.19631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X91.75248 Y7.19631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X92.52248 Y14.81631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X85.21246 Y14.81631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X84.44246 Y22.43631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X91.75248 Y22.43631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X104.41407 Y8.29511 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X109.09466 Y6.07353 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X109.09466 Y13.69353 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X104.41407 Y15.91511 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X109.09466 Y21.31353 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X104.41407 Y23.53511 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X117.97046 Y19.89631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X120.51046 Y14.05434 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X125.28048 Y19.89631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X127.82048 Y14.05434 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X125.59046 Y7.19631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X132.90048 Y7.19631 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X147.41048 Y34.58030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X146.14048 Y34.58030 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X127.94247 Y44.57132 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X97.34246 Y43.24132 ( rapid move to begin. )
+G01 F100.00000
+
+G00 Z10.00000 (Retract to tool change height)
+T4
+M5      (Spindle stop.)
+G04 P1.00000 (Wait for spindle to stop)
+(MSG, Change tool bit to mill diameter 0.15000mm)
+M0      (Temporary machine stop.)
+M3 ( Spindle on clockwise. )
+G04 P1.00000 (Wait for spindle to get up to speed)
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X3.13853 Y13.34187 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X3.47191 Y13.38949 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X5.23380 Y12.38949 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.94808 Y12.38949 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.67046 Y36.41149 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.95618 Y36.41149 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X4.00381 Y36.50674 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.93050 Y45.23604 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.21620 Y46.04556 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X6.93050 Y46.33126 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X39.47729 Y44.61894 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X39.47729 Y44.23797 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X36.49981 Y33.60627 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X36.88075 Y33.60627 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X33.59628 Y27.21659 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X33.59628 Y26.64517 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X32.59628 Y26.35947 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X33.59628 Y26.02612 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X36.51979 Y15.57226 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X36.85314 Y14.76274 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X47.35838 Y13.86551 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X47.59646 Y14.34171 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X48.31075 Y14.77026 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X50.45995 Y6.39860 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X49.79328 Y5.35097 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X50.79327 Y6.25575 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X60.31238 Y17.67549 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X60.55046 Y18.15169 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X61.26475 Y18.38979 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X61.83618 Y17.67549 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X65.03513 Y1.10549 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X65.41608 Y1.10549 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.74438 Y4.37150 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.98246 Y4.84767 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X88.69675 Y4.46672 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.74438 Y16.73150 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.98246 Y17.20769 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X89.17295 Y17.39817 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X89.31580 Y17.06482 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.74438 Y24.37550 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X87.98246 Y24.85167 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X88.64913 Y24.47072 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X106.15143 Y10.53959 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X106.96095 Y10.39674 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X106.15143 Y18.15959 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X107.57998 Y17.92149 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X106.15143 Y25.77959 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X107.00855 Y25.54149 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X107.29428 Y25.54149 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X121.27238 Y21.81150 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X121.51046 Y22.28769 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X122.22475 Y22.24007 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X124.71713 Y16.96949 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X130.22570 Y9.68292 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X129.46381 Y9.11150 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X128.89238 Y9.11150 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X123.81238 Y15.96950 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X124.05046 Y16.44569 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X144.17005 Y36.00555 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X144.26527 Y35.19603 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X129.83729 Y45.23797 ( rapid move to begin. )
+G01 F100.00000
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z0.00000 ( retract )
+
+G00 X128.83729 Y44.23797 ( rapid move to begin. )
+G01 F100.00000
+
+G04 P0 ( dwell for no time -- G64 should not smooth over this point )
+G00 Z10.000000 ( retract )
+
+
+M5 ( Spindle off. )
+G04 P1.000000
+M9 ( Coolant off. )
+M2 ( Program end. )
+
