@@ -19,6 +19,7 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
   if (expand_by == 0 || geometry_in.size() == 0) {
     return geometry_in;
   }
+  auto points_per_circle = expand_by * 2 * bg::math::pi<double>() / 0.0001;
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
   return from_geos<multi_polygon_type_fp>(
@@ -41,6 +42,7 @@ multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, co
     return geometry_in;
   } else {
     multi_polygon_type_fp geometry_out;
+    auto points_per_circle = expand_by * 2 * bg::math::pi<double>() / 0.0001;
     bg::buffer(geometry_in, geometry_out,
                bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
                bg::strategy::buffer::side_straight(),
@@ -68,6 +70,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
   if (expand_by == 0) {
     return {};
   }
+  auto points_per_circle = expand_by * 2 * bg::math::pi<double>() / 0.0001;
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
   return from_geos<multi_polygon_type_fp>(
@@ -95,6 +98,7 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(mls);
+  auto points_per_circle = expand_by * 2 * bg::math::pi<double>() / 0.0001;
   return from_geos<multi_polygon_type_fp>(
       std::unique_ptr<geos::geom::Geometry>(
           geos::operation::buffer::BufferOp::bufferOp(geos_in.get(), expand_by, points_per_circle/4)));

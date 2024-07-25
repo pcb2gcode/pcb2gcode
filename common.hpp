@@ -23,8 +23,6 @@
 #include <string>
 #include <boost/program_options.hpp>
 
-constexpr uint points_per_circle = 32;
-
 namespace Software {
 // This enum contains the software codes. Note that all the items (except for CUSTOM)
 // must start from 0 and be consecutive, as they are used as array indexes

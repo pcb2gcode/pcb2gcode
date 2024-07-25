@@ -58,8 +58,7 @@ public:
 
   virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
       bool fill_closed_lines,
-      bool render_paths_to_shapes,
-      unsigned int points_per_circle) const;
+      bool render_paths_to_shapes) const;
   const gerbv_project_t* get_project() const {
     return project;
   }

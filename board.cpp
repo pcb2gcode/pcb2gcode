@@ -127,7 +127,6 @@ void Board::createLayers()
       const bool fill = fill_outline && prepared_layer.first == "outline";
 
       auto surface = make_shared<Surface_vectorial>(
-          points_per_circle,
           bounding_box,
           prepared_layer.first, outputdir, tsp_2opt,
           mill_feed_direction, invert_gerbers,

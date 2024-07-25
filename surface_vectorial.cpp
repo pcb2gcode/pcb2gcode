@@ -81,12 +81,10 @@ using std::dynamic_pointer_cast;
 
 unsigned int Surface_vectorial::debug_image_index = 0;
 
-Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
-                                     const box_type_fp& bounding_box,
+Surface_vectorial::Surface_vectorial(const box_type_fp& bounding_box,
                                      string name, string outputdir,
                                      bool tsp_2opt, MillFeedDirection::MillFeedDirection mill_feed_direction,
                                      bool invert_gerbers, bool render_paths_to_shapes) :
-    points_per_circle(points_per_circle),
     bounding_box(bounding_box),
     name(name),
     outputdir(outputdir),
@@ -97,7 +95,7 @@ Surface_vectorial::Surface_vectorial(unsigned int points_per_circle,
     render_paths_to_shapes(render_paths_to_shapes) {}
 
 void Surface_vectorial::render(shared_ptr<GerberImporter> importer, double tolerance) {
-  auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes, points_per_circle);
+  auto vectorial_surface_not_simplified = importer->render(fill, render_paths_to_shapes);
 
   if (bg::intersects(vectorial_surface_not_simplified.first)) {
     cerr << "\nWarning: Geometry of layer '" << name << "' is"

@@ -114,7 +114,7 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
   ret = make_regular_polygon(center, diameter, vertices, offset);
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_regular_polygon(center, hole_diameter, circle_points,0);
   }
   return ret;
 }
@@ -134,7 +134,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double 
   polygon.outer().push_back(polygon.outer().front());
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_regular_polygon(center, hole_diameter, 0);
   }
   return ret;
 }
@@ -168,7 +168,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
   } else {
     // This is just a circle.  Older boost doesn't handle a line with no length
     // though new boost does.
-    return make_regular_polygon(center, width, circle_points, 0, hole_diameter, circle_points);
+    return make_regular_polygon(center, width, 0, hole_diameter);
   }
 
   multi_polygon_type_fp oval;
@@ -183,7 +183,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
              bg::strategy::buffer::point_circle(circle_points));
 
   if (hole_diameter > 0) {
-    multi_polygon_type_fp hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
+    multi_polygon_type_fp hole = make_regular_polygon(center, hole_diameter, 0);
     multi_polygon_type_fp hole_fp;
     bg::convert(hole, hole_fp);
     oval = oval - hole_fp;
@@ -405,16 +405,15 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire_parts.push_back(make_regular_polygon(center, external_diameter, circle_points, 0,
-                                               internal_diameter, circle_points));
+    moire_parts.push_back(make_regular_polygon(center, external_diameter, 0,
+                                               internal_diameter));
   }
   return sum(moire_parts);
 }
 
 multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
                                    coordinate_type_fp gap_width, unsigned int circle_points) {
-  multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, circle_points,
-                                                    0, internal_diameter, circle_points);
+  multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, 0, internal_diameter);
 
   multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
   multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
@@ -485,7 +484,7 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
   return ret;
 }
 
-map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points) {
+map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[]) {
   const point_type_fp origin (0, 0);
   map<int, multi_polygon_type_fp> apertures_map;
   for (int i = 0; i < APERTURE_MAX; i++) {
@@ -502,10 +501,8 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
         case GERBV_APTYPE_CIRCLE:
           input = make_regular_polygon(origin,
                                        parameters[0],
-                                       circle_points,
                                        parameters[1],
-                                       parameters[2],
-                                       circle_points);
+                                       parameters[2]);
           break;
         case GERBV_APTYPE_RECTANGLE:
           input = make_rectangle(origin,
@@ -730,12 +727,10 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
 // Convert the gerber file into a pair of multi_polygon_type_fp and a list of
 // linear_paths.  The linear paths are a map from diamter of the tool for the
 // path to all the paths at that diameter.  If fill_closed_lines is true, return
-// all closed shapes without holes in them.  points_per_circle is the number of
-// lines to use to appoximate circles.
+// all closed shapes without holes in them.
 pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> GerberImporter::render(
     bool fill_closed_lines,
-    bool render_paths_to_shapes,
-    unsigned int points_per_circle) const {
+    bool render_paths_to_shapes) const {
   ring_type_fp region;
   bool contour = false; // Are we in contour mode?
 
@@ -747,7 +742,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     unsupported_polarity_throw_exception();
   }
 
-  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle);
+  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture);
   layers.front().first = gerber->netlist->layer;
 
 
