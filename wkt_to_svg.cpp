@@ -36,8 +36,15 @@ int main() {
       mapper.map(ls,
                  "stroke:rgb(0,0,0);stroke-width:10;fill:none;"
                  "stroke-opacity:0.3;stroke-linecap:round;stroke-linejoin:round;");
-    } else {
+    } else if (strncmp(buffer, "MULTIPOLYGON", 12) == 0) {
       multi_polygon_type_fp mp;
+      bg::read_wkt(buffer, mp);
+      mapper.add(mp);
+      mapper.map(mp,
+                 "stroke:rgb(0,0,0);stroke-width:10;fill:red;"
+                 "stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;");
+    } else if (strncmp(buffer, "POLYGON", 7) == 0) {
+      polygon_type_fp mp;
       bg::read_wkt(buffer, mp);
       mapper.add(mp);
       mapper.map(mp,
