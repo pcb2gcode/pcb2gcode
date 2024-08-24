@@ -265,6 +265,8 @@ jobs:
       run: sed -i 's/-g /-g0 /g' Makefile
     - name: Make pcb2gcode
       run: make -j ${NUM_CPUS}
+    - name: Display pcb2gcode version
+      run: ./pcb2gcode --version
     - name: Run examples
       if: '! matrix.code_coverage'
       run: |
