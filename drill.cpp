@@ -93,6 +93,9 @@ ExcellonProcessor::ExcellonProcessor(const boost::program_options::variables_map
     mirror_axis(options["mirror-axis"].as<Length>()),
     mirror_yaxis(options["mirror-yaxis"].as<bool>()),
     min_milldrill_diameter(options["min-milldrill-hole-diameter"].as<Length>()),
+    min_milldrill_entry_diameter(options["min-milldrill-entry-diameter"].as<Percent>()),
+    max_milldrill_entry_diameter(options["max-milldrill-entry-diameter"].as<Percent>()),
+    milldrill_stepover(options["milldrill-stepover"].as<Percent>()),
     mill_feed_direction(options["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>()),
     available_drills(flatten(options["drills-available"].as<std::vector<AvailableDrills>>())),
     ocodes(1),
@@ -376,12 +379,14 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 /******************************************************************************/
 /*
  *  mill one circle, returns false if tool is bigger than the circle
+ *  if last_pass, return to zsafe, otherwise return to start height for another pass
  */
 /******************************************************************************/
-bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start_y,
-                                 double stop_x, double stop_y,
-                                 shared_ptr<Cutter> cutter,
-                                 double holediameter)
+bool ExcellonProcessor::millhole_one(std::ofstream &of,
+                                     double start_x, double start_y,
+                                     double stop_x, double stop_y,
+                                     shared_ptr<Cutter> cutter,
+                                     double holediameter, bool last_pass)
 {
 
     g_assert(cutter);
@@ -394,6 +399,9 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
     // cutter->stepsize in depth.
     int stepcount = (int) ceil(std::abs(cutter->zwork / cutter->stepsize));
 
+    double start_z = -1.0/stepcount * cutter->zwork;
+    double return_z = last_pass ? cutter->zsafe : start_z;
+
     double delta_x = stop_x - start_x;
     double delta_y = stop_y - start_y;
     double distance = sqrt(delta_x*delta_x + delta_y*delta_y);
@@ -402,7 +410,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         of << "G0 X" << start_x * cfactor << " Y" << start_y * cfactor << '\n';
         if (slot) {
             // Start one step above Z0 for optimal entry
-            of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
+            of << "G1 Z" << start_z * cfactor
                << " F" << cutter->vertfeed * cfactor << '\n';
 
             // Is there enough room for material evacuation?
@@ -434,7 +442,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
             of << "G1 Z" << cutter->zwork * cfactor
                << " F" << cutter->vertfeed * cfactor << '\n';
         }
-        of << "G1 Z" << cutter->zsafe * cfactor
+        of << "G1 Z" << return_z * cfactor
            << " F" << cutter->vertfeed * cfactor << "\n\n";
 
         return false;
@@ -492,7 +500,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         }
 
         // Start one step above Z0 for optimal entry
-        of << "G1 Z" << -1.0/stepcount * cutter->zwork * cfactor
+        of << "G1 Z" << start_z * cfactor
            << " F" << cutter->vertfeed * cfactor << '\n';
 
         // Is hole is big enough for horizontal speed?
@@ -549,11 +557,46 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
           }
         }
 
-        of << "G1 Z" << cutter->zsafe * cfactor
+        of << "G1 Z" << return_z * cfactor
            << " F" << cutter->vertfeed * cfactor << "\n\n";
 
         return true;
     }
+}
+
+// mill a hole im multiple passes; returns false if tool is bigger than the circle
+bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start_y,
+                                 double stop_x, double stop_y,
+                                 shared_ptr<Cutter> cutter,
+                                 double holediameter) {
+  // mill a holediameter size hole in multiple steps, starting from a size
+  // between min_entry and max_entry, enlarging by less than diameter_step each
+  // time
+  double min_entry = cutter->tool_diameter * min_milldrill_entry_diameter.asFraction(1);
+  double max_entry = cutter->tool_diameter * max_milldrill_entry_diameter.asFraction(1);
+  double diameter_step = cutter->tool_diameter * milldrill_stepover.asFraction(1) * 2.0;
+
+  if (holediameter < max_entry) {
+    // can do this in one pass
+    return millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
+  } else {
+    // number of diameter_step size enlargements to go from a size under
+    // max_entry to holediameter without exceeding diameter_step
+    int steps = (int)std::ceil((holediameter - max_entry) / diameter_step);
+
+    // adjust entry diameter and reduce step size to meet min_entry requirements
+    double entry_diameter = std::max(
+        holediameter - steps * diameter_step,
+        min_entry);
+    diameter_step = (holediameter - entry_diameter) / steps;
+
+    for (int step = 0; step <= steps; step++) {
+      millhole_one(of, start_x, start_y, stop_x, stop_y, cutter,
+                   entry_diameter + step * diameter_step, step == steps);
+    }
+
+    return true;
+  }
 }
 
 // milldrill holes

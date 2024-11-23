@@ -99,6 +99,11 @@ private:
   std::map<int, drillbit> parse_bits();
   std::map<int, multi_linestring_type_fp> parse_holes();
 
+    bool millhole_one(std::ofstream &of,
+                      double start_x, double start_y,
+                      double stop_x, double stop_y,
+                      std::shared_ptr<Cutter> cutter, double holediameter,
+                      bool last_pass = true);
     bool millhole(std::ofstream &of,
                   double start_x, double start_y,
                   double stop_x, double stop_y,
@@ -139,8 +144,14 @@ private:
     const double yoffset;
     const Length mirror_axis;
     const bool mirror_yaxis;
-    // The minimum size hole that is milldrilled.  Below this, holes are drilled regularly.
+    // The minimum size hole that is milldrilled, and the minimum entry
+    // diameter.  Below this, holes are drilled regularly.
     const boost::optional<Length> min_milldrill_diameter;
+    // minimum and maximum entry size and stepover as a fraction of the
+    // milldrill cutter size
+    const Percent min_milldrill_entry_diameter;
+    const Percent max_milldrill_entry_diameter;
+    const Percent milldrill_stepover;
     const MillFeedDirection::MillFeedDirection mill_feed_direction;
     const std::vector<AvailableDrill> available_drills;
     uniqueCodes ocodes;
