@@ -565,37 +565,37 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                                  double stop_x, double stop_y,
                                  shared_ptr<Cutter> cutter,
                                  double holediameter) {
-  g_assert(cutter);
+    g_assert(cutter);
 
-  // mill a holediameter size hole in multiple steps, starting from a size
-  // between min_entry and max_entry, enlarging by less than diameter_step each
-  // time
-  double min_entry = cutter->tool_diameter * min_milldrill_entry_diameter.asFraction(1);
-  double max_entry = cutter->tool_diameter * max_milldrill_entry_diameter.asFraction(1);
-  double diameter_step = cutter->tool_diameter * milldrill_stepover.asFraction(1) * 2.0;
+    // mill a holediameter size hole in multiple steps, starting from a size
+    // between min_entry and max_entry, enlarging by less than diameter_step each
+    // time
+    double min_entry = cutter->tool_diameter * min_milldrill_entry_diameter.asFraction(1);
+    double max_entry = cutter->tool_diameter * max_milldrill_entry_diameter.asFraction(1);
+    double diameter_step = cutter->tool_diameter * milldrill_stepover.asFraction(1) * 2.0;
 
-  if (holediameter < max_entry) {
-    // can do this in one pass
-    millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
-  } else {
-    // number of diameter_step size enlargements to go from a size under
-    // max_entry to holediameter without exceeding diameter_step
-    int steps = (int)std::ceil((holediameter - max_entry) / diameter_step);
+    if (holediameter < max_entry) {
+        // can do this in one pass
+        millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
+    } else {
+        // number of diameter_step size enlargements to go from a size under
+        // max_entry to holediameter without exceeding diameter_step
+        int steps = (int)std::ceil((holediameter - max_entry) / diameter_step);
 
-    // adjust entry diameter and reduce step size to meet min_entry requirements
-    double entry_diameter = std::max(
-        holediameter - steps * diameter_step,
-        min_entry);
-    diameter_step = (holediameter - entry_diameter) / steps;
+        // adjust entry diameter and reduce step size to meet min_entry requirements
+        double entry_diameter = std::max(
+                holediameter - steps * diameter_step,
+                min_entry);
+        diameter_step = (holediameter - entry_diameter) / steps;
 
-    for (int step = 0; step <= steps; step++) {
-      millhole_one(of, start_x, start_y, stop_x, stop_y, cutter,
-                   entry_diameter + step * diameter_step, step == steps);
+        for (int step = 0; step <= steps; step++) {
+            millhole_one(of, start_x, start_y, stop_x, stop_y, cutter,
+                         entry_diameter + step * diameter_step, step == steps);
+        }
     }
-  }
 
-  // tolerance to ensure we return true if the cutter and hole are the same size
-  return holediameter > cutter->tool_diameter * 0.999;
+    // tolerance to ensure we return true if the cutter and hole are the same size
+    return holediameter > cutter->tool_diameter * 0.999;
 }
 
 // milldrill holes
