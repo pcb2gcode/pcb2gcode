@@ -581,6 +581,9 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         // number of diameter_step size enlargements to go from a size under
         // max_entry to holediameter without exceeding diameter_step
         int steps = (int)std::ceil((holediameter - max_entry) / diameter_step);
+        // here holediameter can be just above max_entry, so steps could end up
+        // being 0
+        steps = std::max(steps, 1);
 
         // adjust entry diameter and reduce step size to meet min_entry requirements
         double entry_diameter = std::max(
