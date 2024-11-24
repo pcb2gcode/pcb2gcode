@@ -565,6 +565,8 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
                                  double stop_x, double stop_y,
                                  shared_ptr<Cutter> cutter,
                                  double holediameter) {
+  g_assert(cutter);
+
   // mill a holediameter size hole in multiple steps, starting from a size
   // between min_entry and max_entry, enlarging by less than diameter_step each
   // time
