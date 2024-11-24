@@ -99,7 +99,7 @@ private:
   std::map<int, drillbit> parse_bits();
   std::map<int, multi_linestring_type_fp> parse_holes();
 
-    bool millhole_one(std::ofstream &of,
+    void millhole_one(std::ofstream &of,
                       double start_x, double start_y,
                       double stop_x, double stop_y,
                       std::shared_ptr<Cutter> cutter, double holediameter,

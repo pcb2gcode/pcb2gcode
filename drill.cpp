@@ -378,11 +378,11 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
 /******************************************************************************/
 /*
- *  mill one circle, returns false if tool is bigger than the circle
+ *  mill one circle
  *  if last_pass, return to zsafe, otherwise return to start height for another pass
  */
 /******************************************************************************/
-bool ExcellonProcessor::millhole_one(std::ofstream &of,
+void ExcellonProcessor::millhole_one(std::ofstream &of,
                                      double start_x, double start_y,
                                      double stop_x, double stop_y,
                                      shared_ptr<Cutter> cutter,
@@ -444,8 +444,6 @@ bool ExcellonProcessor::millhole_one(std::ofstream &of,
         }
         of << "G1 Z" << return_z * cfactor
            << " F" << cutter->vertfeed * cfactor << "\n\n";
-
-        return false;
     } else {
         // Hole is larger than cutter diameter so make circles/ovals.
         double millr = (holediameter - cutdiameter) / 2.;      //mill radius
@@ -559,8 +557,6 @@ bool ExcellonProcessor::millhole_one(std::ofstream &of,
 
         of << "G1 Z" << return_z * cfactor
            << " F" << cutter->vertfeed * cfactor << "\n\n";
-
-        return true;
     }
 }
 
@@ -578,7 +574,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
   if (holediameter < max_entry) {
     // can do this in one pass
-    return millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
+    millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
   } else {
     // number of diameter_step size enlargements to go from a size under
     // max_entry to holediameter without exceeding diameter_step
@@ -594,9 +590,10 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
       millhole_one(of, start_x, start_y, stop_x, stop_y, cutter,
                    entry_diameter + step * diameter_step, step == steps);
     }
-
-    return true;
   }
+
+  // tolerance to ensure we return true if the cutter and hole are the same size
+  return holediameter > cutter->tool_diameter * 0.999;
 }
 
 // milldrill holes
