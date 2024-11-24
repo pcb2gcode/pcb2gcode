@@ -213,7 +213,7 @@ options::options()
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
        ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
-        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+        "minimum hole width for milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
        ("min-milldrill-entry-diameter",
         po::value<Percent>()->default_value(parse_unit<Percent>("150%")),
         "minimum initial hole width for milldrilling when multiple steps are used, as a fraction of milldrill-diameter")
