@@ -583,10 +583,12 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
         // can do this in one pass
         millhole_one(of, start_x, start_y, stop_x, stop_y, cutter, holediameter);
     } else {
-        // adjust entry diameter and reduce step size to meet min_entry requirements
-        double entry_diameter = std::max(
-                holediameter - steps * diameter_step,
-                min_entry);
+        // adjust entry diameter and reduce step size to meet requirements
+        double entry_diameter = holediameter - steps * diameter_step;
+        entry_diameter = std::max(entry_diameter, min_entry);
+        // generally already met, except it can be slightly over in tolerance region
+        entry_diameter = std::min(entry_diameter, max_entry);
+
         diameter_step = (holediameter - entry_diameter) / steps;
 
         for (int step = 0; step <= steps; step++) {
