@@ -15,7 +15,6 @@ T1
 M5        (Spindle stop.)
 G04 P1.00000
 (MSG, Change tool bit to drill size 0.03150inch)
-M6        (Tool change.)
 M0        (Temporary machine stop.)
 M3        (Spindle on clockwise.)
 G04 P1.00000
