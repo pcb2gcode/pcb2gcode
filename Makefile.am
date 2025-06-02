@@ -108,6 +108,7 @@ segment_tree_tests_SOURCES = segment_tree_tests.cpp segment_tree.cpp boost_unit_
 TESTS = $(check_PROGRAMS)
 
 @VALGRIND_CHECK_RULES@
+VALGRIND_SUPPRESSIONS_FILES = gerberimporter_tests.supp
 VALGRIND_FLAGS = --error-exitcode=127 --errors-for-leak-kinds=definite --show-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes
 
 check-syntax:
