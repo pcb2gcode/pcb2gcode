@@ -1,0 +1,15 @@
+{
+   <rsvg_new_handle>
+   Memcheck:Cond
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   fun:g_type_class_ref
+   obj:/usr/lib/x86_64-linux-gnu/librsvg-2.so.2.50.0
+   fun:rsvg_handle_new_with_flags
+   fun:rsvg_handle_new_from_stream_sync
+   fun:rsvg_handle_new_from_data
+   ...
+}
