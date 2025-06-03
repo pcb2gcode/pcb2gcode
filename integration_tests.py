@@ -81,6 +81,7 @@ TEST_CASES = ([TestCase(x, os.path.join(EXAMPLES_PATH, x), [], 0)
                   "multivibrator-no-zbridges",
                   "multivibrator-two-isolators",
                   "multivibrator_backtrack",
+                  "multivibrator_milldrill_nom6",
                   "multivibrator_no_export",
                   "multivibrator_no_export_milldrill",
                   "multivibrator_no_optimise",

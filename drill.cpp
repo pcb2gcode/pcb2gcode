@@ -558,7 +558,7 @@ bool ExcellonProcessor::millhole(std::ofstream &of, double start_x, double start
 
 // milldrill holes
 void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<string>& of_name,
-                                   shared_ptr<Cutter> target, bool zchange_absolute) {
+                                   shared_ptr<Cutter> target, bool nom6, bool zchange_absolute) {
     unsigned int badHoles = 0;
     stringstream zchange;
 
@@ -625,7 +625,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
        << "M5        (Spindle stop.)\n"
        << "G04 P" << target->spindown_time << "\n"
        << "(MSG, Change tool bit to drill size " << (bMetricOutput ? (target->tool_diameter * 25.4) : target->tool_diameter) << (bMetricOutput ? "mm" : "inch") << ")\n"
-       << "M6        (Tool change.)\n"
+       << (nom6 ? "" : "M6        (Tool change.)\n")
        << "M0        (Temporary machine stop.)\n"
        << "M3        (Spindle on clockwise.)\n"
        << "G04 P" << target->spinup_time << "\n"

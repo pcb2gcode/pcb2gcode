@@ -396,6 +396,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
               cutter->zwork = vm["zdrill"].as<Length>().asInch(unit);
             }
             ep.export_ngc(outputdir, milldrill_filename, cutter,
+                          vm["nom6"].as<bool>(),
                           vm["zchange-absolute"].as<bool>());
             ep.export_ngc(outputdir, drill_filename,
                           driller, vm["onedrill"].as<bool>(), 
