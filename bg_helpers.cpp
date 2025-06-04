@@ -19,7 +19,7 @@ multi_polygon_type_fp buffer(multi_polygon_type_fp const & geometry_in, coordina
   if (expand_by == 0 || geometry_in.size() == 0) {
     return geometry_in;
   }
-  auto const points_per_circle = 32;
+  auto const points_per_circle = std::max(32., expand_by * 2 * bg::math::pi<double>() / 0.0004);
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
   return from_geos<multi_polygon_type_fp>(
