@@ -126,6 +126,7 @@ void Board::createLayers()
       shared_ptr<GerberImporter> importer = get<0>(prepared_layer.second);
       const bool fill = fill_outline && prepared_layer.first == "outline";
 
+      auto const points_per_circle = 32;
       auto surface = make_shared<Surface_vectorial>(
           points_per_circle,
           bounding_box,
