@@ -506,7 +506,7 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
   return ret;
 }
 
-map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int) {
+map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[]) {
   const point_type_fp origin (0, 0);
   map<int, multi_polygon_type_fp> apertures_map;
   for (int i = 0; i < APERTURE_MAX; i++) {
@@ -759,7 +759,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     unsupported_polarity_throw_exception();
   }
 
-  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, 32);
+  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture);
   layers.front().first = gerber->netlist->layer;
 
 
