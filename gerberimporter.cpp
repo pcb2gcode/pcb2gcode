@@ -106,21 +106,40 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
   return ret;
 }
 
+// Uses make_regular_polygon to draw a circle of line segments.
+multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diameter, coordinate_type_fp offset) {
+  const auto points_per_circle = std::max(32., diameter * bg::math::pi<double>() / 0.0001);
+  return make_regular_polygon(center, diameter, points_per_circle, offset);
+}
+
 // Same as above but potentially puts a hole in the center.
 multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
                                            coordinate_type_fp offset, coordinate_type_fp hole_diameter,
-                                           unsigned int circle_points) {
+                                           unsigned int) {
   multi_polygon_type_fp ret;
   ret = make_regular_polygon(center, diameter, vertices, offset);
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_circle(center, hole_diameter, offset);
+  }
+  return ret;
+}
+
+// Same as above but potentially puts a hole in the center.
+multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diameter,
+                                  coordinate_type_fp offset,
+                                  coordinate_type_fp hole_diameter) {
+  multi_polygon_type_fp ret;
+  ret = make_circle(center, diameter, offset);
+
+  if (hole_diameter > 0) {
+    ret = ret - make_circle(center, hole_diameter, offset);
   }
   return ret;
 }
 
 multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
-                                     coordinate_type_fp hole_diameter, unsigned int circle_points) {
+                                     coordinate_type_fp hole_diameter, unsigned int) {
   const coordinate_type_fp x = center.x();
   const coordinate_type_fp y = center.y();
 
@@ -134,7 +153,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double 
   polygon.outer().push_back(polygon.outer().front());
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_circle(center, hole_diameter, 0);
   }
   return ret;
 }
@@ -168,7 +187,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
   } else {
     // This is just a circle.  Older boost doesn't handle a line with no length
     // though new boost does.
-    return make_regular_polygon(center, width, circle_points, 0, hole_diameter, circle_points);
+    return make_circle(center, width, 0, hole_diameter);
   }
 
   multi_polygon_type_fp oval;
@@ -183,7 +202,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
              bg::strategy::buffer::point_circle(circle_points));
 
   if (hole_diameter > 0) {
-    multi_polygon_type_fp hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
+    multi_polygon_type_fp hole = make_circle(center, hole_diameter, 0);
     multi_polygon_type_fp hole_fp;
     bg::convert(hole, hole_fp);
     oval = oval - hole_fp;
@@ -386,7 +405,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
   return output;
 }
 
-multi_polygon_type_fp make_moire(const double * const parameters, unsigned int circle_points) {
+multi_polygon_type_fp make_moire(const double * const parameters, unsigned int /* circle_points */) {
   const point_type_fp center(parameters[0], parameters[1]);
   vector<multi_polygon_type_fp> moire_parts;
 
@@ -405,16 +424,15 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire_parts.push_back(make_regular_polygon(center, external_diameter, circle_points, 0,
-                                               internal_diameter, circle_points));
+    moire_parts.push_back(make_circle(center, external_diameter, 0,
+                                      internal_diameter));
   }
   return sum(moire_parts);
 }
 
 multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
-                                   coordinate_type_fp gap_width, unsigned int circle_points) {
-  multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, circle_points,
-                                                    0, internal_diameter, circle_points);
+                                   coordinate_type_fp gap_width, unsigned int /* circle_points */) {
+  multi_polygon_type_fp ring = make_circle(center, external_diameter, 0, internal_diameter);
 
   multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
   multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
@@ -500,12 +518,10 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
           continue;
 
         case GERBV_APTYPE_CIRCLE:
-          input = make_regular_polygon(origin,
-                                       parameters[0],
-                                       circle_points,
-                                       parameters[1],
-                                       parameters[2],
-                                       circle_points);
+          input = make_circle(origin,
+                              parameters[0],
+                              parameters[1],
+                              parameters[2]);
           break;
         case GERBV_APTYPE_RECTANGLE:
           input = make_rectangle(origin,
@@ -555,10 +571,9 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   simplified_amacro = simplified_amacro->next;
                   continue;
                 case GERBV_APTYPE_MACRO_CIRCLE:
-                  mpoly = make_regular_polygon(point_type_fp(parameters[2], parameters[3]),
-                                               parameters[1],
-                                               circle_points,
-                                               0);
+                  mpoly = make_circle(point_type_fp(parameters[2], parameters[3]),
+                                      parameters[1],
+                                      0);
                   polarity = parameters[0];
                   rotation = parameters[4];
                   break;
