@@ -172,7 +172,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2,
 }
 
 multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
-                                coordinate_type_fp hole_diameter, unsigned int) {
+                                coordinate_type_fp hole_diameter) {
   point_type_fp start(center.x(), center.y());
   point_type_fp end(center.x(), center.y());
   if (width > height) {
@@ -534,8 +534,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
           input = make_oval(origin,
                             parameters[0],
                             parameters[1],
-                            parameters[2],
-                            circle_points);
+                            parameters[2]);
           break;
         case GERBV_APTYPE_POLYGON:
           input = make_regular_polygon(origin,
