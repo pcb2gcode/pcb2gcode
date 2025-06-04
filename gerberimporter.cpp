@@ -246,7 +246,7 @@ double get_angle(point_type_fp start, point_type_fp center, point_type_fp stop, 
 // delta_angle is in radians.  Positive signed is counterclockwise, like math.
 linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
                                 point_type_fp center, const coordinate_type_fp& radius, const coordinate_type_fp& radius2,
-                                double delta_angle, const bool& clockwise, const unsigned int&) {
+                                double delta_angle, const bool& clockwise) {
   // We can't trust gerbv to calculate single-quadrant vs multi-quadrant
   // correctly so we must so it ourselves.
   bool definitely_sq = false;
@@ -858,13 +858,11 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
             delta_angle = -delta_angle;
           }
           point_type_fp center(cirseg->cp_x, cirseg->cp_y);
-          auto const points_per_circle = 32;
           linestring_type_fp path = circular_arc(start, stop, center,
                                                  cirseg->width / 2,
                                                  cirseg->height / 2,
                                                  delta_angle,
-                                                 currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR,
-                                                 points_per_circle);
+                                                 currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR);
           if (contour) {
             if (region.empty()) {
               region.insert(region.end(), path.begin(), path.end());
