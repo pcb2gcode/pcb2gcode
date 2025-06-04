@@ -42,7 +42,7 @@ multi_polygon_type_fp buffer_miter(multi_polygon_type_fp const & geometry_in, co
     return geometry_in;
   } else {
     multi_polygon_type_fp geometry_out;
-    auto const points_per_circle = 32;
+    auto const points_per_circle = std::max(32., expand_by * 2 * bg::math::pi<double>() / 0.0004);
     bg::buffer(geometry_in, geometry_out,
                bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(expand_by),
                bg::strategy::buffer::side_straight(),
@@ -70,7 +70,7 @@ multi_polygon_type_fp buffer(linestring_type_fp const & geometry_in, CoordinateT
   if (expand_by == 0) {
     return {};
   }
-  auto const points_per_circle = 32;
+  auto const points_per_circle = std::max(32., expand_by * 2 * bg::math::pi<double>() / 0.0004);
 #ifdef GEOS_VERSION
   auto geos_in = to_geos(geometry_in);
   return from_geos<multi_polygon_type_fp>(
