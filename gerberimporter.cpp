@@ -246,7 +246,7 @@ double get_angle(point_type_fp start, point_type_fp center, point_type_fp stop, 
 // delta_angle is in radians.  Positive signed is counterclockwise, like math.
 linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
                                 point_type_fp center, const coordinate_type_fp& radius, const coordinate_type_fp& radius2,
-                                double delta_angle, const bool& clockwise, const unsigned int& circle_points) {
+                                double delta_angle, const bool& clockwise, const unsigned int&) {
   // We can't trust gerbv to calculate single-quadrant vs multi-quadrant
   // correctly so we must so it ourselves.
   bool definitely_sq = false;
@@ -294,9 +294,11 @@ linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp&
   const double stop_angle = start_angle + delta_angle;
   const coordinate_type_fp start_radius = bg::distance(start, center);
   const coordinate_type_fp stop_radius = bg::distance(stop, center);
-  const unsigned int steps = ceil(std::abs(delta_angle) / (2 * bg::math::pi<double>()) * circle_points)
-                             + 1; // One more for the end point.
+  auto const average_radius = (start_radius + stop_radius) / 2;
+  auto const radius_points = std::max(32. / 2 / bg::math::pi<double>(), average_radius / 0.0001);
+  const unsigned int steps = std::ceil(std::abs(delta_angle) * radius_points) + 1; // One more for the end point.
   linestring_type_fp linestring;
+  linestring.reserve(steps);
   // First place the start;
   linestring.push_back(start);
   for (unsigned int i = 1; i < steps - 1; i++) {
