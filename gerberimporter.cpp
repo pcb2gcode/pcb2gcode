@@ -114,8 +114,7 @@ multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diame
 
 // Same as above but potentially puts a hole in the center.
 multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
-                                           coordinate_type_fp offset, coordinate_type_fp hole_diameter,
-                                           unsigned int) {
+                                           coordinate_type_fp offset, coordinate_type_fp hole_diameter) {
   multi_polygon_type_fp ret;
   ret = make_regular_polygon(center, diameter, vertices, offset);
 
@@ -139,7 +138,7 @@ multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diame
 }
 
 multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
-                                     coordinate_type_fp hole_diameter, unsigned int) {
+                                     coordinate_type_fp hole_diameter) {
   const coordinate_type_fp x = center.x();
   const coordinate_type_fp y = center.y();
 
@@ -173,7 +172,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2,
 }
 
 multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
-                                coordinate_type_fp hole_diameter, unsigned int circle_points) {
+                                coordinate_type_fp hole_diameter, unsigned int) {
   point_type_fp start(center.x(), center.y());
   point_type_fp end(center.x(), center.y());
   if (width > height) {
@@ -194,6 +193,8 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
   linestring_type_fp line;
   line.push_back(start);
   line.push_back(end);
+  const auto diameter = std::max(width, height); // Close enough.
+  const auto circle_points = std::max(32., diameter * bg::math::pi<double>() / 0.0001);
   bg::buffer(line, oval,
              bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(std::min(width, height)/2),
              bg::strategy::buffer::side_straight(),
@@ -411,8 +412,8 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int /
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
-  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0));
-  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0));
   const int max_number_of_rings = parameters[5];
   const double outer_ring_diameter = parameters[2];
   const double ring_thickness = parameters[3];
@@ -434,8 +435,8 @@ multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp exte
                                    coordinate_type_fp gap_width, unsigned int /* circle_points */) {
   multi_polygon_type_fp ring = make_circle(center, external_diameter, 0, internal_diameter);
 
-  multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
-  multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
+  multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0);
+  multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0);
   return ring - rect1 - rect2;
 }
 
@@ -527,8 +528,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
           input = make_rectangle(origin,
                                  parameters[0],
                                  parameters[1],
-                                 parameters[2],
-                                 circle_points);
+                                 parameters[2]);
           break;
         case GERBV_APTYPE_OVAL:
           input = make_oval(origin,
@@ -542,8 +542,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                                        parameters[0],
                                        parameters[1],
                                        parameters[2],
-                                       parameters[3],
-                                       circle_points);
+                                       parameters[3]);
           break;
         case GERBV_APTYPE_MACRO:
           if (aperture->simplified) {
@@ -623,7 +622,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   mpoly = make_rectangle(point_type_fp(parameters[3], parameters[4]),
                                          parameters[1],
                                          parameters[2],
-                                         0, 0);
+                                         0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
@@ -632,7 +631,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                                                        (parameters[4] + parameters[2] / 2)),
                                          parameters[1],
                                          parameters[2],
-                                         0, 0);
+                                         0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
