@@ -408,7 +408,7 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
   return output;
 }
 
-multi_polygon_type_fp make_moire(const double * const parameters, unsigned int /* circle_points */) {
+multi_polygon_type_fp make_moire(const double * const parameters) {
   const point_type_fp center(parameters[0], parameters[1]);
   vector<multi_polygon_type_fp> moire_parts;
 
@@ -506,7 +506,7 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
   return ret;
 }
 
-map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points) {
+map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int) {
   const point_type_fp origin (0, 0);
   map<int, multi_polygon_type_fp> apertures_map;
   for (int i = 0; i < APERTURE_MAX; i++) {
@@ -599,7 +599,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_MOIRE: // 4.12.4.7 Moire, Primitive Code 6
-                  mpoly = make_moire(parameters, circle_points);
+                  mpoly = make_moire(parameters);
                   polarity = 1;
                   rotation = parameters[8];
                   break;
