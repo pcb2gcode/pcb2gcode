@@ -52,8 +52,7 @@ class Surface_vectorial: private boost::noncopyable {
                                                             const point_type_fp& end,
                                                             path_finding::SearchKey search_key)> PathFinderRingIndices;
 
-  Surface_vectorial(unsigned int points_per_circle,
-                    const box_type_fp& bounding_box,
+  Surface_vectorial(const box_type_fp& bounding_box,
                     std::string name, std::string outputdir, bool tsp_2opt,
                     MillFeedDirection::MillFeedDirection mill_feed_direction,
                     bool invert_gerbers, bool render_paths_to_shapes);
@@ -77,7 +76,6 @@ class Surface_vectorial: private boost::noncopyable {
   }
 
 protected:
-  const unsigned int points_per_circle;
   const box_type_fp bounding_box;
   const std::string name;
   const std::string outputdir;
