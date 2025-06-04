@@ -280,7 +280,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing front side... " << flush;
     if (vm.count("front") > 0) {
       string frontfile = vm["front"].as<string>();
-      auto importer = make_shared<GerberImporter>();
+      auto importer = make_shared<GerberImporter>(tolerance);
       if (!importer->load_file(frontfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -293,7 +293,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing back side... " << flush;
     if (vm.count("back") > 0) {
       string backfile = vm["back"].as<string>();
-      auto importer = make_shared<GerberImporter>();
+      auto importer = make_shared<GerberImporter>(tolerance);
       if (!importer->load_file(backfile)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -306,7 +306,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     cout << "Importing outline... " << flush;
     if (vm.count("outline") > 0) {
       string outline = vm["outline"].as<string>();
-      auto importer = make_shared<GerberImporter>();
+      auto importer = make_shared<GerberImporter>(tolerance);
       if (!importer->load_file(outline)) {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
@@ -352,7 +352,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             //best we can do)
             if(board->get_layersnum() == 0)
             {
-              auto importer = make_shared<GerberImporter>();
+              auto importer = make_shared<GerberImporter>(tolerance);
               if (!importer->load_file(vm["drill"].as<string>())) {
                 options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
               }

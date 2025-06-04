@@ -196,7 +196,7 @@ void test_one(const string& gerber_file, double expected_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(false, true).first;
   box_type_fp bounding_box;
@@ -240,7 +240,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_REQUIRE(g.load_file(gerber_path));
   multi_polygon_type_fp polys = g.render(fill_closed_lines, true).first;
   box_type_fp bounding_box;
@@ -284,11 +284,11 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"code5_polygon.gbr",           0.00001129},
                            {"code21_center_line.gbr",      0.01492},
                            {"polygon.gbr",                 0.01666},
-                           {"wide_oval.gbr",               0.00008903},
-                           {"tall_oval.gbr",               0.00004341},
-                           {"circle_oval.gbr",             0.00008043},
+                           {"wide_oval.gbr",               0.0000882},
+                           {"tall_oval.gbr",               0.00004317},
+                           {"circle_oval.gbr",             0.00007908},
                            {"rectangle.gbr",               0.00001834},
-                           {"circle.gbr",                  0.00003268},
+                           {"circle.gbr",                  0.00003313},
                            {"code1_circle.gbr",            0.008047},
                            {"code20_vector_line.gbr",      0.01282},
                            {"g01_rectangle.gbr",           0.000704},
@@ -320,7 +320,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_visual,
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_CHECK(!g.load_file("foo.gbr"));
 }
 
