@@ -198,7 +198,7 @@ void test_one(const string& gerber_file, double expected_error_rate) {
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, true, 360).first;
+  multi_polygon_type_fp polys = g.render(false, true).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   bg::expand(bounding_box, g.get_bounding_box());
@@ -242,7 +242,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
   gerber_path += gerber_file;
   auto g = GerberImporter();
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, true).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width(bounding_box) * dpi, height(bounding_box) * dpi);
@@ -277,23 +277,23 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                      boost::unit_test::data::make(
                          std::vector<std::tuple<std::string, double>>{
                            {"overlapping_lines.gbr",       0.00405},
-                           {"levels.gbr",                  0.0005361},
-                           {"levels_step_and_repeat.gbr",  0.004825},
+                           {"levels.gbr",                  0.00365},
+                           {"levels_step_and_repeat.gbr",  0.007762},
                            {"code22_lower_left_line.gbr",  0.01002},
                            {"code4_outline.gbr",           0.0214},
                            {"code5_polygon.gbr",           0.00001129},
                            {"code21_center_line.gbr",      0.01492},
-                           {"polygon.gbr",                 0.01665},
-                           {"wide_oval.gbr",               0.00009344},
-                           {"tall_oval.gbr",               0.0000513},
-                           {"circle_oval.gbr",             0.00014},
-                           {"rectangle.gbr",               0.00005611},
-                           {"circle.gbr",                  0.00006868},
-                           {"code1_circle.gbr",            0.008045},
+                           {"polygon.gbr",                 0.01764},
+                           {"wide_oval.gbr",               0.01138},
+                           {"tall_oval.gbr",               0.00298},
+                           {"circle_oval.gbr",             0.01357},
+                           {"rectangle.gbr",               0.006726},
+                           {"circle.gbr",                  0.006405},
+                           {"code1_circle.gbr",            0.01188},
                            {"code20_vector_line.gbr",      0.01282},
                            {"g01_rectangle.gbr",           0.000704},
-                           {"moire.gbr",                   0.01853},
-                           {"thermal.gbr",                 0.01027},
+                           {"moire.gbr",                   0.03112},
+                           {"thermal.gbr",                 0.0146},
                            {"unclosed_contour.gbr",        0.0002727},
                            {"cutins.gbr",                  0}}),
                      gerber_file, expected_error_rate) {

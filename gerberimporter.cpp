@@ -730,12 +730,10 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
 // Convert the gerber file into a pair of multi_polygon_type_fp and a list of
 // linear_paths.  The linear paths are a map from diamter of the tool for the
 // path to all the paths at that diameter.  If fill_closed_lines is true, return
-// all closed shapes without holes in them.  points_per_circle is the number of
-// lines to use to appoximate circles.
+// all closed shapes without holes in them.
 pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> GerberImporter::render(
     bool fill_closed_lines,
-    bool render_paths_to_shapes,
-    unsigned int points_per_circle) const {
+    bool render_paths_to_shapes) const {
   ring_type_fp region;
   bool contour = false; // Are we in contour mode?
 
@@ -747,7 +745,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     unsupported_polarity_throw_exception();
   }
 
-  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle);
+  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, 32);
   layers.front().first = gerber->netlist->layer;
 
 
@@ -845,6 +843,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
             delta_angle = -delta_angle;
           }
           point_type_fp center(cirseg->cp_x, cirseg->cp_y);
+          auto const points_per_circle = 32;
           linestring_type_fp path = circular_arc(start, stop, center,
                                                  cirseg->width / 2,
                                                  cirseg->height / 2,
