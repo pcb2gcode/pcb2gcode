@@ -178,7 +178,6 @@ map<uint32_t, size_t> get_counts(const Cairo::RefPtr<Cairo::ImageSurface>& cairo
 void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, const string& gerber_file) {
   const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
   if (skip_png != nullptr) {
-    std::cout << "Skipping png generation because SKIP_GERBERIMPORTER_TESTS_PNG is set in environment." << std::endl;
     return;
   }
   cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());
@@ -193,7 +192,7 @@ coordinate_type_fp height(box_type_fp box) {
 }
 
 // Compare gerbv image against boost generated image.
-void test_one(const string& gerber_file, double max_error_rate) {
+void test_one(const string& gerber_file, double expected_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
@@ -222,22 +221,22 @@ void test_one(const string& gerber_file, double max_error_rate) {
   }
   unsigned int total = errors + both;
   double error_rate = double(errors)/total;
-  auto old_precision = std::cout.precision(3);
+  auto old_precision = std::cout.precision(4);
   auto old_width = std::cout.width(40);
   std::cout << gerber_file;
   std::cout.width(old_width);
-  std::cout << "\t error rate: " << double(errors)/total*100 << "%"
-            << "\t expected less than: " << max_error_rate*100 << "%"
+  std::cout << "\t error rate: " << error_rate*100 << "%"
+            << "\t expected: " << expected_error_rate*100 << "%"
             << std::endl;
   std::cout.precision(old_precision);
-  BOOST_CHECK_LE(error_rate, max_error_rate);
+  BOOST_CHECK_CLOSE(error_rate, expected_error_rate, 0.1);
   write_to_png(cairo_surface, gerber_file);
 }
 
 // For cases when even gerbv is wrong, just check that the number of pixels
 // marked is more or less correct.  Look at http://www.gerber-viewer.com/ to
 // test these.
-void test_visual(const string& gerber_file, bool fill_closed_lines, double min_set_ratio, double max_set_ratio) {
+void test_visual(const string& gerber_file, bool fill_closed_lines, double expected_set_ratio) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
@@ -262,63 +261,62 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double min_s
     }
   }
   double marked_ratio = double(marked) / total;
-  auto old_precision = std::cout.precision(3);
+  auto old_precision = std::cout.precision(4);
   auto old_width = std::cout.width(40);
   std::cout << gerber_file;
   std::cout.width(old_width);
   std::cout << "\t marked rate: " << marked_ratio*100 << "%"
-            << "\t expected marked rate: [" << min_set_ratio*100 << ":" << max_set_ratio*100 << "]"
+            << "\t expected marked rate: " << expected_set_ratio*100 << "%"
             << std::endl;
   std::cout.precision(old_precision);
-  BOOST_CHECK_GE(marked_ratio, min_set_ratio);
-  BOOST_CHECK_LE(marked_ratio, max_set_ratio);
+  BOOST_CHECK_CLOSE(marked_ratio, expected_set_ratio, 0.1);
   write_to_png(cairo_surface, gerber_file);
 }
 
 BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                      boost::unit_test::data::make(
                          std::vector<std::tuple<std::string, double>>{
-                           {"overlapping_lines.gbr",       0.006},
-                           {"levels.gbr",                  0.0007},
-                           {"levels_step_and_repeat.gbr",  0.006},
-                           {"code22_lower_left_line.gbr",  0.011},
-                           {"code4_outline.gbr",           0.023},
-                           {"code5_polygon.gbr",           0.00008},
-                           {"code21_center_line.gbr",      0.015},
-                           {"polygon.gbr",                 0.017},
-                           {"wide_oval.gbr",               0.00011},
-                           {"tall_oval.gbr",               0.00006},
-                           {"circle_oval.gbr",             0.00016},
-                           {"rectangle.gbr",               0.00007},
-                           {"circle.gbr",                  0.00008},
-                           {"code1_circle.gbr",            0.009},
-                           {"code20_vector_line.gbr",      0.013},
-                           {"g01_rectangle.gbr",           0.0008},
-                           {"moire.gbr",                   0.020},
-                           {"thermal.gbr",                 0.011},
-                           {"unclosed_contour.gbr",        0.0003},
-                           {"cutins.gbr",                  0.000}}),
-                     gerber_file, max_error_rate) {
+                           {"overlapping_lines.gbr",       0.00405},
+                           {"levels.gbr",                  0.0005361},
+                           {"levels_step_and_repeat.gbr",  0.004825},
+                           {"code22_lower_left_line.gbr",  0.01002},
+                           {"code4_outline.gbr",           0.0214},
+                           {"code5_polygon.gbr",           0.00001129},
+                           {"code21_center_line.gbr",      0.01492},
+                           {"polygon.gbr",                 0.01665},
+                           {"wide_oval.gbr",               0.00009344},
+                           {"tall_oval.gbr",               0.0000513},
+                           {"circle_oval.gbr",             0.00014},
+                           {"rectangle.gbr",               0.00005611},
+                           {"circle.gbr",                  0.00006868},
+                           {"code1_circle.gbr",            0.008045},
+                           {"code20_vector_line.gbr",      0.01282},
+                           {"g01_rectangle.gbr",           0.000704},
+                           {"moire.gbr",                   0.01853},
+                           {"thermal.gbr",                 0.01027},
+                           {"unclosed_contour.gbr",        0.0002727},
+                           {"cutins.gbr",                  0}}),
+                     gerber_file, expected_error_rate) {
   const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
   if (skip_test != nullptr) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  test_one(gerber_file, max_error_rate);
+  test_one(gerber_file, expected_error_rate);
 }
 
 BOOST_DATA_TEST_CASE(gerberimporter_visual,
                      boost::unit_test::data::make(
-                         std::vector<std::tuple<std::string, bool, double, double>>{
-                           {"circular_arcs.gbr", false, 0.077,    0.078},
-                           {"broken_box.gbr",    true,  0.700,    0.701}}),
-                     gerber_file, fill_closed_lines, min_set_ratio, max_set_ratio) {
+                         std::vector<std::tuple<std::string, bool, double>>{
+                           {"circular_arcs.gbr", false, 0.07757},
+                           {"broken_box.gbr",    true,  0.7005}}),
+                     gerber_file, fill_closed_lines, expected_set_ratio) {
   const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
   if (skip_test != nullptr) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  test_visual(gerber_file, fill_closed_lines, min_set_ratio, max_set_ratio);
+  test_visual(gerber_file, fill_closed_lines, expected_set_ratio);
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
