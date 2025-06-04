@@ -97,7 +97,7 @@ multi_polygon_type_fp buffer(multi_linestring_type_fp const & geometry_in, Coord
   // multilinestring to non-intersecting paths seems to help.
   multi_linestring_type_fp mls = eulerian_paths::make_eulerian_paths(geometry_in, true, true);
 #ifdef GEOS_VERSION
-  auto const points_per_circle = 32;
+  auto const points_per_circle = std::max(32., expand_by * 2 * bg::math::pi<double>() / 0.0004);
   auto geos_in = to_geos(mls);
   return from_geos<multi_polygon_type_fp>(
       std::unique_ptr<geos::geom::Geometry>(

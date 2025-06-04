@@ -276,7 +276,7 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
 BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                      boost::unit_test::data::make(
                          std::vector<std::tuple<std::string, double>>{
-                           {"overlapping_lines.gbr",       0.00405},
+                           {"overlapping_lines.gbr",       0.00391},
                            {"levels.gbr",                  0.004966},
                            {"levels_step_and_repeat.gbr",  0.004802},
                            {"code22_lower_left_line.gbr",  0.01002},
@@ -292,7 +292,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"code1_circle.gbr",            0.008047},
                            {"code20_vector_line.gbr",      0.01282},
                            {"g01_rectangle.gbr",           0.000704},
-                           {"moire.gbr",                   0.01853},
+                           {"moire.gbr",                   0.01854},
                            {"thermal.gbr",                 0.01028},
                            {"unclosed_contour.gbr",        0.0002727},
                            {"cutins.gbr",                  0}}),
