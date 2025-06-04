@@ -434,7 +434,7 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int /
 }
 
 multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
-                                   coordinate_type_fp gap_width, unsigned int /* circle_points */) {
+                                   coordinate_type_fp gap_width) {
   multi_polygon_type_fp ring = make_circle(center, external_diameter, 0, internal_diameter);
 
   multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0);
@@ -607,8 +607,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   mpoly = make_thermal(point_type_fp(parameters[0], parameters[1]),
                                        parameters[2],
                                        parameters[3],
-                                       parameters[4],
-                                       circle_points);
+                                       parameters[4]);
                   polarity = 1;
                   rotation = parameters[5];
                   break;
