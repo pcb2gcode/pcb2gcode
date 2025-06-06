@@ -62,7 +62,8 @@ namespace bg = boost::geometry;
 typedef bg::strategy::transform::rotate_transformer<bg::degree, double, 2, 2> rotate_deg;
 typedef bg::strategy::transform::translate_transformer<coordinate_type_fp, 2, 2> translate;
 
-GerberImporter::GerberImporter() {
+GerberImporter::GerberImporter(coordinate_type_fp max_arc_segment_length)
+  : max_arc_segment_length(max_arc_segment_length) {
   project = gerbv_create_project();
 }
 
@@ -106,21 +107,39 @@ multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type
   return ret;
 }
 
+// Uses make_regular_polygon to draw a circle of line segments.
+multi_polygon_type_fp GerberImporter::make_circle(point_type_fp center, coordinate_type_fp diameter, coordinate_type_fp offset) const {
+  const auto points_per_circle = std::max(32., diameter * bg::math::pi<double>() / max_arc_segment_length);
+  return ::make_regular_polygon(center, diameter, points_per_circle, offset);
+}
+
 // Same as above but potentially puts a hole in the center.
-multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
-                                           coordinate_type_fp offset, coordinate_type_fp hole_diameter,
-                                           unsigned int circle_points) {
+multi_polygon_type_fp GerberImporter::make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
+                                                           coordinate_type_fp offset, coordinate_type_fp hole_diameter) const {
   multi_polygon_type_fp ret;
-  ret = make_regular_polygon(center, diameter, vertices, offset);
+  ret = ::make_regular_polygon(center, diameter, vertices, offset);
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_circle(center, hole_diameter, offset);
   }
   return ret;
 }
 
-multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
-                                     coordinate_type_fp hole_diameter, unsigned int circle_points) {
+// Same as above but potentially puts a hole in the center.
+multi_polygon_type_fp GerberImporter::make_circle(point_type_fp center, coordinate_type_fp diameter,
+                                                  coordinate_type_fp offset,
+                                                  coordinate_type_fp hole_diameter) const {
+  multi_polygon_type_fp ret;
+  ret = make_circle(center, diameter, offset);
+
+  if (hole_diameter > 0) {
+    ret = ret - make_circle(center, hole_diameter, offset);
+  }
+  return ret;
+}
+
+multi_polygon_type_fp GerberImporter::make_rectangle(point_type_fp center, double width, double height,
+                                                      coordinate_type_fp hole_diameter) const {
   const coordinate_type_fp x = center.x();
   const coordinate_type_fp y = center.y();
 
@@ -134,7 +153,7 @@ multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double 
   polygon.outer().push_back(polygon.outer().front());
 
   if (hole_diameter > 0) {
-    ret = ret - make_regular_polygon(center, hole_diameter, circle_points, 0);
+    ret = ret - make_circle(center, hole_diameter, 0);
   }
   return ret;
 }
@@ -153,8 +172,8 @@ multi_polygon_type_fp make_rectangle(point_type_fp point1, point_type_fp point2,
   return ret;
 }
 
-multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
-                                coordinate_type_fp hole_diameter, unsigned int circle_points) {
+multi_polygon_type_fp GerberImporter::make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
+                                                coordinate_type_fp hole_diameter) const {
   point_type_fp start(center.x(), center.y());
   point_type_fp end(center.x(), center.y());
   if (width > height) {
@@ -168,13 +187,15 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
   } else {
     // This is just a circle.  Older boost doesn't handle a line with no length
     // though new boost does.
-    return make_regular_polygon(center, width, circle_points, 0, hole_diameter, circle_points);
+    return make_circle(center, width, 0, hole_diameter);
   }
 
   multi_polygon_type_fp oval;
   linestring_type_fp line;
   line.push_back(start);
   line.push_back(end);
+  const auto diameter = std::max(width, height); // Close enough.
+  const auto circle_points = std::max(32., diameter * bg::math::pi<double>() / max_arc_segment_length);
   bg::buffer(line, oval,
              bg::strategy::buffer::distance_symmetric<coordinate_type_fp>(std::min(width, height)/2),
              bg::strategy::buffer::side_straight(),
@@ -183,7 +204,7 @@ multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, 
              bg::strategy::buffer::point_circle(circle_points));
 
   if (hole_diameter > 0) {
-    multi_polygon_type_fp hole = make_regular_polygon(center, hole_diameter, circle_points, 0);
+    multi_polygon_type_fp hole = make_circle(center, hole_diameter, 0);
     multi_polygon_type_fp hole_fp;
     bg::convert(hole, hole_fp);
     oval = oval - hole_fp;
@@ -224,9 +245,9 @@ double get_angle(point_type_fp start, point_type_fp center, point_type_fp stop, 
 }
 
 // delta_angle is in radians.  Positive signed is counterclockwise, like math.
-linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
-                                point_type_fp center, const coordinate_type_fp& radius, const coordinate_type_fp& radius2,
-                                double delta_angle, const bool& clockwise, const unsigned int& circle_points) {
+linestring_type_fp GerberImporter::circular_arc(const point_type_fp& start, const point_type_fp& stop,
+                                                point_type_fp center, const coordinate_type_fp& radius,
+                                                const coordinate_type_fp& radius2, double delta_angle, const bool& clockwise) const {
   // We can't trust gerbv to calculate single-quadrant vs multi-quadrant
   // correctly so we must so it ourselves.
   bool definitely_sq = false;
@@ -274,9 +295,11 @@ linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp&
   const double stop_angle = start_angle + delta_angle;
   const coordinate_type_fp start_radius = bg::distance(start, center);
   const coordinate_type_fp stop_radius = bg::distance(stop, center);
-  const unsigned int steps = ceil(std::abs(delta_angle) / (2 * bg::math::pi<double>()) * circle_points)
-                             + 1; // One more for the end point.
+  auto const average_radius = (start_radius + stop_radius) / 2;
+  auto const radius_points = std::max(32. / 2 / bg::math::pi<double>(), average_radius / max_arc_segment_length);
+  const unsigned int steps = std::ceil(std::abs(delta_angle) * radius_points) + 1; // One more for the end point.
   linestring_type_fp linestring;
+  linestring.reserve(steps);
   // First place the start;
   linestring.push_back(start);
   for (unsigned int i = 1; i < steps - 1; i++) {
@@ -386,14 +409,14 @@ multi_polygon_type_fp generate_layers(vector<pair<const gerbv_layer_t *, mp_pair
   return output;
 }
 
-multi_polygon_type_fp make_moire(const double * const parameters, unsigned int circle_points) {
+multi_polygon_type_fp GerberImporter::make_moire(const double * const parameters) const {
   const point_type_fp center(parameters[0], parameters[1]);
   vector<multi_polygon_type_fp> moire_parts;
 
   double crosshair_thickness = parameters[6];
   double crosshair_length = parameters[7];
-  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0, 0));
-  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_thickness, crosshair_length, 0));
+  moire_parts.push_back(make_rectangle(center, crosshair_length, crosshair_thickness, 0));
   const int max_number_of_rings = parameters[5];
   const double outer_ring_diameter = parameters[2];
   const double ring_thickness = parameters[3];
@@ -405,19 +428,18 @@ multi_polygon_type_fp make_moire(const double * const parameters, unsigned int c
       break;
     if (internal_diameter < 0)
       internal_diameter = 0;
-    moire_parts.push_back(make_regular_polygon(center, external_diameter, circle_points, 0,
-                                               internal_diameter, circle_points));
+    moire_parts.push_back(make_circle(center, external_diameter, 0,
+                                      internal_diameter));
   }
   return sum(moire_parts);
 }
 
-multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
-                                   coordinate_type_fp gap_width, unsigned int circle_points) {
-  multi_polygon_type_fp ring = make_regular_polygon(center, external_diameter, circle_points,
-                                                    0, internal_diameter, circle_points);
+multi_polygon_type_fp GerberImporter::make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
+                                                   coordinate_type_fp gap_width) const {
+  multi_polygon_type_fp ring = make_circle(center, external_diameter, 0, internal_diameter);
 
-  multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0, 0);
-  multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0, 0);
+  multi_polygon_type_fp rect1 = make_rectangle(center, gap_width, 2 * external_diameter, 0);
+  multi_polygon_type_fp rect2 = make_rectangle(center, 2 * external_diameter, gap_width, 0);
   return ring - rect1 - rect2;
 }
 
@@ -485,7 +507,7 @@ multi_polygon_type_fp simplify_cutins(const ring_type_fp& ring) {
   return ret;
 }
 
-map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[], unsigned int circle_points) {
+map<int, multi_polygon_type_fp> GerberImporter::generate_apertures_map(const gerbv_aperture_t * const apertures[]) const {
   const point_type_fp origin (0, 0);
   map<int, multi_polygon_type_fp> apertures_map;
   for (int i = 0; i < APERTURE_MAX; i++) {
@@ -500,34 +522,29 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
           continue;
 
         case GERBV_APTYPE_CIRCLE:
-          input = make_regular_polygon(origin,
-                                       parameters[0],
-                                       circle_points,
-                                       parameters[1],
-                                       parameters[2],
-                                       circle_points);
+          input = make_circle(origin,
+                              parameters[0],
+                              parameters[1],
+                              parameters[2]);
           break;
         case GERBV_APTYPE_RECTANGLE:
           input = make_rectangle(origin,
                                  parameters[0],
                                  parameters[1],
-                                 parameters[2],
-                                 circle_points);
+                                 parameters[2]);
           break;
         case GERBV_APTYPE_OVAL:
           input = make_oval(origin,
                             parameters[0],
                             parameters[1],
-                            parameters[2],
-                            circle_points);
+                            parameters[2]);
           break;
         case GERBV_APTYPE_POLYGON:
           input = make_regular_polygon(origin,
                                        parameters[0],
                                        parameters[1],
                                        parameters[2],
-                                       parameters[3],
-                                       circle_points);
+                                       parameters[3]);
           break;
         case GERBV_APTYPE_MACRO:
           if (aperture->simplified) {
@@ -555,10 +572,9 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   simplified_amacro = simplified_amacro->next;
                   continue;
                 case GERBV_APTYPE_MACRO_CIRCLE:
-                  mpoly = make_regular_polygon(point_type_fp(parameters[2], parameters[3]),
-                                               parameters[1],
-                                               circle_points,
-                                               0);
+                  mpoly = make_circle(point_type_fp(parameters[2], parameters[3]),
+                                      parameters[1],
+                                      0);
                   polarity = parameters[0];
                   rotation = parameters[4];
                   break;
@@ -576,15 +592,15 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   rotation = parameters[(2 * int(round(parameters[1])) + 4)];
                   break;
                 case GERBV_APTYPE_MACRO_POLYGON: // 4.12.4.6 Polygon, Primitve Code 5
-                  mpoly = make_regular_polygon(point_type_fp(parameters[2], parameters[3]),
-                                               parameters[4],
-                                               parameters[1],
-                                               0);
+                  mpoly = ::make_regular_polygon(point_type_fp(parameters[2], parameters[3]),
+                                                 parameters[4],
+                                                 parameters[1],
+                                                 0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_MOIRE: // 4.12.4.7 Moire, Primitive Code 6
-                  mpoly = make_moire(parameters, circle_points);
+                  mpoly = make_moire(parameters);
                   polarity = 1;
                   rotation = parameters[8];
                   break;
@@ -592,15 +608,14 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   mpoly = make_thermal(point_type_fp(parameters[0], parameters[1]),
                                        parameters[2],
                                        parameters[3],
-                                       parameters[4],
-                                       circle_points);
+                                       parameters[4]);
                   polarity = 1;
                   rotation = parameters[5];
                   break;
                 case GERBV_APTYPE_MACRO_LINE20: // 4.12.4.3 Vector Line, Primitive Code 20
-                  mpoly = make_rectangle(point_type_fp(parameters[2], parameters[3]),
-                                         point_type_fp(parameters[4], parameters[5]),
-                                         parameters[1]);
+                  mpoly = ::make_rectangle(point_type_fp(parameters[2], parameters[3]),
+                                           point_type_fp(parameters[4], parameters[5]),
+                                           parameters[1]);
                   polarity = parameters[0];
                   rotation = parameters[6];
                   break;
@@ -608,7 +623,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                   mpoly = make_rectangle(point_type_fp(parameters[3], parameters[4]),
                                          parameters[1],
                                          parameters[2],
-                                         0, 0);
+                                         0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
@@ -617,7 +632,7 @@ map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * 
                                                        (parameters[4] + parameters[2] / 2)),
                                          parameters[1],
                                          parameters[2],
-                                         0, 0);
+                                         0);
                   polarity = parameters[0];
                   rotation = parameters[5];
                   break;
@@ -730,12 +745,10 @@ mp_pair paths_to_shapes(const coordinate_type_fp& diameter, const multi_linestri
 // Convert the gerber file into a pair of multi_polygon_type_fp and a list of
 // linear_paths.  The linear paths are a map from diamter of the tool for the
 // path to all the paths at that diameter.  If fill_closed_lines is true, return
-// all closed shapes without holes in them.  points_per_circle is the number of
-// lines to use to appoximate circles.
+// all closed shapes without holes in them.
 pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> GerberImporter::render(
     bool fill_closed_lines,
-    bool render_paths_to_shapes,
-    unsigned int points_per_circle) const {
+    bool render_paths_to_shapes) const {
   ring_type_fp region;
   bool contour = false; // Are we in contour mode?
 
@@ -747,7 +760,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
     unsupported_polarity_throw_exception();
   }
 
-  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture, points_per_circle);
+  const map<int, multi_polygon_type_fp> apertures_map = generate_apertures_map(gerber->aperture);
   layers.front().first = gerber->netlist->layer;
 
 
@@ -849,8 +862,7 @@ pair<multi_polygon_type_fp, map<coordinate_type_fp, multi_linestring_type_fp>> G
                                                  cirseg->width / 2,
                                                  cirseg->height / 2,
                                                  delta_angle,
-                                                 currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR,
-                                                 points_per_circle);
+                                                 currentNet->interpolation == GERBV_INTERPOLATION_CW_CIRCULAR);
           if (contour) {
             if (region.empty()) {
               region.insert(region.end(), path.begin(), path.end());

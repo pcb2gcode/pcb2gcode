@@ -196,9 +196,9 @@ void test_one(const string& gerber_file, double expected_error_rate) {
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(false, true, 360).first;
+  multi_polygon_type_fp polys = g.render(false, true).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   bg::expand(bounding_box, g.get_bounding_box());
@@ -240,9 +240,9 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
   string gerber_path = gerber_directory;
   gerber_path += "/";
   gerber_path += gerber_file;
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_REQUIRE(g.load_file(gerber_path));
-  multi_polygon_type_fp polys = g.render(fill_closed_lines, true, 30).first;
+  multi_polygon_type_fp polys = g.render(fill_closed_lines, true).first;
   box_type_fp bounding_box;
   bg::envelope(polys, bounding_box);
   Cairo::RefPtr<Cairo::ImageSurface> cairo_surface = create_cairo_surface(width(bounding_box) * dpi, height(bounding_box) * dpi);
@@ -276,24 +276,24 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
 BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                      boost::unit_test::data::make(
                          std::vector<std::tuple<std::string, double>>{
-                           {"overlapping_lines.gbr",       0.00405},
-                           {"levels.gbr",                  0.0005361},
-                           {"levels_step_and_repeat.gbr",  0.004825},
+                           {"overlapping_lines.gbr",       0.00391},
+                           {"levels.gbr",                  0.004966},
+                           {"levels_step_and_repeat.gbr",  0.004802},
                            {"code22_lower_left_line.gbr",  0.01002},
                            {"code4_outline.gbr",           0.0214},
                            {"code5_polygon.gbr",           0.00001129},
                            {"code21_center_line.gbr",      0.01492},
-                           {"polygon.gbr",                 0.01665},
-                           {"wide_oval.gbr",               0.00009344},
-                           {"tall_oval.gbr",               0.0000513},
-                           {"circle_oval.gbr",             0.00014},
-                           {"rectangle.gbr",               0.00005611},
-                           {"circle.gbr",                  0.00006868},
-                           {"code1_circle.gbr",            0.008045},
+                           {"polygon.gbr",                 0.01666},
+                           {"wide_oval.gbr",               0.0000882},
+                           {"tall_oval.gbr",               0.00004317},
+                           {"circle_oval.gbr",             0.00007908},
+                           {"rectangle.gbr",               0.00001834},
+                           {"circle.gbr",                  0.00003313},
+                           {"code1_circle.gbr",            0.008047},
                            {"code20_vector_line.gbr",      0.01282},
                            {"g01_rectangle.gbr",           0.000704},
-                           {"moire.gbr",                   0.01853},
-                           {"thermal.gbr",                 0.01027},
+                           {"moire.gbr",                   0.01854},
+                           {"thermal.gbr",                 0.01028},
                            {"unclosed_contour.gbr",        0.0002727},
                            {"cutins.gbr",                  0}}),
                      gerber_file, expected_error_rate) {
@@ -308,7 +308,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
 BOOST_DATA_TEST_CASE(gerberimporter_visual,
                      boost::unit_test::data::make(
                          std::vector<std::tuple<std::string, bool, double>>{
-                           {"circular_arcs.gbr", false, 0.07757},
+                           {"circular_arcs.gbr", false, 0.3713},
                            {"broken_box.gbr",    true,  0.7005}}),
                      gerber_file, fill_closed_lines, expected_set_ratio) {
   const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
@@ -320,7 +320,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_visual,
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {
-  auto g = GerberImporter();
+  auto g = GerberImporter(0.0004);
   BOOST_CHECK(!g.load_file("foo.gbr"));
 }
 

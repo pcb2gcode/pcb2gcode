@@ -1,5 +1,5 @@
 G04 This file illustrates how to use levels to create holes*
-%FSLAX25Y25*%
+%FSLAX16Y16*%
 %MOMM*%
 G01*
 G04 First level: big square - dark polarity*

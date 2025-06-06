@@ -50,7 +50,7 @@ class gerber_exception: public std::exception {};
 /******************************************************************************/
 class GerberImporter {
 public:
-  GerberImporter();
+  GerberImporter(coordinate_type_fp max_arc_segment_length);
   bool load_file(const std::string& path);
   virtual ~GerberImporter();
 
@@ -58,8 +58,7 @@ public:
 
   virtual std::pair<multi_polygon_type_fp, std::map<coordinate_type_fp, multi_linestring_type_fp>> render(
       bool fill_closed_lines,
-      bool render_paths_to_shapes,
-      unsigned int points_per_circle) const;
+      bool render_paths_to_shapes) const;
   const gerbv_project_t* get_project() const {
     return project;
   }
@@ -68,6 +67,24 @@ protected:
   enum Side { FRONT = 0, BACK = 1 } side;
 
 private:
+  multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diameter, coordinate_type_fp offset) const;
+  multi_polygon_type_fp make_regular_polygon(point_type_fp center, coordinate_type_fp diameter, unsigned int vertices,
+                                             coordinate_type_fp offset, coordinate_type_fp hole_diameter) const;
+  multi_polygon_type_fp make_circle(point_type_fp center, coordinate_type_fp diameter,
+                                    coordinate_type_fp offset,
+                                    coordinate_type_fp hole_diameter) const;
+  multi_polygon_type_fp make_rectangle(point_type_fp center, double width, double height,
+                                       coordinate_type_fp hole_diameter) const;
+  multi_polygon_type_fp make_oval(point_type_fp center, coordinate_type_fp width, coordinate_type_fp height,
+                                  coordinate_type_fp hole_diameter) const;
+  linestring_type_fp circular_arc(const point_type_fp& start, const point_type_fp& stop,
+                                   point_type_fp center, const coordinate_type_fp& radius,
+                                   const coordinate_type_fp& radius2, double delta_angle, const bool& clockwise) const;
+  multi_polygon_type_fp make_moire(const double * const parameters) const;
+  multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
+                                   coordinate_type_fp gap_width) const;
+  std::map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[]) const;
+  coordinate_type_fp const max_arc_segment_length;
   gerbv_project_t* project;
 };
 
