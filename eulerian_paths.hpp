@@ -124,9 +124,13 @@ class eulerian_paths {
     // if we make a path from one, it is sure to end back where it started.
     // We'll go over all our current Euler paths and stitch in loops anywhere
     // that there is an unvisited edge.
+    std::vector<std::pair<linestring_t, bool>> extra_paths;
     for (auto& euler_path : euler_paths) {
-      stitch_loops(&euler_path);
+      stitch_loops(&euler_path, &extra_paths);
     }
+
+    euler_paths.insert(euler_paths.end(), extra_paths.begin(), extra_paths.end());
+    extra_paths.clear();
 
     // Anything remaining is loops on islands.  Make all those paths, too.
     // Prefer directional edges so do those first.
@@ -139,10 +143,12 @@ class eulerian_paths {
         new_path.second = reversible;
         // We can stitch right now because all vertices already have even number
         // of edges.
-        stitch_loops(&new_path);
+        stitch_loops(&new_path, &extra_paths);
         euler_paths.push_back(new_path);
       }
     }
+
+    euler_paths.insert(euler_paths.end(), extra_paths.begin(), extra_paths.end());
 
     return euler_paths;
   }
@@ -300,7 +306,9 @@ class eulerian_paths {
   // and stitch it into the current path.  Because all paths have the same
   // number of in and out, the stitch can only possibly end in a loop.  This
   // continues until the end of the path.
-  void stitch_loops(std::pair<linestring_t, bool> *euler_path) {
+  void stitch_loops(
+      std::pair<linestring_t, bool> *euler_path,
+      std::vector<std::pair<linestring_t, bool>> *extra_paths) {
     // Use a counter and not a pointer because the list will grow and pointers
     // may be invalidated.
     linestring_t new_loop;
@@ -309,9 +317,16 @@ class eulerian_paths {
       bool new_loop_reversible = make_path(euler_path->first[i], &new_loop);
       // Did this vertex have any unvisited edges?
       if (new_loop.size() > 0) {
-        // Now we stitch it in.
-        euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.begin(), new_loop.end());
-        euler_path->second = euler_path->second && new_loop_reversible;
+        if (new_loop.back() == euler_path->first[i]) {
+          // Now we stitch it in.
+          euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.begin(), new_loop.end());
+          euler_path->second = euler_path->second && new_loop_reversible;
+        } else {
+          // something went wrong and the path is not a loop; add the start
+          // vertex and treat it as a new path
+          new_loop.insert(new_loop.begin(), euler_path->first[i]);
+          extra_paths->push_back(std::make_pair(new_loop, new_loop_reversible));
+        }
         new_loop.clear(); // Prepare for the next one.
       }
     }
