@@ -195,6 +195,21 @@ BOOST_AUTO_TEST_CASE(mixed3) {
   BOOST_CHECK_EQUAL(euler_paths.size(), 4UL);
 }
 
+// must_end
+// 0<--2
+// ^   |
+// |   |
+// +---1
+BOOST_AUTO_TEST_CASE(must_end) {
+  vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
+      make_pair(vector<int>{2,0}, false),
+      make_pair(vector<int>{2,1}, true),
+      make_pair(vector<int>{1,0}, false),
+    });
+  int edges_visited = print_euler_paths(euler_paths);
+  BOOST_CHECK_EQUAL(edges_visited, 3);
+  BOOST_CHECK_EQUAL(euler_paths.size(), 2UL);
+}
 // At least one of the paths must be turned around.
 BOOST_AUTO_TEST_CASE(start_second) {
   vector<pair<vector<int>, bool>> euler_paths = get_eulerian_paths<int, vector<int>>({
@@ -298,8 +313,8 @@ BOOST_AUTO_TEST_CASE(must_start_tests) {
     std::make_tuple(4, 0, 0, true),
   };
   for (const auto& test : tests) {
-    BOOST_TEST_CONTEXT("must_start_helper(" << std::get<0>(test) << ", " << std::get<1>(test) << ", " << std::get<2>(test) << ")") {
-      BOOST_CHECK_EQUAL(must_start_helper(std::get<0>(test), std::get<1>(test), std::get<2>(test)), std::get<3>(test));
+    BOOST_TEST_CONTEXT("must_start_or_end_helper(" << std::get<0>(test) << ", " << std::get<1>(test) << ", " << std::get<2>(test) << ")") {
+      BOOST_CHECK_EQUAL(must_start_or_end_helper(std::get<0>(test), std::get<1>(test), std::get<2>(test)), std::get<3>(test));
     }
   }
 }
