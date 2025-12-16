@@ -98,16 +98,18 @@ class path_manager {
     return paths[index];
   }
   void remove_path(size_t index) {
-    if (paths[index].second) {
+    auto& path = paths[index].first;
+    auto reversible = paths[index].second;
+    if (reversible) {
       // Bidi path.
-      auto range = bidi_vertex_to_unvisited_path_index.equal_range(paths[index].first.front());
+      auto range = bidi_vertex_to_unvisited_path_index.equal_range(path.front());
       for (auto it = range.first; it != range.second; it++) {
         if (it->second.first == index) {
           bidi_vertex_to_unvisited_path_index.erase(it);
           break;
         }
       }
-      range = bidi_vertex_to_unvisited_path_index.equal_range(paths[index].first.back());
+      range = bidi_vertex_to_unvisited_path_index.equal_range(path.back());
       for (auto it = range.first; it != range.second; it++) {
         if (it->second.first == index) {
           bidi_vertex_to_unvisited_path_index.erase(it);
@@ -116,14 +118,14 @@ class path_manager {
       }
     } else {
       // Non-bidi path.
-      auto range = start_vertex_to_unvisited_path_index.equal_range(paths[index].first.front());
+      auto range = start_vertex_to_unvisited_path_index.equal_range(path.front());
       for (auto it = range.first; it != range.second; it++) {
         if (it->second.first == index) {
           start_vertex_to_unvisited_path_index.erase(it);
           break;
         }
       }
-      range = end_vertex_to_unvisited_path_index.equal_range(paths[index].first.back());
+      range = end_vertex_to_unvisited_path_index.equal_range(path.back());
       for (auto it = range.first; it != range.second; it++) {
         if (it->second.first == index) {
           end_vertex_to_unvisited_path_index.erase(it);
@@ -324,10 +326,8 @@ class eulerian_paths {
       // Find an unvisited path that leads from point.  Prefer out edges to bidi
       // because we may need to save the bidi edges to later be in edges.
       auto vertex_and_path_range = paths.get_start_vertex_to_unvisited_path_index().equal_range(point);
-      auto vertex_to_unvisited_map = &paths.start_vertex_to_unvisited_path_index;
       if (vertex_and_path_range.first == vertex_and_path_range.second) {
         vertex_and_path_range = paths.get_bidi_vertex_to_unvisited_path_index().equal_range(point);
-        vertex_to_unvisited_map = &paths.bidi_vertex_to_unvisited_path_index;
         if (vertex_and_path_range.first == vertex_and_path_range.second) {
           // No more paths to follow.
           return all_reversible; // Empty path is reversible.
@@ -344,19 +344,8 @@ class eulerian_paths {
         // Append this path in the reverse direction.
         new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
       }
-      vertex_to_unvisited_map->erase(vertex_and_path_index); // Remove from the first vertex.
+      paths.remove_path(path_index);
       point = new_path->back();
-      // We're bound to find exactly one unless there is a serious error.
-      auto end_map = paths.get_path(path_index).second ? &paths.bidi_vertex_to_unvisited_path_index : &paths.end_vertex_to_unvisited_path_index;
-      auto range = end_map->equal_range(point);
-      auto to_compare = std::make_pair(path_index, !side);
-      for (auto iter = range.first; iter != range.second; iter++) {
-        if (iter->second == to_compare) {
-          // Remove the path that ends on the vertex.
-          end_map->erase(iter);
-          break; // There must be only one.
-        }
-      }
       all_reversible = all_reversible && paths.get_path(path_index).second;
     }
   }
