@@ -208,7 +208,7 @@ class eulerian_paths {
       while (must_start(vertex)) {
         // Make a path starting from vertex with odd count.
         std::pair<linestring_t, bool> new_path({vertex}, true);
-        while (insert_one_path(&new_path, new_path.first.size()-1)) {
+        while (insert_one_path(&new_path, new_path.first.size()-1) > 0) {
           // Keep going.
         }
         euler_paths.push_back(new_path);
@@ -234,7 +234,7 @@ class eulerian_paths {
       while (start_map->size() > 0) {
         const auto vertex = start_map->cbegin()->first;
         std::pair<linestring_t, bool> new_path({vertex}, true);
-        while (insert_one_path(&new_path, new_path.first.size()-1)) {
+        while (insert_one_path(&new_path, new_path.first.size()-1) > 0) {
           // Keep going.
         }
         // We can stitch right now because all vertices already have even number
@@ -319,8 +319,8 @@ class eulerian_paths {
 
   // Given a point, make a path from that point as long as possible
   // until a dead end.  Assume that point itself is already in the
-  // list.  Return true if a path was added, otherwise false.
-  bool insert_one_path(std::pair<linestring_t, bool>* new_path, const size_t where_to_start) {
+  // list.  Return the number of elements inserted.
+  size_t insert_one_path(std::pair<linestring_t, bool>* new_path, const size_t where_to_start) {
     // Find an unvisited path that leads from point.  Prefer out edges to bidi
     // because we may need to save the bidi edges to later be in edges.
     auto vertex_and_path_range = paths.get_start_vertex_to_unvisited_path_index().equal_range(new_path->first.at(where_to_start));
@@ -328,7 +328,7 @@ class eulerian_paths {
       vertex_and_path_range = paths.get_bidi_vertex_to_unvisited_path_index().equal_range(new_path->first.at(where_to_start));
       if (vertex_and_path_range.first == vertex_and_path_range.second) {
         // No more paths to follow.
-        return false;
+        return 0;
       }
     }
     auto vertex_and_path_index = select_path(new_path->first, vertex_and_path_range);
@@ -337,14 +337,14 @@ class eulerian_paths {
     const auto& path = paths.get_path(path_index).first;
     if (side == Side::front) {
       // Append this path in the forward direction.
-      new_path->first.insert(new_path->first.end(), path.cbegin()+1, path.cend());
+      new_path->first.insert(new_path->first.begin() + where_to_start + 1, path.cbegin()+1, path.cend());
     } else {
       // Append this path in the reverse direction.
-      new_path->first.insert(new_path->first.end(), path.crbegin()+1, path.crend());
+      new_path->first.insert(new_path->first.begin() + where_to_start + 1, path.crbegin()+1, path.crend());
     }
     paths.remove_path(path_index);
     new_path->second = new_path->second && paths.get_path(path_index).second;
-    return true;
+    return path.size() - 1;
   }
 
   // Only call this when there are no vertices with uneven edge count.  That
@@ -360,15 +360,14 @@ class eulerian_paths {
     // Use a counter and not a pointer because the list will grow and pointers
     // may be invalidated.
     for (size_t i = 0; i < euler_path->first.size(); i++) {
-      std::pair<linestring_t, bool> new_loop({euler_path->first[i]}, true);
       // Make a path from here.  We don't need the first element, it's already in our path.
-      while (insert_one_path(&new_loop, new_loop.first.size()-1)) {
-        // Keep going.
-      }
-      if (new_loop.first.size() > 0) {
-        // Now we stitch it in.
-        euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.first.begin()+1, new_loop.first.end());
-        euler_path->second = euler_path->second && new_loop.second;
+      auto j = i;
+      while (true) {
+        auto elements_inserted = insert_one_path(euler_path, j);
+        if (elements_inserted == 0) {
+          break;
+        }
+        j += elements_inserted;
       }
     }
   }
