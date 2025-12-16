@@ -207,10 +207,11 @@ class eulerian_paths {
     for (const auto& vertex : paths.get_all_start_vertices()) {
       while (must_start(vertex)) {
         // Make a path starting from vertex with odd count.
-        linestring_t new_path;
-        new_path.push_back(vertex);
-        bool reversible = make_path(vertex, &new_path);
-        euler_paths.push_back(std::make_pair(new_path, reversible));
+        std::pair<linestring_t, bool> new_path({vertex}, true);
+        while (insert_one_path(&new_path, new_path.first.size()-1)) {
+          // Keep going.
+        }
+        euler_paths.push_back(new_path);
       }
       // The vertex is no longer must_start.  So it must have the same or fewer
       // out edges than in edges, even accounting for bidi edges becoming in
@@ -232,10 +233,10 @@ class eulerian_paths {
     for (auto start_map : {&paths.get_start_vertex_to_unvisited_path_index(), &paths.get_bidi_vertex_to_unvisited_path_index()}) {
       while (start_map->size() > 0) {
         const auto vertex = start_map->cbegin()->first;
-        std::pair<linestring_t, bool> new_path;
-        new_path.first.push_back(vertex);
-        bool reversible = make_path(vertex, &(new_path.first));
-        new_path.second = reversible;
+        std::pair<linestring_t, bool> new_path({vertex}, true);
+        while (insert_one_path(&new_path, new_path.first.size()-1)) {
+          // Keep going.
+        }
         // We can stitch right now because all vertices already have even number
         // of edges.
         stitch_loops(&new_path);
@@ -318,36 +319,32 @@ class eulerian_paths {
 
   // Given a point, make a path from that point as long as possible
   // until a dead end.  Assume that point itself is already in the
-  // list.  Return true if the path is all reversible, otherwise
-  // false.
-  bool make_path(point_t point, linestring_t* new_path) {
-    bool all_reversible = true;
-    while (true) {
-      // Find an unvisited path that leads from point.  Prefer out edges to bidi
-      // because we may need to save the bidi edges to later be in edges.
-      auto vertex_and_path_range = paths.get_start_vertex_to_unvisited_path_index().equal_range(point);
+  // list.  Return true if a path was added, otherwise false.
+  bool insert_one_path(std::pair<linestring_t, bool>* new_path, const size_t where_to_start) {
+    // Find an unvisited path that leads from point.  Prefer out edges to bidi
+    // because we may need to save the bidi edges to later be in edges.
+    auto vertex_and_path_range = paths.get_start_vertex_to_unvisited_path_index().equal_range(new_path->first.at(where_to_start));
+    if (vertex_and_path_range.first == vertex_and_path_range.second) {
+      vertex_and_path_range = paths.get_bidi_vertex_to_unvisited_path_index().equal_range(new_path->first.at(where_to_start));
       if (vertex_and_path_range.first == vertex_and_path_range.second) {
-        vertex_and_path_range = paths.get_bidi_vertex_to_unvisited_path_index().equal_range(point);
-        if (vertex_and_path_range.first == vertex_and_path_range.second) {
-          // No more paths to follow.
-          return all_reversible; // Empty path is reversible.
-        }
+        // No more paths to follow.
+        return false;
       }
-      auto vertex_and_path_index = select_path(*new_path, vertex_and_path_range);
-      size_t path_index = vertex_and_path_index->second.first;
-      Side side = vertex_and_path_index->second.second;
-      const auto& path = paths.get_path(path_index).first;
-      if (side == Side::front) {
-        // Append this path in the forward direction.
-        new_path->insert(new_path->end(), path.cbegin()+1, path.cend());
-      } else {
-        // Append this path in the reverse direction.
-        new_path->insert(new_path->end(), path.crbegin()+1, path.crend());
-      }
-      paths.remove_path(path_index);
-      point = new_path->back();
-      all_reversible = all_reversible && paths.get_path(path_index).second;
     }
+    auto vertex_and_path_index = select_path(new_path->first, vertex_and_path_range);
+    size_t path_index = vertex_and_path_index->second.first;
+    Side side = vertex_and_path_index->second.second;
+    const auto& path = paths.get_path(path_index).first;
+    if (side == Side::front) {
+      // Append this path in the forward direction.
+      new_path->first.insert(new_path->first.end(), path.cbegin()+1, path.cend());
+    } else {
+      // Append this path in the reverse direction.
+      new_path->first.insert(new_path->first.end(), path.crbegin()+1, path.crend());
+    }
+    paths.remove_path(path_index);
+    new_path->second = new_path->second && paths.get_path(path_index).second;
+    return true;
   }
 
   // Only call this when there are no vertices with uneven edge count.  That
@@ -362,16 +359,16 @@ class eulerian_paths {
   void stitch_loops(std::pair<linestring_t, bool> *euler_path) {
     // Use a counter and not a pointer because the list will grow and pointers
     // may be invalidated.
-    linestring_t new_loop;
     for (size_t i = 0; i < euler_path->first.size(); i++) {
+      std::pair<linestring_t, bool> new_loop({euler_path->first[i]}, true);
       // Make a path from here.  We don't need the first element, it's already in our path.
-      bool new_loop_reversible = make_path(euler_path->first[i], &new_loop);
-      // Did this vertex have any unvisited edges?
-      if (new_loop.size() > 0) {
+      while (insert_one_path(&new_loop, new_loop.first.size()-1)) {
+        // Keep going.
+      }
+      if (new_loop.first.size() > 0) {
         // Now we stitch it in.
-        euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.begin(), new_loop.end());
-        euler_path->second = euler_path->second && new_loop_reversible;
-        new_loop.clear(); // Prepare for the next one.
+        euler_path->first.insert(euler_path->first.begin()+i+1, new_loop.first.begin()+1, new_loop.first.end());
+        euler_path->second = euler_path->second && new_loop.second;
       }
     }
   }
