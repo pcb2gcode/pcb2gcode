@@ -134,7 +134,7 @@ class path_manager {
       }
     }
   }
-
+ private:
   const std::vector<std::pair<linestring_t, bool>>& paths;
   // Create a map from vertex to each path that start at that vertex.
   // It's a map to an index into the input paths.  The bool tells us
