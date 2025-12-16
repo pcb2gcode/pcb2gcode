@@ -229,14 +229,12 @@ class eulerian_paths {
     }
 
     // Anything remaining is loops on islands.  Make all those paths, too.
-    // Prefer directional edges so do those first.
-    for (auto start_map : {&paths.get_start_vertex_to_unvisited_path_index(), &paths.get_bidi_vertex_to_unvisited_path_index()}) {
-      while (start_map->size() > 0) {
-        const auto vertex = start_map->cbegin()->first;
-        std::pair<linestring_t, bool> new_path({vertex}, true);
-        while (insert_one_path(&new_path, new_path.first.size()-1) > 0) {
-          // Keep going.
-        }
+    for (const auto& vertex : paths.get_all_start_vertices()) {
+      std::pair<linestring_t, bool> new_path({vertex}, true);
+      while (insert_one_path(&new_path, new_path.first.size()-1) > 0) {
+        // Keep going.
+      }
+      if (new_path.first.size() > 1) {
         // We can stitch right now because all vertices already have even number
         // of edges.
         stitch_loops(&new_path);
