@@ -258,14 +258,15 @@ class eulerian_paths {
   // Higher score is better.
   template <typename p_t>
   double path_score(const linestring_t& path_so_far,
+                    const size_t where_to_start,
                     const std::pair<point_t, std::pair<size_t, Side>>& option,
                     identity<p_t>) {
-    if (path_so_far.size() < 2 || paths.get_path(option.second.first).first.size() < 2) {
+    if (where_to_start < 1 || paths.get_path(option.second.first).first.size() < 2) {
       // Doesn't matter, pick any.
       return 0;
     }
-    auto p0 = path_so_far[path_so_far.size()-2];
-    auto p1 = path_so_far.back();
+    auto p0 = path_so_far[where_to_start-1];
+    auto p1 = path_so_far[where_to_start];
     auto p2 = paths.get_path(option.second.first).first[1];
     if (option.second.second == Side::back) {
       // This must be reversed.
@@ -285,6 +286,7 @@ class eulerian_paths {
   }
 
   double path_score(const linestring_t&,
+                    const size_t,
                     const std::pair<point_t, std::pair<size_t, Side>>&,
                     identity<int>) {
     return 0;
@@ -292,8 +294,9 @@ class eulerian_paths {
 
   template <typename p_t>
   double path_score(const linestring_t& path_so_far,
+                    const size_t where_to_start,
                     const std::pair<point_t, std::pair<size_t, Side>>& option) {
-    return path_score(path_so_far, option, identity<p_t>());
+    return path_score(path_so_far, where_to_start, option, identity<p_t>());
   }
 
   // Pick the best path to continue on given the path_so_far and a
@@ -301,12 +304,13 @@ class eulerian_paths {
   // it.
   typename std::multimap<point_t, std::pair<size_t, Side>>::const_iterator select_path(
       const linestring_t& path_so_far,
+      const size_t where_to_start,
       const std::pair<typename std::multimap<point_t, std::pair<size_t, Side>>::const_iterator,
                       typename std::multimap<point_t, std::pair<size_t, Side>>::const_iterator>& options) {
     auto best = options.first;
-    double best_score = path_score<point_t>(path_so_far, *best);
+    double best_score = path_score<point_t>(path_so_far, where_to_start, *best);
     for (auto current = options.first; current != options.second; current++) {
-      double current_score = path_score<point_t>(path_so_far, *current);
+      double current_score = path_score<point_t>(path_so_far, where_to_start, *current);
       if (current_score > best_score) {
         best = current;
         best_score = current_score;
@@ -329,7 +333,7 @@ class eulerian_paths {
         return 0;
       }
     }
-    auto vertex_and_path_index = select_path(new_path->first, vertex_and_path_range);
+    auto vertex_and_path_index = select_path(new_path->first, where_to_start, vertex_and_path_range);
     size_t path_index = vertex_and_path_index->second.first;
     Side side = vertex_and_path_index->second.second;
     const auto& path = paths.get_path(path_index).first;
