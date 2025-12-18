@@ -287,6 +287,7 @@ jobs:
         --disable-silent-rules
         --enable-static-boost
         --enable-static
+        --enable-debug
         ${{ matrix.code_coverage }}
         || (cat config.log && false)
     - name: Remove debug flags from coverage builds
