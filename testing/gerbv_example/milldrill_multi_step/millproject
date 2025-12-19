@@ -1,0 +1,17 @@
+drill=milldrill_multi_step.drl
+
+metric=true
+metricoutput=true
+zchange=10.0000
+zsafe=1.5000
+drill-feed=100
+drill-speed=10000
+zdrill=-1.7500mm
+cut-feed=600
+cut-infeed=0.3
+cut-speed=2000
+cutter-diameter=2.0
+zcut=-1.6500
+
+milldrill=true
+milldrill-diameter=1.0

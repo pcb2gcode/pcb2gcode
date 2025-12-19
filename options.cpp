@@ -213,7 +213,17 @@ options::options()
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
        ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
-        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+        "minimum hole width for milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+       ("min-milldrill-entry-diameter",
+        po::value<Percent>()->default_value(parse_unit<Percent>("150%")),
+        "minimum initial hole width for milldrilling when multiple steps are used, as a fraction of milldrill-diameter")
+       ("max-milldrill-entry-diameter",
+        po::value<Percent>()->default_value(parse_unit<Percent>("190%")),
+        "maximum initial hole width for milldrilling in a single step, and the minimum size of the initial hole"
+        " when multiple steps are used, as a fraction of milldrill-diameter")
+       ("milldrill-stepover",
+        po::value<Percent>()->default_value(parse_unit<Percent>("50%")),
+        "maximum hole radius increase when milldrilling in multiple steps, as a fraction of milldrill-diameter")
        ("zdrill", po::value<Length>(), "drilling depth")
        ("zmilldrill", po::value<Length>(), "milldrilling depth")
        ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
