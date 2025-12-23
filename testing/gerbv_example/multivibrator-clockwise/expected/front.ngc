@@ -2066,17 +2066,6 @@ G01 Z-0.04000
 G04 P0 ( dwell for no time -- G64 should not smooth over this point )
 G01 F360.00000
 G01 X3.35326 Y-3.28622
-G01 X3.35332 Y-3.28622
-G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G00 Z0.08000 ( retract )
-
-G00 X3.35326 Y-3.28622 ( rapid move to begin. )
-G01 F180.00000
-( Mill infeed pass 1/1 )
-G01 Z-0.04000
-G04 P0 ( dwell for no time -- G64 should not smooth over this point )
-G01 F360.00000
-G01 X3.35326 Y-3.28622
 G01 X3.34901 Y-3.29585
 G01 X3.34549 Y-3.29933
 G01 X3.34237 Y-3.30325
