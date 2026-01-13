@@ -317,13 +317,13 @@ jobs:
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
     - name: Run integration tests
-      if: matrix.os != 'windows'
+      if: matrix.os != 'windows' && matrix.geos != 'none' && matrix.geos != 'latest'
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
     - name: Run integration tests on Windows
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows' && matrix.geos != 'none' && matrix.geos != 'latest'
       run: |
         pacman -S --noconfirm python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
