@@ -385,7 +385,14 @@ if __name__ == '__main__':
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
     if args.jobs > 1:
       suite = ConcurrentTestSuite(suite, fork_for_tests(args.jobs))
-    if hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
+    # Test for ModuleNotFoundError: No module named 'fcntl'
+    try:
+        import fcntl
+        fcntl_available = True
+    except ModuleNotFoundError:
+        fcntl_available = False
+        print("WARNING: Module 'fcntl' not available. Some functionality may not work as expected on this platform.", file=sys.stderr)
+    if fcntl_available and hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
       test_result = unittest.TextTestRunner(verbosity=2).run(suite)
