@@ -300,6 +300,45 @@ jobs:
         GIT_COMMIT=$(git log -1 --format='%h')
         PCB2GCODE_VERSION=$(./pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
+    - name: Reset coverage
+      if: matrix.code_coverage
+      continue-on-error: true
+      run: lcov --directory . -z
+    - name: Run unit tests
+      if: matrix.os != 'ubuntu'
+      env:
+        VERBOSE: 1
+        SKIP_GERBERIMPORTER_TESTS_PNG: 1
+      run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
+    - name: Run unit tests with valgrind
+      if: matrix.os == 'ubuntu'
+      env:
+        VERBOSE: 1
+        SKIP_GERBERIMPORTER_TESTS_PNG: 1
+      run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
+    - name: Run integration tests
+      if: matrix.os != 'windows'
+      run: |
+        sudo apt-get install python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+        ./integration_tests.py -j ${NUM_CPUS}
+    - name: Run integration tests on Windows
+      if: matrix.os == 'windows'
+      run: |
+        pacman -S --noconfirm python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+        ./integration_tests.py -j ${NUM_CPUS}
+    - name: Gather coverage
+      if: matrix.code_coverage
+      run: |
+        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
+        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
+    - name: Upload coverage artifact
+      if: matrix.code_coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: lcov-${{ steps.sanitize-key.outputs.key }}
+        path: pcb2gcode-lcov.info
     - name: Run examples
       if: matrix.os != 'windows' && ! matrix.code_coverage
       run: |
@@ -329,46 +368,6 @@ jobs:
                 popd
             fi
         done
-    - name: Reset coverage
-      if: matrix.code_coverage
-      continue-on-error: true
-      run: lcov --directory . -z
-    - name: Run unit tests
-      if: matrix.os != 'ubuntu'
-      env:
-        VERBOSE: 1
-        SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
-    - name: Run unit tests with valgrind
-      if: matrix.os == 'ubuntu'
-      env:
-        VERBOSE: 1
-        SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
-
-    - name: Run integration tests
-      if: matrix.os != 'windows'
-      run: |
-        sudo apt-get install python3-setuptools
-        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-        ./integration_tests.py -j ${NUM_CPUS}
-    - name: Run integration tests on Windows
-      if: matrix.os == 'windows'
-      run: |
-        pacman -S --noconfirm python3-setuptools
-        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-        ./integration_tests.py -j ${NUM_CPUS}
-    - name: Gather coverage
-      if: matrix.code_coverage
-      run: |
-        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
-        lcov --rc lcov_branch_coverage=1 -rc lcov_function_coverage -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
-    - name: Upload coverage artifact
-      if: matrix.code_coverage
-      uses: actions/upload-artifact@v4
-      with:
-        name: lcov-${{ steps.sanitize-key.outputs.key }}
-        path: pcb2gcode-lcov.info
     - name: Prepare build for upload for Ubuntu and Macos
       if: matrix.os != 'windows'
       run: |
