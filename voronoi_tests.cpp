@@ -4,6 +4,7 @@
 #include <boost/format.hpp>
 #include <fstream>
 #include "voronoi.hpp"
+#include "consistent_rand.hpp"
 
 using namespace std;
 
@@ -23,13 +24,13 @@ void print_svg(const geo_t& geo, const string& filename) {
   bg::svg_mapper<point_type> mapper(svg,
                                     bounding_box.max_corner().x() - bounding_box.min_corner().x(),
                                     bounding_box.max_corner().y() - bounding_box.min_corner().y());
-  srand(1);
+  ConsistentRand::srand(1);
   for (const auto& g : geo) {
     mapper.add(g);
     mapper.map(g, (boost::format("opacity:1;fill:rgb(%d,%d,%d);stroke:rgb(0,0,0);stroke-width:2")
-                   % (rand()%255)
-                   % (rand()%255)
-                   % (rand()%255)).str());
+                   % (ConsistentRand::rand()%255)
+                   % (ConsistentRand::rand()%255)
+                   % (ConsistentRand::rand()%255)).str());
   }
 }
 

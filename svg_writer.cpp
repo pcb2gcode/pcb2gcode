@@ -4,6 +4,7 @@
 #include "geometry.hpp"
 #include "bg_operators.hpp"
 #include "svg_writer.hpp"
+#include "consistent_rand.hpp"
 
 using std::string;
 using std::unique_ptr;
@@ -68,9 +69,9 @@ void svg_writer::add(multi_polygon_type_t geometry, double opacity, bool stroke)
   string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
   for (const auto& poly : geometry) {
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
+    const unsigned int r = ConsistentRand::rand() % 256;
+    const unsigned int g = ConsistentRand::rand() % 256;
+    const unsigned int b = ConsistentRand::rand() % 256;
 
     multi_polygon_type_t new_bounding_box;
     bg::convert(bounding_box, new_bounding_box);
@@ -89,9 +90,9 @@ void svg_writer::add(multi_linestring_type_fp mls, coordinate_type_fp width, boo
   string stroke_str = stroke ? "stroke:rgb(0,0,0);stroke-width:2" : "";
 
   for (const auto& ls : mls) {
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
+    const unsigned int r = ConsistentRand::rand() % 256;
+    const unsigned int g = ConsistentRand::rand() % 256;
+    const unsigned int b = ConsistentRand::rand() % 256;
 
     add(ls, width, r, g, b);
   }

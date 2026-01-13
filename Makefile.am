@@ -16,6 +16,8 @@ pcb2gcode_SOURCES = \
     bg_operators.cpp \
     common.hpp \
     common.cpp \
+    consistent_rand.hpp \
+    consistent_rand.cpp \
     drill.hpp \
     drill.cpp \
     eulerian_paths.hpp \

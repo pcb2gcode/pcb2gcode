@@ -73,6 +73,7 @@ using boost::make_optional;
 #include "trim_paths.hpp"
 #include "svg_writer.hpp"
 #include "disjoint_set.hpp"
+#include "consistent_rand.hpp"
 
 using std::max;
 using std::max_element;
@@ -194,15 +195,15 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
   svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
   svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
   optional<svg_writer> contentions_image;
-  srand(1);
+  ConsistentRand::srand(1);
   debug_image.add(voronoi, 0.2, false);
-  srand(1);
+  ConsistentRand::srand(1);
   const auto trace_count = new_trace_toolpaths.size();
   for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
     const auto& new_trace_toolpath = new_trace_toolpaths[trace_index];
-    const unsigned int r = rand() % 256;
-    const unsigned int g = rand() % 256;
-    const unsigned int b = rand() % 256;
+    const unsigned int r = ConsistentRand::rand() % 256;
+    const unsigned int g = ConsistentRand::rand() % 256;
+    const unsigned int b = ConsistentRand::rand() % 256;
     for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
       debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
       traced_debug_image.add(ls_and_allow_reversal.first, tool_diameter, r, g, b);
@@ -231,7 +232,7 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
         " clearance requirements.  Check the contentions output"
         " and consider using a smaller milling bit.\n";
   }
-  srand(1);
+  ConsistentRand::srand(1);
   debug_image.add(vectorial_surface->first, 1, true);
   for (const auto& diameter_and_path : vectorial_surface->second) {
     debug_image.add(diameter_and_path.second, diameter_and_path.first, true);
@@ -1080,7 +1081,7 @@ void Surface_vectorial::save_debug_image(string message)
     const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
     svg_writer debug_image(build_filename(outputdir, filename), bounding_box);
 
-    srand(1);
+    ConsistentRand::srand(1);
     debug_image.add(vectorial_surface->first, 1, true);
     for (const auto& diameter_and_path : vectorial_surface->second) {
       debug_image.add(diameter_and_path.second, diameter_and_path.first, true);
