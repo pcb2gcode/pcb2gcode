@@ -220,7 +220,7 @@ class IntegrationTests(unittest.TestCase):
             else:
               svg_file.write(line)
 
-  def pcb2gcode_one_directory(self, input_path, cwd, args=None, exit_code=0):
+  def pcb2gcode_one_directory(self, input_path, pcb2gcode_binary, args=None, exit_code=0):
     """Run pcb2gcode once in one directory.
 
     Current working directory remains unchanged at the end.
@@ -228,11 +228,11 @@ class IntegrationTests(unittest.TestCase):
     input_path: Where to run pcb2gcode
     Returns the path to the output files created.
     """
-    pcb2gcode = os.path.join(cwd, "pcb2gcode")
+    cwd = os.getcwd()  # Save this for later restoring the current working directory
     actual_output_path = tempfile.mkdtemp()
     os.chdir(input_path)
     try:
-      cmd = [pcb2gcode]
+      cmd = [pcb2gcode_binary]
       if not any("output-dir" in x for x in args):
         cmd += ["--output-dir", actual_output_path]
       cmd += args or []
@@ -305,7 +305,7 @@ class IntegrationTests(unittest.TestCase):
         all_diffs += difflib.unified_diff(data0, data1, '"' + os.path.join(left_prefix, f) + '"', '"' + os.path.join(right_prefix, f) + '"')
     return ''.join(all_diffs)
 
-  def run_one_directory(self, input_path, cwd, expected_output_path, test_prefix, args=[], exit_code=0):
+  def run_one_directory(self, input_path, pcb2gcode_binary, expected_output_path, test_prefix, args=[], exit_code=0):
     """Run pcb2gcode on a directory and return the diff as a string.
 
     Returns an empty string if there is no mismatch.
@@ -314,7 +314,7 @@ class IntegrationTests(unittest.TestCase):
     expected_output_path: Path to expected outputs
     test_prefix: Strin to prepend to all filenamess
     """
-    actual_output_path = self.pcb2gcode_one_directory(input_path, cwd, args, exit_code)
+    actual_output_path = self.pcb2gcode_one_directory(input_path, pcb2gcode_binary, args, exit_code)
     if exit_code:
       return ""
     diff_text = self.compare_directories(expected_output_path, actual_output_path,
@@ -323,12 +323,13 @@ class IntegrationTests(unittest.TestCase):
     shutil.rmtree(actual_output_path)
     return diff_text
 
-  def do_test_one(self, test_case, cwd):
+  def do_test_one(self, test_case, pcb2gcode_binary):
     test_prefix = os.path.join(test_case.input_path, "expected")
+    cwd = os.path.dirname(pcb2gcode_binary)
     input_path = os.path.join(cwd, test_case.input_path)
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
     print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
-    diff_text = self.run_one_directory(input_path, cwd, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
+    diff_text = self.run_one_directory(input_path, pcb2gcode_binary, expected_output_path, test_prefix, test_case.args, test_case.exit_code)
     self.assertFalse(bool(diff_text), 'Files don\'t match\n' + diff_text)
 
 def cmp(x,y):
@@ -347,15 +348,15 @@ if __name__ == '__main__':
                       help='number of threads for running tests concurrently')
   parser.add_argument('--tests', type=str, default="",
                       help='regex of tests to run')
-  parser.add_argument('--pcb2gcode-directory', type=str, default="",
-                      help='path to pcb2gcode directory that contains the binary and tests to run')
+  parser.add_argument('--pcb2gcode-binary', type=str, default="",
+                      help='path to pcb2gcode binary to run.  The tests are expected to be in subdirectories of the directory containing the binary.')
   args = parser.parse_args()
   if args.tests:
     TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
-  cwd = os.getcwd() if not args.pcb2gcode_directory else args.pcb2gcode_directory
+  pcb2gcode_binary = os.path.join(os.getcwd(), "pcb2gcode") if not args.pcb2gcode_binary else args.pcb2gcode_binary
   def add_test_case(t):
     def test_method(self):
-      self.do_test_one(t, cwd)
+      self.do_test_one(t, pcb2gcode_binary)
     setattr(IntegrationTests, 'test_' + t.name, test_method)
     test_method.__name__ = 'test_' + t.name
     test_method.__doc__ = str(test_case)
