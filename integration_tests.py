@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!python3
 
 """Run integration tests on pcb2gcode."""
 
