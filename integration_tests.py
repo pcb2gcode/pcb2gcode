@@ -24,7 +24,11 @@ import in_place
 import termcolor
 import unittest
 
-from concurrencytest import ConcurrentTestSuite, fork_for_tests
+try:
+  from concurrencytest import ConcurrentTestSuite, fork_for_tests
+  concurrencytest_available = True
+except:
+  concurrencytest_available = False
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code"])
 
@@ -387,7 +391,10 @@ if __name__ == '__main__':
     test_loader.sortTestMethodsUsing = lambda x,y: cmp(all_test_names.index(x), all_test_names.index(y))
     suite = test_loader.loadTestsFromTestCase(IntegrationTests)
     if args.jobs > 1:
-      suite = ConcurrentTestSuite(suite, fork_for_tests(args.jobs))
+      if concurrencytest_available:
+        suite = ConcurrentTestSuite(suite, fork_for_tests(args.jobs))
+      else:
+        print("WARNING: Module 'concurrencytest' not available. Running tests sequentially.", file=sys.stderr)
     if colour_runner_available and hasattr(sys.stderr, "isatty") and sys.stderr.isatty():
       test_result = colour_runner.runner.ColourTextTestRunner(verbosity=2).run(suite)
     else:
