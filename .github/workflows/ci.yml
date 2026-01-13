@@ -321,7 +321,7 @@ jobs:
       run: |
         sudo apt-get install python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-        ./integration_tests.py -j ${NUM_CPUS}
+        /usr/bin/python3 ./integration_tests.py -j ${NUM_CPUS}
     - name: Run integration tests on Windows
       if: matrix.os == 'windows' && matrix.geos != 'none' && matrix.geos != 'latest'
       run: |
