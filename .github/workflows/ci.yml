@@ -36,7 +36,7 @@ jobs:
           - os: ubuntu
             boost: latest
             compiler: g++
-            geos: latest
+            geos: '3.13.1'
             code_coverage: "--enable-code-coverage"
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
@@ -347,9 +347,15 @@ jobs:
       run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
 
     - name: Run integration tests
-      if: matrix.geos != 'none' && matrix.geos != 'latest' && matrix.os == 'ubuntu'
+      if: matrix.os != 'windows'
       run: |
         sudo apt-get install python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+        ./integration_tests.py -j ${NUM_CPUS}
+    - name: Run integration tests on Windows
+      if: matrix.os == 'windows'
+      run: |
+        pacman -S --noconfirm python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
         ./integration_tests.py -j ${NUM_CPUS}
     - name: Gather coverage
