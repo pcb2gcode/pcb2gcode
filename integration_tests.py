@@ -347,10 +347,12 @@ if __name__ == '__main__':
                       help='number of threads for running tests concurrently')
   parser.add_argument('--tests', type=str, default="",
                       help='regex of tests to run')
+  parser.add_argument('--pcb2gcode-directory', type=str, default="",
+                      help='path to pcb2gcode directory that contains the binary and tests to run')
   args = parser.parse_args()
   if args.tests:
     TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
-  cwd = os.getcwd()
+  cwd = os.getcwd() if not args.pcb2gcode_directory else args.pcb2gcode_directory
   def add_test_case(t):
     def test_method(self):
       self.do_test_one(t, cwd)
