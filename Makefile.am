@@ -87,7 +87,7 @@ check_PROGRAMS = voronoi_tests eulerian_paths_tests segmentize_tests tsp_solver_
                  geos_helpers_tests disjoint_set_tests segment_tree_tests
 
 
-voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp
+voronoi_tests_SOURCES = voronoi.hpp voronoi.cpp voronoi_tests.cpp boost_unit_test.cpp consistent_rand.hpp consistent_rand.cpp
 eulerian_paths_tests_SOURCES = eulerian_paths_tests.cpp eulerian_paths.hpp geometry_int.hpp boost_unit_test.cpp  bg_operators.hpp bg_operators.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp segmentize.cpp merge_near_points.cpp geos_helpers.hpp geos_helpers.cpp
 segmentize_tests_SOURCES = segmentize_tests.cpp segmentize.cpp segmentize.hpp merge_near_points.cpp merge_near_points.hpp boost_unit_test.cpp bg_helpers.hpp bg_helpers.cpp eulerian_paths.cpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp
 path_finding_tests_SOURCES = path_finding_tests.cpp path_finding.cpp path_finding.hpp boost_unit_test.cpp bg_helpers.cpp bg_helpers.hpp eulerian_paths.cpp eulerian_paths.hpp segmentize.hpp segmentize.cpp merge_near_points.cpp merge_near_points.hpp bg_operators.hpp bg_operators.cpp geos_helpers.hpp geos_helpers.cpp options.hpp options.cpp segment_tree.cpp segment_tree.hpp
