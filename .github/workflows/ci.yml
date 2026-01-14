@@ -327,7 +327,7 @@ jobs:
       run: |
         pacman -S --noconfirm mingw-w64-x86_64-python-pip
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-        ./integration_tests.py --pcb2gcode-binary "$(pwd)/pcb2gcode.exe" -j ${NUM_CPUS}
+        python3 ./integration_tests.py --pcb2gcode-binary "$(pwd)/pcb2gcode.exe" -j ${NUM_CPUS}
     - name: Gather coverage
       if: matrix.code_coverage
       run: |
