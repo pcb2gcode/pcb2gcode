@@ -301,7 +301,7 @@ jobs:
         PCB2GCODE_VERSION=$(./pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
     - name: Run examples
-      if: matrix.os != 'windows' && ! matrix.code_coverage
+      if: github.event_name == 'schedule' && matrix.os != 'windows' && ! matrix.code_coverage
       run: |
         pushd testing/gerbv_example
         ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
@@ -320,7 +320,7 @@ jobs:
           } 2>&1'
         popd
     - name: Run examples
-      if: matrix.os == 'windows' && ! matrix.code_coverage
+      if: github.event_name == 'schedule' && matrix.os == 'windows' && ! matrix.code_coverage
       run: |
         for d in testing/gerbv_example/*; do
             if [ -d "$d" ]; then
