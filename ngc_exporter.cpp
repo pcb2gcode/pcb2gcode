@@ -78,7 +78,10 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     bMetricoutput = options["metricoutput"].as<bool>();      //set flag for metric output
     bZchangeG53 = options["zchange-absolute"].as<bool>();
     nom6 = options["nom6"].as<bool>();
-    
+
+    // Minimum path length - paths shorter than this are skipped (removes Voronoi artifacts)
+    min_path_length = options["min-path-length"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+
     string outputdir = options["output-dir"].as<string>();
     
     //set imperial/metric conversion factor for output coordinates depending on metricoutput option
@@ -367,6 +370,9 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
             const linestring_type_fp& path = toolpaths[path_index];
             if (path.size() < 1) {
               continue; // Empty path.
+            }
+            if (min_path_length > 0 && bg::length(path) < min_path_length) {
+              continue; // Path too short (Voronoi artifact).
             }
 
             // retract, move to the starting point of the next contour

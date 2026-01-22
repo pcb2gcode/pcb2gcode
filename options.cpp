@@ -295,7 +295,8 @@ options::options()
        ("path-finding-limit", po::value<size_t>()->default_value(1), "Use path finding for up to this many steps in the search (more is slower but makes a faster gcode path)")
        ("g0-vertical-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("50in/min")), "speed of vertical G0 movements, for use in path-finding")
        ("g0-horizontal-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("100in/min")), "speed of horizontal G0 movements, for use in path-finding")
-       ("backtrack", po::value<Velocity>()->default_value(std::numeric_limits<double>::infinity()), "allow retracing a milled path if it's faster than retract-move-lower.  For example, set to 5in/s if you are willing to remill 5 inches of trace in order to save 1 second of milling time.");
+       ("backtrack", po::value<Velocity>()->default_value(std::numeric_limits<double>::infinity()), "allow retracing a milled path if it's faster than retract-move-lower.  For example, set to 5in/s if you are willing to remill 5 inches of trace in order to save 1 second of milling time.")
+       ("min-path-length", po::value<Length>()->default_value(Length(0)), "Skip milling paths shorter than this length.  Useful for removing tiny Voronoi artifacts.  Set to 0.1mm to remove paths shorter than 0.1mm.");
    cfg_options.add(optimization_options);
 
    po::options_description autolevelling_options("Autolevelling options, for generating gcode to automatically probe the board and adjust milling depth to the actual board height");

@@ -66,6 +66,7 @@ protected:
     bool bMetricoutput;     //if true, metric g-code output
     bool bZchangeG53;
     bool nom6; // missing m6
+    double min_path_length; // minimum path length to mill (skip Voronoi artifacts)
 
     bool bTile;
 
