@@ -42,8 +42,8 @@ class autoleveller
 {
 public:
     // The constructor just initialize the common parameters variables (parameters are in inches)
-    autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes, 
-                  uniqueCodes *globalVars, double xoffset, double yoffset,
+    autoleveller( const boost::program_options::variables_map &options, uniqueCodes ocodes, 
+                  uniqueCodes globalVars, double xoffset, double yoffset,
                   const struct Tiling::TileInfo tileInfo );
 
     // prepareWorkarea computes the area of the milling project and computes the required number of probe
@@ -146,7 +146,7 @@ protected:
     double XProbeDist;
     double YProbeDist;
     double averageProbeDist;
-    uniqueCodes *ocodes;
+    uniqueCodes ocodes;
 
     std::string callSub2[3];
 

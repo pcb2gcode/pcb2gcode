@@ -6,7 +6,7 @@
 namespace ConsistentRand {
 
 // A global variable representing the current state of the random number generator.
-static uint32_t state = 1;
+thread_local static uint32_t state = 1;
 
 void srand(unsigned int seed) {
   state = seed ? seed : 1;

@@ -50,13 +50,15 @@ using std::dynamic_pointer_cast;
 
 #include <iomanip>
 
+#include <future>
+
 #include <boost/format.hpp>
 using boost::format;
 
 #include "units.hpp"
 
 NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
-    : board(board), ocodes(1), globalVars(100) {}
+    : board(board) {}
 
 /******************************************************************************/
 /*
@@ -86,47 +88,62 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
     
     tileInfo = Tiling::generateTileInfo( options, board->get_height(), board->get_width() );
 
+    std::vector<std::future<void>> layer_futures;
+    uint layer_number = 0;
     for ( string layername : board->list_layers() )
     {
-        if (options["zero-start"].as<bool>()) {
-          xoffset = board->get_bounding_box().min_corner().x();
-          yoffset = board->get_bounding_box().min_corner().y();
-        } else {
-          xoffset = 0;
-          yoffset = 0;
-        }
-        xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-        yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-        if (layername == "back" ||
-            (layername == "outline" && !workSide(options, "cut"))) {
-            if (options["mirror-yaxis"].as<bool>()) {
-                yoffset = -yoffset + tileInfo.boardHeight*(tileInfo.tileY-1);
-                yoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-            } else {
-                xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.tileX-1);
-                xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
-            }
-        }
+        layer_futures.push_back(std::async(std::launch::async,
+            [this, &options, layername, outputdir, layer_number]() {
+          double xoffset;
+          double yoffset;
+          if (options["zero-start"].as<bool>()) {
+            xoffset = board->get_bounding_box().min_corner().x();
+            yoffset = board->get_bounding_box().min_corner().y();
+          } else {
+            xoffset = 0;
+            yoffset = 0;
+          }
+          xoffset -= options["x-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+          yoffset -= options["y-offset"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+          if (layername == "back" ||
+              (layername == "outline" && !workSide(options, "cut"))) {
+              if (options["mirror-yaxis"].as<bool>()) {
+                  yoffset = -yoffset + tileInfo.boardHeight*(tileInfo.tileY-1);
+                  yoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+              } else {
+                  xoffset = -xoffset + tileInfo.boardWidth*(tileInfo.tileX-1);
+                  xoffset -= 2 * options["mirror-axis"].as<Length>().asInch(bMetricinput ? 1.0/25.4 : 1);
+              }
+          }
 
-        boost::optional<autoleveller> leveller = boost::none;
-        if ((options["al-front"].as<bool>() && layername == "front") ||
-            (options["al-back"].as<bool>() && layername == "back")) {
-          leveller.emplace(options, &ocodes, &globalVars,
-                           xoffset, yoffset, tileInfo);
-        }
+          boost::optional<autoleveller> leveller = boost::none;
+          if ((options["al-front"].as<bool>() && layername == "front") ||
+              (options["al-back"].as<bool>() && layername == "back")) {
+            // We try to use a unique codes for each layer so that there are no conflicts
+            // and the files can be merged.
+            leveller.emplace(options,
+                             uniqueCodes(1 + layer_number * 100),
+                             uniqueCodes(100 + layer_number * 100), // 500 and up are used by the leveller.
+                             xoffset, yoffset, tileInfo);
+          }
 
-        std::stringstream option_name;
-        option_name << layername << "-output";
-        string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
-        cout << "Exporting " << layername << "... " << flush;
-        export_layer(board->get_layer(layername), of_name, leveller);
-        cout << "DONE." << " (Height: " << board->get_height() * cfactor
-             << (bMetricoutput ? "mm" : "in") << " Width: "
-             << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
-             << ")";
-        if (layername == "outline")
-            cout << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
-        cout << endl;
+          std::stringstream option_name;
+          option_name << layername << "-output";
+          string of_name = build_filename(outputdir, options[option_name.str()].as<string>());
+          cout << "Exporting " << layername << "... " << flush;
+          export_layer(board->get_layer(layername), of_name, leveller, xoffset, yoffset);
+          cout << "DONE." << " (Height: " << board->get_height() * cfactor
+              << (bMetricoutput ? "mm" : "in") << " Width: "
+              << board->get_width() * cfactor << (bMetricoutput ? "mm" : "in")
+              << ")";
+          if (layername == "outline")
+              cout << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
+          cout << endl;
+        }));
+        layer_number++;
+    }
+    for (auto& f : layer_futures) {
+      f.get();
     }
 }
 
@@ -243,7 +260,8 @@ void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> 
 }
 
 
-void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller) {
+void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::optional<autoleveller> leveller,
+                                double xoffset, double yoffset) {
     string layername = layer->get_name();
     shared_ptr<RoutingMill> mill = layer->get_manufacturer();
     vector<pair<coordinate_type_fp, multi_linestring_type_fp>> all_toolpaths = layer->get_toolpaths();
@@ -251,9 +269,6 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
     if (all_toolpaths.size() < 1) {
       return; // Nothing to do.
     }
-
-    globalVars.getUniqueCode();
-    globalVars.getUniqueCode();
 
     // open output file
     std::ofstream of;

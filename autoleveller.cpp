@@ -58,8 +58,8 @@ boost::format silent_format(const string &f_string)
     return fmter;
 }
 
-autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes *ocodes,
-                            uniqueCodes *globalVars, double xoffset, double yoffset,
+autoleveller::autoleveller( const boost::program_options::variables_map &options, uniqueCodes ocodes,
+                            uniqueCodes globalVars, double xoffset, double yoffset,
                             const struct Tiling::TileInfo tileInfo ) :
     input_unitconv( options["metric"].as<bool>() ? 1.0/25.4 : 1),
     output_unitconv( options["metricoutput"].as<bool>() ? 25.4 : 1),
@@ -78,19 +78,19 @@ autoleveller::autoleveller( const boost::program_options::variables_map &options
     software( options["software"].as<Software::Software>() ),
     xoffset( xoffset ),
     yoffset( yoffset ),
-    g01InterpolatedNum( ocodes->getUniqueCode() ),
-    yProbeNum( ocodes->getUniqueCode() ),
-    xProbeNum( ocodes->getUniqueCode() ),
-    returnVar( to_string(globalVars->getUniqueCode()) ),
-    globalVar0( to_string(globalVars->getUniqueCode()) ),
-    globalVar1( to_string(globalVars->getUniqueCode()) ),
-    globalVar2( to_string(globalVars->getUniqueCode()) ),
-    globalVar3( to_string(globalVars->getUniqueCode()) ),
-    globalVar4( to_string(globalVars->getUniqueCode()) ),
-    globalVar5( to_string(globalVars->getUniqueCode()) ),
+    g01InterpolatedNum( ocodes.getUniqueCode() ),
+    yProbeNum( ocodes.getUniqueCode() ),
+    xProbeNum( ocodes.getUniqueCode() ),
+    returnVar( to_string(globalVars.getUniqueCode()) ),
+    globalVar0( to_string(globalVars.getUniqueCode()) ),
+    globalVar1( to_string(globalVars.getUniqueCode()) ),
+    globalVar2( to_string(globalVars.getUniqueCode()) ),
+    globalVar3( to_string(globalVars.getUniqueCode()) ),
+    globalVar4( to_string(globalVars.getUniqueCode()) ),
+    globalVar5( to_string(globalVars.getUniqueCode()) ),
     tileInfo( tileInfo ),
-    initialXOffsetVar( globalVars->getUniqueCode() ),
-    initialYOffsetVar( globalVars->getUniqueCode() ),
+    initialXOffsetVar( globalVars.getUniqueCode() ),
+    initialYOffsetVar( globalVars.getUniqueCode() ),
     ocodes( ocodes )
 {
     callSub2[Software::LINUXCNC] = "o%1$s call [%2$.5f] [%3$.5f] [%4$.5f]\n";
@@ -197,7 +197,7 @@ void autoleveller::header(std::ofstream &of) {
         of << "#" << globalVar1 << " = 1 ( Y iterator )\n";
         of << "#" << globalVar2 << " = 1 ( UP or DOWN increment )\n";
         of << "#" << globalVar3 << " = " << numYPoints - 1 << " ( number of Y points; the 1st Y row can be done one time less )\n";
-        of << silent_format( callSubRepeat[software] ) % xProbeNum % numXPoints % ocodes->getUniqueCode();
+        of << silent_format( callSubRepeat[software] ) % xProbeNum % numXPoints % ocodes.getUniqueCode();
     }
     else
     {
@@ -284,7 +284,7 @@ void autoleveller::footerNoIf(std::ofstream &of) {
         of << silent_format( endSub[software] ) % yProbeNum << endl;
         of << endl;
         of << format( startSub[software] ) % xProbeNum << " ( X probe subroutine )\n";
-        of << "    " << silent_format( callSubRepeat[software] ) % yProbeNum % ( "#" + globalVar3 ) % ocodes->getUniqueCode() % "    ";
+        of << "    " << silent_format( callSubRepeat[software] ) % yProbeNum % ( "#" + globalVar3 ) % ocodes.getUniqueCode() % "    ";
         of << "    #" << globalVar3 << " = " << numYPoints << endl;
         of << "    #" << globalVar2 << " = [0 - #" << globalVar2 << "]\n";
         of << "    #" << globalVar1 << " = [#" << globalVar1 << " + #" << globalVar2 << ']' << endl;
