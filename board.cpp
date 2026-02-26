@@ -36,6 +36,8 @@ using std::pair;
 #include <vector>
 using std::vector;
 
+#include <future>
+
 #include "bg_operators.hpp"
 
 typedef pair<string, shared_ptr<Layer> > layer_t;
@@ -120,27 +122,40 @@ void Board::createLayers()
       }
     }
 
-    // board size calculated. create layers
+    // board size calculated. create layers (in parallel)
+    std::vector<std::future<pair<string, shared_ptr<Layer>>>> layer_futures;
     for (const auto& prepared_layer : prepared_layers) {
-      // prepare the surface
-      shared_ptr<GerberImporter> importer = get<0>(prepared_layer.second);
-      const bool fill = fill_outline && prepared_layer.first == "outline";
+      const string layer_name = prepared_layer.first;
+      const prep_t prep = prepared_layer.second;
+      layer_futures.push_back(std::async(std::launch::async,
+          [bounding_box = bounding_box, layer_name, prep,
+           fill_outline = fill_outline, outputdir = outputdir,
+           tsp_2opt = tsp_2opt, mill_feed_direction = mill_feed_direction,
+           invert_gerbers = invert_gerbers,
+           render_paths_to_shapes = render_paths_to_shapes]() {
+            shared_ptr<GerberImporter> importer = get<0>(prep);
+            const bool fill = fill_outline && layer_name == "outline";
 
-      auto surface = make_shared<Surface_vectorial>(
-          bounding_box,
-          prepared_layer.first, outputdir, tsp_2opt,
-          mill_feed_direction, invert_gerbers,
-          render_paths_to_shapes || (prepared_layer.first == "outline"));
-      if (fill) {
-        surface->enable_filling();
-      }
-      surface->render(importer, get<1>(prepared_layer.second)->optimise);
-      auto layer = make_shared<Layer>(prepared_layer.first,
-                                      surface,
-                                      get<1>(prepared_layer.second),
-                                      get<2>(prepared_layer.second),
-                                      get<3>(prepared_layer.second)); // see comment for prep_t in board.hpp
-      layers.insert(std::make_pair(layer->get_name(), layer));
+            auto surface = make_shared<Surface_vectorial>(
+                bounding_box,
+                layer_name, outputdir, tsp_2opt,
+                mill_feed_direction, invert_gerbers,
+                render_paths_to_shapes || (layer_name == "outline"));
+            if (fill) {
+              surface->enable_filling();
+            }
+            surface->render(importer, get<1>(prep)->optimise);
+            auto layer = make_shared<Layer>(layer_name,
+                                            surface,
+                                            get<1>(prep),
+                                            get<2>(prep),
+                                            get<3>(prep));
+            return std::make_pair(layer->get_name(), layer);
+          }));
+    }
+    for (auto& f : layer_futures) {
+      auto name_and_layer = f.get();
+      layers.insert(std::make_pair(name_and_layer.first, name_and_layer.second));
     }
 
     // DEBUG output
