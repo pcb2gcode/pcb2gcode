@@ -40,8 +40,8 @@ using std::endl;
 /*
  */
 /******************************************************************************/
-Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
-             shared_ptr<RoutingMill> manufacturer, bool backside, bool ymirror)
+Layer::Layer(const std::string& name, Surface_vectorial surface,
+             RoutingMill manufacturer, bool backside, bool ymirror)
 {
     this->name = name;
     this->mirrored = backside;
@@ -54,6 +54,14 @@ Layer::Layer(const std::string& name, shared_ptr<Surface_vectorial> surface,
 
 /******************************************************************************/
 vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Layer::get_toolpaths() {
+  auto isolator = dynamic_pointer_cast<Isolator>(manufacturer);
+  if (isolator) {
+    std::cout << "isolator: " << isolator->isolation_width << "extra_passes: " 
+              << isolator->extra_passes 
+              << "tolerance: " << isolator->tolerance << std::endl;
+  } else {
+    std::cout << "not isolator" << std::endl;
+  }
   return surface->get_toolpath(manufacturer, mirrored, ymirrored);
 }
 
@@ -61,7 +69,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Layer::get_toolpaths(
 /*
  */
 /******************************************************************************/
-shared_ptr<RoutingMill> Layer::get_manufacturer()
+RoutingMill Layer::get_manufacturer()
 {
     return manufacturer;
 }
@@ -70,13 +78,13 @@ shared_ptr<RoutingMill> Layer::get_manufacturer()
 /*
  */
 /******************************************************************************/
-void Layer::add_mask(shared_ptr<Layer> mask)
+void Layer::add_mask(Layer mask)
 {
-    surface->add_mask(mask->surface);
+    surface.add_mask(mask.surface);
 }
 
 vector<size_t> Layer::get_bridges(linestring_type_fp& toolpath) {
-  auto cutter = dynamic_pointer_cast<Cutter>(manufacturer);
+  auto cutter = dynamic_cast<Cutter>(manufacturer);
   auto bridges = outline_bridges::makeBridges(
       toolpath,
       cutter->bridges_num,

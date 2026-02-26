@@ -45,7 +45,6 @@ using std::pair;
 using std::ceil;
 
 #include <memory>
-using std::shared_ptr;
 using std::dynamic_pointer_cast;
 
 #include <iomanip>
@@ -57,7 +56,7 @@ using boost::format;
 
 #include "units.hpp"
 
-NGC_Exporter::NGC_Exporter(shared_ptr<Board> board)
+NGC_Exporter::NGC_Exporter(Board board)
     : board(board) {}
 
 /******************************************************************************/
@@ -140,10 +139,11 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
               cout << " The board should be cut from the " << ( workSide(options, "cut") ? "FRONT" : "BACK" ) << " side. ";
           cout << endl;
         }));
+        layer_futures.back().get();
         layer_number++;
     }
     for (auto& f : layer_futures) {
-      f.get();
+      //f.get();
     }
 }
 
@@ -152,7 +152,7 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
  * by where the bridges begins.  So the bridges is from points with indecies x
  * to x+1 for each element in the bridges vector.  We can always assume that the
  * bridge segment and the segments on either side form a straight line. */
-void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, const linestring_type_fp& path,
+void NGC_Exporter::cutter_milling(std::ofstream& of, Cutter cutter, const linestring_type_fp& path,
                                   const vector<size_t>& bridges, const double xoffsetTot, const double yoffsetTot) {
   const unsigned int steps_num = cutter->stepsize == 0 ?
                                  1 :
@@ -202,7 +202,7 @@ void NGC_Exporter::cutter_milling(std::ofstream& of, shared_ptr<Cutter> cutter, 
   }
 }
 
-void NGC_Exporter::isolation_milling(std::ofstream& of, shared_ptr<RoutingMill> mill, const linestring_type_fp& path,
+void NGC_Exporter::isolation_milling(std::ofstream& of, RoutingMill mill, const linestring_type_fp& path,
                                      boost::optional<autoleveller>& leveller, const double xoffsetTot, const double yoffsetTot) {
   of << "G01 F" << mill->vertfeed * cfactor << '\n';
 
@@ -317,8 +317,8 @@ void NGC_Exporter::export_layer(shared_ptr<Layer> layer, string of_name, boost::
       leveller->header(of);
     }
 
-    shared_ptr<Cutter> cutter = dynamic_pointer_cast<Cutter>(mill);
-    shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+    Cutter cutter = dynamic_cast<Cutter>(mill);
+    Isolator isolator = dynamic_cast<Isolator>(mill);
 
     // One list of bridges for each path.
     vector<vector<size_t>> all_bridges;

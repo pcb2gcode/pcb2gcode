@@ -776,8 +776,12 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     int extra_passes;
     coordinate_type_fp overlap = overlap_width;
     if (!isolator) {
+      //std::cout << "B: not isolator" << std::endl;
       extra_passes = 0;
     } else {
+      //std::cout << "B: tool_diameter: " << isolator->isolation_width << "extra_passes: " 
+      //<< isolator->extra_passes 
+      //<< "tolerance: " << isolator->tolerance << std::endl;
       int computed_extra_passes = int(std::ceil(
           (isolator->isolation_width - tool_diameter) /
           (tool_diameter - overlap_width) - isolator->tolerance)); // In case it divides evenly, do fewer passes.
@@ -789,8 +793,10 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
         // will exactly cover the isolation width and no more.
         overlap = tool_diameter - ((isolator->isolation_width - tool_diameter) /
                                    (extra_passes + isolator->tolerance));
+        //std::cout << "computed overlap: " << overlap << std::endl;
       }
     }
+    //std::cout << "extra_passes: " << extra_passes << std::endl;
     const bool do_voronoi = isolator ? isolator->voronoi : false;
 
     optional<polygon_type_fp> current_trace = boost::none;
@@ -801,7 +807,8 @@ vector<pair<linestring_type_fp, bool>> Surface_vectorial::get_single_toolpath(
     const vector<multi_polygon_type_fp> polygons =
         offset_polygon(current_trace, current_voronoi,
                        diameter, overlap, extra_passes + 1, do_voronoi, mill->offset);
-
+    //std::cout << "polygons size: " << polygons.size() << " offset: " << mill->offset << " overlap: " << overlap
+    //          << " diameter: " << diameter << " extra_passes: " << extra_passes << " do_voronoi: " << do_voronoi << std::endl;
     // Find if a distance between two points should be milled or retract, move
     // fast, and plunge.  Milling is chosen if it's faster and also the path is
     // entirely within the path_finding_surface.  If it's not faster or the path
@@ -1003,6 +1010,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
         }
         auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
                                                       already_milled_shrunk, path_finding_surface);
+        //std::cout << "new_trace_toolpath size: " << new_trace_toolpath.size() << std::endl;
         if (invert_gerbers) {
           auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -isolator->tolerance);
           vector<pair<linestring_type_fp, bool>> temp;
@@ -1112,6 +1120,7 @@ void Surface_vectorial::add_mask(shared_ptr<Surface_vectorial> surface) {
   for (auto& diameter_and_path : vectorial_surface->second) {
     diameter_and_path.second = diameter_and_path.second & mask->vectorial_surface->first;
   }
+  std::cout << "add_mask: \n\n" << bg::wkt(mask->vectorial_surface->first) << std::endl;
 }
 
 // The input is the trace which we want to isolate.  It might have
@@ -1159,6 +1168,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   // We need to crop the area that we'll mill if it extends outside the PCB's
   // outline.  This saves time in milling.
   if (mask) {
+    std::cout << "mask: \n\n" << bg::wkt(mask->vectorial_surface->first) << std::endl;
     milling_poly = milling_poly & mask->vectorial_surface->first;
   } else {
     // Increase the size of the bounding box to accommodate all milling.
@@ -1176,6 +1186,7 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
 
   vector<multi_polygon_type_fp> polygons;
   // Convert the input shape into a bunch of rings that need to be milled.
+  //std::cout << "steps: " << steps << std::endl;
   for (unsigned int i = 0; i < steps; i++) {
     coordinate_type_fp expand_by;
     if (!do_voronoi) {
@@ -1200,7 +1211,12 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
     }
 
     multi_polygon_type_fp buffered_milling_poly = bg_helpers::buffer(milling_poly, expand_by + offset + thermal_offset);
+    //std::cout << "buffered_milling_poly: " << bg::wkt(buffered_milling_poly) << std::endl;
+    //std::cout << "buffered_milling_poly: " << buffered_milling_poly.size() << std::endl;
+    //std::cout << "expand_by: " << expand_by << " offset: " << offset << " thermal_offset: " << thermal_offset << std::endl;
+    //std::cout << "expand_by + offset: " << expand_by + offset << std::endl;
     if (expand_by + offset != 0) {
+      //std::cout << "expand_by + offset != 0" << std::endl;
       if (!do_voronoi) {
         buffered_milling_poly = buffered_milling_poly & voronoi_shrunk;
       } else {
@@ -1208,17 +1224,20 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
       }
     }
     if (mask && !bg::covered_by(buffered_milling_poly, mask->vectorial_surface->first)) {
+      //std::cout << "mask not covered" << std::endl;
       // Don't mill outside the mask because that's a waste.
       // But don't mill into the trace itself.
       // And don't mill into other traces.
       buffered_milling_poly = ((buffered_milling_poly & mask->vectorial_surface->first) + path_minimum) & voronoi_polygon;
     }
     if (invert_gerbers) {
+      //std::cout << "inverting gerbers" << std::endl;
       buffered_milling_poly = buffered_milling_poly & bounding_box;
     }
     if (polygons.size() > 0 && bg::equals(buffered_milling_poly, polygons.back())) {
       // Once we start getting repeats, we can expect that all the rest will be
       // the same so we're done.
+      //std::cout << "break after " << i << " steps" << std::endl;
       break;
     }
     polygons.push_back(buffered_milling_poly);
