@@ -1,8 +1,10 @@
 #ifndef PATH_FINDING_H
 #define PATH_FINDING_H
 
+#include <mutex>
+
 #include <boost/optional.hpp>
-#include <unordered_map>
+#include "thread_safe_unordered_map.hpp"
 
 #include "geometry.hpp"
 #include "bg_operators.hpp"
@@ -181,7 +183,7 @@ class PathFindingSurface {
   PathFindingSurface(const boost::optional<multi_polygon_type_fp>& keep_in,
                      const multi_polygon_type_fp& keep_out,
                      const coordinate_type_fp tolerance);
-  const boost::optional<SearchKey>& in_surface(point_type_fp p) const;
+  boost::optional<SearchKey> in_surface(point_type_fp p) const;
   // Find a path from start to goal in the available surface, limited
   // in operations.
   boost::optional<linestring_type_fp> find_path(
@@ -200,7 +202,7 @@ class PathFindingSurface {
   friend class Neighbors;
   friend class PathFindingSurfaceWithTries;
   multi_polygon_type_fp get_surface() const;
-  const std::vector<point_type_fp>& vertices(SearchKey search_key) const;
+  std::vector<point_type_fp> vertices(SearchKey search_key) const;
   bool in_surface(
       const point_type_fp& a, const point_type_fp& b) const;
 
@@ -214,16 +216,15 @@ class PathFindingSurface {
   // all_vertices is one list for each ring in the original.  The
   // lists are arranged in the same way as the RingIndices.
   std::vector<std::vector<std::vector<point_type_fp>>> all_vertices;
-  mutable std::unordered_map<std::pair<point_type_fp, point_type_fp>, bool> edge_in_surface_memo;
+  mutable ThreadSafeUnorderedMap<std::pair<point_type_fp, point_type_fp>, bool> edge_in_surface_memo;
   // RingIndices can be very large and slow to hash so we'll store
   // them here and elsewhere just store the index into this list.
   mutable std::vector<RingIndices> ring_indices_cache;
-  mutable std::unordered_map<RingIndices, size_t,
-                             std::hash<RingIndices>,
-                             std::equal_to<RingIndices>> ring_indices_lookup;
-  mutable std::unordered_map<point_type_fp, boost::optional<SearchKey>> point_in_surface_memo;
+  mutable std::mutex ring_indices_cache_mutex;
+  mutable ThreadSafeUnorderedMap<RingIndices, size_t> ring_indices_lookup;
+  mutable ThreadSafeUnorderedMap<point_type_fp, boost::optional<SearchKey>> point_in_surface_memo;
   segment_tree::SegmentTree tree;
-  mutable std::unordered_map<SearchKey, std::vector<point_type_fp>> vertices_memo;
+  mutable ThreadSafeUnorderedMap<SearchKey, std::vector<point_type_fp>> vertices_memo;
   mutable boost::optional<size_t> tries; // This is not great to be mutable.
 };
 
@@ -246,7 +247,7 @@ class PathFindingSurfaceWithTries {
    }
  private:
   friend class PathFindingSurface;
-  const std::vector<point_type_fp>& vertices(SearchKey search_key) const {
+  std::vector<point_type_fp> vertices(SearchKey search_key) const {
     return path_finding_surface.vertices(search_key);
   }
   boost::optional<linestring_type_fp> find_path(

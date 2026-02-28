@@ -986,7 +986,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       for (const auto& poly : vectorial_surface.first) {
         keep_outs.push_back(bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset));
       }
-      const auto path_finding_surface = path_finding::PathFindingSurface(mask, sum(keep_outs), isolator->tolerance);
+      const path_finding::PathFindingSurface path_finding_surface(mask, sum(keep_outs), isolator->tolerance);
       std::vector<std::future<vector<pair<linestring_type_fp, bool>>>> trace_futures;
       bool multi_threaded = !options::get_vm()["single-thread"].as<bool>();
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
@@ -1078,7 +1078,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
   }
   auto cutter = dynamic_pointer_cast<Cutter>(mill);
   if (cutter) {
-    const auto path_finding_surface = path_finding::PathFindingSurface(multi_polygon_type_fp(), multi_polygon_type_fp(), cutter->tolerance);
+    const path_finding::PathFindingSurface path_finding_surface(multi_polygon_type_fp(), multi_polygon_type_fp(), cutter->tolerance);
     const auto trace_count = vectorial_surface.first.size();
     vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths(trace_count);
 
