@@ -55,6 +55,8 @@ using std::get;
 #include <map>
 using std::map;
 
+#include <future>
+
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 using boost::optional;
@@ -74,6 +76,7 @@ using boost::make_optional;
 #include "svg_writer.hpp"
 #include "disjoint_set.hpp"
 #include "consistent_rand.hpp"
+#include "options.hpp"
 
 using std::max;
 using std::max_element;
@@ -984,48 +987,65 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
         keep_outs.push_back(bg_helpers::buffer(poly, tool_diameter/2 + isolator->offset));
       }
       const auto path_finding_surface = path_finding::PathFindingSurface(mask, sum(keep_outs), isolator->tolerance);
+      std::vector<std::future<vector<pair<linestring_type_fp, bool>>>> trace_futures;
+      bool multi_threaded = !options::get_vm()["single-thread"].as<bool>();
       for (size_t trace_index = 0; trace_index < trace_count; trace_index++) {
-        multi_polygon_type_fp already_milled_shrunk =
-            bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
-        if (tool_index < tool_count - 1) {
-          // Don't force isolation.  By pretending that an area around
-          // the trace is already milled, it will be removed from
-          // consideration for milling.
-          if (trace_index < vectorial_surface.first.size()) {
-            // This doesn't run for thermal holes.
-            multi_polygon_type_fp temp =
-                bg_helpers::buffer(vectorial_surface.first.at(trace_index),
-                                   tool_diameter/2 + isolator->offset - tolerance);
-            already_milled_shrunk = already_milled_shrunk + temp;
-          }
-        }
-        auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
-                                                      already_milled_shrunk, path_finding_surface);
-        if (invert_gerbers) {
-          auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -isolator->tolerance);
-          vector<pair<linestring_type_fp, bool>> temp;
-          for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
-            multi_linestring_type_fp temp_mls;
-            temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
-            for (const auto& ls : temp_mls) {
-              temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
+        trace_futures.push_back(std::async(multi_threaded ? std::launch::async : std::launch::deferred,
+          [this, &already_milled, trace_index, tool_index, tool_count,
+           vectorial_surface = vectorial_surface, tool_diameter, tolerance,
+           &isolator, mirror,
+           &path_finding_surface,
+           invert_gerbers = invert_gerbers,
+           bounding_box = bounding_box,
+           &tool]() {
+            multi_polygon_type_fp already_milled_shrunk =
+                bg_helpers::buffer(already_milled[trace_index], -tool_diameter/2 + tolerance);
+            if (tool_index < tool_count - 1) {
+              // Don't force isolation.  By pretending that an area around
+              // the trace is already milled, it will be removed from
+              // consideration for milling.
+              if (trace_index < vectorial_surface.first.size()) {
+                // This doesn't run for thermal holes.
+                multi_polygon_type_fp temp =
+                    bg_helpers::buffer(vectorial_surface.first.at(trace_index),
+                                      tool_diameter/2 + isolator->offset - tolerance);
+                already_milled_shrunk = already_milled_shrunk + temp;
+              }
             }
-          }
-          new_trace_toolpath.swap(temp);
-        }
+            auto new_trace_toolpath = get_single_toolpath(isolator, trace_index, mirror, tool.first, tool.second,
+                                                          already_milled_shrunk, path_finding_surface);
+            if (invert_gerbers) {
+              auto shrunk_bounding_box = bg::return_buffer<box_type_fp>(bounding_box, -isolator->tolerance);
+              vector<pair<linestring_type_fp, bool>> temp;
+              for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+                multi_linestring_type_fp temp_mls;
+                temp_mls = ls_and_allow_reversal.first & shrunk_bounding_box;
+                for (const auto& ls : temp_mls) {
+                  temp.push_back(make_pair(ls, ls_and_allow_reversal.second));
+                }
+              }
+              new_trace_toolpath.swap(temp);
+            }
+            if (tool_index + 1 == tool_count) {
+              // No point in updating the already_milled.
+              return new_trace_toolpath;
+            }
+            multi_linestring_type_fp combined_trace_toolpath;
+            combined_trace_toolpath.reserve(new_trace_toolpath.size());
+            for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
+              combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
+            }
+            multi_polygon_type_fp new_trace_toolpath_bufferred =
+                bg_helpers::buffer(combined_trace_toolpath, tool_diameter/2);
+            already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
+            return new_trace_toolpath;
+          }));
+      }
+      size_t trace_index = 0;
+      for (auto& f : trace_futures) {
+        auto new_trace_toolpath = f.get();
         new_trace_toolpaths[trace_index] = new_trace_toolpath;
-        if (tool_index + 1 == tool_count) {
-          // No point in updating the already_milled.
-          continue;
-        }
-        multi_linestring_type_fp combined_trace_toolpath;
-        combined_trace_toolpath.reserve(new_trace_toolpath.size());
-        for (const auto& ls_and_allow_reversal : new_trace_toolpath) {
-          combined_trace_toolpath.push_back(ls_and_allow_reversal.first);
-        }
-        multi_polygon_type_fp new_trace_toolpath_bufferred =
-            bg_helpers::buffer(combined_trace_toolpath, tool_diameter/2);
-        already_milled[trace_index] = already_milled[trace_index] + new_trace_toolpath_bufferred;
+        trace_index++;
       }
 
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
