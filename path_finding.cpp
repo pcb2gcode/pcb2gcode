@@ -329,10 +329,10 @@ boost::optional<RingIndices> outside_multipolygons(
    value will actually be a vector of size_t that indicates which
    rings in the stored polygon should be used for the generated points
    in the path and also for the collision detection. */
-const boost::optional<SearchKey>& PathFindingSurface::in_surface(point_type_fp p) const {
-  auto memoized_result = point_in_surface_memo.find(p);
-  if (memoized_result != point_in_surface_memo.cend()) {
-    return memoized_result->second;
+boost::optional<SearchKey> PathFindingSurface::in_surface(point_type_fp p) const {
+  auto memoized_result = point_in_surface_memo.get(p);
+  if (memoized_result) {
+    return *memoized_result;
   }
   boost::optional<RingIndices> maybe_ring_indices;
   if (total_keep_in_grown) {
@@ -341,19 +341,22 @@ const boost::optional<SearchKey>& PathFindingSurface::in_surface(point_type_fp p
     maybe_ring_indices = outside_multipolygons(p, keep_out_shrunk);
   }
   if (!maybe_ring_indices) {
-    return point_in_surface_memo.emplace(p, boost::none).first->second;
+    point_in_surface_memo.set(p, boost::none);
+    return boost::none;
   }
   const auto& ring_indices = *maybe_ring_indices;
   // Check if this one is already in the cache.
-  const auto& find_result = ring_indices_lookup.find(std::cref(ring_indices));
-  if (find_result != ring_indices_lookup.cend()) {
+  const auto& find_result = ring_indices_lookup.get(std::cref(ring_indices));
+  if (find_result) {
     // Found in the cache so we can use that.
-    return point_in_surface_memo.emplace(p, find_result->second).first->second;
+    point_in_surface_memo.set(p, *find_result);
+    return *find_result;
   }
   // Not found so we need to add it to the cache.
   ring_indices_cache.push_back(ring_indices);
-  ring_indices_lookup.emplace(ring_indices_cache.back(), ring_indices_cache.size()-1);
-  return point_in_surface_memo.emplace(p, ring_indices_cache.size()-1).first->second;
+  ring_indices_lookup.set(ring_indices_cache.back(), ring_indices_cache.size()-1);
+  point_in_surface_memo.set(p, ring_indices_cache.size()-1);
+  return ring_indices_cache.size()-1;
 }
 
 // Return true if this edge from a to b is part of the path finding surface.
@@ -363,12 +366,12 @@ bool PathFindingSurface::in_surface(
     return in_surface(b, a);
   }
   const auto key = make_pair(a, b);
-  auto memoized_result = edge_in_surface_memo.find(key);
-  if (memoized_result != edge_in_surface_memo.cend()) {
-    return memoized_result->second;
+  auto memoized_result = edge_in_surface_memo.get(key);
+  if (memoized_result) {
+    return *memoized_result;
   }
   auto found_intersection = tree.intersects(a, b);
-  edge_in_surface_memo.emplace(key, !found_intersection);
+  edge_in_surface_memo.set(key, !found_intersection);
   return !found_intersection;
 }
 
@@ -420,11 +423,11 @@ optional<linestring_type_fp> PathFindingSurface::find_path(
   return pfs_with_tries.find_path(start, goal, max_path_length, *ring_indices);
 }
 
-const std::vector<point_type_fp>&
+std::vector<point_type_fp>
 PathFindingSurface::vertices(SearchKey search_key) const {
-  auto memoized_result = vertices_memo.find(search_key);
-  if (memoized_result != vertices_memo.cend()) {
-    return memoized_result->second;
+  auto memoized_result = vertices_memo.get(search_key);
+  if (memoized_result) {
+    return *memoized_result;
   }
   std::vector<point_type_fp> ret;
   const auto& vertices = all_vertices;
@@ -440,7 +443,8 @@ PathFindingSurface::vertices(SearchKey search_key) const {
       ret.insert(ret.cend(), ring_vertices.cbegin(), ring_vertices.cend());
     }
   }
-  return vertices_memo.emplace(search_key, ret).first->second;
+  vertices_memo.set(search_key, ret);
+  return ret;
 }
 
 optional<linestring_type_fp> PathFindingSurfaceWithTries::find_path(
