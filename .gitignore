@@ -25,6 +25,13 @@
 
 #built or generated project files
 .deps/*
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+build/
 Makefile
 Makefile.in
 aclocal.m4
@@ -54,12 +61,12 @@ man/Makefile.in
 /pcb2gcode
 /wkt_to_svg
 stamp-h1
-testing/gerbv_example/*/old
-testing/gerbv_example/*/new
-testing/gerbv_example/*/*.png
-testing/gerbv_example/*/*.ngc
-testing/gerbv_example/*/*.nc
-testing/gerbv_example/*/*.svg
+tests/data/gerbv_example/*/old
+tests/data/gerbv_example/*/new
+tests/data/gerbv_example/*/*.png
+tests/data/gerbv_example/*/*.ngc
+tests/data/gerbv_example/*/*.nc
+tests/data/gerbv_example/*/*.svg
 *.orig
 
 #make check output files

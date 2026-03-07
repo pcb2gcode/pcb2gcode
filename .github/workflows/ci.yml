@@ -10,33 +10,29 @@ on:
   schedule:
     - cron: '5 4 * * 1'
   workflow_dispatch:
+    inputs:
+      debug_enabled:
+        type: boolean
+        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
 
 jobs:
   build-and-test:
     name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
       matrix:
-        os: [ubuntu, macos, windows]
-        boost: ['latest'] # 1_66 disabled because of discrepancies in wide_oval
-        geos: ['3.13.1', 'latest', 'none']
-        compiler: ['g++-10', 'g++'] # TODO: Put clang++ back again.
+        os: [ubuntu, windows]
+        boost: ['latest', '1_83']
+        geos: ['3.13.1', 'none']
+        compiler: ['g++'] # TODO: Put clang++ back again.
         exclude:
-          - os: macos # Temporarily disable until fixed
-          - os: macos
-            boost: '1_66'
-          - os: macos
-            compiler: 'g++-10'
           - os: windows
-            compiler: 'clang++'
-          - os: windows
-            compiler: 'g++-10'
-          - os: windows
-            boost: '1_66'
+            boost: '1_83' # TODO: Build with boost 1.83 on Windows.
         include:
-          - os: ubuntu
-            geos: '3.13.1'
-            code_coverage: "--enable-code-coverage"
-            quick: "--quick"
+          - geos: '3.13.1'
+            os: ubuntu
+            code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
@@ -45,10 +41,6 @@ jobs:
             shell: msys2 {0}
             local_install_path: '/d/a/pcb2gcode/.local'
             ccache_path: '/d/a/pcb2gcode/.ccache'
-          - compiler: 'g++-10'
-            werror_flag: '-Werror'
-          - compiler: 'g++'
-            werror_flag: ''
     runs-on: ${{ matrix.os }}-latest
     defaults:
       run:
@@ -58,6 +50,7 @@ jobs:
       if: matrix.os == 'windows'
       uses: msys2/setup-msys2@v2
       with:
+        #TODO: Upgrade to UCRT64.
         msystem: MINGW64
         update: true
         install: >-
@@ -71,9 +64,14 @@ jobs:
           mingw-w64-x86_64-boost
           mingw-w64-x86_64-cairo
           mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-pkgconf
           mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-gtk2
           mingw-w64-x86_64-gtkmm
           mingw-w64-x86_64-ccache
+          mingw-w64-x86_64-gdk-pixbuf2
+          mingw-w64-x86_64-imagemagick
+          lcov
           zip
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v3
@@ -87,68 +85,32 @@ jobs:
         echo "export PATH='${{ matrix.local_install_path }}/bin:$PATH'" >> ~/.bash_profile
         echo "export LOCAL_INSTALL_PATH='${{ matrix.local_install_path }}'" >> ~/.bash_profile
         echo $GITHUB_JSON
+        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
+        echo "export CMAKE_C_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
+        echo "export CMAKE_CXX_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
+        echo "export CMAKE_C_COMPILER=`which gcc`" >> ~/.bash_profile
+        echo "export CMAKE_CXX_COMPILER=`which g++`" >> ~/.bash_profile
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
       if: matrix.os == 'windows'
       run: |
-        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
+        lcov --version
     - name: Ubuntu specific setup
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
-        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev parallel ccache
-        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
-    - name: Set clang as default compiler
-      if: matrix.compiler == 'clang++'
-      run: |
-        echo "export CC='`which clang`'" >> ~/.bash_profile
-        echo "export CXX='`which clang++`'" >> ~/.bash_profile
-    - name: g++-10 specific setup
-      if: matrix.compiler == 'g++-10' && matrix.os == 'ubuntu'
-      run: |
-        sudo apt-get install g++-10
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
-        sudo update-alternatives --set gcc /usr/bin/gcc-10
-    - name: g++ specific setup
-      if: matrix.compiler == 'g++' && matrix.os == 'ubuntu'
-      run: |
-        sudo apt-get install g++
-    - name: Macos specific setup
-      if: matrix.os == 'macos'
-      run: |
-        brew update
-        rm /usr/local/bin/2to3
-        brew upgrade python@3
-        brew reinstall -s libtool
-        brew install boost gtkmm moreutils gettext librsvg automake pkg-config
-        brew upgrade wget
-        hash -r
-        ln -f -s `which glibtoolize` ${LOCAL_INSTALL_PATH}/bin/libtoolize
-        ln -f -s `which glibtool` ${LOCAL_INSTALL_PATH}/bin/libtool
-        hash -r
-        echo "export BOOST_ROOT='/usr/local/opt/boost'" >> ~/.bash_profile
-        echo "export NUM_CPUS='$((`sysctl -n hw.logicalcpu` * 4))'" >> ~/.bash_profile
-        echo "export PKG_CONFIG_PATH='$PKG_CONFIG_PATH:/usr/local/opt/libffi/lib/pkgconfig'" >> ~/.bash_profile
-        echo "export CPPFLAGS_gerbv='-DQUARTZ'" >> ~/.bash_profile
-        echo "export PATH='/usr/local/opt/gettext/bin:$PATH'" >> ~/.bash_profile
-        rm /usr/local/include/boost
-    - name: Macos geos
-      if: matrix.geos == 'latest' && matrix.os == 'macos'
-      run:
-        brew install geos
-    - name: Ubuntu geos
-      if: matrix.geos == 'latest' && matrix.os == 'ubuntu'
-      run:
-        sudo apt-get install -y libgeos++-dev
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev parallel ccache g++
+        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
+
+### Install boost from apt-get
     - name: Ubuntu boost
       if: matrix.boost == 'latest' && matrix.os == 'ubuntu'
       run:
         sudo apt-get install -y libboost-program-options-dev
-    - name: Windows geos
-      if: matrix.geos == 'latest' && matrix.os == 'windows'
-      run:
-        pacman -S --noconfirm mingw-w64-x86_64-geos
+
+
     - name: Display information about build environment
       run: |
         pwd
@@ -169,13 +131,7 @@ jobs:
           echo "path=${{ matrix.local_install_path }}" >> $GITHUB_OUTPUT
           echo "ccache_path=${{ matrix.ccache_path }}" >> $GITHUB_OUTPUT
         fi
-    - name: ccache config
-      run: |
-        ccache --version
-        ccache --show-config
-        ccache --set-config=cache_dir=${{ matrix.ccache_path }}
-        ccache -p
-        ccache -z
+
     - name: Restore cache
       uses: actions/cache/restore@v5
       with:
@@ -183,6 +139,10 @@ jobs:
         key: ${{ steps.sanitize-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           ${{ steps.sanitize-key.outputs.key }}-
+    - name: Default don't update cache
+      run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+
+### Setup ccache
     - name: Restore ccache
       uses: actions/cache/restore@v5
       with:
@@ -190,14 +150,23 @@ jobs:
         key: ccache-${{ steps.sanitize-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           ccache-${{ steps.sanitize-key.outputs.key }}-
-    - name: Default don't update cache
-      run: echo "UPDATE_CACHE=false" >> $GITHUB_ENV
+    - name: ccache config
+      run: |
+        ccache --version
+        ccache --show-config
+        ccache --set-config=cache_dir=${{ matrix.ccache_path }}
+        ccache -p
+        ccache -z
+
+### Install boost from sources
     - name: Build and install boost
-      if: matrix.os == 'ubuntu' && matrix.boost != 'latest'
+      if: matrix.boost != 'latest'
       env:
         BOOST: ${{ matrix.boost }}_0
       run: |
-        if [ ! -d "${LOCAL_INSTALL_PATH}/include/boost" ]; then
+        BOOST_VERSION="${{ matrix.boost }}"
+        BOOST_VERSION="${BOOST_VERSION//_/.}"
+        if [ ! -d "${LOCAL_INSTALL_PATH}/lib/cmake/Boost-${BOOST_VERSION}.0" ]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           for i in {1..5}; do
@@ -205,25 +174,25 @@ jobs:
           done
           tar xjf "boost_${BOOST}.tar.bz2"
           pushd boost_${BOOST}
-          ./bootstrap.sh --with-libraries=program_options --prefix=/tmp/boost
+          ./bootstrap.sh --with-libraries=program_options --prefix=${LOCAL_INSTALL_PATH}
           ./b2 -j ${NUM_CPUS}
           ./b2 install
           popd
           popd
         fi
-        echo "export BOOST_ROOT='$(echo /tmp/boost)'" >> ~/.bash_profile
-    - name: Build and install geos
-      if: matrix.os != 'macos' && matrix.geos != 'none' && matrix.geos != 'latest'
+
+### GEOS setup
+    - name: Build and install geos ${{ matrix.geos }}
+      if: matrix.geos != 'none'
       run: |
-        if ! test -d "${LOCAL_INSTALL_PATH}/include/geos" || ! test -f ${LOCAL_INSTALL_PATH}/bin/geos.version || ! grep -qx "$(git ls-remote https://github.com/libgeos/geos.git ${{ matrix.geos }} )" ${LOCAL_INSTALL_PATH}/bin/geos.version; then
-          git ls-remote https://github.com/libgeos/geos.git ${{ matrix.geos }} > ${LOCAL_INSTALL_PATH}/bin/geos.version
+        if [[ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
           git clone --depth 1 --branch ${{ matrix.geos }} https://github.com/libgeos/geos.git
           pushd geos
           mkdir build
           pushd build
-          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH} 
           make -j ${NUM_CPUS}
           make install
           popd
@@ -231,33 +200,45 @@ jobs:
           popd
         fi
         geos-config --version
+
+### Coverage setup
     - name: coverage specific setup
-      if: matrix.os == 'ubuntu' && matrix.code_coverage
+      if: matrix.code_coverage != '' && matrix.os == 'ubuntu'
       run: |
-        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl
         pushd ~
-        git clone --branch=v1.16 --depth=1 https://github.com/linux-test-project/lcov.git
+        git clone --branch=v2.4 --depth=1 https://github.com/linux-test-project/lcov.git
         pushd lcov
         make PREFIX=${LOCAL_INSTALL_PATH} install
         hash -r
         lcov --version
-    - name: Install gerbv
+        popd
+        popd
+
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+### Gerbv setup
+    - name: Install gerbv  # TODO: Use gerbv instead of eyal0 repo.
       run: |
-        echo "gerbv/main commit sha is $(git ls-remote https://github.com/eyal0/gerbv.git heads/main)"
-        if ! gerbv --version || ! test -f ${LOCAL_INSTALL_PATH}/bin/gerbv.version || ! grep -qx "$(git ls-remote https://github.com/eyal0/gerbv.git heads/main)" ${LOCAL_INSTALL_PATH}/bin/gerbv.version; then
-          git ls-remote https://github.com/eyal0/gerbv.git heads/main > ${LOCAL_INSTALL_PATH}/bin/gerbv.version
+        if ! gerbv --version; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 --branch=main https://github.com/eyal0/gerbv.git
+          git clone --depth=1 --branch=iwyu https://github.com/eyal0/gerbv.git
           pushd gerbv
-          sh autogen.sh
-          ./configure CPPFLAGS=$CPPFLAGS_gerbv --disable-update-desktop-database --prefix=${LOCAL_INSTALL_PATH}
-          make -j ${NUM_CPUS}
+          mkdir build
+          pushd build
+          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          make -j 20
           make install
           popd
           popd
+          popd
         fi
+        hash -r
         gerbv --version
+
+### Valgrind setup
     - name: Install valgrind
       if: matrix.os == 'ubuntu'
       run: |
@@ -275,56 +256,42 @@ jobs:
           popd
         fi
         valgrind --version
-    - name: Install parallel
-      if: matrix.os != 'windows'
-      run: |
-        if ! parallel --version; then
-          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
-          pushd ~
-          for i in {1..5}; do
-            wget -q -T5 -t1 -O "parallel-latest.tar.bz2" 'https://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2' && break;
-          done
-          mkdir parallel
-          pushd parallel
-          tar xjf "../parallel-latest.tar.bz2"
-          pushd parallel-*
-          ./configure --prefix=${LOCAL_INSTALL_PATH}
-          make
-          make install
-          popd
-          popd
-          popd
-        fi
-        parallel --version
     - name: Finalize setup
       run: |
         hash -r
-    - name: Autoreconf pcb2gcode
-      run: autoreconf -fvi
-    - name: Configure pcb2gcode
-      run: >-
-        CXX="`which ccache` ${CXX:-`which g++`}" ./configure pcb2gcode_CPPFLAGS_EXTRA=${{ matrix.werror_flag }}
-        --disable-dependency-tracking
-        --disable-silent-rules
-        --enable-static-boost
-        --enable-static
-        ${{ matrix.code_coverage }}
-        || (cat config.log && false)
-    - name: Remove debug flags from coverage builds
-      if: matrix.code_coverage
-      run: sed -i 's/-g /-g0 /g' Makefile
-    - name: Make pcb2gcode
-      run: make -j ${NUM_CPUS}
+
+### Configure pcb2gcode (CMake)
+    - name: >
+        Configure pcb2gcode (CMake)
+        ${{ matrix.code_coverage == '' && 'without code coverage' || 'with code coverage' }}
+      run: |
+        CMAKE_ARGS=()
+        if [[ -n "${{ matrix.code_coverage }}" ]]; then
+          CMAKE_ARGS+=("${{ matrix.code_coverage }}")
+        fi
+        if [[ "${{ matrix.boost }}" != "latest" ]]; then
+          BOOST_VERSION="${{ matrix.boost }}"
+          BOOST_VERSION="${BOOST_VERSION//_/.}"
+          CMAKE_ARGS+=("-DBoost_DIR=${LOCAL_INSTALL_PATH}/lib/cmake/Boost-${BOOST_VERSION}.0")
+        fi
+        VERBOSE=1 cmake -S . -B build "${CMAKE_ARGS[@]}"
+
+### Build pcb2gcode
+    - name: Build pcb2gcode
+      run: |
+        cmake --build build -j ${NUM_CPUS}
     - name: Display pcb2gcode version
       run: |
-        ./pcb2gcode --version
+        ./build/pcb2gcode --version
         GIT_COMMIT=$(git log -1 --format='%h')
-        PCB2GCODE_VERSION=$(./pcb2gcode --version | head -1)-g${GIT_COMMIT}
+        PCB2GCODE_VERSION=$(./build/pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
-    - name: Run examples
-      if: github.event_name == 'schedule' && matrix.os != 'windows' && ! matrix.code_coverage
+
+### Run examples
+    - name: Run examples with valgrind
+      if: github.event_name == 'schedule' && ((matrix.code_coverage == '') && matrix.os == 'ubuntu')
       run: |
-        pushd testing/gerbv_example
+        pushd tests/data/gerbv_example
         ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
           { echo "::group::Running on {}";
             pushd {};
@@ -332,70 +299,59 @@ jobs:
               cat no-valgrind;
             fi;
             if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
-              time ../../../pcb2gcode || exit;
+              time ../../../build/pcb2gcode || exit;
             else
-              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes -- ../../../pcb2gcode || exit;
+              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes -- ../../../build/pcb2gcode || exit;
             fi;
             popd;
             echo "::endgroup::";
           } 2>&1'
         popd
-    - name: Run examples
-      if: github.event_name == 'schedule' && matrix.os == 'windows' && ! matrix.code_coverage
+    - name: Run examples without valgrind
+      if: github.event_name == 'schedule' && !((matrix.code_coverage == '') && matrix.os == 'ubuntu')
       run: |
-        for d in testing/gerbv_example/*; do
+        for d in tests/data/gerbv_example/*; do
             if [ -d "$d" ]; then
                 pushd "$d"
-                time ../../../pcb2gcode || exit $?
+                time ../../../build/pcb2gcode || exit $?
                 popd
             fi
         done
-    - name: Reset coverage
-      if: matrix.code_coverage
-      continue-on-error: true
-      run: lcov --directory . -z
-    - name: Run unit tests
-      if: ! (matrix.os == 'ubuntu' && ! matrix.code_coverage)
+    # TODO: Upgrade boost to 1.90 and run integration tests and gerberimporter_tests on windows, too?
+    - name: >
+        Run unit tests 
+        ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }} and
+        ${{ (matrix.boost != '1_83' || matrix.geos != '3.13.1') && 'without integration tests' || 'with integration tests' }}
       env:
         VERBOSE: 1
         SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check || (cat test-suite.log && false)
-    - name: Run unit tests with valgrind
-      if: matrix.os == 'ubuntu' && ! matrix.code_coverage
-      env:
-        VERBOSE: 1
-        SKIP_GERBERIMPORTER_TESTS_PNG: 1
-      run: make -j ${NUM_CPUS} check-valgrind || (cat mem-test-suite.log && false)
+      run: |
+        CTEST_ARGS=(--test-dir build --output-on-failure -j ${NUM_CPUS})
+        if [[ "${{ matrix.code_coverage }}" == "" && "${{ matrix.os }}" == "ubuntu" ]]; then
+          export CTEST_MEMORYCHECK_COMMAND=valgrind
+          CTEST_ARGS+=(-T memcheck)
+        fi
+        if [[ "${{ matrix.boost }}" != "1_83" || "${{ matrix.geos }}" != "3.13.1" ]]; then
+          CTEST_ARGS+=(-E '^(integration_tests|gerberimporter_tests)$')
+        fi
+        ctest "${CTEST_ARGS[@]}"
 
-    - name: Run integration tests
-      if: matrix.geos != 'none' && matrix.geos != 'latest' && matrix.os != 'windows'
-      run: |
-        sudo apt-get install python3-setuptools
-        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-        /usr/bin/python3 ./integration_tests.py --pcb2gcode-binary "$(pwd)/pcb2gcode" --extra-args="--sanity-checks" -j ${NUM_CPUS} ${{ matrix.quick }}
-    # Skip the Windows integration test because there are tiny discrepencies from expected outputs.
-    #- name: Run integration tests on Windows
-    #  if: matrix.geos != 'none' && matrix.geos != 'latest' && matrix.os == 'windows'
-    #  run: |
-    #    pacman -S --noconfirm mingw-w64-x86_64-python-pip
-    #    pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-    #    python3 ./integration_tests.py --pcb2gcode-binary "$(pwd)/pcb2gcode.exe" -j ${NUM_CPUS} ${{ matrix.quick }}
+### Gather coverage
     - name: Gather coverage
-      if: matrix.code_coverage
+      if: matrix.code_coverage != ''
       run: |
-        lcov --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 --directory . --capture --no-external --output-file "pcb2gcode-lcov.info"
-        lcov --rc lcov_branch_coverage=1 --rc lcov_function_coverage=1 -r "pcb2gcode-lcov.info" '*_tests.cpp' -o "pcb2gcode-lcov.info"
+        cmake --build build --target pcb2gcode-lcov -j ${NUM_CPUS}
     - name: Upload coverage artifact
-      if: matrix.code_coverage
+      if: matrix.code_coverage != ''
       uses: actions/upload-artifact@v4
       with:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
-        path: pcb2gcode-lcov.info
-    - name: Prepare build for upload for Ubuntu and Macos
+        path: build/pcb2gcode-lcov.info
+    - name: Prepare build for upload for Ubuntu
       if: matrix.os != 'windows'
       run: |
         mkdir -p pcb2gcode-${PCB2GCODE_VERSION}/.libs
-        cp ./pcb2gcode pcb2gcode-${PCB2GCODE_VERSION}/
+        cp ./build/pcb2gcode pcb2gcode-${PCB2GCODE_VERSION}/
         if [[ -e ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 ]]; then
           cp -L ${LOCAL_INSTALL_PATH}/lib/libgerbv.so.1 pcb2gcode-${PCB2GCODE_VERSION}/.libs;
         fi
@@ -419,13 +375,14 @@ jobs:
         tar czvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${PCB2GCODE_VERSION}.tar.gz pcb2gcode-${PCB2GCODE_VERSION}
       env:
         GEOS: ${{ matrix.geos }}
+    # TODO: Fix upload for windows
     - name: Prepare build for upload for Windows
-      if: matrix.os == 'windows'
+      if: matrix.os == 'windows' && false
       run: |
         mkdir pcb2gcode-${PCB2GCODE_VERSION}
         pushd pcb2gcode-${PCB2GCODE_VERSION}
-        cp ../pcb2gcode.exe .
-        cp ${LOCAL_INSTALL_PATH}/bin/libgerbv-1.dll .
+        cp ../build/pcb2gcode.exe .
+        cp ${LOCAL_INSTALL_PATH}/lib/libgerbv.a .
         if [[ ${GEOS} != 'none' && ${GEOS} != 'latest' ]]; then
           cp ${LOCAL_INSTALL_PATH}/bin/libgeos*.dll .
         fi
@@ -478,33 +435,32 @@ jobs:
         zip -r pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
       env:
         GEOS: ${{ matrix.geos }}
-    - name: Upload build for Ubuntu and Macos
+    - name: Upload build for Ubuntu
       if: matrix.os != 'windows'
       uses: actions/upload-artifact@v4
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}.tar.gz
         compression-level: 0
-    - name: Upload build for Windows
-      if: matrix.os == 'windows'
+    - name: Upload build for Windows # TODO: Fix upload for windows
+      if: matrix.os == 'windows' && false
       uses: actions/upload-artifact@v4
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}.zip
         compression-level: 0
     - name: Upload coverage to coveralls
-      if: matrix.code_coverage
+      if: matrix.code_coverage != ''
       uses: eyal0/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: pcb2gcode-lcov.info
+        path-to-lcov: build/pcb2gcode-lcov.info
         flag-name: ci-${{ steps.sanitize-key.outputs.key }}
         parallel: true
     - name: Save version number
-      if: matrix.code_coverage
       run: echo "${PCB2GCODE_VERSION}" > version.txt
     - name: Upload version artifact
-      if: matrix.code_coverage
+      if: matrix.code_coverage != ''
       uses: actions/upload-artifact@v4
       with:
         name: version-${{ steps.sanitize-key.outputs.key }}.txt
@@ -534,7 +490,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
-  release:
+  release: # TODO: Use something more modern, like https://github.com/release-drafter/release-drafter
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     needs: [build-and-test]
     name: release

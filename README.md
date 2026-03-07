@@ -24,11 +24,11 @@ This development version of pcb2gcode does not get into repositories of distros.
     su
     <the root password>
     yum groupinstall "Development Tools"
-    yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel
+    yum install cmake boost-devel gtkmm24-devel gerbv-devel
     exit
-    ./configure
-    make
-    su -c 'make install'
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build -j$(nproc)
+    su -c 'cmake --install build'
 	```
 
 * done.
@@ -50,7 +50,7 @@ pcb2gcode is available in [Homebrew](http://brew.sh/). To install it open the "T
      $ brew install pcb2gcode
 
 ## Installation from GIT (latest development version):
-If you want to install the latest version from git you'll need the autotools, Boost with the program_options library
+If you want to install the latest version from git you'll need CMake, Boost with the program_options library
 (dev, >= 1.56), gtkmm2.4 (dev) and libgerbv (dev).
 
 Unfortunately pcb2gcode requires a rather new version of Boost (1.56), often not included in the oldest distros (like Ubuntu < 15.10 or Debian Stable).
@@ -61,9 +61,9 @@ You can [download](http://www.boost.org/users/download/) a working version of Bo
     $ ./b2 variant=release link=static
     $ ./b2 install
 
-Then add `--with-boost=<boost install directory> --enable-static-boost` to the `./configure` command.
+Then configure CMake with `-DBOOST_ROOT=<boost install directory> -DPCB2GCODE_ENABLE_STATIC_BOOST=ON`.
 
-To build with coverage outputs, add `--enable-code-coverage` to `./configure` and then later run `make check-code-coverage` to run unit tests to collect coverage.  The last line of the output will include a URL to view the coverage.
+To build with coverage outputs, configure with `-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON` and run `ctest --test-dir build --output-on-failure`.
 
 Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can install it with:
 
@@ -77,7 +77,7 @@ Ubuntu 12.04 does not include gcc 4.8 (needed for the C++11 support); you can in
 #### Debian Testing or newer, Ubuntu Wily or newer<a name="debianlike"></a>
 
     $ sudo apt-get update
-    $ sudo apt-get install build-essential automake autoconf autoconf-archive libtool libboost-program-options-dev libgtkmm-2.4-dev gerbv git librsvg2-dev
+    $ sudo apt-get install build-essential cmake libboost-program-options-dev libgtkmm-2.4-dev gerbv git librsvg2-dev
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode
 
@@ -88,17 +88,17 @@ Then follow the [common build steps](#commonbuild)
     su
     <the root password>
     yum groupinstall "Development Tools"
-    yum install automake autoconf libtool boost-devel gtkmm24-devel gerbv-devel git
+    yum install cmake boost-devel gtkmm24-devel gerbv-devel git
     exit
 
 Then follow the [common build steps](#commonbuild)
 
 #### Common build steps<a name="commonbuild"></a>
 
-    $ autoreconf -fvi
-    $ ./configure
-    $ make
-    $ sudo make install
+    $ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+    $ cmake --build build -j$(nproc)
+    $ ctest --test-dir build --output-on-failure
+    $ sudo cmake --install build
 
 ### Windows
 You can build pcb2gcode for Windows with MSYS2 (https://www.msys2.org/).
@@ -112,7 +112,7 @@ The following commands are for the x86_64 binary, if you want the i686 binary re
 Close and reopen the shell
 
     $ pacman -Su  # This may also close the shell; if so, reopen it.
-    $ pacman --needed -S base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-gtkmm libtool mingw-w64-x86_64-autotools
+    $ pacman --needed -S base-devel git mingw-w64-x86_64-gcc mingw-w64-x86_64-boost mingw-w64-x86_64-gtkmm mingw-w64-x86_64-cmake
 
 Now let's download, build and install gerbv:
 
@@ -129,11 +129,10 @@ Finally, download and build pcb2gcode
     $ cd ..
     $ git clone https://github.com/pcb2gcode/pcb2gcode.git
     $ cd pcb2gcode/
-    $ autoreconf -fvi
-    $ ./configure
-    $ make LDFLAGS='-s'
+    $ cmake -S . -B build -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS='-s'
+    $ cmake --build build -j$(nproc)
 
-The dynamically linked binary is &lt;msys2 installation folder&gt;/home/&lt;user&gt;/pcb2gcode/.libs/pcb2gcode.exe.
+The dynamically linked binary is &lt;msys2 installation folder&gt;/home/&lt;user&gt;/pcb2gcode/build/pcb2gcode.exe.
 You can find all the DLLs in &lt;msys2 installation folder&gt;/mingw32/bin; copy them in the same folder of pcb2gcode.
 These steps can be automated with:
 

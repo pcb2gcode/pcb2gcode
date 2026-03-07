@@ -20,7 +20,6 @@
 #ifndef GERBERIMPORTER_H
 #define GERBERIMPORTER_H
 
-#include "config.h"	// for COMPILE_VALUE_NEW_LINEARX10
 #include <string>
 #include <iostream>
 #include <utility>
@@ -28,12 +27,6 @@
 #include <gerbv.h>
 
 #include "geometry.hpp"
-
-// This depends on GERBV_INTERPOLATION_LINEARX10 not being the first item
-// in the enum.
-#if COMPILE_VALUE_NEW_LINEARX10==0
-#      define GERBV_INTERPOLATION_LINEARx10 GERBV_INTERPOLATION_x10
-#endif
 
 class gerber_exception: public std::exception {};
 

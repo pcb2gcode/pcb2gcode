@@ -32,8 +32,8 @@ except:
 
 TestCase = collections.namedtuple("TestCase", ["name", "input_path", "args", "exit_code", "quick"])
 
-EXAMPLES_PATH = "testing/gerbv_example"
-BROKEN_EXAMPLES_PATH = "testing/broken_examples"
+EXAMPLES_PATH = "tests/data/gerbv_example"
+BROKEN_EXAMPLES_PATH = "tests/data/broken_examples"
 TEST_CASES = ([TestCase(path_name, os.path.join(EXAMPLES_PATH, path_name), [], 0, quick)
               for path_name, quick in [
                   ("am-test", True),
@@ -228,7 +228,6 @@ class IntegrationTests(unittest.TestCase):
     input_path: Where to run pcb2gcode
     Returns the path to the output files created.
     """
-    cwd = os.getcwd()  # Save this for later restoring the current working directory
     # Sanitize input_path to remove or replace characters not allowed in path names
     import re
     def sanitize_for_path(s):
@@ -236,20 +235,18 @@ class IntegrationTests(unittest.TestCase):
         return re.sub(r'[^A-Za-z0-9_\-]', '_', s)
     sanitized = sanitize_for_path(input_path)
     actual_output_path = tempfile.mkdtemp(f"-{sanitized}")
-    os.chdir(input_path)
     try:
       cmd = [pcb2gcode_binary]
       if not any("output-dir" in x for x in args):
         cmd += ["--output-dir", actual_output_path]
       cmd += args or []
       print("Running {}".format(" ".join("'{}'".format(x) for x in cmd)))
-      proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+      proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=input_path)
       result = proc.communicate()
       self.assertEqual(proc.returncode, exit_code)
       self.fix_up_expected(actual_output_path)
     finally:
       print(result[0], file=sys.stderr)
-      os.chdir(cwd)
     return actual_output_path
 
   def compare_directories(self, left, right, left_prefix="", right_prefix=""):
@@ -331,7 +328,7 @@ class IntegrationTests(unittest.TestCase):
 
   def do_test_one(self, test_case, pcb2gcode_binary, extra_args):
     test_prefix = os.path.join(test_case.input_path, "expected")
-    cwd = os.path.dirname(pcb2gcode_binary)
+    cwd = os.getcwd()
     input_path = os.path.join(cwd, test_case.input_path)
     expected_output_path = os.path.join(cwd, test_case.input_path, "expected")
     print(colored("\nRunning test case:\n" + "\n".join("    %s=%s" % (k,v) for k,v in test_case._asdict().items()), attrs=["bold"]), file=sys.stderr)
@@ -360,10 +357,17 @@ if __name__ == '__main__':
                       help='only run quick tests')
   parser.add_argument('--extra-args', type=str, default="",
                       help='extra arguments to pass to pcb2gcode')
+  parser.add_argument('--gerber-root', type=str, default="",
+                      help='root directory for gerber files')
   args = parser.parse_args()
   if args.tests:
     TEST_CASES = [t for t in TEST_CASES if re.search(args.tests, t.name)]
-  pcb2gcode_binary = os.path.join(os.getcwd(), "pcb2gcode") if not args.pcb2gcode_binary else args.pcb2gcode_binary
+  if args.gerber_root:
+    # Modify each test case prepend the gerber root to the input path.
+    TEST_CASES = [TestCase(t.name, os.path.join(args.gerber_root, t.input_path), t.args, t.exit_code, t.quick) for t in TEST_CASES]
+  pcb2gcode_binary = os.path.realpath(
+      os.path.expanduser(
+          args.pcb2gcode_binary if args.pcb2gcode_binary else os.path.join(os.getcwd(), "pcb2gcode")))
   extra_args = args.extra_args.split() if args.extra_args else []
   def add_test_case(t):
     def test_method(self):
@@ -417,8 +421,8 @@ if __name__ == '__main__':
       test_result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
-            './integration_tests.py --fix\n' +
-            './integration_tests.py --fix --add\n' +
+            './tests/integration/integration_tests.py --fix\n' +
+            './tests/integration/integration_tests.py --fix --add\n' +
             '***\n')
       exit(1)
     else:

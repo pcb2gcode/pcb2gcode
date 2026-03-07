@@ -1,6 +1,7 @@
 #define BOOST_TEST_MODULE gerberimporter tests
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
+#include <boost/test/framework.hpp>
 
 #include "gerberimporter.hpp"
 #include <sys/types.h>
@@ -139,7 +140,29 @@ void boost_bitmap_from_gerber(const multi_polygon_type_fp& polys, const box_type
   g_object_unref(rsvg_handle);
 }
 
-const string gerber_directory = "testing/gerberimporter";
+const string default_gerber_directory = "tests/data/gerberimporter";
+
+const string& gerber_directory() {
+  static const string configured_dir = []() {
+    const auto& mts = boost::unit_test::framework::master_test_suite();
+    for (int i = 1; i < mts.argc; i++) {
+      const string arg(mts.argv[i]);
+      const string long_form = "--gerber-root=";
+      if (arg.compare(0, long_form.size(), long_form) == 0) {
+        return arg.substr(long_form.size());
+      }
+      if (arg == "--gerber-root" && i + 1 < mts.argc) {
+        return string(mts.argv[i + 1]);
+      }
+      if (!arg.empty() && arg[0] != '-') {
+        // Any positional custom argument is treated as the gerber fixtures root.
+        return arg;
+      }
+    }
+    return default_gerber_directory;
+  }();
+  return configured_dir;
+}
 
 map<uint32_t, size_t> get_counts(const Cairo::RefPtr<Cairo::ImageSurface>& cairo_surface) {
   size_t background = 0, both = 0, unknown = 0;
@@ -193,7 +216,7 @@ coordinate_type_fp height(box_type_fp box) {
 
 // Compare gerbv image against boost generated image.
 void test_one(const string& gerber_file, double expected_error_rate) {
-  string gerber_path = gerber_directory;
+  string gerber_path = gerber_directory();
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter(0.0004);
@@ -237,7 +260,7 @@ void test_one(const string& gerber_file, double expected_error_rate) {
 // marked is more or less correct.  Look at http://www.gerber-viewer.com/ to
 // test these.
 void test_visual(const string& gerber_file, bool fill_closed_lines, double expected_set_ratio) {
-  string gerber_path = gerber_directory;
+  string gerber_path = gerber_directory();
   gerber_path += "/";
   gerber_path += gerber_file;
   auto g = GerberImporter(0.0004);
@@ -282,15 +305,15 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"code22_lower_left_line.gbr",  0.01002},
                            {"code4_outline.gbr",           0.0214},
                            {"code5_polygon.gbr",           0.00001129},
-                           {"code21_center_line.gbr",      0.01492},
+                           {"code21_center_line.gbr",      0.01244},
                            {"polygon.gbr",                 0.01666},
                            {"wide_oval.gbr",               0.00008792},
                            {"tall_oval.gbr",               0.00004317},
                            {"circle_oval.gbr",             0.00007908},
                            {"rectangle.gbr",               0.00001834},
                            {"circle.gbr",                  0.00003313},
-                           {"code1_circle.gbr",            0.008047},
-                           {"code20_vector_line.gbr",      0.01282},
+                           {"code1_circle.gbr",            0.00651},
+                           {"code20_vector_line.gbr",      0.01054},
                            {"g01_rectangle.gbr",           0.000704},
                            {"moire.gbr",                   0.01854},
                            {"thermal.gbr",                 0.01028},

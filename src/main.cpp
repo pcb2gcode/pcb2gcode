@@ -39,6 +39,7 @@ using std::make_shared;
 #include <string>
 using std::string;
 
+#include "pcb2gcode_version.hpp"
 #include "gerberimporter.hpp"
 #include "ngc_exporter.hpp"
 #include "board.hpp"
@@ -55,7 +56,7 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     po::variables_map& vm = options::get_vm();      //get the cli parameters
 
     if (vm.count("version")) {       //return version and quit
-      cout << PACKAGE_VERSION << endl;
+      cout << PCB2GCODE_PROJECT_VERSION << endl;
       cout << "Git commit: " << GIT_VERSION << endl;
       cout << "Boost: " << BOOST_VERSION << endl;
       cout << "Gerbv: " << GERBV_VERSION << endl;
