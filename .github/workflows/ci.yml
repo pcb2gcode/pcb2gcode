@@ -331,7 +331,7 @@ jobs:
           CTEST_ARGS+=(-T memcheck)
         fi
         if [[ "${{ matrix.boost }}" != "1_83" || "${{ matrix.geos }}" != "3.13.1" ]]; then
-          CTEST_ARGS+=(-E '^(integration_tests|gerberimporter_tests)$')
+          CTEST_ARGS+=(-E '^(integration_tests)$')
         fi
         ctest "${CTEST_ARGS[@]}"
 
