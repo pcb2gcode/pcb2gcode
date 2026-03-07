@@ -100,6 +100,15 @@ static string get_test_arg(const string& long_opt, const string& short_env_key) 
   return "default";
 }
 
+static bool get_test_flag(const string& flag) {
+  const auto& mts = boost::unit_test::framework::master_test_suite();
+  for (int i = 1; i < mts.argc; i++) {
+    if (string(mts.argv[i]) == flag)
+      return true;
+  }
+  return false;
+}
+
 static string gerberimporter_tests_yaml_path() {
   const auto& mts = boost::unit_test::framework::master_test_suite();
   const string prefix = "--gerberimporter-tests-yaml=";
@@ -291,8 +300,7 @@ map<uint32_t, size_t> get_counts(const Cairo::RefPtr<Cairo::ImageSurface>& cairo
 }
 
 void write_to_png(Cairo::RefPtr<Cairo::ImageSurface> cairo_surface, const string& gerber_file) {
-  const char *skip_png = std::getenv("SKIP_GERBERIMPORTER_TESTS_PNG");
-  if (skip_png != nullptr) {
+  if (!get_test_flag("--write-png")) {
     return;
   }
   cairo_surface->write_to_png(str(boost::format("%s.png") % gerber_file).c_str());

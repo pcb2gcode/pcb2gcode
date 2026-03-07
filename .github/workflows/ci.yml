@@ -324,7 +324,6 @@ jobs:
         ${{ (matrix.boost != '1_83' || matrix.geos != '3.13.1') && 'without integration tests' || 'with integration tests' }}
       env:
         VERBOSE: 1
-        SKIP_GERBERIMPORTER_TESTS_PNG: 1
       run: |
         CTEST_ARGS=(--test-dir build --output-on-failure -j ${NUM_CPUS})
         if [[ "${{ matrix.code_coverage }}" == "" && "${{ matrix.os }}" == "ubuntu" ]]; then
