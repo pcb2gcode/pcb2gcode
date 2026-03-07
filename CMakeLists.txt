@@ -334,9 +334,15 @@ if(BUILD_TESTING)
   add_executable(gerberimporter_tests ${PCB2GCODE_GERBERIMPORTER_TEST_SOURCES})
   pcb2gcode_disable_test_source_coverage(gerberimporter_tests)
   pcb2gcode_apply_common(gerberimporter_tests)
+  set(GERBERIMPORTER_TEST_GEOS_VERSION "${PCB2GCODE_GEOS_VERSION}")
+  if(NOT GERBERIMPORTER_TEST_GEOS_VERSION)
+    set(GERBERIMPORTER_TEST_GEOS_VERSION "none")
+  endif()
   add_test(
     NAME gerberimporter_tests
     COMMAND gerberimporter_tests -- --gerber-root tests/data/gerberimporter
+      --geos-version "${GERBERIMPORTER_TEST_GEOS_VERSION}"
+      --boost-version "${Boost_VERSION_MAJOR}.${Boost_VERSION_MINOR}"
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "gerberimporter_tests")
   target_include_directories(

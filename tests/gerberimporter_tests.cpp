@@ -29,7 +29,14 @@ struct GerberimporterTestConfig {
   vector<std::tuple<string, bool, double>> visual;
 };
 
-static GerberimporterTestConfig load_gerberimporter_test_config(const string& path) {
+static string normalize_boost_version(string v) {
+  for (auto& c : v) if (c == '_') c = '.';
+  return v;
+}
+
+static GerberimporterTestConfig load_gerberimporter_test_config(const string& path,
+                                                               const string& geos_version,
+                                                               const string& boost_version) {
   GerberimporterTestConfig cfg;
   YAML::Node root;
   try {
@@ -37,14 +44,36 @@ static GerberimporterTestConfig load_gerberimporter_test_config(const string& pa
   } catch (const YAML::BadFile&) {
     BOOST_REQUIRE_MESSAGE(false, "Failed to open test config: " << path);
   }
-  if (const YAML::Node& match = root["match_gerbv"]) {
+  const string boost_norm = normalize_boost_version(boost_version);
+  const YAML::Node& configs = root["configs"];
+  BOOST_REQUIRE_MESSAGE(configs && configs.IsSequence(), "YAML must have a 'configs' sequence");
+  const YAML::Node* selected = nullptr;
+  const YAML::Node* default_config = nullptr;
+  for (const auto& config : configs) {
+    string g = config["geos_version"] ? config["geos_version"].as<string>() : "";
+    string b = config["boost_version"] ? normalize_boost_version(config["boost_version"].as<string>()) : "";
+    if (g == geos_version && b == boost_norm) {
+      selected = &config;
+      break;
+    }
+    if (g == "default" && b == "default")
+      default_config = &config;
+  }
+  if (selected == nullptr)
+    selected = default_config;
+  BOOST_REQUIRE_MESSAGE(selected != nullptr,
+    "No config for geos_version=" << geos_version << " boost_version=" << boost_version
+    << "; add a matching config or use default/default in " << path);
+  const YAML::Node& match = (*selected)["match_gerbv"];
+  if (match) {
     for (const auto& entry : match) {
       cfg.match_gerbv.push_back(std::make_tuple(
         entry["gerber_file"].as<string>(),
         entry["expected_error_rate"].as<double>()));
     }
   }
-  if (const YAML::Node& visual = root["visual"]) {
+  const YAML::Node& visual = (*selected)["visual"];
+  if (visual) {
     for (const auto& entry : visual) {
       cfg.visual.push_back(std::make_tuple(
         entry["gerber_file"].as<string>(),
@@ -55,11 +84,27 @@ static GerberimporterTestConfig load_gerberimporter_test_config(const string& pa
   return cfg;
 }
 
-static string gerberimporter_tests_yaml_path() {
+static string get_test_arg(const string& long_opt, const string& short_env_key) {
   const auto& mts = boost::unit_test::framework::master_test_suite();
+  const string with_equals = long_opt + "=";
   for (int i = 1; i < mts.argc; i++) {
     string arg(mts.argv[i]);
-    const string prefix = "--gerberimporter-tests-yaml=";
+    if (arg.compare(0, with_equals.size(), with_equals) == 0)
+      return arg.substr(with_equals.size());
+    if (arg == long_opt && i + 1 < mts.argc)
+      return string(mts.argv[i + 1]);
+  }
+  const char* env = std::getenv(short_env_key.c_str());
+  if (env && env[0] != '\0')
+    return string(env);
+  return "default";
+}
+
+static string gerberimporter_tests_yaml_path() {
+  const auto& mts = boost::unit_test::framework::master_test_suite();
+  const string prefix = "--gerberimporter-tests-yaml=";
+  for (int i = 1; i < mts.argc; i++) {
+    string arg(mts.argv[i]);
     if (arg.compare(0, prefix.size(), prefix) == 0)
       return arg.substr(prefix.size());
     if (arg == "--gerberimporter-tests-yaml" && i + 1 < mts.argc)
@@ -349,7 +394,10 @@ BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  GerberimporterTestConfig cfg = load_gerberimporter_test_config(gerberimporter_tests_yaml_path());
+  string geos_ver = get_test_arg("--geos-version", "GEOS_VERSION");
+  string boost_ver = get_test_arg("--boost-version", "BOOST_VERSION");
+  GerberimporterTestConfig cfg = load_gerberimporter_test_config(
+    gerberimporter_tests_yaml_path(), geos_ver, boost_ver);
   for (const auto& entry : cfg.match_gerbv) {
     test_one(std::get<0>(entry), std::get<1>(entry));
   }
@@ -361,7 +409,10 @@ BOOST_AUTO_TEST_CASE(gerberimporter_visual) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  GerberimporterTestConfig cfg = load_gerberimporter_test_config(gerberimporter_tests_yaml_path());
+  string geos_ver = get_test_arg("--geos-version", "GEOS_VERSION");
+  string boost_ver = get_test_arg("--boost-version", "BOOST_VERSION");
+  GerberimporterTestConfig cfg = load_gerberimporter_test_config(
+    gerberimporter_tests_yaml_path(), geos_ver, boost_ver);
   for (const auto& entry : cfg.visual) {
     test_visual(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
   }
