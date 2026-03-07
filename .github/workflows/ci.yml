@@ -322,10 +322,8 @@ jobs:
         Run unit tests 
         ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }} and
         ${{ (matrix.boost != '1_83' || matrix.geos != '3.13.1') && 'without integration tests' || 'with integration tests' }}
-      env:
-        VERBOSE: 1
       run: |
-        CTEST_ARGS=(--test-dir build --output-on-failure -j ${NUM_CPUS})
+        CTEST_ARGS=(--test-dir build --output-on-failure -j ${NUM_CPUS} -V)
         if [[ "${{ matrix.code_coverage }}" == "" && "${{ matrix.os }}" == "ubuntu" ]]; then
           export CTEST_MEMORYCHECK_COMMAND=valgrind
           CTEST_ARGS+=(-T memcheck)
