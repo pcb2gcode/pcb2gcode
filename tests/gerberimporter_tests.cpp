@@ -1,6 +1,5 @@
 #define BOOST_TEST_MODULE gerberimporter tests
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 #include <boost/test/framework.hpp>
 
 #include "gerberimporter.hpp"
@@ -18,8 +17,56 @@ using std::string;
 
 #include <map>
 using std::map;
+#include <vector>
+using std::vector;
+
+#include <yaml-cpp/yaml.h>
 
 #include "config.h"
+
+struct GerberimporterTestConfig {
+  vector<std::tuple<string, double>> match_gerbv;
+  vector<std::tuple<string, bool, double>> visual;
+};
+
+static GerberimporterTestConfig load_gerberimporter_test_config(const string& path) {
+  GerberimporterTestConfig cfg;
+  YAML::Node root;
+  try {
+    root = YAML::LoadFile(path);
+  } catch (const YAML::BadFile&) {
+    BOOST_REQUIRE_MESSAGE(false, "Failed to open test config: " << path);
+  }
+  if (const YAML::Node& match = root["match_gerbv"]) {
+    for (const auto& entry : match) {
+      cfg.match_gerbv.push_back(std::make_tuple(
+        entry["gerber_file"].as<string>(),
+        entry["expected_error_rate"].as<double>()));
+    }
+  }
+  if (const YAML::Node& visual = root["visual"]) {
+    for (const auto& entry : visual) {
+      cfg.visual.push_back(std::make_tuple(
+        entry["gerber_file"].as<string>(),
+        entry["fill_closed_lines"].as<bool>(),
+        entry["expected_set_ratio"].as<double>()));
+    }
+  }
+  return cfg;
+}
+
+static string gerberimporter_tests_yaml_path() {
+  const auto& mts = boost::unit_test::framework::master_test_suite();
+  for (int i = 1; i < mts.argc; i++) {
+    string arg(mts.argv[i]);
+    const string prefix = "--gerberimporter-tests-yaml=";
+    if (arg.compare(0, prefix.size(), prefix) == 0)
+      return arg.substr(prefix.size());
+    if (arg == "--gerberimporter-tests-yaml" && i + 1 < mts.argc)
+      return string(mts.argv[i + 1]);
+  }
+  return "tests/data/gerberimporter_tests.yaml";
+}
 
 struct Fixture {
   Fixture() {
@@ -296,51 +343,28 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
   write_to_png(cairo_surface, gerber_file);
 }
 
-BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
-                     boost::unit_test::data::make(
-                         std::vector<std::tuple<std::string, double>>{
-                           {"overlapping_lines.gbr",       0.00391},
-                           {"levels.gbr",                  0.004966},
-                           {"levels_step_and_repeat.gbr",  0.004802},
-                           {"code22_lower_left_line.gbr",  0.01002},
-                           {"code4_outline.gbr",           0.0214},
-                           {"code5_polygon.gbr",           0.00001129},
-                           {"code21_center_line.gbr",      0.01244},
-                           {"polygon.gbr",                 0.01666},
-                           {"wide_oval.gbr",               0.00008792},
-                           {"tall_oval.gbr",               0.00004317},
-                           {"circle_oval.gbr",             0.00007908},
-                           {"rectangle.gbr",               0.00001834},
-                           {"circle.gbr",                  0.00003313},
-                           {"code1_circle.gbr",            0.00651},
-                           {"code20_vector_line.gbr",      0.01054},
-                           {"g01_rectangle.gbr",           0.000704},
-                           {"moire.gbr",                   0.01854},
-                           {"thermal.gbr",                 0.01028},
-                           {"unclosed_contour.gbr",        0.0002727},
-                           {"cutins.gbr",                  0},
-                           {"NanoV3.3-B_Cu.gbr",           0.05798}}),
-                     gerber_file, expected_error_rate) {
-  const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
+BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
+  const char* skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
   if (skip_test != nullptr) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  test_one(gerber_file, expected_error_rate);
+  GerberimporterTestConfig cfg = load_gerberimporter_test_config(gerberimporter_tests_yaml_path());
+  for (const auto& entry : cfg.match_gerbv) {
+    test_one(std::get<0>(entry), std::get<1>(entry));
+  }
 }
 
-BOOST_DATA_TEST_CASE(gerberimporter_visual,
-                     boost::unit_test::data::make(
-                         std::vector<std::tuple<std::string, bool, double>>{
-                           {"circular_arcs.gbr", false, 0.3713},
-                           {"broken_box.gbr",    true,  0.7005}}),
-                     gerber_file, fill_closed_lines, expected_set_ratio) {
-  const char *skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
+BOOST_AUTO_TEST_CASE(gerberimporter_visual) {
+  const char* skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
   if (skip_test != nullptr) {
     std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
     return;
   }
-  test_visual(gerber_file, fill_closed_lines, expected_set_ratio);
+  GerberimporterTestConfig cfg = load_gerberimporter_test_config(gerberimporter_tests_yaml_path());
+  for (const auto& entry : cfg.visual) {
+    test_visual(std::get<0>(entry), std::get<1>(entry), std::get<2>(entry));
+  }
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {

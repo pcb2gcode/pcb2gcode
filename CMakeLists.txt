@@ -322,6 +322,15 @@ if(BUILD_TESTING)
     bg_operators.cpp
     geos_helpers.cpp
     options.cpp)
+
+  include(FetchContent)
+
+  FetchContent_Declare(
+    yaml-cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG yaml-cpp-0.9.0
+  )
+  FetchContent_MakeAvailable(yaml-cpp)
   add_executable(gerberimporter_tests ${PCB2GCODE_GERBERIMPORTER_TEST_SOURCES})
   pcb2gcode_disable_test_source_coverage(gerberimporter_tests)
   pcb2gcode_apply_common(gerberimporter_tests)
@@ -338,7 +347,7 @@ if(BUILD_TESTING)
     PRIVATE ${GLIBMM_CFLAGS_OTHER} ${GDKMM_CFLAGS_OTHER} ${RSVG_CFLAGS_OTHER})
   target_link_libraries(
     gerberimporter_tests
-    PRIVATE PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG)
+    PRIVATE PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG yaml-cpp)
 
   pcb2gcode_add_test_executable(
     options_tests
@@ -441,7 +450,7 @@ if(BUILD_TESTING)
       EXECUTABLE_ARGS --output-on-failure
       DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
       LCOV_ARGS --ignore-errors mismatch,inconsistent --rc branch_coverage=1 --rc function_coverage=1 --no-external
-      EXCLUDE "tests/*")
+      EXCLUDE "tests/*" "build/*")
   endif()
 endif()
 
