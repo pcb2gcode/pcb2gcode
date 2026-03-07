@@ -389,11 +389,6 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
 }
 
 BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
-  const char* skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
-  if (skip_test != nullptr) {
-    std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
-    return;
-  }
   string geos_ver = get_test_arg("--geos-version", "GEOS_VERSION");
   string boost_ver = get_test_arg("--boost-version", "BOOST_VERSION");
   GerberimporterTestConfig cfg = load_gerberimporter_test_config(
@@ -404,11 +399,6 @@ BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
 }
 
 BOOST_AUTO_TEST_CASE(gerberimporter_visual) {
-  const char* skip_test = std::getenv("SKIP_GERBERIMPORTER_TESTS");
-  if (skip_test != nullptr) {
-    std::cout << "Skipping because SKIP_GERBERIMPORTER_TESTS is set in environment." << std::endl;
-    return;
-  }
   string geos_ver = get_test_arg("--geos-version", "GEOS_VERSION");
   string boost_ver = get_test_arg("--boost-version", "BOOST_VERSION");
   GerberimporterTestConfig cfg = load_gerberimporter_test_config(
