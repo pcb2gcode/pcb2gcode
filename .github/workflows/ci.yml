@@ -43,10 +43,12 @@ jobs:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
         geos: ['3.13.1', 'none']
-        compiler: ['g++'] # TODO: Put clang++ back again.
+        compiler: ['g++', 'clang++']
         exclude:
           - os: windows
             boost: '1_83' # TODO: Build with boost 1.83 on Windows.
+          - os: windows
+            compiler: 'clang++' # TODO: Make clang work with gerbv.
         include:
           - geos: '3.13.1'
             os: ubuntu
@@ -105,6 +107,19 @@ jobs:
           if [[ "$labels" == *"|use-ci-cache|"* ]]; then allowed=true; fi
         fi
         echo "allowed=$allowed" >> $GITHUB_OUTPUT
+    - name: Ubuntu specific setup
+      if: matrix.os == 'ubuntu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
+        if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
+          sudo apt-get install -y clang
+        fi
+        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
+    - name: Install clang (Windows)
+      if: matrix.os == 'windows' && matrix.compiler == 'clang++'
+      run: pacman -S --noconfirm clang
     - name: Setup paths and env
       run: |
         mkdir -p ${{ matrix.local_install_path }}/bin
@@ -118,22 +133,19 @@ jobs:
         echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
         echo "export CMAKE_C_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
         echo "export CMAKE_CXX_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
-        echo "export CMAKE_C_COMPILER=`which gcc`" >> ~/.bash_profile
-        echo "export CMAKE_CXX_COMPILER=`which g++`" >> ~/.bash_profile
+        if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
+          echo "export CC=$(which clang)" >> ~/.bash_profile
+          echo "export CXX=$(which clang++)" >> ~/.bash_profile
+        else
+          echo "export CC=$(which gcc)" >> ~/.bash_profile
+          echo "export CXX=$(which g++)" >> ~/.bash_profile
+        fi
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
       if: matrix.os == 'windows'
       run: |
         lcov --version
-    - name: Ubuntu specific setup
-      if: matrix.os == 'ubuntu'
-      run: |
-        sudo apt-get update
-        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
-        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
-        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
-
 ### Install boost from apt-get
     - name: Ubuntu boost
       if: matrix.boost == 'latest' && matrix.os == 'ubuntu'
@@ -315,7 +327,7 @@ jobs:
 ### Build pcb2gcode
     - name: Build pcb2gcode
       run: |
-        cmake --build build -j ${NUM_CPUS}
+        VERBOSE=1 cmake --build build -j ${NUM_CPUS}
     - name: Display pcb2gcode version
       run: |
         ./build/pcb2gcode --version

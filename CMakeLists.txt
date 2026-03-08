@@ -48,6 +48,7 @@ endif()
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(CodeCoverage)
   append_coverage_compiler_flags()
+  check_cxx_compiler_flag("-fno-coverage" PCB2GCODE_COMPILER_SUPPORTS_FNO_COVERAGE)
 endif()
 
 find_package(PkgConfig REQUIRED)
@@ -234,13 +235,17 @@ if(BUILD_TESTING)
       return()
     endif()
 
+    set(flags_to_add "")
+    if(PCB2GCODE_COMPILER_SUPPORTS_FNO_COVERAGE)
+      list(APPEND flags_to_add -fno-coverage)
+    endif()
     get_target_property(target_sources "${target_name}" SOURCES)
     foreach(source IN LISTS target_sources)
-      if(source MATCHES "(/|^)([^/]+_tests\\.cpp)$")
+      if(source MATCHES "(/|^)([^/]+_tests\\.cpp)$" AND flags_to_add)
         set_property(
           SOURCE "${source}"
           APPEND
-          PROPERTY COMPILE_OPTIONS -fno-profile-arcs -fno-test-coverage)
+          PROPERTY COMPILE_OPTIONS ${flags_to_add})
       endif()
     endforeach()
   endfunction()
