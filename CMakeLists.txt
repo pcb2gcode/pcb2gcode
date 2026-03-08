@@ -29,6 +29,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(PCB2GCODE_WITH_GEOS "Enable GEOS support when available" ON)
 option(PCB2GCODE_ENABLE_CODE_COVERAGE "Enable code coverage instrumentation" OFF)
 option(PCB2GCODE_USE_CCACHE "Use ccache for compilation when available" ON)
+option(
+  PCB2GCODE_COMPILE_WARNING_AS_ERROR
+  "Treat compiler warnings as errors (CMake COMPILE_WARNING_AS_ERROR / -Werror where supported)"
+  ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 if(PCB2GCODE_USE_CCACHE)
@@ -175,7 +179,9 @@ if(PCB2GCODE_HAS_GEOS)
 endif()
 
 function(pcb2gcode_apply_common target_name)
-  #set_property(TARGET "${target_name}" PROPERTY COMPILE_WARNING_AS_ERROR ON) # TODO: Uncomment this.
+  if(PCB2GCODE_COMPILE_WARNING_AS_ERROR)
+    set_property(TARGET "${target_name}" PROPERTY COMPILE_WARNING_AS_ERROR ON)
+  endif()
   target_compile_options(
     "${target_name}"
     PRIVATE
