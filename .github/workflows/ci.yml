@@ -39,6 +39,7 @@ jobs:
   build-and-test:
     name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
@@ -88,6 +89,7 @@ jobs:
           imagemagick
           lcov
           zip:
+          parallel:
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v3
     - name: Check for ci workflow changes
@@ -150,6 +152,7 @@ jobs:
         if command -v clang++; then clang++ --version; fi
         if command -v pkg-config; then pkg-config --version; fi
         if command -v m4; then m4 --version; fi
+        if command -v parallel; then parallel --version; fi
     - name: Sanitize cache key
       id: sanitize-key
       run: |
@@ -248,9 +251,6 @@ jobs:
         popd
         popd
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
 ### Gerbv setup
     - name: Install gerbv  # TODO: Use gerbv instead of eyal0 repo.
@@ -323,26 +323,32 @@ jobs:
         PCB2GCODE_VERSION=$(./build/pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
 
-### Run examples.  Don't run them if code_coverage is set because they are too slow.  Only on ubuntu because it has valgrind.
-    - name: Run examples with valgrind
-      if: (github.event_name == 'schedule' || inputs.examples_enabled == true) && matrix.code_coverage == '' && matrix.os == 'ubuntu'
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+### Run examples.  We write to linelen to avoid making parallel compute the answer, because it is very slow.
+    - name: Run examples
+      if: (github.event_name == 'schedule' || inputs.examples_enabled == true)
       run: |
-        pushd tests/data/gerbv_example
-        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
-          { echo "::group::Running on {}";
-            pushd {};
-            if [[ -f "no-valgrind" ]]; then
-              cat no-valgrind;
-            fi;
-            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
-              time ../../../../build/pcb2gcode || exit;
-            else
-              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes -- ../../../../build/pcb2gcode || exit;
-            fi;
-            popd;
-            echo "::endgroup::";
-          } 2>&1'
-        popd
+        echo "run parallel"
+        if [[ -n "${{ matrix.code_coverage }}" ]]; then
+          run_example_args="--code-coverage";
+        else
+          run_example_args="";
+        fi
+        echo "run example args: $run_example_args"
+        pcb2gcode_binary="./build/pcb2gcode";
+        mkdir -p ~/.parallel/tmp/sshlogin/$(uname -n)
+        echo "131063" > ~/.parallel/tmp/sshlogin/$(uname -n)/linelen
+        run_example_args="$run_example_args --pcb2gcode-binary $pcb2gcode_binary";
+        echo "run with echo"
+        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary /usr/bin/echo
+        echo "run with pcb2gcode"
+        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode*
+        echo "the args are: $run_example_args";
+        ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "./tests/integration/run_example.py {} --pcb2gcode-binary $(which echo)"
+        echo "ran parallel"
     - name: >
         Run unit tests
         ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }}
