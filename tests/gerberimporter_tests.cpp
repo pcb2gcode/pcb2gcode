@@ -314,6 +314,29 @@ static string test_cases_yaml_path() {
   return gerber_directory() + "/gerberimporter_test_cases.yaml";
 }
 
+// Resolve expected value from YAML: scalar → use as-is; map → use key GEOS_VERSION or "default".
+static double get_expected_value(const YAML::Node& node, const char* key_for_error) {
+  if (node.IsScalar()) {
+    return node.as<double>();
+  }
+  if (node.IsMap()) {
+#ifdef GEOS_VERSION
+    const string version(GEOS_VERSION);
+    if (node[version]) {
+      return node[version].as<double>();
+    }
+#endif
+    if (node["default"]) {
+      return node["default"].as<double>();
+    }
+    BOOST_REQUIRE_MESSAGE(false, "expected value map for " << key_for_error
+        << " has no 'default' and no entry for current GEOS version");
+  }
+  BOOST_REQUIRE_MESSAGE(false, "expected value for " << key_for_error
+      << " must be a number or a map (default / version keys)");
+  return 0;
+}
+
 BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
   const string path = test_cases_yaml_path();
   BOOST_REQUIRE_MESSAGE(
@@ -325,7 +348,7 @@ BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
   for (size_t i = 0; i < cases.size(); ++i) {
     const auto& entry = cases[i];
     const string gerber_file = entry["gerber_file"].as<string>();
-    const double expected_error_rate = entry["expected_error_rate"].as<double>();
+    const double expected_error_rate = get_expected_value(entry["expected_error_rate"], "expected_error_rate");
     BOOST_TEST_CONTEXT("gerber_file=" << gerber_file) {
       test_one(gerber_file, expected_error_rate);
     }
@@ -344,7 +367,7 @@ BOOST_AUTO_TEST_CASE(gerberimporter_visual) {
     const auto& entry = cases[i];
     const string gerber_file = entry["gerber_file"].as<string>();
     const bool fill_closed_lines = entry["fill_closed_lines"].as<bool>();
-    const double expected_set_ratio = entry["expected_set_ratio"].as<double>();
+    const double expected_set_ratio = get_expected_value(entry["expected_set_ratio"], "expected_set_ratio");
     BOOST_TEST_CONTEXT("gerber_file=" << gerber_file) {
       test_visual(gerber_file, fill_closed_lines, expected_set_ratio);
     }

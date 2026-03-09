@@ -76,7 +76,11 @@ set(PCB2GCODE_GEOS_VERSION "")
 set(PCB2GCODE_GEOS_CFLAGS "")
 set(PCB2GCODE_GEOS_LDFLAGS "")
 if(PCB2GCODE_WITH_GEOS)
-  find_program(PCB2GCODE_GEOS_CONFIG NAMES geos-config)
+  # Optional: set GEOS_ROOT (e.g. -DGEOS_ROOT=/path/to/geos) to search for geos-config there first
+  set(GEOS_ROOT "" CACHE PATH "Install prefix or directory containing bin/geos-config (optional)")
+  find_program(PCB2GCODE_GEOS_CONFIG NAMES geos-config
+    HINTS "${GEOS_ROOT}"
+    PATH_SUFFIXES bin)
   if(PCB2GCODE_GEOS_CONFIG)
     set(PCB2GCODE_GEOS_CONFIG_CMD bash "${PCB2GCODE_GEOS_CONFIG}")
     execute_process(

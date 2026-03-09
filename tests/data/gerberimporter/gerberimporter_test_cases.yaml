@@ -1,4 +1,14 @@
 # Gerber importer test cases
+#
+# Expected values (expected_error_rate, expected_set_ratio) can be given in two forms:
+# - A number: used for all GEOS versions.
+# - A map: keys are "default" (fallback) and optionally GEOS version strings (e.g. "3.12", "3.13.1").
+#   The test uses the value for the current GEOS version if present, otherwise "default".
+#   Example:
+#     expected_error_rate:
+#       default: 0.00391
+#       "3.12": 0.004
+#
 # match_gerbv: compare pcb2gcode output against gerbv renderer; expected_error_rate is the allowed pixel error ratio
 match_gerbv:
   - gerber_file: overlapping_lines.gbr
