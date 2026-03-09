@@ -1,13 +1,14 @@
 #define BOOST_TEST_MODULE gerberimporter tests
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
 #include <boost/test/framework.hpp>
 
 #include "gerberimporter.hpp"
+#include <yaml-cpp/yaml.h>
 #include <sys/types.h>
 #include <dirent.h>
 #include <glibmm/init.h>
 #include <gdkmm/wrap_init.h>
+#include <fstream>
 #include <sstream>
 #include <librsvg-2.0/librsvg/rsvg.h>
 #include <boost/format.hpp>
@@ -309,41 +310,45 @@ void test_visual(const string& gerber_file, bool fill_closed_lines, double expec
   write_to_png(cairo_surface, gerber_file);
 }
 
-BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
-                     boost::unit_test::data::make(
-                         std::vector<std::tuple<std::string, double>>{
-                           {"overlapping_lines.gbr",       0.00391},
-                           {"levels.gbr",                  0.006459},
-                           {"levels_step_and_repeat.gbr",  0.006172},
-                           {"code22_lower_left_line.gbr",  0.01002},
-                           {"code4_outline.gbr",           0.0214},
-                           {"code5_polygon.gbr",           0.00001129},
-                           {"code21_center_line.gbr",      0.01244},
-                           {"polygon.gbr",                 0.01666},
-                           {"wide_oval.gbr",               0.00008792},
-                           {"tall_oval.gbr",               0.00004317},
-                           {"circle_oval.gbr",             0.00007908},
-                           {"rectangle.gbr",               0.00001834},
-                           {"circle.gbr",                  0.00003313},
-                           {"code1_circle.gbr",            0.00651},
-                           {"code20_vector_line.gbr",      0.01054},
-                           {"g01_rectangle.gbr",           0.000704},
-                           {"moire.gbr",                   0.01854},
-                           {"thermal.gbr",                 0.01028},
-                           {"unclosed_contour.gbr",        0.0002727},
-                           {"cutins.gbr",                  0},
-                           {"NanoV3.3-B_Cu.gbr",           0.05798}}),
-                     gerber_file, expected_error_rate) {
-  test_one(gerber_file, expected_error_rate);
+static string test_cases_yaml_path() {
+  return gerber_directory() + "/gerberimporter_test_cases.yaml";
 }
 
-BOOST_DATA_TEST_CASE(gerberimporter_visual,
-                     boost::unit_test::data::make(
-                         std::vector<std::tuple<std::string, bool, double>>{
-                           {"circular_arcs.gbr", false, 0.3708},
-                           {"broken_box.gbr",    true,  0.7005}}),
-                     gerber_file, fill_closed_lines, expected_set_ratio) {
-  test_visual(gerber_file, fill_closed_lines, expected_set_ratio);
+BOOST_AUTO_TEST_CASE(gerberimporter_match_gerbv) {
+  const string path = test_cases_yaml_path();
+  BOOST_REQUIRE_MESSAGE(
+      std::ifstream(path).good(),
+      "Missing test cases YAML: " << path << " (run from project root or set --gerber-root)");
+  const YAML::Node root = YAML::LoadFile(path);
+  const YAML::Node cases = root["match_gerbv"];
+  BOOST_REQUIRE(cases && cases.IsSequence());
+  for (size_t i = 0; i < cases.size(); ++i) {
+    const auto& entry = cases[i];
+    const string gerber_file = entry["gerber_file"].as<string>();
+    const double expected_error_rate = entry["expected_error_rate"].as<double>();
+    BOOST_TEST_CONTEXT("gerber_file=" << gerber_file) {
+      test_one(gerber_file, expected_error_rate);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(gerberimporter_visual) {
+  const string path = test_cases_yaml_path();
+  BOOST_REQUIRE_MESSAGE(
+      std::ifstream(path).good(),
+      "Missing test cases YAML: " << path << " (run from project root or set --gerber-root)");
+  const YAML::Node root = YAML::LoadFile(path);
+  const YAML::Node cases = root["visual"];
+  BOOST_REQUIRE(cases && cases.IsSequence());
+  for (size_t i = 0; i < cases.size(); ++i) {
+    const auto& entry = cases[i];
+    const string gerber_file = entry["gerber_file"].as<string>();
+    const bool fill_closed_lines = entry["fill_closed_lines"].as<bool>();
+    const double expected_set_ratio = entry["expected_set_ratio"].as<double>();
+    BOOST_TEST_CONTEXT("gerber_file=" << gerber_file) {
+      test_visual(gerber_file, fill_closed_lines, expected_set_ratio);
+    }
+  }
 }
 
 BOOST_AUTO_TEST_CASE(gerbv_exceptions) {

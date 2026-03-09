@@ -1,0 +1,54 @@
+# Gerber importer test cases
+# match_gerbv: compare pcb2gcode output against gerbv renderer; expected_error_rate is the allowed pixel error ratio
+match_gerbv:
+  - gerber_file: overlapping_lines.gbr
+    expected_error_rate: 0.00391
+  - gerber_file: levels.gbr
+    expected_error_rate: 0.006459
+  - gerber_file: levels_step_and_repeat.gbr
+    expected_error_rate: 0.006172
+  - gerber_file: code22_lower_left_line.gbr
+    expected_error_rate: 0.01002
+  - gerber_file: code4_outline.gbr
+    expected_error_rate: 0.0214
+  - gerber_file: code5_polygon.gbr
+    expected_error_rate: 0.00001129
+  - gerber_file: code21_center_line.gbr
+    expected_error_rate: 0.01244
+  - gerber_file: polygon.gbr
+    expected_error_rate: 0.01666
+  - gerber_file: wide_oval.gbr
+    expected_error_rate: 0.00008792
+  - gerber_file: tall_oval.gbr
+    expected_error_rate: 0.00004317
+  - gerber_file: circle_oval.gbr
+    expected_error_rate: 0.00007908
+  - gerber_file: rectangle.gbr
+    expected_error_rate: 0.00001834
+  - gerber_file: circle.gbr
+    expected_error_rate: 0.00003313
+  - gerber_file: code1_circle.gbr
+    expected_error_rate: 0.00651
+  - gerber_file: code20_vector_line.gbr
+    expected_error_rate: 0.01054
+  - gerber_file: g01_rectangle.gbr
+    expected_error_rate: 0.000704
+  - gerber_file: moire.gbr
+    expected_error_rate: 0.01854
+  - gerber_file: thermal.gbr
+    expected_error_rate: 0.01028
+  - gerber_file: unclosed_contour.gbr
+    expected_error_rate: 0.0002727
+  - gerber_file: cutins.gbr
+    expected_error_rate: 0
+  - gerber_file: NanoV3.3-B_Cu.gbr
+    expected_error_rate: 0.05798
+
+# visual: cases where gerbv is wrong; check that the marked pixel ratio is approximately as expected
+visual:
+  - gerber_file: circular_arcs.gbr
+    fill_closed_lines: false
+    expected_set_ratio: 0.3708
+  - gerber_file: broken_box.gbr
+    fill_closed_lines: true
+    expected_set_ratio: 0.7005

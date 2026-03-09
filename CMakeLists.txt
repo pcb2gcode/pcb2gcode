@@ -16,6 +16,7 @@ if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
 endif()
 
 include(CTest)
+include(FetchContent)
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceCompiles)
@@ -308,6 +309,12 @@ if(BUILD_TESTING)
     available_drills_tests
     available_drills_tests.cpp)
 
+  FetchContent_Declare(
+    yaml-cpp
+    GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+    GIT_TAG yaml-cpp-0.9.0
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(yaml-cpp)
   pcb2gcode_resolve_sources(
     PCB2GCODE_GERBERIMPORTER_TEST_SOURCES
     gerberimporter.cpp
@@ -335,7 +342,7 @@ if(BUILD_TESTING)
     PRIVATE ${GLIBMM_CFLAGS_OTHER} ${GDKMM_CFLAGS_OTHER} ${RSVG_CFLAGS_OTHER})
   target_link_libraries(
     gerberimporter_tests
-    PRIVATE Boost::unit_test_framework PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG)
+    PRIVATE Boost::unit_test_framework PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG yaml-cpp::yaml-cpp)
 
   pcb2gcode_add_test_executable(
     options_tests
