@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
   push:
     branches:
       - master
@@ -115,7 +115,7 @@ jobs:
     - name: Ubuntu boost
       if: matrix.boost == 'latest' && matrix.os == 'ubuntu'
       run:
-        sudo apt-get install -y libboost-program-options-dev
+        sudo apt-get install -y libboost-program-options-dev libboost-test-dev
 
 
     - name: Display information about build environment
@@ -511,6 +511,3 @@ jobs:
       - name: Download the artifacts to release
         uses: actions/download-artifact@v4
       - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
-      - uses: release-drafter/release-drafter@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
