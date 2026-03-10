@@ -344,9 +344,9 @@ jobs:
         run_example_args="$run_example_args --pcb2gcode-binary $pcb2gcode_binary";
         echo "run with pcb2gcode"
         ls -l ./build/
-        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode
+        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode.exe
         echo "the args are: $run_example_args";
-        ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "./tests/integration/run_example.py {} --pcb2gcode-binary $(which echo)"
+        ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "./tests/integration/run_example.py {} --pcb2gcode-binary ./build/pcb2gcode.exe"
         echo "ran parallel"
     - name: >
         Run unit tests
