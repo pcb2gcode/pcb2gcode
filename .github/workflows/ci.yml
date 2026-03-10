@@ -346,7 +346,7 @@ jobs:
         ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary /usr/bin/echo
         echo "run with pcb2gcode"
         ls -l ./build/pcb2gcode*
-        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode*
+        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode
         echo "the args are: $run_example_args";
         ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "./tests/integration/run_example.py {} --pcb2gcode-binary $(which echo)"
         echo "ran parallel"
