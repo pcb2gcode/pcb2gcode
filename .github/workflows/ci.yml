@@ -361,7 +361,12 @@ jobs:
       if: (github.event_name == 'schedule' || inputs.examples_enabled == true)
       run: |
         mkdir -p tmp
-        export TMPDIR=$PWD/tmp
+        TMPDIR=$PWD/tmp
+        if [[ ${{ matrix.os }} == 'windows' ]]; then
+          TMPDIR=$(cygpath -w $TMPDIR);
+        fi
+        export TMPDIR
+        echo "TMPDIR: $TMPDIR"
         echo "run parallel"
         if [[ -n "${{ matrix.code_coverage }}" ]]; then
           run_example_args="--code-coverage";
