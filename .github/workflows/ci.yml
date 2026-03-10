@@ -333,18 +333,27 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
-### Install parallel from sources
-    - name: Install parallel from sources
+### Install parallel
+    - name: Install parallel
       run: |
-        pushd ~
-        git clone --depth=1 --branch=master https://git.savannah.gnu.org/git/parallel.git
-        pushd parallel
-        autoreconf -fvi
-        ./configure --prefix=${LOCAL_INSTALL_PATH}
-        make -j ${NUM_CPUS}
-        make install
-        popd
-        popd
+        if ! parallel --version; then
+          echo "UPDATE_CACHE=true" >> $GITHUB_ENV
+          pushd ~
+          for i in {1..5}; do
+            wget -q -T5 -t1 -O "parallel-latest.tar.bz2" 'https://ftpmirror.gnu.org/parallel/parallel-latest.tar.bz2' && break;
+          done
+          mkdir parallel
+          pushd parallel
+          tar xjf "../parallel-latest.tar.bz2"
+          pushd parallel-*
+          ./configure --prefix=${LOCAL_INSTALL_PATH}
+          make
+          make install
+          popd
+          popd
+          popd
+        fi
+        hash -r
         parallel --version
 
 ### Run examples.  We write to linelen to avoid making parallel compute the answer, because it is very slow.
