@@ -363,7 +363,7 @@ jobs:
         mkdir -p tmp
         TMPDIR=$PWD/tmp
         if [[ ${{ matrix.os }} == 'windows' ]]; then
-          TMPDIR=$(cygpath -w $TMPDIR);
+          TMPDIR=$(cygpath -u $TMPDIR);
         fi
         export TMPDIR
         echo "TMPDIR: $TMPDIR"
