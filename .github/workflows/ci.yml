@@ -277,7 +277,7 @@ jobs:
     - name: Install valgrind
       if: matrix.os == 'ubuntu'
       run: |
-        if ! valgrind --version || ! grep -qx "$(git ls-remote git://sourceware.org/git/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
+        if ! valgrind --version; then
           git ls-remote git://sourceware.org/git/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
