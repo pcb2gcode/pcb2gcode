@@ -375,12 +375,16 @@ jobs:
         run_example_args="$run_example_args --pcb2gcode-binary $pcb2gcode_binary";
         echo "run with pcb2gcode"
         ls -l ./build/
-        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode.exe
+        if [[ -f ./build/pcb2gcode.exe ]]; then
+          pcb2gcode_binary="./build/pcb2gcode.exe";
+        else
+          pcb2gcode_binary="./build/pcb2gcode";
+        fi
+        ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary $pcb2gcode_binary
         echo "the args are: $run_example_args";
         ls -d tests/data/gerbv_example/*
         echo "foo" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
         echo "bar bar" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
-        mkdir -p ~/tmp
         ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
         echo "ran parallel"
     - name: >
