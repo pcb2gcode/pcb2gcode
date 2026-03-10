@@ -78,6 +78,9 @@ jobs:
           git
           libtool
           autotools
+          autoconf
+          automake
+          libtool
           boost
           cairo
           cmake
