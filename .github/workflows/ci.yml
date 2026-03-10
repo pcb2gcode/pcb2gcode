@@ -385,7 +385,7 @@ jobs:
         ls -d tests/data/gerbv_example/*
         echo "foo" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
         echo "bar bar" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
-        ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
+        ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "./tests/integration/run_example.py {} --pcb2gcode-binary $pcb2gcode_binary"
         echo "ran parallel"
     - name: >
         Run unit tests
