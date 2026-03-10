@@ -89,7 +89,6 @@ jobs:
           imagemagick
           lcov
           zip:
-          parallel:
     - name: Checkout pcb2gcode source
       uses: actions/checkout@v3
     - name: Check for ci workflow changes
@@ -117,7 +116,10 @@ jobs:
         echo "export PATH='${{ matrix.local_install_path }}/bin:$PATH'" >> ~/.bash_profile
         echo "export LOCAL_INSTALL_PATH='${{ matrix.local_install_path }}'" >> ~/.bash_profile
         echo $GITHUB_JSON
-        echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
+        NUM_CPUS=$(nproc --all 2>/dev/null || echo 2)
+        NUM_CPUS=$((NUM_CPUS * 4))
+        echo "NUM_CPUS=$NUM_CPUS" >> $GITHUB_ENV
+        echo "export NUM_CPUS='$NUM_CPUS'" >> ~/.bash_profile
         echo "export CMAKE_C_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
         echo "export CMAKE_CXX_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
         echo "export CMAKE_C_COMPILER=`which gcc`" >> ~/.bash_profile
@@ -132,7 +134,7 @@ jobs:
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
-        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev parallel ccache g++
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
         sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
 
@@ -326,6 +328,20 @@ jobs:
     - name: Setup tmate session
       uses: mxschmitt/action-tmate@v3
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+### Install parallel from sources
+    - name: Install parallel from sources
+      run: |
+        pushd ~
+        git clone --depth=1 --branch=master https://git.savannah.gnu.org/git/parallel.git
+        pushd parallel
+        ./autogen.sh
+        ./configure --prefix=${LOCAL_INSTALL_PATH}
+        make -j ${NUM_CPUS}
+        make install
+        popd
+        popd
+        parallel --version
 
 ### Run examples.  We write to linelen to avoid making parallel compute the answer, because it is very slow.
     - name: Run examples
