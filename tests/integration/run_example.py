@@ -31,6 +31,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    # Print the command line
+    print(f"The command line is: {' '.join(sys.argv)}")
     args = parse_args()
     example_dir = args.example_dir
     code_coverage_enabled = args.code_coverage
