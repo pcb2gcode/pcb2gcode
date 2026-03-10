@@ -339,6 +339,7 @@ jobs:
         pushd ~
         git clone --depth=1 --branch=master https://git.savannah.gnu.org/git/parallel.git
         pushd parallel
+        autoreconf -fvi
         ./configure --prefix=${LOCAL_INSTALL_PATH}
         make -j ${NUM_CPUS}
         make install
