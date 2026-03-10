@@ -360,6 +360,8 @@ jobs:
     - name: Run examples
       if: (github.event_name == 'schedule' || inputs.examples_enabled == true)
       run: |
+        mkdir -p tmp
+        export TMPDIR=$PWD/tmp
         echo "run parallel"
         if [[ -n "${{ matrix.code_coverage }}" ]]; then
           run_example_args="--code-coverage";
@@ -375,9 +377,10 @@ jobs:
         ls -l ./build/
         ./tests/integration/run_example.py tests/data/gerbv_example/lift-mill --pcb2gcode-binary ./build/pcb2gcode.exe
         echo "the args are: $run_example_args";
-        ls -d tests/data/gerbv_example/
+        ls -d tests/data/gerbv_example/*
         echo "foo" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
         echo "bar bar" | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
+        mkdir -p ~/tmp
         ls -d tests/data/gerbv_example/* | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 "echo {}"
         echo "ran parallel"
     - name: >
