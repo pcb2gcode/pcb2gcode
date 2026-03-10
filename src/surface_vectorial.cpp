@@ -286,7 +286,36 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   for (const auto& ls_and_allow_reversal : toolpath1) {
     combined_toolpath.push_back(ls_and_allow_reversal.first);
   }
-  shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+
+shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
+if (isolator != nullptr) {
+    // ONLY shuffle if we ARE NOT doing outside-in milling
+    if (!mill->mill_outside_in) {
+        if (tsp_2opt) {
+            // Original code: flip the rings because the loop was inside-out
+            // (We leave this alone for standard operation)
+            // std::reverse(polygons.begin(), polygons.end()); 
+        } else {
+            // Original code: jump to the nearest point (usually the inside)
+            tsp_solver::nearest_neighbour(combined_toolpath, point_type_fp(0, 0));
+        }
+    }
+    // If mill_outside_in is TRUE, we do NOTHING. 
+    // This preserves the exact order from your loops.
+} else {
+    // For Cutters (non-isolators), we sort by length
+    std::sort(combined_toolpath.begin(), combined_toolpath.end(),
+              [mill](const linestring_type_fp& lhs, const linestring_type_fp& rhs) {
+                if (mill->mill_outside_in)
+                    return bg::length(lhs) > bg::length(rhs); // Longest (outside) first
+                else
+                    return bg::length(lhs) < bg::length(rhs); // Shortest (inside) first
+              });
+}
+
+
+
+ // shared_ptr<Isolator> isolator = dynamic_pointer_cast<Isolator>(mill);
   if (isolator != nullptr) {
     if (tsp_2opt) {
       tsp_solver::tsp_2opt(combined_toolpath, point_type_fp(0, 0));
@@ -310,6 +339,11 @@ multi_linestring_type_fp Surface_vectorial::post_process_toolpath(
   }
   return combined_toolpath;
 }
+
+
+
+
+
 
 // Given a linestring which has the same front and back (so it's actually a
 // ring), attach it to one of the ends of the toolpath.  Only attach if there is
@@ -1130,12 +1164,12 @@ void Surface_vectorial::add_mask(Surface_vectorial const& surface) {
 // regular milling, that means it's the one with the least area.  For
 // thermal holes, it would be the one with the most area.
 vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
-    const optional<polygon_type_fp>& input,
+    const boost::optional<polygon_type_fp>& input,
     const polygon_type_fp& voronoi_polygon,
     coordinate_type_fp diameter,
     coordinate_type_fp overlap,
     unsigned int steps, bool do_voronoi,
-    coordinate_type_fp offset) const {
+    coordinate_type_fp offset, mill_outside_in) const {
   // The polygons to add to the PNG debugging output files.
   // Mask the polygon that we need to mill.
   multi_polygon_type_fp milling_poly{do_voronoi ? voronoi_polygon : *input};  // Milling voronoi or trace?
@@ -1175,10 +1209,20 @@ vector<multi_polygon_type_fp> Surface_vectorial::offset_polygon(
   vector<multi_polygon_type_fp> polygons;
   // Convert the input shape into a bunch of rings that need to be milled.
   for (unsigned int i = 0; i < steps; i++) {
-    coordinate_type_fp expand_by;
+    // This is the magic toggle:
+    // i: 0, 1, 2...
+    // k: (steps-1), (steps-2)... if outside-in is true.
+    unsigned int k = mill_outside_in ? (steps - 1 - i) : i;
+
+    // Use 'k' for the expansion/offset distance instead of 'i'
+    coordinate_type_fp expand_by = diameter / 2 + (diameter - overlap) * k;
+    // ... rest of the code using expand_by ...
+
+
+   // coordinate_type_fp expand_by;
     if (!do_voronoi) {
       // Number of rings is the same as the number of steps.
-      expand_by = diameter / 2 + (diameter - overlap) * i;
+      expand_by = diameter / 2 + (diameter - overlap) * k;
     } else {
       // Voronoi lines are on the boundary and shared between
       // multi_polygons so we only need half as many of them.

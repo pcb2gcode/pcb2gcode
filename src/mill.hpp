@@ -62,6 +62,7 @@ class RoutingMill: public Mill {
   double backtrack;
   double stepsize;
   double offset;  // Stay away from the traces by this amount.
+  bool mill_outside_in;
 };
 
 /******************************************************************************/
