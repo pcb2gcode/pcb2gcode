@@ -211,6 +211,7 @@ endmacro()
 
 set(COVERAGE_LANGUAGES CXX C Fortran)
 foreach(LANG ${COVERAGE_LANGUAGES})
+    # For each language...
     set(COVERAGE_${LANG}_COMPILER_FLAGS ${COVERAGE_COMPILER_FLAGS})
     set(COVERAGE_${LANG}_LINKER_FLAGS ${COVERAGE_COMPILER_FLAGS})
     if(CMAKE_${LANG}_COMPILER_ID MATCHES "(GNU|Clang)")
@@ -219,15 +220,18 @@ foreach(LANG ${COVERAGE_LANGUAGES})
         _coverage_lang_lo(LANG_LO ${LANG})
 
         foreach(FLAG -fprofile-abs-path -fprofile-update=atomic)
+            # For each flag...
             string(REPLACE "-" "_" _flag_suffix "${FLAG}")
             string(REPLACE "=" "_" _flag_suffix "${_flag_suffix}")
             string(REGEX REPLACE "^_" "" _flag_suffix "${_flag_suffix}")
 
+            # Check if the flag is supported by the compiler.
             cmake_language(CALL "check_${LANG_LO}_compiler_flag" ${FLAG} HAVE_${LANG_LO}_${_flag_suffix})
             if(HAVE_${LANG_LO}_${_flag_suffix})
                 _coverage_flag_maybe_ccache_skip(COVERAGE_FLAG ${LANG} ${FLAG})
                 set(COVERAGE_${LANG}_COMPILER_FLAGS "${COVERAGE_${LANG}_COMPILER_FLAGS} ${COVERAGE_FLAG}")
             endif()
+            # Check if the flag is supported by the linker.
             check_linker_flag(${LANG} ${FLAG} HAVE_${LANG}_${_flag_suffix}_linker)
             if(HAVE_${LANG}_${_flag_suffix}_linker)
                 _coverage_flag_maybe_ccache_skip(COVERAGE_FLAG ${LANG} ${FLAG})
@@ -235,9 +239,6 @@ foreach(LANG ${COVERAGE_LANGUAGES})
             endif()
         endforeach()
     endif()
-endforeach()
-
-foreach(LANG ${COVERAGE_LANGUAGES})
     set(_lang_desc "${LANG}")
     if(LANG STREQUAL "CXX")
         set(_lang_desc "C++")
@@ -250,6 +251,7 @@ foreach(LANG ${COVERAGE_LANGUAGES})
         ${COVERAGE_${LANG}_LINKER_FLAGS}
         CACHE STRING "Flags used by the ${_lang_desc} linker during coverage builds."
         FORCE)
+    mark_as_advanced(CMAKE_${LANG}_FLAGS_COVERAGE CMAKE_${LANG}_LINKER_FLAGS_COVERAGE)
 endforeach()
 
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
@@ -260,9 +262,6 @@ set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
     ""
     CACHE STRING "Flags used by the shared libraries linker during coverage builds."
     FORCE )
-foreach(LANG ${COVERAGE_LANGUAGES})
-    mark_as_advanced(CMAKE_${LANG}_FLAGS_COVERAGE CMAKE_${LANG}_LINKER_FLAGS_COVERAGE)
-endforeach()
 mark_as_advanced(CMAKE_EXE_LINKER_FLAGS_COVERAGE CMAKE_SHARED_LINKER_FLAGS_COVERAGE)
 
 get_property(GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
