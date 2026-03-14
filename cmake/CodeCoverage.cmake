@@ -237,30 +237,24 @@ foreach(LANG ${COVERAGE_LANGUAGES})
     endif()
 endforeach()
 
-set(CMAKE_Fortran_FLAGS_COVERAGE
-    ${COVERAGE_Fortran_COMPILER_FLAGS}
-    CACHE STRING "Flags used by the Fortran compiler during coverage builds."
-    FORCE )
-set(CMAKE_CXX_FLAGS_COVERAGE
-    ${COVERAGE_CXX_COMPILER_FLAGS}
-    CACHE STRING "Flags used by the C++ compiler during coverage builds."
-    FORCE )
-set(CMAKE_C_FLAGS_COVERAGE
-    ${COVERAGE_C_COMPILER_FLAGS}
-    CACHE STRING "Flags used by the C compiler during coverage builds."
-    FORCE )
-set(CMAKE_Fortran_LINKER_FLAGS_COVERAGE
-    ${COVERAGE_Fortran_LINKER_FLAGS}
-    CACHE STRING "Flags used by the Fortran linker during coverage builds."
-    FORCE )
-set(CMAKE_CXX_LINKER_FLAGS_COVERAGE
-    ${COVERAGE_CXX_LINKER_FLAGS}
-    CACHE STRING "Flags used by the C++ linker during coverage builds."
-    FORCE )
-set(CMAKE_C_LINKER_FLAGS_COVERAGE
-    ${COVERAGE_C_LINKER_FLAGS}
-    CACHE STRING "Flags used by the C linker during coverage builds."
-    FORCE )
+foreach(LANG ${COVERAGE_LANGUAGES})
+    if(LANG STREQUAL "CXX")
+        set(_lang_desc "C++")
+    elseif(LANG STREQUAL "C")
+        set(_lang_desc "C")
+    else()
+        set(_lang_desc "Fortran")
+    endif()
+    set(CMAKE_${LANG}_FLAGS_COVERAGE
+        ${COVERAGE_${LANG}_COMPILER_FLAGS}
+        CACHE STRING "Flags used by the ${_lang_desc} compiler during coverage builds."
+        FORCE)
+    set(CMAKE_${LANG}_LINKER_FLAGS_COVERAGE
+        ${COVERAGE_${LANG}_LINKER_FLAGS}
+        CACHE STRING "Flags used by the ${_lang_desc} linker during coverage builds."
+        FORCE)
+endforeach()
+
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
     ""
     CACHE STRING "Flags used for linking binaries during coverage builds."
@@ -269,15 +263,10 @@ set(CMAKE_SHARED_LINKER_FLAGS_COVERAGE
     ""
     CACHE STRING "Flags used by the shared libraries linker during coverage builds."
     FORCE )
-mark_as_advanced(
-    CMAKE_Fortran_FLAGS_COVERAGE
-    CMAKE_CXX_FLAGS_COVERAGE
-    CMAKE_C_FLAGS_COVERAGE
-    CMAKE_Fortran_LINKER_FLAGS_COVERAGE
-    CMAKE_CXX_LINKER_FLAGS_COVERAGE
-    CMAKE_C_LINKER_FLAGS_COVERAGE
-    CMAKE_EXE_LINKER_FLAGS_COVERAGE
-    CMAKE_SHARED_LINKER_FLAGS_COVERAGE )
+foreach(LANG ${COVERAGE_LANGUAGES})
+    mark_as_advanced(CMAKE_${LANG}_FLAGS_COVERAGE CMAKE_${LANG}_LINKER_FLAGS_COVERAGE)
+endforeach()
+mark_as_advanced(CMAKE_EXE_LINKER_FLAGS_COVERAGE CMAKE_SHARED_LINKER_FLAGS_COVERAGE)
 
 get_property(GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(NOT (CMAKE_BUILD_TYPE STREQUAL "Debug" OR GENERATOR_IS_MULTI_CONFIG))
