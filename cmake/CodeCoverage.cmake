@@ -199,6 +199,7 @@ function(_coverage_atomic_update_flag out_var lang)
 endfunction()
 
 set(COVERAGE_CXX_COMPILER_FLAGS ${COVERAGE_COMPILER_FLAGS})
+set(COVERAGE_CXX_LINKER_FLAGS "")
 if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
     include(CheckCXXCompilerFlag)
     check_cxx_compiler_flag(-fprofile-abs-path HAVE_cxx_fprofile_abs_path)
@@ -210,9 +211,20 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "(GNU|Clang)")
         _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG CXX)
         set(COVERAGE_CXX_COMPILER_FLAGS "${COVERAGE_CXX_COMPILER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG}")
     endif()
+    include(CheckLinkerFlag)
+    check_linker_flag(CXX -fprofile-abs-path HAVE_cxx_fprofile_abs_path_linker)
+    if(HAVE_cxx_fprofile_abs_path_linker)
+        set(COVERAGE_CXX_LINKER_FLAGS "${COVERAGE_CXX_LINKER_FLAGS} -fprofile-abs-path")
+    endif()
+    check_linker_flag(CXX -fprofile-update=atomic HAVE_cxx_fprofile_update_atomic_linker)
+    if(HAVE_cxx_fprofile_update_atomic_linker)
+        _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG_LINKER CXX)
+        set(COVERAGE_CXX_LINKER_FLAGS "${COVERAGE_CXX_LINKER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG_LINKER}")
+    endif()
 endif()
 
 set(COVERAGE_C_COMPILER_FLAGS ${COVERAGE_COMPILER_FLAGS})
+set(COVERAGE_C_LINKER_FLAGS "")
 if(CMAKE_C_COMPILER_ID MATCHES "(GNU|Clang)")
     include(CheckCCompilerFlag)
     check_c_compiler_flag(-fprofile-abs-path HAVE_c_fprofile_abs_path)
@@ -224,9 +236,20 @@ if(CMAKE_C_COMPILER_ID MATCHES "(GNU|Clang)")
         _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG C)
         set(COVERAGE_C_COMPILER_FLAGS "${COVERAGE_C_COMPILER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG}")
     endif()
+    include(CheckLinkerFlag)
+    check_linker_flag(C -fprofile-abs-path HAVE_c_fprofile_abs_path_linker)
+    if(HAVE_c_fprofile_abs_path_linker)
+        set(COVERAGE_C_LINKER_FLAGS "${COVERAGE_C_LINKER_FLAGS} -fprofile-abs-path")
+    endif()
+    check_linker_flag(C -fprofile-update=atomic HAVE_c_fprofile_update_atomic_linker)
+    if(HAVE_c_fprofile_update_atomic_linker)
+        _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG_LINKER C)
+        set(COVERAGE_C_LINKER_FLAGS "${COVERAGE_C_LINKER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG_LINKER}")
+    endif()
 endif()
 
 set(COVERAGE_Fortran_COMPILER_FLAGS ${COVERAGE_COMPILER_FLAGS})
+
 if(CMAKE_Fortran_COMPILER_ID MATCHES "(GNU|Clang)")
     include(CheckFortranCompilerFlag)
     check_fortran_compiler_flag(-fprofile-abs-path HAVE_fortran_fprofile_abs_path)
@@ -238,6 +261,16 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "(GNU|Clang)")
         _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG Fortran)
         set(COVERAGE_Fortran_COMPILER_FLAGS "${COVERAGE_Fortran_COMPILER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG}")
     endif()
+    include(CheckLinkerFlag)
+    check_linker_flag(Fortran -fprofile-abs-path HAVE_fortran_fprofile_abs_path_linker)
+    if(HAVE_fortran_fprofile_abs_path_linker)
+        set(COVERAGE_Fortran_LINKER_FLAGS "${COVERAGE_Fortran_LINKER_FLAGS} -fprofile-abs-path")
+    endif()
+    check_linker_flag(Fortran -fprofile-update=atomic HAVE_fortran_fprofile_update_atomic_linker)
+    if(HAVE_fortran_fprofile_update_atomic_linker)
+        _coverage_atomic_update_flag(COVERAGE_ATOMIC_UPDATE_FLAG_LINKER Fortran)
+        set(COVERAGE_Fortran_LINKER_FLAGS "${COVERAGE_Fortran_LINKER_FLAGS} ${COVERAGE_ATOMIC_UPDATE_FLAG_LINKER}")
+    endif()
 endif()
 
 set(CMAKE_Fortran_FLAGS_COVERAGE
@@ -245,12 +278,24 @@ set(CMAKE_Fortran_FLAGS_COVERAGE
     CACHE STRING "Flags used by the Fortran compiler during coverage builds."
     FORCE )
 set(CMAKE_CXX_FLAGS_COVERAGE
-    ${COVERAGE_C_COMPILER_FLAGS}
+    ${COVERAGE_CXX_COMPILER_FLAGS}
     CACHE STRING "Flags used by the C++ compiler during coverage builds."
     FORCE )
 set(CMAKE_C_FLAGS_COVERAGE
-    ${COVERAGE_CXX_COMPILER_FLAGS}
+    ${COVERAGE_C_COMPILER_FLAGS}
     CACHE STRING "Flags used by the C compiler during coverage builds."
+    FORCE )
+set(CMAKE_Fortran_LINKER_FLAGS_COVERAGE
+    ${COVERAGE_Fortran_LINKER_FLAGS}
+    CACHE STRING "Flags used by the Fortran linker during coverage builds."
+    FORCE )
+set(CMAKE_CXX_LINKER_FLAGS_COVERAGE
+    ${COVERAGE_CXX_LINKER_FLAGS}
+    CACHE STRING "Flags used by the C++ linker during coverage builds."
+    FORCE )
+set(CMAKE_C_LINKER_FLAGS_COVERAGE
+    ${COVERAGE_C_LINKER_FLAGS}
+    CACHE STRING "Flags used by the C linker during coverage builds."
     FORCE )
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
     ""
@@ -264,6 +309,9 @@ mark_as_advanced(
     CMAKE_Fortran_FLAGS_COVERAGE
     CMAKE_CXX_FLAGS_COVERAGE
     CMAKE_C_FLAGS_COVERAGE
+    CMAKE_Fortran_LINKER_FLAGS_COVERAGE
+    CMAKE_CXX_LINKER_FLAGS_COVERAGE
+    CMAKE_C_LINKER_FLAGS_COVERAGE
     CMAKE_EXE_LINKER_FLAGS_COVERAGE
     CMAKE_SHARED_LINKER_FLAGS_COVERAGE )
 
@@ -797,8 +845,16 @@ endfunction() # setup_target_for_coverage_fastcov
 
 function(append_coverage_compiler_flags)
     foreach(LANG ${LANGUAGES})
-        set(CMAKE_${LANG}_FLAGS "${CMAKE_${LANG}_FLAGS} ${CMAKE_${LANG}_FLAGS_COVERAGE}" PARENT_SCOPE)
         message(STATUS "Appending code coverage compiler flags for ${LANG}: ${CMAKE_${LANG}_FLAGS_COVERAGE}")
+        separate_arguments(_flag_list NATIVE_COMMAND "${CMAKE_${LANG}_FLAGS_COVERAGE}")
+        foreach(_flag ${_flag_list})
+            add_compile_options($<$<COMPILE_LANGUAGE:${LANG}>:${_flag}>)
+        endforeach()
+        message(STATUS "Appending code coverage linker flags for ${LANG}: ${CMAKE_${LANG}_LINKER_FLAGS_COVERAGE}")
+        separate_arguments(_flag_list NATIVE_COMMAND "${CMAKE_${LANG}_LINKER_FLAGS_COVERAGE}")
+        foreach(_flag ${_flag_list})
+            add_link_options($<$<COMPILE_LANGUAGE:${LANG}>:${_flag}>)
+        endforeach()
     endforeach()
     if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
         link_libraries(gcov)
