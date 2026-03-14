@@ -238,12 +238,9 @@ foreach(LANG ${COVERAGE_LANGUAGES})
 endforeach()
 
 foreach(LANG ${COVERAGE_LANGUAGES})
+    set(_lang_desc "${LANG}")
     if(LANG STREQUAL "CXX")
         set(_lang_desc "C++")
-    elseif(LANG STREQUAL "C")
-        set(_lang_desc "C")
-    else()
-        set(_lang_desc "Fortran")
     endif()
     set(CMAKE_${LANG}_FLAGS_COVERAGE
         ${COVERAGE_${LANG}_COMPILER_FLAGS}
