@@ -61,3 +61,6 @@ tests/data/gerbv_example/*/*.svg
 /*.gbr.png
 .clangd
 .vscode/c_cpp_properties.json
+
+#clangd cache directory
+/.cache/

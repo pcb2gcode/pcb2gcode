@@ -20,9 +20,12 @@ try:
   colour_runner_available = True
 except:
   colour_runner_available = False
-import in_place
 import termcolor
 import unittest
+
+# Import fix_up_expected from sibling script in tools/
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from fix_up_expected import fix_up_expected
 
 try:
   from concurrencytest import ConcurrentTestSuite, fork_for_tests
@@ -193,33 +196,6 @@ def colored(text, **color):
 
 class IntegrationTests(unittest.TestCase):
   """Run integration tests."""
-  def fix_up_expected(self, path):
-    """Fix up any files made in the output directory
-
-    This will enlarge all SVG by a factor of 10 in each direction until they are
-    at least 1000 in each dimension.  This makes them easier to view on github.
-    """
-    def bigger(matchobj):
-      width = float(matchobj.group('width'))
-      height = float(matchobj.group('height'))
-      while width < 1000 or height < 1000:
-        width *= 10
-        height *= 10
-      return 'width="{:.12g}" height="{:.12g}" '.format(width, height)
-    for root, _, files in os.walk(path):
-      for current_file in files:
-        with in_place.InPlace(os.path.join(root, current_file)) as svg_file:
-          for line in svg_file:
-            if line.startswith("<svg"):
-              svg_file.write("<!-- original:\n" +
-                             line +
-                             "-->\n" +
-                             re.sub('width="(?P<width>[^"]*)" height="(?P<height>[^"]*)" ',
-                                    bigger,
-                                    line))
-            else:
-              svg_file.write(line)
-
   def pcb2gcode_one_directory(self, input_path, pcb2gcode_binary, args, exit_code):
     """Run pcb2gcode once in one directory.
 
@@ -244,7 +220,7 @@ class IntegrationTests(unittest.TestCase):
       proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=input_path)
       result = proc.communicate()
       self.assertEqual(proc.returncode, exit_code)
-      self.fix_up_expected(actual_output_path)
+      fix_up_expected(actual_output_path)
     finally:
       print(result[0], file=sys.stderr)
     return actual_output_path
@@ -374,7 +350,7 @@ if __name__ == '__main__':
       self.do_test_one(t, pcb2gcode_binary, extra_args)
     setattr(IntegrationTests, 'test_' + t.name, test_method)
     test_method.__name__ = 'test_' + t.name
-    test_method.__doc__ = str(test_case)
+    test_method.__doc__ = str(t)
   for test_case in TEST_CASES:
     if args.quick and not test_case.quick:
       continue
@@ -421,8 +397,8 @@ if __name__ == '__main__':
       test_result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not test_result.wasSuccessful():
       print('\n***\nRun one of these:\n' +
-            './tests/integration/integration_tests.py --fix\n' +
-            './tests/integration/integration_tests.py --fix --add\n' +
+            './tools/integration_tests.py --fix\n' +
+            './tools/integration_tests.py --fix --add\n' +
             '***\n')
       exit(1)
     else:

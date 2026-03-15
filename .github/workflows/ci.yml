@@ -14,6 +14,11 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      examples_enabled:
+        type: boolean
+        description: 'Run the examples'
+        required: false
+        default: false
       no_restore_cache:
         type: boolean
         description: 'Do not restore cache'
@@ -22,6 +27,11 @@ on:
       no_restore_ccache:
         type: boolean
         description: 'Do not restore ccache'
+        required: false
+        default: false
+      allow_ci_cache_despite_ci_changes:
+        type: boolean
+        description: 'Restore cache even when .github/workflows/ci.yml has changed (e.g. to speed up CI while iterating on workflow)'
         required: false
         default: false
 
@@ -33,13 +43,16 @@ jobs:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
         geos: ['3.13.1', 'none']
-        compiler: ['g++'] # TODO: Put clang++ back again.
+        compiler: ['g++', 'clang++']
         exclude:
           - os: windows
             boost: '1_83' # TODO: Build with boost 1.83 on Windows.
+          - os: windows
+            compiler: 'clang++' # TODO: Make clang work on Windows.
         include:
           - geos: '3.13.1'
             os: ubuntu
+            compiler: 'g++'  # TODO: Add code coverage for clang++.
             code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
@@ -79,13 +92,35 @@ jobs:
           lcov
           zip:
     - name: Checkout pcb2gcode source
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
     - name: Check for ci workflow changes
       id: ci-changed
-      uses: dorny/paths-filter@v3
+      uses: dorny/paths-filter@v4
       with:
         filters: |
           ci: '.github/workflows/ci.yml'
+    - name: Check for allow CI cache label
+      id: allow-ci-cache-label
+      run: |
+        allowed=false
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          labels="|${{ join(github.event.pull_request.labels.*.name, '|') }}|"
+          if [[ "$labels" == *"|use-ci-cache|"* ]]; then allowed=true; fi
+        fi
+        echo "allowed=$allowed" >> $GITHUB_OUTPUT
+    - name: Ubuntu specific setup
+      if: matrix.os == 'ubuntu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
+        if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
+          sudo apt-get install -y clang libclang-rt-dev
+        fi
+        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
+        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
+    - name: Install clang (Windows)
+      if: matrix.os == 'windows' && matrix.compiler == 'clang++'
+      run: pacman -S --noconfirm clang
     - name: Setup paths and env
       run: |
         mkdir -p ${{ matrix.local_install_path }}/bin
@@ -99,22 +134,19 @@ jobs:
         echo "export NUM_CPUS='$((`nproc --all` * 4))'" >> ~/.bash_profile
         echo "export CMAKE_C_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
         echo "export CMAKE_CXX_COMPILER_LAUNCHER=`which ccache`" >> ~/.bash_profile
-        echo "export CMAKE_C_COMPILER=`which gcc`" >> ~/.bash_profile
-        echo "export CMAKE_CXX_COMPILER=`which g++`" >> ~/.bash_profile
+        if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
+          echo "export CC=$(which clang)" >> ~/.bash_profile
+          echo "export CXX=$(which clang++)" >> ~/.bash_profile
+        else
+          echo "export CC=$(which gcc)" >> ~/.bash_profile
+          echo "export CXX=$(which g++)" >> ~/.bash_profile
+        fi
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
       if: matrix.os == 'windows'
       run: |
         lcov --version
-    - name: Ubuntu specific setup
-      if: matrix.os == 'ubuntu'
-      run: |
-        sudo apt-get update
-        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev parallel ccache g++
-        sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
-        pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest in_place
-
 ### Install boost from apt-get
     - name: Ubuntu boost
       if: matrix.boost == 'latest' && matrix.os == 'ubuntu'
@@ -145,7 +177,7 @@ jobs:
 
     - name: Restore cache
       uses: actions/cache/restore@v5
-      if: ${{ inputs.no_restore_cache != true && steps.ci-changed.outputs.ci != 'true' }}
+      if: ${{ inputs.no_restore_cache != true && (steps.ci-changed.outputs.ci != 'true' || steps.allow-ci-cache-label.outputs.allowed == 'true' || inputs.allow_ci_cache_despite_ci_changes == true) }}
       with:
         path: ${{ steps.sanitize-key.outputs.path }}
         key: ${{ steps.sanitize-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -258,7 +290,7 @@ jobs:
     - name: Install valgrind
       if: matrix.os == 'ubuntu'
       run: |
-        if ! valgrind --version || ! grep -qx "$(git ls-remote git://sourceware.org/git/valgrind.git master)" ${LOCAL_INSTALL_PATH}/bin/valgrind.version; then
+        if ! valgrind --version; then
           git ls-remote git://sourceware.org/git/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
@@ -296,7 +328,7 @@ jobs:
 ### Build pcb2gcode
     - name: Build pcb2gcode
       run: |
-        cmake --build build -j ${NUM_CPUS}
+        VERBOSE=1 cmake --build build -j ${NUM_CPUS}
     - name: Display pcb2gcode version
       run: |
         ./build/pcb2gcode --version
@@ -304,40 +336,24 @@ jobs:
         PCB2GCODE_VERSION=$(./build/pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
 
-### Run examples
-    - name: Run examples with valgrind
-      if: github.event_name == 'schedule' && ((matrix.code_coverage == '') && matrix.os == 'ubuntu')
+### Run examples.  Don't run them if code_coverage is set because they are too slow.  Only on ubuntu because it has valgrind.
+    - name: Run examples
+      if: (github.event_name == 'schedule' || inputs.examples_enabled == true)
       run: |
-        pushd tests/data/gerbv_example
-        ls | parallel -k -j ${NUM_CPUS} --halt soon,fail=1 '
-          { echo "::group::Running on {}";
-            pushd {};
-            if [[ -f "no-valgrind" ]]; then
-              cat no-valgrind;
-            fi;
-            if [[ -f "no-valgrind" || "${{ matrix.os }}" != "ubuntu" ]]; then
-              time ../../../build/pcb2gcode || exit;
-            else
-              time valgrind --error-exitcode=127 --errors-for-leak-kinds=definite --leak-check=full -s --exit-on-first-error=yes --expensive-definedness-checks=yes -- ../../../build/pcb2gcode || exit;
-            fi;
-            popd;
-            echo "::endgroup::";
-          } 2>&1'
-        popd
-    - name: Run examples without valgrind
-      if: github.event_name == 'schedule' && !((matrix.code_coverage == '') && matrix.os == 'ubuntu')
-      run: |
-        for d in tests/data/gerbv_example/*; do
-            if [ -d "$d" ]; then
-                pushd "$d"
-                time ../../../build/pcb2gcode || exit $?
-                popd
-            fi
-        done
+        if [[ -n "${{ matrix.code_coverage }}" ]]; then
+          code_coverage_arg="--code-coverage";
+        else
+          code_coverage_arg="";
+        fi
+        if [[ -f ./build/pcb2gcode.exe ]]; then
+          pcb2gcode_binary="./build/pcb2gcode.exe";
+        else
+          pcb2gcode_binary="./build/pcb2gcode";
+        fi
+        ls -d tests/data/gerbv_example/* | ./tools/parallel.py -j ${NUM_CPUS} --halt now -- python ./tools/run_example.py '{}' --pcb2gcode-binary $pcb2gcode_binary $code_coverage_arg
     - name: >
-        Run unit tests 
-        ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }} and
-        ${{ (matrix.boost != '1_83' || matrix.geos != '3.13.1') && 'without integration tests' || 'with integration tests' }}
+        Run unit tests
+        ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }}
       env:
         VERBOSE: 1
       run: |
@@ -346,22 +362,19 @@ jobs:
           export CTEST_MEMORYCHECK_COMMAND=valgrind
           CTEST_ARGS+=(-T memcheck)
         fi
-        if [[ "${{ matrix.boost }}" != "1_83" || "${{ matrix.geos }}" != "3.13.1" ]]; then
-          CTEST_ARGS+=(-E '^(integration_tests)$')
-        fi
         ctest "${CTEST_ARGS[@]}"
 
 ### Gather coverage
     - name: Gather coverage
       if: matrix.code_coverage != ''
       run: |
-        cmake --build build --target pcb2gcode-lcov -j ${NUM_CPUS}
+        cmake --build build --target lcov -j ${NUM_CPUS}
     - name: Upload coverage artifact
       if: matrix.code_coverage != ''
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
-        path: build/pcb2gcode-lcov.info
+        path: build/lcov.info
     - name: Prepare build for upload for Ubuntu
       if: matrix.os != 'windows'
       run: |
@@ -452,31 +465,29 @@ jobs:
         GEOS: ${{ matrix.geos }}
     - name: Upload build for Ubuntu
       if: matrix.os != 'windows'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}.tar.gz
         compression-level: 0
     - name: Upload build for Windows # TODO: Fix upload for windows
       if: matrix.os == 'windows' && false
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}.zip
         compression-level: 0
     - name: Upload coverage to coveralls
       if: matrix.code_coverage != ''
-      uses: eyal0/github-action@master
+      uses: coverallsapp/github-action@v2.3.6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: build/pcb2gcode-lcov.info
         flag-name: ci-${{ steps.sanitize-key.outputs.key }}
         parallel: true
     - name: Save version number
       run: echo "${PCB2GCODE_VERSION}" > version.txt
     - name: Upload version artifact
       if: matrix.code_coverage != ''
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: version-${{ steps.sanitize-key.outputs.key }}.txt
         path: version.txt
@@ -501,9 +512,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Finalize coverage
-      uses: eyal0/github-action@master
+      uses: coverallsapp/github-action@v2.3.6
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
   release:
     if: github.event_name == 'push'
@@ -530,19 +540,17 @@ jobs:
         #   disable-autolabeler: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-      - name: Get draft release tag
-        id: draft-tag
+      - name: Delete existing release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            TAG=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases?per_page=20" | jq -r '[.[] | select(.draft == true)][0].tag_name')
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
-          fi
+          RELEASE_ID="${{ steps.release_drafter.outputs.id }}"
+          ASSETS=$(curl -sS -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets")
+          echo "$ASSETS" | jq -r '.[].id' | while read -r asset_id; do
+            [ -n "$asset_id" ] || continue
+            echo "Deleting asset id $asset_id..."
+            curl -sS -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+          done
       - name: Upload release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -21,7 +21,6 @@
 #define GERBERIMPORTER_H
 
 #include <string>
-#include <iostream>
 #include <utility>
 #include <map>
 #include <gerbv.h>
@@ -47,6 +46,9 @@ struct GerbvDeleter {
 class GerberImporter {
 public:
   GerberImporter(coordinate_type_fp max_arc_segment_length);
+  GerberImporter(GerberImporter&&) noexcept = default;
+  GerberImporter& operator=(GerberImporter&&) noexcept = default;
+  virtual ~GerberImporter() = default;
   bool load_file(const std::string& path);
 
   virtual box_type_fp get_bounding_box() const;
@@ -79,7 +81,7 @@ private:
   multi_polygon_type_fp make_thermal(point_type_fp center, coordinate_type_fp external_diameter, coordinate_type_fp internal_diameter,
                                    coordinate_type_fp gap_width) const;
   std::map<int, multi_polygon_type_fp> generate_apertures_map(const gerbv_aperture_t * const apertures[]) const;
-  coordinate_type_fp const max_arc_segment_length;
+  coordinate_type_fp max_arc_segment_length;
   std::unique_ptr<gerbv_project_t, GerbvDeleter> project;
 };
 

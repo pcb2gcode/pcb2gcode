@@ -23,6 +23,7 @@
 #include <map>
 #include <list>
 #include <set>
+#include <boost/optional.hpp>
 
 using std::vector;
 using std::pair;
@@ -243,10 +244,8 @@ static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t num
   // Try to improve the score by moving one of the two closest points.
   do {
     best_score = min_clique_distance(output, candidates, closest);
-    bool improvement = false;
     auto new_score = best_score;
-    size_t swap_from;
-    size_t swap_to;
+    boost::optional<std::pair<size_t, size_t>> swap_from_and_to;
     for (const auto& candidate : candidates) {
       if (output.count(candidate.first) > 0) {
         // This is already in the output so we can't reuse it.
@@ -256,18 +255,16 @@ static set<size_t> findBridgeSegments(const linestring_type_fp& path, size_t num
       auto current_score = min_distance_to_clique(candidate.second, closest, output, candidates);
       for (size_t i = 0; i < closest.size(); i++) {
         if (current_score[i] > new_score) {
-          swap_from = closest[i];
-          swap_to = candidate.first;
+          swap_from_and_to = std::make_pair(closest[i], candidate.first);
           new_score = current_score[i];
-          improvement = true;
         }
       }
     }
-    if (!improvement) {
+    if (!swap_from_and_to) {
       break;
     }
-    output.erase(swap_from);
-    output.insert(swap_to);
+    output.erase(swap_from_and_to->first);
+    output.insert(swap_from_and_to->second);
   } while(true);
   return output;
 }

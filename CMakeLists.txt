@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(
   pcb2gcode
-  VERSION 3.0.2
+  VERSION 3.0.3
   DESCRIPTION "Isolation routing and drilling G-code generator for PCBs"
   HOMEPAGE_URL "https://github.com/pcb2gcode/pcb2gcode"
   LANGUAGES C CXX)
@@ -180,8 +180,6 @@ set(PCB2GCODE_MAIN_SOURCES
     trim_paths.cpp
     voronoi.cpp)
 
-pcb2gcode_resolve_sources(PCB2GCODE_MAIN_SOURCES_RESOLVED ${PCB2GCODE_MAIN_SOURCES})
-add_executable(pcb2gcode ${PCB2GCODE_MAIN_SOURCES_RESOLVED})
 if(PCB2GCODE_HAS_GEOS)
   separate_arguments(PCB2GCODE_GEOS_CFLAGS_LIST NATIVE_COMMAND "${PCB2GCODE_GEOS_CFLAGS}")
   separate_arguments(PCB2GCODE_GEOS_LDFLAGS_LIST NATIVE_COMMAND "${PCB2GCODE_GEOS_LDFLAGS}")
@@ -222,6 +220,16 @@ function(pcb2gcode_apply_common target_name)
   endif()
 endfunction()
 
+# Shared object library so pcb2gcode and tests use the same compiled objects
+set(PCB2GCODE_CORE_SOURCES ${PCB2GCODE_MAIN_SOURCES})
+list(FILTER PCB2GCODE_CORE_SOURCES EXCLUDE REGEX "main\\.cpp$")
+pcb2gcode_resolve_sources(PCB2GCODE_CORE_SOURCES_RESOLVED ${PCB2GCODE_CORE_SOURCES})
+add_library(pcb2gcode_objects OBJECT ${PCB2GCODE_CORE_SOURCES_RESOLVED})
+pcb2gcode_apply_common(pcb2gcode_objects)
+
+pcb2gcode_resolve_sources(PCB2GCODE_MAIN_SOURCES_RESOLVED main.cpp)
+add_executable(pcb2gcode ${PCB2GCODE_MAIN_SOURCES_RESOLVED})
+target_link_libraries(pcb2gcode PRIVATE pcb2gcode_objects)
 pcb2gcode_apply_common(pcb2gcode)
 
 pcb2gcode_resolve_sources(PCB2GCODE_WKT_TO_SVG_SOURCES wkt_to_svg.cpp)
@@ -229,26 +237,10 @@ add_executable(wkt_to_svg ${PCB2GCODE_WKT_TO_SVG_SOURCES})
 pcb2gcode_apply_common(wkt_to_svg)
 
 if(BUILD_TESTING)
-  function(pcb2gcode_disable_test_source_coverage target_name)
-    if(NOT PCB2GCODE_ENABLE_CODE_COVERAGE)
-      return()
-    endif()
-
-    get_target_property(target_sources "${target_name}" SOURCES)
-    foreach(source IN LISTS target_sources)
-      if(source MATCHES "(/|^)([^/]+_tests\\.cpp)$")
-        set_property(
-          SOURCE "${source}"
-          APPEND
-          PROPERTY COMPILE_OPTIONS -fno-profile-arcs -fno-test-coverage)
-      endif()
-    endforeach()
-  endfunction()
-
   function(pcb2gcode_add_test_executable target_name)
     pcb2gcode_resolve_sources(PCB2GCODE_TEST_SOURCES ${ARGN})
     add_executable("${target_name}" ${PCB2GCODE_TEST_SOURCES})
-    pcb2gcode_disable_test_source_coverage("${target_name}")
+    target_link_libraries("${target_name}" PRIVATE pcb2gcode_objects)
     pcb2gcode_apply_common("${target_name}")
     target_link_libraries("${target_name}" PRIVATE Boost::unit_test_framework)
     add_test(NAME "${target_name}" COMMAND "${target_name}")
@@ -257,44 +249,19 @@ if(BUILD_TESTING)
 
   pcb2gcode_add_test_executable(
     voronoi_tests
-    voronoi.cpp
-    voronoi_tests.cpp
-    consistent_rand.cpp)
+    voronoi_tests.cpp)
 
   pcb2gcode_add_test_executable(
     eulerian_paths_tests
-    eulerian_paths_tests.cpp
-    bg_operators.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    geos_helpers.cpp
-    options.cpp)
+    eulerian_paths_tests.cpp)
 
   pcb2gcode_add_test_executable(
     segmentize_tests
-    segmentize_tests.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    bg_operators.cpp
-    geos_helpers.cpp
-    options.cpp)
+    segmentize_tests.cpp)
 
   pcb2gcode_add_test_executable(
     path_finding_tests
-    path_finding_tests.cpp
-    path_finding.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    bg_operators.cpp
-    geos_helpers.cpp
-    options.cpp
-    segment_tree.cpp)
+    path_finding_tests.cpp)
 
   pcb2gcode_add_test_executable(
     tsp_solver_tests
@@ -310,17 +277,9 @@ if(BUILD_TESTING)
 
   pcb2gcode_resolve_sources(
     PCB2GCODE_GERBERIMPORTER_TEST_SOURCES
-    gerberimporter.cpp
-    gerberimporter_tests.cpp
-    merge_near_points.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    bg_helpers.cpp
-    bg_operators.cpp
-    geos_helpers.cpp
-    options.cpp)
+    gerberimporter_tests.cpp)
   add_executable(gerberimporter_tests ${PCB2GCODE_GERBERIMPORTER_TEST_SOURCES})
-  pcb2gcode_disable_test_source_coverage(gerberimporter_tests)
+  target_link_libraries(gerberimporter_tests PRIVATE pcb2gcode_objects)
   pcb2gcode_apply_common(gerberimporter_tests)
   add_test(
     NAME gerberimporter_tests
@@ -339,72 +298,31 @@ if(BUILD_TESTING)
 
   pcb2gcode_add_test_executable(
     options_tests
-    options_tests.cpp
-    options.cpp)
+    options_tests.cpp)
 
   pcb2gcode_add_test_executable(
     autoleveller_tests
-    autoleveller_tests.cpp
-    autoleveller.cpp
-    options.cpp
-    bg_operators.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    geos_helpers.cpp)
+    autoleveller_tests.cpp)
 
   pcb2gcode_add_test_executable(
     common_tests
-    common.cpp
     common_tests.cpp)
 
   pcb2gcode_add_test_executable(
     backtrack_tests
-    backtrack.cpp
-    backtrack_tests.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    bg_operators.cpp
-    geos_helpers.cpp
-    options.cpp)
+    backtrack_tests.cpp)
 
   pcb2gcode_add_test_executable(
     trim_paths_tests
-    trim_paths.cpp
-    trim_paths_tests.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    bg_operators.cpp
-    geos_helpers.cpp
-    options.cpp)
+    trim_paths_tests.cpp)
 
   pcb2gcode_add_test_executable(
     outline_bridges_tests
-    outline_bridges_tests.cpp
-    outline_bridges.cpp
-    bg_operators.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    geos_helpers.cpp
-    options.cpp)
+    outline_bridges_tests.cpp)
 
   pcb2gcode_add_test_executable(
     geos_helpers_tests
-    geos_helpers_tests.cpp
-    geos_helpers.cpp
-    bg_operators.cpp
-    bg_helpers.cpp
-    eulerian_paths.cpp
-    segmentize.cpp
-    merge_near_points.cpp
-    options.cpp)
+    geos_helpers_tests.cpp)
 
   pcb2gcode_add_test_executable(
     disjoint_set_tests
@@ -412,21 +330,57 @@ if(BUILD_TESTING)
 
   pcb2gcode_add_test_executable(
     segment_tree_tests
-    segment_tree_tests.cpp
-    segment_tree.cpp)
+    segment_tree_tests.cpp)
 
-  add_test(
-    NAME integration_tests
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tests/integration/integration_tests.py"
-            --pcb2gcode-binary "$<TARGET_FILE:pcb2gcode>"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  # Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
+  set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
+  if(PCB2GCODE_HAS_GEOS
+     AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
+     AND Boost_VERSION VERSION_EQUAL "1.83")
+    set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+  endif()
+
+  if(PCB2GCODE_RUN_INTEGRATION_TESTS)
+    # Require integration_tests.py Python modules (e.g. termcolor); CMake fails if any are missing.
+    set(PCB2GCODE_INTEGRATION_TEST_DEPS "argparse;collections;difflib;filecmp;multiprocessing;os;re;shutil;subprocess;sys;tempfile;xml.etree.ElementTree;termcolor;unittest")
+    foreach(_mod IN LISTS PCB2GCODE_INTEGRATION_TEST_DEPS)
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" -c "import ${_mod}"
+        RESULT_VARIABLE _import_result
+        OUTPUT_QUIET
+        ERROR_QUIET
+      )
+      if(NOT _import_result EQUAL 0)
+        message(FATAL_ERROR "integration_tests require Python module '${_mod}', which is not available. Install it (e.g. pip install ${_mod}).")
+      endif()
+    endforeach()
+
+    add_test(
+      NAME integration_tests
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/integration_tests.py"
+              --pcb2gcode-binary "$<TARGET_FILE:pcb2gcode>"
+      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  else()
+    set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
+    if(NOT _geos_display)
+      set(_geos_display "none")
+    endif()
+    message(STATUS "Skipping integration_tests (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
+  endif()
 
   if(PCB2GCODE_ENABLE_CODE_COVERAGE)
+    include(ProcessorCount)
+    ProcessorCount(PCB2GCODE_CTEST_JOBS_VALUE)
+    if(PCB2GCODE_CTEST_JOBS_VALUE EQUAL 0)
+      set(PCB2GCODE_CTEST_JOBS_VALUE 1)
+    else()
+      math(EXPR PCB2GCODE_CTEST_JOBS_VALUE "${PCB2GCODE_CTEST_JOBS_VALUE} * 4")
+    endif()
     get_property(PCB2GCODE_TEST_TARGETS GLOBAL PROPERTY PCB2GCODE_TEST_TARGETS)
     setup_target_for_coverage_lcov(
-      NAME pcb2gcode-lcov
+      NAME lcov
       EXECUTABLE "${CMAKE_CTEST_COMMAND}"
-      EXECUTABLE_ARGS --output-on-failure
+      EXECUTABLE_ARGS --output-on-failure -j ${PCB2GCODE_CTEST_JOBS_VALUE}
       DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
       LCOV_ARGS --ignore-errors mismatch,inconsistent --rc branch_coverage=1 --rc function_coverage=1 --no-external
       EXCLUDE "tests/*")
