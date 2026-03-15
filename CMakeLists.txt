@@ -424,25 +424,8 @@ if(BUILD_TESTING)
   endif()
 
   if(PCB2GCODE_RUN_INTEGRATION_TESTS)
-    # Require integration_tests.py Python modules (e.g. termcolor); CMake fails if any are missing.
-    set(PCB2GCODE_INTEGRATION_TEST_DEPS "argparse;collections;difflib;filecmp;multiprocessing;os;re;shutil;subprocess;sys;tempfile;xml.etree.ElementTree;termcolor;unittest")
-    foreach(_mod IN LISTS PCB2GCODE_INTEGRATION_TEST_DEPS)
-      execute_process(
-        COMMAND "${Python3_EXECUTABLE}" -c "import ${_mod}"
-        RESULT_VARIABLE _import_result
-        OUTPUT_QUIET
-        ERROR_QUIET
-      )
-      if(NOT _import_result EQUAL 0)
-        message(FATAL_ERROR "integration_tests require Python module '${_mod}', which is not available. Install it (e.g. pip install ${_mod}).")
-      endif()
-    endforeach()
-
-    add_test(
-      NAME integration_tests
-      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/tools/integration_tests.py"
-              --pcb2gcode-binary "$<TARGET_FILE:pcb2gcode>"
-      WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+    # run_one_integration_test.py uses only Python stdlib; no extra modules required.
+    include("${CMAKE_SOURCE_DIR}/cmake/IntegrationTestCases.cmake")
   else()
     set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
     if(NOT _geos_display)
