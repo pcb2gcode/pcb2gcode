@@ -7,6 +7,9 @@ project(
   HOMEPAGE_URL "https://github.com/pcb2gcode/pcb2gcode"
   LANGUAGES C CXX)
 
+# compile_commands.json for clangd and other tools that consume the compile database.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Default single-config generators to RelWithDebInfo unless explicitly set.
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build." FORCE)
