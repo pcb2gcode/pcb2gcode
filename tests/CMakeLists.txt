@@ -19,12 +19,18 @@ if(PCB2GCODE_HAS_GEOS
 endif()
 
 function(pcb2gcode_add_test_executable target_name)
-  pcb2gcode_resolve_sources(PCB2GCODE_TEST_SOURCES ${ARGN})
-  add_executable("${target_name}" ${PCB2GCODE_TEST_SOURCES})
+  cmake_parse_arguments(_arg "" "" "SOURCES;TEST_ARGS" ${ARGN})
+  add_executable("${target_name}" ${_arg_SOURCES} ${_arg_UNPARSED_ARGUMENTS})
   target_link_libraries("${target_name}" PRIVATE pcb2gcode_objects)
   pcb2gcode_apply_common("${target_name}")
   target_link_libraries("${target_name}" PRIVATE Boost::unit_test_framework)
-  add_test(NAME "${target_name}" COMMAND "${target_name}")
+  target_include_directories("${target_name}" SYSTEM PRIVATE ${GLIBMM_INCLUDE_DIRS} ${GDKMM_INCLUDE_DIRS} ${RSVG_INCLUDE_DIRS})
+  target_compile_options("${target_name}" PRIVATE ${GLIBMM_CFLAGS_OTHER} ${GDKMM_CFLAGS_OTHER} ${RSVG_CFLAGS_OTHER})
+  target_link_libraries("${target_name}" PRIVATE PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG)
+  add_test(
+    NAME "${target_name}"
+    COMMAND "${target_name}" ${_arg_TEST_ARGS}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "${target_name}")
   set_tests_properties("${target_name}" PROPERTIES LABELS "unit_test")
 endfunction()
@@ -59,27 +65,10 @@ pcb2gcode_add_test_executable(
   available_drills_tests
   available_drills_tests.cpp)
 
-pcb2gcode_resolve_sources(
-  PCB2GCODE_GERBERIMPORTER_TEST_SOURCES
-  gerberimporter_tests.cpp)
-add_executable(gerberimporter_tests ${PCB2GCODE_GERBERIMPORTER_TEST_SOURCES})
-target_link_libraries(gerberimporter_tests PRIVATE pcb2gcode_objects)
-pcb2gcode_apply_common(gerberimporter_tests)
-add_test(
-  NAME gerberimporter_tests
-  COMMAND gerberimporter_tests -- --gerber-root tests/data/gerberimporter
-  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "gerberimporter_tests")
-set_tests_properties("gerberimporter_tests" PROPERTIES LABELS "unit_test")
-target_include_directories(
+pcb2gcode_add_test_executable(
   gerberimporter_tests
-  SYSTEM PRIVATE ${GLIBMM_INCLUDE_DIRS} ${GDKMM_INCLUDE_DIRS} ${RSVG_INCLUDE_DIRS})
-target_compile_options(
-  gerberimporter_tests
-  PRIVATE ${GLIBMM_CFLAGS_OTHER} ${GDKMM_CFLAGS_OTHER} ${RSVG_CFLAGS_OTHER})
-target_link_libraries(
-  gerberimporter_tests
-  PRIVATE Boost::unit_test_framework PkgConfig::GLIBMM PkgConfig::GDKMM PkgConfig::RSVG)
+  SOURCES gerberimporter_tests.cpp
+  TEST_ARGS -- --gerber-root tests/data/gerberimporter)
 
 pcb2gcode_add_test_executable(
   options_tests
