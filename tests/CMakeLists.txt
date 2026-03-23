@@ -10,6 +10,14 @@ if(RSVG_VERSION VERSION_GREATER_EQUAL "2.52")
   set(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS 1 PARENT_SCOPE)
 endif()
 
+# Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
+set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
+if(PCB2GCODE_HAS_GEOS
+   AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
+   AND Boost_VERSION VERSION_EQUAL "1.83")
+  set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+endif()
+
 function(pcb2gcode_add_test_executable target_name)
   pcb2gcode_resolve_sources(PCB2GCODE_TEST_SOURCES ${ARGN})
   add_executable("${target_name}" ${PCB2GCODE_TEST_SOURCES})
@@ -19,6 +27,8 @@ function(pcb2gcode_add_test_executable target_name)
   add_test(NAME "${target_name}" COMMAND "${target_name}")
   set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "${target_name}")
 endfunction()
+
+add_subdirectory(data)
 
 pcb2gcode_add_test_executable(
   voronoi_tests
@@ -104,14 +114,6 @@ pcb2gcode_add_test_executable(
 pcb2gcode_add_test_executable(
   segment_tree_tests
   segment_tree_tests.cpp)
-
-# Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
-set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
-if(PCB2GCODE_HAS_GEOS
-   AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
-   AND Boost_VERSION VERSION_EQUAL "1.83")
-  set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
-endif()
 
 if(PCB2GCODE_RUN_INTEGRATION_TESTS)
   # Require integration_tests.py Python modules (e.g. termcolor); CMake fails if any are missing.
