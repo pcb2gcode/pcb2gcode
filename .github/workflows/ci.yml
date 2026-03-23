@@ -52,7 +52,6 @@ jobs:
         include:
           - geos: '3.13.1'
             os: ubuntu
-            compiler: 'g++'  # TODO: Add code coverage for clang++.
             code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
@@ -114,7 +113,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
         if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
-          sudo apt-get install -y clang libclang-rt-dev
+          sudo apt-get install -y clang libclang-rt-dev llvm grcov
         fi
         sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
@@ -265,7 +264,7 @@ jobs:
       uses: mxschmitt/action-tmate@v3
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
-### Gerbv setup
+### Gerbv setup, only -j 1 in make because build dependencies are unreliable.
     - name: Install gerbv
       run: |
         if ! gerbv --version; then
@@ -281,7 +280,7 @@ jobs:
           else
             cmake --preset linux-gnu-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           fi
-          make -j 20
+          make -j 1
           make install
           popd
           popd
