@@ -266,17 +266,21 @@ jobs:
       if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
 ### Gerbv setup
-    - name: Install gerbv  # TODO: Use gerbv instead of eyal0 repo.
+    - name: Install gerbv
       run: |
         if ! gerbv --version; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 --branch=iwyu https://github.com/eyal0/gerbv.git
+          git clone --depth=1 --branch=develop https://github.com/gerbv/gerbv.git
           pushd gerbv
           echo "GERBV commit: $(git rev-parse HEAD)"
           mkdir build
           pushd build
-          cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          if [[ "${{ matrix.os }}" == "windows" ]]; then
+            cmake --preset msys2-ucrt64-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          else
+            cmake --preset linux-gnu-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+          fi
           make -j 20
           make install
           popd
