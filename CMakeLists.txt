@@ -215,6 +215,12 @@ list(FILTER PCB2GCODE_CORE_SOURCES EXCLUDE REGEX "main\\.cpp$")
 pcb2gcode_resolve_sources(PCB2GCODE_CORE_SOURCES_RESOLVED ${PCB2GCODE_CORE_SOURCES})
 add_library(pcb2gcode_objects OBJECT ${PCB2GCODE_CORE_SOURCES_RESOLVED})
 pcb2gcode_apply_common(pcb2gcode_objects)
+if(PCB2GCODE_ENABLE_CODE_COVERAGE)
+  # std::launch::async makes LLVM source-based / grcov coverage vary run-to-run.
+  target_compile_definitions(
+    pcb2gcode_objects
+    PRIVATE PCB2GCODE_COVERAGE_DISABLE_INTERNAL_MT=1)
+endif()
 
 pcb2gcode_resolve_sources(PCB2GCODE_MAIN_SOURCES_RESOLVED main.cpp)
 add_executable(pcb2gcode ${PCB2GCODE_MAIN_SOURCES_RESOLVED})
