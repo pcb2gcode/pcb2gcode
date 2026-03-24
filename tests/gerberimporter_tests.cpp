@@ -324,7 +324,7 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"tall_oval.gbr",               0.00004317},
                            {"circle_oval.gbr",             0.00007908},
                            {"rectangle.gbr",               0.00001834},
-                           {"circle.gbr",                  0.00003313},
+                           {"circle.gbr",                  0.00003158},
                            {"code1_circle.gbr",            0.00651},
                            {"code20_vector_line.gbr",      0.01054},
                            {"g01_rectangle.gbr",           0.000704},
@@ -332,7 +332,9 @@ BOOST_DATA_TEST_CASE(gerberimporter_match_gerbv,
                            {"thermal.gbr",                 0.01028},
                            {"unclosed_contour.gbr",        0.0002727},
                            {"cutins.gbr",                  0},
-                           {"NanoV3.3-B_Cu.gbr",           0.05798}}),
+                           {"NanoV3.3-B_Cu.gbr",           0.05798},
+                           {"shapes_with_holes.gbr",       0.0009305}
+                          }),
                      gerber_file, expected_error_rate) {
   test_one(gerber_file, expected_error_rate);
 }
