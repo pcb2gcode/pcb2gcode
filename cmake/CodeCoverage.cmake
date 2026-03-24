@@ -181,15 +181,22 @@ endforeach()
 set(COVERAGE_COMPILER_FLAGS "-g --coverage"
     CACHE INTERNAL "")
 
-# This is necessary because older versions of ccache don't yet have
+# This is necessary because older versions of ccache don't yet have these:
 # https://github.com/ccache/ccache/commit/2737d79e282de72d1b29128f437173e4892ced5e
+# https://github.com/ccache/ccache/pull/1408
 function(_coverage_atomic_update_flag out_var lang)
     set(_atomic_update_flag "-fprofile-update=atomic")
     set(_coverage_uses_ccache OFF)
     foreach(_launcher IN LISTS CMAKE_${lang}_COMPILER_LAUNCHER)
         if(_launcher MATCHES "ccache(\\.exe)?$")
-            set(_coverage_uses_ccache ON)
-            break()
+            # Check that ccache version is less than 4.10.
+            execute_process(COMMAND ${_launcher} --version OUTPUT_VARIABLE CACHE_VERSION_OUTPUT)
+            if("${CACHE_VERSION_OUTPUT}" MATCHES "ccache version ([0-9]+\\.[0-9]+\\.[0-9]+)")
+                if("${CMAKE_MATCH_1}" VERSION_LESS "4.10.0")
+                    set(_coverage_uses_ccache ON)
+                    break()
+                endif()
+            endif()
         endif()
     endforeach()
     if(_coverage_uses_ccache)
@@ -245,11 +252,11 @@ set(CMAKE_Fortran_FLAGS_COVERAGE
     CACHE STRING "Flags used by the Fortran compiler during coverage builds."
     FORCE )
 set(CMAKE_CXX_FLAGS_COVERAGE
-    ${COVERAGE_C_COMPILER_FLAGS}
+    ${COVERAGE_CXX_COMPILER_FLAGS}
     CACHE STRING "Flags used by the C++ compiler during coverage builds."
     FORCE )
 set(CMAKE_C_FLAGS_COVERAGE
-    ${COVERAGE_CXX_COMPILER_FLAGS}
+    ${COVERAGE_C_COMPILER_FLAGS}
     CACHE STRING "Flags used by the C compiler during coverage builds."
     FORCE )
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
