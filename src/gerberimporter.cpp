@@ -517,8 +517,8 @@ map<int, multi_polygon_type_fp> GerberImporter::generate_apertures_map(const ger
         case GERBV_APTYPE_CIRCLE:
           input = make_circle(origin,
                               parameters[0],
-                              parameters[1],
-                              parameters[2]);
+                              0,
+                              parameters[1]);
           break;
         case GERBV_APTYPE_RECTANGLE:
           input = make_rectangle(origin,
