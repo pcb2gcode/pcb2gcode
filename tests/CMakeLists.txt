@@ -26,6 +26,7 @@ function(pcb2gcode_add_test_executable target_name)
   target_link_libraries("${target_name}" PRIVATE Boost::unit_test_framework)
   add_test(NAME "${target_name}" COMMAND "${target_name}")
   set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "${target_name}")
+  set_tests_properties("${target_name}" PROPERTIES LABELS "unit_test")
 endfunction()
 
 add_subdirectory(data)
@@ -69,6 +70,7 @@ add_test(
   COMMAND gerberimporter_tests -- --gerber-root tests/data/gerberimporter
   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 set_property(GLOBAL APPEND PROPERTY PCB2GCODE_TEST_TARGETS "gerberimporter_tests")
+set_tests_properties("gerberimporter_tests" PROPERTIES LABELS "unit_test")
 target_include_directories(
   gerberimporter_tests
   SYSTEM PRIVATE ${GLIBMM_INCLUDE_DIRS} ${GDKMM_INCLUDE_DIRS} ${RSVG_INCLUDE_DIRS})
