@@ -2,10 +2,26 @@
 """Run pcb2gcode on one gerbv_example case and compare output to expected/.
 
 Usage:
-  tools/run_gerbv_example_test.py <input_dir> <pcb2gcode_binary> [--output-dir DIR]
+  tools/run_gerbv_example_test.py <input_dir> <pcb2gcode_binary>
+    [--overwrite-expected] [--expected-exit-code N] [--pcb2gcode-arg ARG ...]
 
-If --output-dir is omitted, output goes to a temporary directory that is removed
-after the test. If --output-dir is set, that directory is used and left in place.
+By default, pcb2gcode writes to a temporary directory that is removed after the test,
+and the script compares that output to the existing expected/ tree. If expected/ is
+missing, exit code 0 is accepted only when pcb2gcode produces no output files (same
+idea as tools/integration_tests.py for --version / --help).
+
+With --overwrite-expected, the script removes expected/ under the input directory
+(if present), runs pcb2gcode with --output-dir set to that path, runs fix-up on the
+new tree, and skips comparison (use this to refresh golden files).
+
+Use --expected-exit-code when pcb2gcode is supposed to fail; the default is 0.
+If the expected exit code is not zero, the script does not compare output to expected/.
+
+Extra pcb2gcode arguments (--pcb2gcode-arg) are passed through as given; if they do
+not already include --output-dir (or --output-dir=…), this script appends
+--output-dir with its managed path. When an argument starts with - (e.g. --foo=bar),
+use one token: --pcb2gcode-arg=--foo=bar (argparse otherwise treats the value as a
+new option).
 
 Working directory should be the repository root (same as integration_tests.py).
 """
@@ -31,6 +47,33 @@ def _sanitize_for_path(s):
     return re.sub(r"[^A-Za-z0-9_\-]", "_", s)
 
 
+def _pcb2gcode_args_include_output_dir(extra_args):
+    for arg in extra_args:
+        if arg == "--output-dir" or arg.startswith("--output-dir="):
+            return True
+    return False
+
+
+def _pcb2gcode_output_dir_value(extra_args):
+    for i, arg in enumerate(extra_args):
+        if arg == "--output-dir":
+            if i + 1 < len(extra_args):
+                return extra_args[i + 1]
+            return None
+        if arg.startswith("--output-dir="):
+            return arg.split("=", 1)[1]
+    return None
+
+
+def _directory_tree_has_files(path):
+    if not os.path.isdir(path):
+        return False
+    for _root, _dirs, files in os.walk(path):
+        if files:
+            return True
+    return False
+
+
 def compare_directories(left, right):
     """Return True if both trees exist, have the same relative files, and contents match."""
     if not os.path.isdir(left) or not os.path.isdir(right):
@@ -51,35 +94,74 @@ def compare_directories(left, right):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run pcb2gcode on one gerbv_example case and compare to expected/."
+        description=(
+            "Run pcb2gcode on one gerbv_example case: compare to expected/, "
+            "or overwrite expected/ with fresh output (--overwrite-expected)."
+        )
     )
     parser.add_argument("input_dir", help="Example directory (contains millproject, expected/, …)")
     parser.add_argument("pcb2gcode_binary", help="Path to pcb2gcode executable")
     parser.add_argument(
-        "--output-dir",
-        metavar="DIR",
-        default=None,
-        help="Write output here; directory is not deleted after the test (default: temporary dir)",
+        "--overwrite-expected",
+        action="store_true",
+        help="Remove input_dir/expected/, regenerate it with pcb2gcode, and skip comparison",
+    )
+    parser.add_argument(
+        "--expected-exit-code",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Exit code pcb2gcode should return (default: 0). If not 0, skip comparison to expected/.",
+    )
+    parser.add_argument(
+        "--pcb2gcode-arg",
+        action="append",
+        default=[],
+        metavar="ARG",
+        help=(
+            "Extra argument for pcb2gcode (repeat per arg). "
+            "Use --pcb2gcode-arg=--switch if the value starts with '-'."
+        ),
     )
     args = parser.parse_args()
 
     input_path = os.path.abspath(args.input_dir)
     binary = os.path.abspath(args.pcb2gcode_binary)
     expected_path = os.path.join(input_path, "expected")
-    if not os.path.isdir(expected_path):
-        print("Missing expected/ under " + input_path, file=sys.stderr)
-        return 2
+    # Like tools/integration_tests.py: expected/ may be missing when only the exit
+    # code matters, or when pcb2gcode writes no files (--version / --help).
+    missing_expected = not os.path.isdir(expected_path)
 
-    if args.output_dir is not None:
-        out = os.path.abspath(args.output_dir)
+    if args.overwrite_expected:
+        if os.path.isdir(expected_path):
+            shutil.rmtree(expected_path)
+        # pcb2gcode opens files under --output-dir and does not create the directory.
+        os.makedirs(expected_path, exist_ok=True)
+        out = expected_path
         remove_out_after = False
     else:
         sanitized = _sanitize_for_path(input_path)
         out = tempfile.mkdtemp(prefix="pcb2gcode-gerbv-", suffix="-" + sanitized)
         remove_out_after = True
 
+    extra = list(args.pcb2gcode_arg)
     try:
-        cmd = [binary, "--output-dir", out]
+        if _pcb2gcode_args_include_output_dir(extra):
+            od_val = _pcb2gcode_output_dir_value(extra)
+            if not od_val:
+                print(
+                    "pcb2gcode-arg includes --output-dir but no path was found",
+                    file=sys.stderr,
+                )
+                return 2
+            effective_out = os.path.abspath(
+                od_val if os.path.isabs(od_val) else os.path.join(input_path, od_val)
+            )
+            cmd = [binary] + extra
+        else:
+            effective_out = out
+            cmd = [binary] + extra + ["--output-dir", out]
+
         print("Running {}".format(" ".join("'{}'".format(x) for x in cmd)), file=sys.stderr)
         proc = subprocess.run(
             cmd,
@@ -90,13 +172,33 @@ def main():
         )
         if proc.stdout:
             print(proc.stdout, file=sys.stderr)
-        if proc.returncode != 0:
-            print("pcb2gcode exited with code %s" % proc.returncode, file=sys.stderr)
+        if proc.returncode != args.expected_exit_code:
+            print(
+                "pcb2gcode exited with code %s (expected %s)"
+                % (proc.returncode, args.expected_exit_code),
+                file=sys.stderr,
+            )
             return 1
 
-        fix_up_expected(out)
+        if args.expected_exit_code != 0:
+            return 0
 
-        if not compare_directories(expected_path, out):
+        fix_up_expected(effective_out)
+
+        if args.overwrite_expected:
+            return 0
+        if missing_expected:
+            if _directory_tree_has_files(effective_out):
+                print(
+                    "Missing expected/ under "
+                    + input_path
+                    + " but pcb2gcode produced output in "
+                    + effective_out,
+                    file=sys.stderr,
+                )
+                return 1
+            return 0
+        if not compare_directories(expected_path, effective_out):
             return 1
         return 0
     finally:
