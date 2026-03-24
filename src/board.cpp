@@ -128,7 +128,11 @@ void Board::createLayers(std::map<std::string, std::tuple<GerberImporter, std::s
 
     // board size calculated. create layers (in parallel)
     std::vector<std::future<pair<string, Layer>>> layer_futures;
+#if PCB2GCODE_COVERAGE_DISABLE_INTERNAL_MT
+    bool multi_threaded = false;
+#else
     bool multi_threaded = !options::get_vm()["single-thread"].as<bool>();
+#endif
     for (const auto& prepared_layer : prepared_layers) {
       const auto layer_name = prepared_layer.first;
       layer_futures.push_back(std::async(multi_threaded ? std::launch::async : std::launch::deferred,
