@@ -91,7 +91,11 @@ void NGC_Exporter::export_all(boost::program_options::variables_map& options)
 
     std::vector<std::future<void>> layer_futures;
     int layer_number = 0;
+#if PCB2GCODE_COVERAGE_DISABLE_INTERNAL_MT
+    bool multi_threaded = false;
+#else
     bool multi_threaded = !options["single-thread"].as<bool>();
+#endif
     for ( string layername : board.list_layers() )
     {
         layer_futures.push_back(std::async(multi_threaded ? std::launch::async : std::launch::deferred,
