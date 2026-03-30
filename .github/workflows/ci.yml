@@ -43,12 +43,14 @@ jobs:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
         geos: ['3.13.1', 'none']
-        compiler: ['g++', 'clang++']
+        compiler: ['g++', 'clang++', 'g++-10']
         exclude:
           - os: windows
             boost: '1_83' # TODO: Build with boost 1.83 on Windows.
           - os: windows
             compiler: 'clang++' # TODO: Make clang work on Windows.
+          - os: windows
+            compiler: 'g++-10' # TODO: Make g++-10 work on Windows.
         include:
           - geos: '3.13.1'
             os: ubuntu
@@ -115,6 +117,9 @@ jobs:
         if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
           sudo apt-get install -y clang libclang-rt-dev llvm grcov
         fi
+        if [[ "${{ matrix.compiler }}" == "g++-10" ]]; then
+          sudo apt-get install -y g++-10
+        fi
         sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
     - name: Install clang (Windows)
@@ -139,6 +144,10 @@ jobs:
         else
           echo "export CC=$(which gcc)" >> ~/.bash_profile
           echo "export CXX=$(which g++)" >> ~/.bash_profile
+        fi
+        if [[ "${{ matrix.compiler }}" == "g++-10" ]]; then
+          echo "export CC=$(which gcc-10)" >> ~/.bash_profile
+          echo "export CXX=$(which g++-10)" >> ~/.bash_profile
         fi
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
