@@ -122,11 +122,6 @@ set(PCB2GCODE_VERSION "${PROJECT_VERSION}")
 set(HAVE_RSVG_HANDLE_RENDER_DOCUMENT 0)
 set(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS 0)
 
-configure_file(
-  "${CMAKE_SOURCE_DIR}/src/pcb2gcode_version_generated.hpp.in"
-  "${CMAKE_BINARY_DIR}/pcb2gcode_version_generated.hpp"
-  @ONLY)
-
 set(PCB2GCODE_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(PCB2GCODE_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests")
 
@@ -195,15 +190,7 @@ function(pcb2gcode_apply_common target_name)
   target_compile_definitions(
     "${target_name}"
     PRIVATE "GIT_VERSION=\"${PCB2GCODE_GIT_VERSION}\""
-            "GERBV_VERSION=\"${PCB2GCODE_GERBV_VERSION}\""
-            "PACKAGE=\"${PCB2GCODE_PACKAGE}\""
-            "PACKAGE_BUGREPORT=\"${PCB2GCODE_PACKAGE_BUGREPORT}\""
-            "PACKAGE_NAME=\"${PCB2GCODE_PACKAGE_NAME}\""
-            "PACKAGE_STRING=\"${PCB2GCODE_PACKAGE_STRING}\""
-            "PACKAGE_TARNAME=\"${PCB2GCODE_PACKAGE_TARNAME}\""
-            "PACKAGE_URL=\"${PCB2GCODE_PACKAGE_URL}\""
-            "PACKAGE_VERSION=\"${PCB2GCODE_PACKAGE_VERSION}\""
-            "VERSION=\"${PCB2GCODE_VERSION}\"")
+            "GERBV_VERSION=\"${PCB2GCODE_GERBV_VERSION}\"")
   if(PCB2GCODE_HAS_GEOS)
     target_compile_options("${target_name}" PRIVATE ${PCB2GCODE_GEOS_CFLAGS_LIST})
     target_link_options("${target_name}" PRIVATE ${PCB2GCODE_GEOS_LDFLAGS_LIST})
