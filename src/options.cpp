@@ -21,7 +21,7 @@
  */
 
 #include "options.hpp"
-#include "config.h"
+#include "pcb2gcode_version.hpp"
 
 #include <fstream>
 #include <list>
