@@ -64,6 +64,8 @@ jobs:
             local_install_path: '/d/a/pcb2gcode/.local'
             ccache_path: '/d/a/pcb2gcode/.ccache'
     runs-on: ${{ matrix.os }}-latest
+    env:
+      GERBV_GIT_TAG: v2.13.0
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -279,7 +281,7 @@ jobs:
         if ! gerbv --version; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth=1 --branch=v2.13.0 https://github.com/gerbv/gerbv.git
+          git clone --depth=1 --branch=${GERBV_GIT_TAG} https://github.com/gerbv/gerbv.git
           pushd gerbv
           echo "GERBV commit: $(git rev-parse HEAD)"
           mkdir build
