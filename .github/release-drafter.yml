@@ -24,6 +24,9 @@ categories:
   - title: '🎨 Style'
     labels:
       - 'style'
+  - title: '🧹 Chores'
+    labels:
+      - 'chore'
 template: |
   ## What’s Changed
 
@@ -67,3 +70,7 @@ autolabeler:
     title:
       - '/style:/i'
       - '/whitespace:/i'
+  - label: 'chore'
+    title:
+      - '/chore:/i'
+      - '/chores:/i'
