@@ -1,6 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended"
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "gerbv Git tag built from source in CI (GERBV_GIT_TAG)",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
+      "matchStrings": [
+        "GERBV_GIT_TAG:\\s+(?<currentValue>v\\d+\\.\\d+\\.\\d+)\\s"
+      ],
+      "datasourceTemplate": "github-tags",
+      "packageNameTemplate": "gerbv/gerbv",
+      "versioningTemplate": "semver"
+    }
   ]
 }
