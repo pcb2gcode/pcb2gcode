@@ -1,14 +1,12 @@
 # Test fixtures (gerbers, expected outputs, broken examples, etc.).
 
-add_subdirectory(gerbv_example)
-
 # Always register tests; ctest skips them when versions do not match (see tests/CMakeLists.txt).
-set(_pcb2gcode_integration_script_disabled TRUE)
+set(_pcb2gcode_integration_disabled TRUE)
 if(PCB2GCODE_RUN_INTEGRATION_TESTS)
-  set(_pcb2gcode_integration_script_disabled FALSE)
+  set(_pcb2gcode_integration_disabled FALSE)
 endif()
 
-# Former tools/integration_tests.py cases; each invokes run_gerbv_example_test.py.
+# run_gerbv_example_test.py harness. Ctest label reflects expected pcb2gcode exit code.
 function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   cmake_parse_arguments(
     _arg
@@ -18,6 +16,11 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
     ${ARGN})
   if(NOT DEFINED _arg_EXPECTED_EXIT)
     set(_arg_EXPECTED_EXIT 0)
+  endif()
+  if(_arg_EXPECTED_EXIT EQUAL 0)
+    set(_integration_label integration_expect_success)
+  else()
+    set(_integration_label integration_expect_failure)
   endif()
   set(_cmd
       "${Python3_EXECUTABLE}"
@@ -33,8 +36,10 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   add_test(NAME "${_name}" COMMAND ${_cmd} WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   set_tests_properties(
     "${_name}"
-    PROPERTIES LABELS "integration_script" DISABLED "${_pcb2gcode_integration_script_disabled}")
+    PROPERTIES LABELS "${_integration_label}" DISABLED "${_pcb2gcode_integration_disabled}")
 endfunction()
+
+add_subdirectory(gerbv_example)
 
 pcb2gcode_add_integration_script_test(
   integration_split_config_csv
