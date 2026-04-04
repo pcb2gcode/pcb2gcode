@@ -11,11 +11,23 @@ if(RSVG_VERSION VERSION_GREATER_EQUAL "2.52")
 endif()
 
 # Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
+# Integration script tests live in tests/data/CMakeLists.txt (and gerbv_example/).
+# They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
+# (see above). CTest labels: integration_expect_success vs integration_expect_failure.
+# Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
 set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
 if(PCB2GCODE_HAS_GEOS
    AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
    AND Boost_VERSION VERSION_EQUAL "1.83")
   set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+else()
+  set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
+  if(NOT _geos_display)
+    set(_geos_display "none")
+  endif()
+  message(
+    WARNING
+    "Integration tests disabled (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
 endif()
 
 function(pcb2gcode_add_test_executable target_name)
@@ -105,20 +117,6 @@ pcb2gcode_add_test_executable(
 pcb2gcode_add_test_executable(
   segment_tree_tests
   segment_tree_tests.cpp)
-
-# Integration script tests live in tests/data/CMakeLists.txt (and gerbv_example/).
-# They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
-# (see above). CTest labels: integration_expect_success vs integration_expect_failure.
-# Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
-if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
-  set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
-  if(NOT _geos_display)
-    set(_geos_display "none")
-  endif()
-  message(
-    STATUS
-    "Skipping integration tests (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
-endif()
 
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(ProcessorCount)
