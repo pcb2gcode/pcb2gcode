@@ -132,17 +132,8 @@ def main():
     # code matters, or when pcb2gcode writes no files (--version / --help).
     missing_expected = not os.path.isdir(expected_path)
 
-    if args.overwrite_expected:
-        if os.path.isdir(expected_path):
-            shutil.rmtree(expected_path)
-        # pcb2gcode opens files under --output-dir and does not create the directory.
-        os.makedirs(expected_path, exist_ok=True)
-        out = expected_path
-        remove_out_after = False
-    else:
-        sanitized = _sanitize_for_path(input_path)
-        out = tempfile.mkdtemp(prefix="pcb2gcode-gerbv-", suffix="-" + sanitized)
-        remove_out_after = True
+    sanitized = _sanitize_for_path(input_path)
+    out = tempfile.mkdtemp(prefix="pcb2gcode-gerbv-", suffix="-" + sanitized)
 
     extra = list(args.pcb2gcode_arg)
     try:
@@ -185,8 +176,6 @@ def main():
 
         fix_up_expected(effective_out)
 
-        if args.overwrite_expected:
-            return 0
         if missing_expected:
             if _directory_tree_has_files(effective_out):
                 print(
@@ -199,11 +188,15 @@ def main():
                 return 1
             return 0
         if not compare_directories(expected_path, effective_out):
+            if args.overwrite_expected:
+                # Delete expected_path and copy effective_out to it.
+                shutil.rmtree(expected_path, ignore_errors=True)
+                shutil.copytree(effective_out, expected_path)
+                return 0
             return 1
         return 0
     finally:
-        if remove_out_after:
-            shutil.rmtree(out, ignore_errors=True)
+        shutil.rmtree(out, ignore_errors=True)
 
 
 if __name__ == "__main__":
