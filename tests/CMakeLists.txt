@@ -26,8 +26,8 @@ else()
     set(_geos_display "none")
   endif()
   message(
-    STATUS
-    "Skipping integration tests (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
+    WARNING
+    "Integration tests disabled (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
 endif()
 
 function(pcb2gcode_add_test_executable target_name)
