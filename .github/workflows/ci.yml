@@ -42,7 +42,9 @@ jobs:
       matrix:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
-        geos: ['3.13.1', 'none']
+        geos:
+          - &geos_version '3.13.1'
+          - 'none'
         compiler: ['g++', 'clang++', 'g++-10']
         exclude:
           - os: windows
@@ -52,7 +54,7 @@ jobs:
           - os: windows
             compiler: 'g++-10' # TODO: Make g++-10 work on Windows.
         include:
-          - geos: '3.13.1'
+          - geos: *geos_version
             os: ubuntu
             code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
