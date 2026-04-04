@@ -10,11 +10,28 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(voronoi_tests)
 
-// Output SVG files for debugging.
-#define DEBUG_SVG TRUE
+namespace {
+
+// Pass as a custom module argument, e.g. voronoi_tests -- --write-svgs (Boost.Test requires -- before user args).
+bool write_svgs_enabled() {
+  static const bool enabled = []() {
+    const auto& mts = boost::unit_test::framework::master_test_suite();
+    for (int i = 1; i < mts.argc; i++) {
+      const string arg(mts.argv[i]);
+      if (arg == "--write-svgs") {
+        return true;
+      }
+    }
+    return false;
+  }();
+  return enabled;
+}
 
 template <typename geo_t>
 void print_svg(const geo_t& geo, const string& filename) {
+  if (!write_svgs_enabled()) {
+    return;
+  }
   std::ofstream svg(filename);
 
   box_type bounding_box{{0, 0}, {0, 0}};
@@ -33,6 +50,8 @@ void print_svg(const geo_t& geo, const string& filename) {
                    % (ConsistentRand::rand()%255)).str());
   }
 }
+
+}  // namespace
 
 BOOST_AUTO_TEST_CASE(empty) {
   multi_polygon_type mp;

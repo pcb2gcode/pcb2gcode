@@ -42,12 +42,6 @@ tests/data/gerbv_example/*/*.nc
 tests/data/gerbv_example/*/*.svg
 *.orig
 
-#make check output files
-*.log
-*.trs
-*_input.svg
-*_output.svg
-
 #make check-with-coverage files
 *.gcno
 *.gcda
