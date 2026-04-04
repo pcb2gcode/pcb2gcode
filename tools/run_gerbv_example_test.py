@@ -3,14 +3,14 @@
 
 Usage:
   tools/run_gerbv_example_test.py <input_dir> <pcb2gcode_binary>
-    [--overwrite-expected] [--expected-exit-code N] [--pcb2gcode-arg ARG ...]
+    [--regenerate-expected] [--expected-exit-code N] [--pcb2gcode-arg ARG ...]
 
 By default, pcb2gcode writes to a temporary directory that is removed after the test,
 and the script compares that output to the existing expected/ tree. If expected/ is
 missing, exit code 0 is accepted only when pcb2gcode produces no output files (same
 idea as tools/integration_tests.py for --version / --help).
 
-With --overwrite-expected, the script removes expected/ under the input directory
+With --regenerate-expected, the script removes expected/ under the input directory
 (if present), runs pcb2gcode with --output-dir set to that path, runs fix-up on the
 new tree, and skips comparison (use this to refresh golden files).
 
@@ -32,6 +32,7 @@ import argparse
 import filecmp
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -74,6 +75,19 @@ def _directory_tree_has_files(path):
     return False
 
 
+def _print_regenerate_command_hint(input_dir, binary, pcb2gcode_args):
+    """Print a copy-paste shell command (for ctest / CI logs)."""
+    script = os.path.abspath(sys.argv[0])
+    argv = [sys.executable, script, input_dir, binary, "--regenerate-expected"]
+    for a in pcb2gcode_args:
+        argv.append("--pcb2gcode-arg=" + a)
+    line = " ".join(shlex.quote(x) for x in argv)
+    print(
+        "To regenerate expected/ output, run from the repository root:\n  " + line,
+        file=sys.stderr,
+    )
+
+
 def compare_directories(left, right):
     """Return True if both trees exist, have the same relative files, and contents match."""
     if not os.path.isdir(left) or not os.path.isdir(right):
@@ -96,13 +110,13 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "Run pcb2gcode on one gerbv_example case: compare to expected/, "
-            "or overwrite expected/ with fresh output (--overwrite-expected)."
+            "or overwrite expected/ with fresh output (--regenerate-expected)."
         )
     )
     parser.add_argument("input_dir", help="Example directory (contains millproject, expected/, …)")
     parser.add_argument("pcb2gcode_binary", help="Path to pcb2gcode executable")
     parser.add_argument(
-        "--overwrite-expected",
+        "--regenerate-expected",
         action="store_true",
         help="Remove input_dir/expected/, regenerate it with pcb2gcode, and skip comparison",
     )
@@ -185,14 +199,20 @@ def main():
                     + effective_out,
                     file=sys.stderr,
                 )
+                _print_regenerate_command_hint(
+                    args.input_dir, args.pcb2gcode_binary, args.pcb2gcode_arg
+                )
                 return 1
             return 0
         if not compare_directories(expected_path, effective_out):
-            if args.overwrite_expected:
+            if args.regenerate_expected:
                 # Delete expected_path and copy effective_out to it.
                 shutil.rmtree(expected_path, ignore_errors=True)
                 shutil.copytree(effective_out, expected_path)
                 return 0
+            _print_regenerate_command_hint(
+                args.input_dir, args.pcb2gcode_binary, args.pcb2gcode_arg
+            )
             return 1
         return 0
     finally:
