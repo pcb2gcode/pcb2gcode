@@ -1,11 +1,5 @@
 # Test fixtures (gerbers, expected outputs, broken examples, etc.).
 
-# Always register tests; ctest skips them when versions do not match (see tests/CMakeLists.txt).
-set(_pcb2gcode_integration_disabled TRUE)
-if(PCB2GCODE_RUN_INTEGRATION_TESTS)
-  set(_pcb2gcode_integration_disabled FALSE)
-endif()
-
 # run_gerbv_example_test.py harness. Ctest label reflects expected pcb2gcode exit code.
 # Also registers ${_name}_regenerate_expected. Build target integration_regenerate_all_expected
 # depends on every such target (one command refreshes all).
@@ -39,6 +33,13 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   set(_test_cmd ${_base_cmd})
   list(APPEND _test_cmd ${_extra_args})
   add_test(NAME "${_name}" COMMAND ${_test_cmd} WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  # Always register tests; ctest skips them when versions do not match (see tests/CMakeLists.txt).
+  set(_pcb2gcode_integration_disabled TRUE)
+  # Run integration tests when the versions of geos and boost are compatible or when the test is expected to fail.
+  if(PCB2GCODE_RUN_INTEGRATION_TESTS OR NOT (_arg_EXPECTED_EXIT EQUAL 0))
+    set(_pcb2gcode_integration_disabled FALSE)
+  endif()
+
   set_tests_properties(
     "${_name}"
     PROPERTIES LABELS "${_integration_label}" DISABLED "${_pcb2gcode_integration_disabled}")
