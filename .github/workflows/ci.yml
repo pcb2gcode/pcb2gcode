@@ -37,12 +37,12 @@ on:
 
 jobs:
   build-and-test:
-    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
+    name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos == 'pinned' && env.GEOS_GIT_TAG || matrix.geos }}
     strategy:
       matrix:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
-        geos: ['3.13.1', 'none']
+        geos: ['pinned', 'none']
         compiler: ['g++', 'clang++', 'g++-10']
         exclude:
           - os: windows
@@ -52,7 +52,7 @@ jobs:
           - os: windows
             compiler: 'g++-10' # TODO: Make g++-10 work on Windows.
         include:
-          - geos: '3.13.1'
+          - geos: pinned
             os: ubuntu
             code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
@@ -66,6 +66,7 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
     env:
       GERBV_GIT_TAG: v2.13.0
+      GEOS_GIT_TAG: '3.13.1'
     defaults:
       run:
         shell: ${{ matrix.shell }}
@@ -176,7 +177,7 @@ jobs:
     - name: Sanitize cache key
       id: sanitize-key
       run: |
-        echo "key=$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
+        echo "key=$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos == 'pinned' && env.GEOS_GIT_TAG || matrix.geos }}' | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
         if command -v cygpath; then
           echo "path=$(cygpath -w ${{ matrix.local_install_path }})" >> $GITHUB_OUTPUT
           echo "ccache_path=$(cygpath -w ${{ matrix.ccache_path }})" >> $GITHUB_OUTPUT
@@ -237,13 +238,13 @@ jobs:
         fi
 
 ### GEOS setup
-    - name: Build and install geos ${{ matrix.geos }}
+    - name: Build and install geos ${{ matrix.geos == 'pinned' && env.GEOS_GIT_TAG || matrix.geos }}
       if: matrix.geos != 'none'
       run: |
         if [[ ! -d "${LOCAL_INSTALL_PATH}/include/geos" ]]; then
           echo "UPDATE_CACHE=true" >> $GITHUB_ENV
           pushd ~
-          git clone --depth 1 --branch ${{ matrix.geos }} https://github.com/libgeos/geos.git
+          git clone --depth 1 --branch ${GEOS_GIT_TAG} https://github.com/libgeos/geos.git
           pushd geos
           echo "GEOS commit: $(git rev-parse HEAD)"
           mkdir build
@@ -421,7 +422,7 @@ jobs:
         chmod a+x pcb2gcode-${PCB2GCODE_VERSION}/pcb2gcode.sh
         tar czvf pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${PCB2GCODE_VERSION}.tar.gz pcb2gcode-${PCB2GCODE_VERSION}
       env:
-        GEOS: ${{ matrix.geos }}
+        GEOS: ${{ matrix.geos == 'pinned' && env.GEOS_GIT_TAG || matrix.geos }}
     # TODO: Fix upload for windows
     - name: Prepare build for upload for Windows
       if: matrix.os == 'windows' && false
@@ -481,7 +482,7 @@ jobs:
         popd
         zip -r pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${PCB2GCODE_VERSION}.zip pcb2gcode-${PCB2GCODE_VERSION}
       env:
-        GEOS: ${{ matrix.geos }}
+        GEOS: ${{ matrix.geos == 'pinned' && env.GEOS_GIT_TAG || matrix.geos }}
     - name: Upload build for Ubuntu
       if: matrix.os != 'windows'
       uses: actions/upload-artifact@v7
