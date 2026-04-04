@@ -1,12 +1,6 @@
 # For each subdirectory with an expected/ tree, run pcb2gcode and compare to expected/.
 # Requires the same Boost/GEOS versions as tools/integration_tests.py for stable outputs.
 
-# Always register tests; ctest skips them when versions do not match (see tests/CMakeLists.txt).
-set(_pcb2gcode_gerbv_example_disabled TRUE)
-if(PCB2GCODE_RUN_INTEGRATION_TESTS)
-  set(_pcb2gcode_gerbv_example_disabled FALSE)
-endif()
-
 file(
   GLOB _gerbv_entries
   RELATIVE "${CMAKE_SOURCE_DIR}"
@@ -21,13 +15,5 @@ foreach(_name ${_gerbv_entries})
     continue()
   endif()
   string(MAKE_C_IDENTIFIER "${_name}" _test_id)
-  add_test(
-    NAME "gerbv_example_${_test_id}"
-    COMMAND "${Python3_EXECUTABLE}"
-            "${CMAKE_SOURCE_DIR}/tools/run_gerbv_example_test.py" "${_dir}"
-            "$<TARGET_FILE:pcb2gcode>"
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-  set_tests_properties(
-    "gerbv_example_${_test_id}"
-    PROPERTIES LABELS "gerbv_example" DISABLED "${_pcb2gcode_gerbv_example_disabled}")
+  pcb2gcode_add_integration_script_test("gerbv_example_${_test_id}" "${_name}")
 endforeach()

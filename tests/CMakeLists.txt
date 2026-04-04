@@ -106,6 +106,10 @@ pcb2gcode_add_test_executable(
   segment_tree_tests
   segment_tree_tests.cpp)
 
+# Integration script tests live in tests/data/CMakeLists.txt (and gerbv_example/).
+# They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
+# (see above). CTest labels: integration_expect_success vs integration_expect_failure.
+# Regenerate expected/ with tools/run_gerbv_example_test.py --overwrite-expected.
 if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
   set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
   if(NOT _geos_display)
@@ -115,9 +119,6 @@ if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
     STATUS
     "Skipping integration tests (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
 endif()
-# When enabled, integration coverage is tests/data/CMakeLists.txt (gerbv_example/*
-# and pcb2gcode_add_integration_script_test). tools/integration_tests.py remains
-# for manual --fix workflows.
 
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(ProcessorCount)
