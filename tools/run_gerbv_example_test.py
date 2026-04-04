@@ -3,14 +3,14 @@
 
 Usage:
   tools/run_gerbv_example_test.py <input_dir> <pcb2gcode_binary>
-    [--overwrite-expected] [--expected-exit-code N] [--pcb2gcode-arg ARG ...]
+    [--regenerate-expected] [--expected-exit-code N] [--pcb2gcode-arg ARG ...]
 
 By default, pcb2gcode writes to a temporary directory that is removed after the test,
 and the script compares that output to the existing expected/ tree. If expected/ is
 missing, exit code 0 is accepted only when pcb2gcode produces no output files (same
 idea as tools/integration_tests.py for --version / --help).
 
-With --overwrite-expected, the script removes expected/ under the input directory
+With --regenerate-expected, the script removes expected/ under the input directory
 (if present), runs pcb2gcode with --output-dir set to that path, runs fix-up on the
 new tree, and skips comparison (use this to refresh golden files).
 
@@ -96,13 +96,13 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "Run pcb2gcode on one gerbv_example case: compare to expected/, "
-            "or overwrite expected/ with fresh output (--overwrite-expected)."
+            "or overwrite expected/ with fresh output (--regenerate-expected)."
         )
     )
     parser.add_argument("input_dir", help="Example directory (contains millproject, expected/, …)")
     parser.add_argument("pcb2gcode_binary", help="Path to pcb2gcode executable")
     parser.add_argument(
-        "--overwrite-expected",
+        "--regenerate-expected",
         action="store_true",
         help="Remove input_dir/expected/, regenerate it with pcb2gcode, and skip comparison",
     )
@@ -188,7 +188,7 @@ def main():
                 return 1
             return 0
         if not compare_directories(expected_path, effective_out):
-            if args.overwrite_expected:
+            if args.regenerate_expected:
                 # Delete expected_path and copy effective_out to it.
                 shutil.rmtree(expected_path, ignore_errors=True)
                 shutil.copytree(effective_out, expected_path)

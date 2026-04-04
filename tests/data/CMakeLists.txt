@@ -7,7 +7,7 @@ if(PCB2GCODE_RUN_INTEGRATION_TESTS)
 endif()
 
 # run_gerbv_example_test.py harness. Ctest label reflects expected pcb2gcode exit code.
-# Also registers ${_name}_overwrite_expected. Build target integration_overwrite_all_expected
+# Also registers ${_name}_regenerate_expected. Build target integration_regenerate_all_expected
 # depends on every such target (one command refreshes all).
 function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   cmake_parse_arguments(
@@ -42,22 +42,22 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   set_tests_properties(
     "${_name}"
     PROPERTIES LABELS "${_integration_label}" DISABLED "${_pcb2gcode_integration_disabled}")
-  set(_overwrite_cmd ${_base_cmd})
-  list(APPEND _overwrite_cmd "--overwrite-expected")
-  list(APPEND _overwrite_cmd ${_extra_args})
+  set(_regenerate_cmd ${_base_cmd})
+  list(APPEND _regenerate_cmd "--regenerate-expected")
+  list(APPEND _regenerate_cmd ${_extra_args})
   add_custom_target(
-    ${_name}_overwrite_expected
-    COMMAND ${_overwrite_cmd}
+    ${_name}_regenerate_expected
+    COMMAND ${_regenerate_cmd}
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     DEPENDS pcb2gcode
-    COMMENT "Overwrite expected/ for ${_name}")
+    COMMENT "Regenerate expected/ for ${_name}")
   set_property(
     GLOBAL
     APPEND
-    PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS "${_name}_overwrite_expected")
+    PROPERTY PCB2GCODE_INTEGRATION_REGENERATE_TARGETS "${_name}_regenerate_expected")
 endfunction()
 
-set_property(GLOBAL PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS "")
+set_property(GLOBAL PROPERTY PCB2GCODE_INTEGRATION_REGENERATE_TARGETS "")
 add_subdirectory(gerbv_example)
 
 pcb2gcode_add_integration_script_test(
@@ -160,12 +160,12 @@ pcb2gcode_add_integration_script_test(
   PCB2GCODE_ARGS "--zchange-absolute=false")
 
 get_property(
-  _pcb2gcode_integration_overwrite_targets
+  _pcb2gcode_integration_regenerate_targets
   GLOBAL
-  PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS)
-if(_pcb2gcode_integration_overwrite_targets)
+  PROPERTY PCB2GCODE_INTEGRATION_REGENERATE_TARGETS)
+if(_pcb2gcode_integration_regenerate_targets)
   add_custom_target(
-    integration_overwrite_all_expected
-    DEPENDS ${_pcb2gcode_integration_overwrite_targets}
+    integration_regenerate_all_expected
+    DEPENDS ${_pcb2gcode_integration_regenerate_targets}
     COMMENT "Regenerate expected/ for all integration script tests")
 endif()

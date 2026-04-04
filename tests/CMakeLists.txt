@@ -109,7 +109,7 @@ pcb2gcode_add_test_executable(
 # Integration script tests live in tests/data/CMakeLists.txt (and gerbv_example/).
 # They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
 # (see above). CTest labels: integration_expect_success vs integration_expect_failure.
-# Regenerate expected/ with tools/run_gerbv_example_test.py --overwrite-expected.
+# Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
 if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
   set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
   if(NOT _geos_display)
