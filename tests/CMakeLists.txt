@@ -10,12 +10,30 @@ if(RSVG_VERSION VERSION_GREATER_EQUAL "2.52")
   set(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS 1 PARENT_SCOPE)
 endif()
 
-# Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
+# Integration tests require Boost 1.83. When .github/workflows/ci.yml is present,
+# GEOS must match the &geos_version anchor there; otherwise any GEOS is accepted.
+set(_pcb2gcode_ci_yml "${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml")
+set(_pcb2gcode_ci_geos_version "")
+if(EXISTS "${_pcb2gcode_ci_yml}")
+  file(READ "${_pcb2gcode_ci_yml}" _pcb2gcode_ci_yml_content)
+  string(
+    REGEX MATCH
+    "&geos_version[ \t]+'([0-9]+\\.[0-9]+\\.[0-9]+)'" _pcb2gcode_ci_geos_match
+    "${_pcb2gcode_ci_yml_content}")
+  if(_pcb2gcode_ci_geos_match)
+    set(_pcb2gcode_ci_geos_version "${CMAKE_MATCH_1}")
+  endif()
+endif()
+
 set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
-if(PCB2GCODE_HAS_GEOS
-   AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
-   AND Boost_VERSION VERSION_EQUAL "1.83")
-  set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+if(PCB2GCODE_HAS_GEOS AND Boost_VERSION VERSION_EQUAL "1.83")
+  if(_pcb2gcode_ci_geos_version)
+    if(PCB2GCODE_GEOS_VERSION VERSION_EQUAL "${_pcb2gcode_ci_geos_version}")
+      set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+    endif()
+  else()
+    set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
+  endif()
 endif()
 
 function(pcb2gcode_add_test_executable target_name)
@@ -111,9 +129,16 @@ if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
   if(NOT _geos_display)
     set(_geos_display "none")
   endif()
+  if(_pcb2gcode_ci_geos_version)
+    set(
+      _pcb2gcode_integration_skip_reason
+      "Boost 1.83 and GEOS ${_pcb2gcode_ci_geos_version} (from .github/workflows/ci.yml)")
+  else()
+    set(_pcb2gcode_integration_skip_reason "Boost 1.83 and GEOS")
+  endif()
   message(
-    STATUS
-    "Skipping integration tests (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
+    WARNING
+    "Skipping integration tests (require ${_pcb2gcode_integration_skip_reason}, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
 endif()
 # When enabled, integration coverage is tests/data/CMakeLists.txt (gerbv_example/*
 # and pcb2gcode_add_integration_script_test). tools/integration_tests.py remains

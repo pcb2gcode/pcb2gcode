@@ -41,18 +41,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, windows]
-        boost: ['latest', '1_83']
-        geos: ['3.13.1', 'none']
+        boost:
+          - 'latest'
+          - &boost_version '1_83'
+        geos:
+          - &geos_version '3.13.1'
+          - 'none'
         compiler: ['g++', 'clang++', 'g++-10']
         exclude:
           - os: windows
-            boost: '1_83' # TODO: Build with boost 1.83 on Windows.
+            boost: *boost_version # TODO: Build with boost 1.83 on Windows.
           - os: windows
             compiler: 'clang++' # TODO: Make clang work on Windows.
           - os: windows
             compiler: 'g++-10' # TODO: Make g++-10 work on Windows.
         include:
-          - geos: '3.13.1'
+          - geos: *geos_version
             os: ubuntu
             code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
           - os: ubuntu
@@ -65,6 +69,7 @@ jobs:
             ccache_path: '/d/a/pcb2gcode/.ccache'
     runs-on: ${{ matrix.os }}-latest
     env:
+      # renovate.json depends on the format of the below line
       GERBV_GIT_TAG: v2.13.0
     defaults:
       run:
