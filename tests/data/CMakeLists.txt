@@ -7,6 +7,8 @@ if(PCB2GCODE_RUN_INTEGRATION_TESTS)
 endif()
 
 # run_gerbv_example_test.py harness. Ctest label reflects expected pcb2gcode exit code.
+# Also registers ${_name}_overwrite_expected. Build target integration_overwrite_all_expected
+# depends on every such target (one command refreshes all).
 function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   cmake_parse_arguments(
     _arg
@@ -22,23 +24,40 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
   else()
     set(_integration_label integration_expect_failure)
   endif()
-  set(_cmd
+  set(_base_cmd
       "${Python3_EXECUTABLE}"
       "${CMAKE_SOURCE_DIR}/tools/run_gerbv_example_test.py"
       "${CMAKE_SOURCE_DIR}/${_input_dir_relpath}"
       "$<TARGET_FILE:pcb2gcode>")
+  set(_extra_args "")
   if(NOT _arg_EXPECTED_EXIT EQUAL 0)
-    list(APPEND _cmd "--expected-exit-code" "${_arg_EXPECTED_EXIT}")
+    list(APPEND _extra_args "--expected-exit-code" "${_arg_EXPECTED_EXIT}")
   endif()
   foreach(_a IN LISTS _arg_PCB2GCODE_ARGS)
-    list(APPEND _cmd "--pcb2gcode-arg=${_a}")
+    list(APPEND _extra_args "--pcb2gcode-arg=${_a}")
   endforeach()
-  add_test(NAME "${_name}" COMMAND ${_cmd} WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  set(_test_cmd ${_base_cmd})
+  list(APPEND _test_cmd ${_extra_args})
+  add_test(NAME "${_name}" COMMAND ${_test_cmd} WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
   set_tests_properties(
     "${_name}"
     PROPERTIES LABELS "${_integration_label}" DISABLED "${_pcb2gcode_integration_disabled}")
+  set(_overwrite_cmd ${_base_cmd})
+  list(APPEND _overwrite_cmd "--overwrite-expected")
+  list(APPEND _overwrite_cmd ${_extra_args})
+  add_custom_target(
+    ${_name}_overwrite_expected
+    COMMAND ${_overwrite_cmd}
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    DEPENDS pcb2gcode
+    COMMENT "Overwrite expected/ for ${_name}")
+  set_property(
+    GLOBAL
+    APPEND
+    PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS "${_name}_overwrite_expected")
 endfunction()
 
+set_property(GLOBAL PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS "")
 add_subdirectory(gerbv_example)
 
 pcb2gcode_add_integration_script_test(
@@ -139,3 +158,14 @@ pcb2gcode_add_integration_script_test(
   "tests/data/gerbv_example/multivibrator-zchange-absolute"
   EXPECTED_EXIT 19
   PCB2GCODE_ARGS "--zchange-absolute=false")
+
+get_property(
+  _pcb2gcode_integration_overwrite_targets
+  GLOBAL
+  PROPERTY PCB2GCODE_INTEGRATION_OVERWRITE_TARGETS)
+if(_pcb2gcode_integration_overwrite_targets)
+  add_custom_target(
+    integration_overwrite_all_expected
+    DEPENDS ${_pcb2gcode_integration_overwrite_targets}
+    COMMENT "Regenerate expected/ for all integration script tests")
+endif()
