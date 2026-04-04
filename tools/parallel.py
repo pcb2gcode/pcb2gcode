@@ -18,11 +18,19 @@ def build_cmd(command_template: list[str], argument: str) -> list[str] | None:
     return command_template + [argument]
 
 
+def resolve_cmd_for_subprocess(cmd: list[str]) -> list[str]:
+    """Windows CreateProcess cannot start .py files; run them with the current interpreter."""
+    if sys.platform == "win32" and cmd and cmd[0].endswith(".py"):
+        return [sys.executable, *cmd]
+    return cmd
+
+
 def run_command(command_template: list[str], argument: str, index: Any) -> tuple[dict[str, str] | None, Any]:
     """Executes a single command with the given argument."""
     cmd = build_cmd(command_template, argument)
     if cmd is None:
         return (None, index)
+    cmd = resolve_cmd_for_subprocess(cmd)
     try:
         # Capture output so stdout/stderr from different threads don't interleave
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -34,7 +42,7 @@ def run_command(command_template: list[str], argument: str, index: Any) -> tuple
     except Exception as e:
         return {
             "stdout": "",
-            "stderr": f"Error executing '{' '.join(cmd)}': {e}\n",
+            "stderr": f"Error executing '{shlex.join(cmd)}': {e}\n",
             "returncode": -1
         }, index
 
@@ -95,7 +103,7 @@ def main() -> None:
         for line in inputs:
             cmd = build_cmd(args.command, line)
             if cmd is not None:
-                print(shlex.join(cmd))
+                print(shlex.join(resolve_cmd_for_subprocess(cmd)))
         return
 
     def print_result(res: dict[str, str] | None) -> None:
