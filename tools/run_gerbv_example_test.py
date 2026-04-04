@@ -32,6 +32,7 @@ import argparse
 import filecmp
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -72,6 +73,19 @@ def _directory_tree_has_files(path):
         if files:
             return True
     return False
+
+
+def _print_regenerate_command_hint(input_dir, binary, pcb2gcode_args):
+    """Print a copy-paste shell command (for ctest / CI logs)."""
+    script = os.path.abspath(sys.argv[0])
+    argv = [sys.executable, script, input_dir, binary, "--regenerate-expected"]
+    for a in pcb2gcode_args:
+        argv.append("--pcb2gcode-arg=" + a)
+    line = " ".join(shlex.quote(x) for x in argv)
+    print(
+        "To regenerate expected/ output, run from the repository root:\n  " + line,
+        file=sys.stderr,
+    )
 
 
 def compare_directories(left, right):
@@ -185,6 +199,9 @@ def main():
                     + effective_out,
                     file=sys.stderr,
                 )
+                _print_regenerate_command_hint(
+                    args.input_dir, args.pcb2gcode_binary, args.pcb2gcode_arg
+                )
                 return 1
             return 0
         if not compare_directories(expected_path, effective_out):
@@ -193,6 +210,9 @@ def main():
                 shutil.rmtree(expected_path, ignore_errors=True)
                 shutil.copytree(effective_out, expected_path)
                 return 0
+            _print_regenerate_command_hint(
+                args.input_dir, args.pcb2gcode_binary, args.pcb2gcode_arg
+            )
             return 1
         return 0
     finally:
