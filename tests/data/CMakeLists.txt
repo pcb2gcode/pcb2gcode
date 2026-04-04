@@ -2,8 +2,10 @@
 
 add_subdirectory(gerbv_example)
 
-if(NOT PCB2GCODE_RUN_INTEGRATION_TESTS)
-  return()
+# Always register tests; ctest skips them when versions do not match (see tests/CMakeLists.txt).
+set(_pcb2gcode_integration_script_disabled TRUE)
+if(PCB2GCODE_RUN_INTEGRATION_TESTS)
+  set(_pcb2gcode_integration_script_disabled FALSE)
 endif()
 
 # Former tools/integration_tests.py cases; each invokes run_gerbv_example_test.py.
@@ -29,7 +31,9 @@ function(pcb2gcode_add_integration_script_test _name _input_dir_relpath)
     list(APPEND _cmd "--pcb2gcode-arg=${_a}")
   endforeach()
   add_test(NAME "${_name}" COMMAND ${_cmd} WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
-  set_tests_properties("${_name}" PROPERTIES LABELS "integration_script")
+  set_tests_properties(
+    "${_name}"
+    PROPERTIES LABELS "integration_script" DISABLED "${_pcb2gcode_integration_script_disabled}")
 endfunction()
 
 pcb2gcode_add_integration_script_test(
