@@ -10,24 +10,51 @@ if(RSVG_VERSION VERSION_GREATER_EQUAL "2.52")
   set(HAVE_RSVG_HANDLE_GET_INTRINSIC_SIZE_IN_PIXELS 1 PARENT_SCOPE)
 endif()
 
-# Integration tests require Boost 1.83 and GEOS 3.13.1 for reproducible results.
+# Integration tests require Boost 1.83 and GEOS. When .github/workflows/ci.yml defines
+# &geos_version 'x.y.z', only that GEOS version runs integration tests (CI reproducibility).
+# If that file is missing or has no &geos_version pin, any GEOS version is accepted.
 # Integration script tests live in tests/data/CMakeLists.txt (and gerbv_example/).
 # They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
 # (see above). CTest labels: integration_expect_success vs integration_expect_failure.
 # Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
+set(_pcb2gcode_ci_geos_pinned "")
+set(_pcb2gcode_ci_yml "${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml")
+if(EXISTS "${_pcb2gcode_ci_yml}")
+  file(READ "${_pcb2gcode_ci_yml}" _pcb2gcode_ci_yml_contents)
+  string(
+    REGEX MATCH "&geos_version[ \t]+['\"]([0-9]+\\.[0-9]+\\.[0-9]+)['\"]"
+    _pcb2gcode_ci_geos_match
+    "${_pcb2gcode_ci_yml_contents}")
+  if(_pcb2gcode_ci_geos_match)
+    set(_pcb2gcode_ci_geos_pinned "${CMAKE_MATCH_1}")
+  endif()
+endif()
+
+set(_pcb2gcode_integration_geos_ok OFF)
+if(PCB2GCODE_HAS_GEOS)
+  if(_pcb2gcode_ci_geos_pinned STREQUAL "")
+    set(_pcb2gcode_integration_geos_ok ON)
+  elseif(PCB2GCODE_GEOS_VERSION VERSION_EQUAL "${_pcb2gcode_ci_geos_pinned}")
+    set(_pcb2gcode_integration_geos_ok ON)
+  endif()
+endif()
+
 set(PCB2GCODE_RUN_INTEGRATION_TESTS OFF)
-if(PCB2GCODE_HAS_GEOS
-   AND PCB2GCODE_GEOS_VERSION VERSION_EQUAL "3.13.1"
-   AND Boost_VERSION VERSION_EQUAL "1.83")
+if(Boost_VERSION VERSION_EQUAL "1.83" AND _pcb2gcode_integration_geos_ok)
   set(PCB2GCODE_RUN_INTEGRATION_TESTS ON)
 else()
   set(_geos_display "${PCB2GCODE_GEOS_VERSION}")
   if(NOT _geos_display)
     set(_geos_display "none")
   endif()
+  if(_pcb2gcode_ci_geos_pinned STREQUAL "")
+    set(_pcb2gcode_integration_geos_req "GEOS (any version)")
+  else()
+    set(_pcb2gcode_integration_geos_req "GEOS ${_pcb2gcode_ci_geos_pinned} (pinned in .github/workflows/ci.yml)")
+  endif()
   message(
     WARNING
-    "Integration tests disabled (require Boost 1.83 and GEOS 3.13.1, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
+    "Integration tests disabled (require Boost 1.83 and ${_pcb2gcode_integration_geos_req}, have Boost ${Boost_VERSION} and GEOS ${_geos_display})")
 endif()
 
 function(pcb2gcode_add_test_executable target_name)
