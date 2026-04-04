@@ -546,7 +546,7 @@ jobs:
     steps:
       - name: Download the artifacts to release
         id: download-artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
       - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
       - name: Draft release
         id: release_drafter
