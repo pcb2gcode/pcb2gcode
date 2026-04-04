@@ -12,6 +12,19 @@
       "datasourceTemplate": "github-tags",
       "packageNameTemplate": "gerbv/gerbv",
       "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "GEOS release tag built from source in CI (&geos_version in matrix)",
+      "managerFilePatterns": ["/^\\.github/workflows/ci\\.yml$/"],
+      "matchStrings": [
+        "&geos_version\\s+'(?<currentValue>\\d+\\.\\d+\\.\\d+)'",
+        "&geos_version\\s+\"(?<currentValue>\\d+\\.\\d+\\.\\d+)\""
+      ],
+      "depNameTemplate": "geos",
+      "datasourceTemplate": "github-tags",
+      "packageNameTemplate": "libgeos/geos",
+      "versioningTemplate": "semver"
     }
   ]
 }
