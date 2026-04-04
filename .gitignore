@@ -45,8 +45,12 @@ tests/data/gerbv_example/*/*.svg
 #make check-with-coverage files
 *.gcno
 *.gcda
+*.profraw
 /pcb2gcode-*-coverage.info
 /pcb2gcode-*-coverage
+
+# Python
+__pycache__/
 
 #editor or browser files
 .directory
