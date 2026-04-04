@@ -54,7 +54,7 @@ def main() -> None:
         help="Keep same order. If set, print outputs in input order; if not, print in completion order."
     )
     parser.add_argument(
-        "--dry-run",
+        "-n", "--dry-run",
         action="store_true",
         help="Print the command that would be run for each input instead of running it."
     )

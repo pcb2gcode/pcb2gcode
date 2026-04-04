@@ -24,6 +24,11 @@ def parse_args() -> argparse.Namespace:
         help="Path to pcb2gcode binary to run.",
     )
     parser.add_argument(
+        "-n", "--dry-run",
+        action="store_true",
+        help="Dry run (print the command that would be run instead of running it)",
+    )
+    parser.add_argument(
         "example_dir",
         help="Example directory to run (e.g. a subdir of tests/data/gerbv_example)",
     )
@@ -36,7 +41,7 @@ def main() -> None:
     code_coverage_enabled = args.code_coverage
     pcb2gcode_binary = args.pcb2gcode_binary
     pcb2gcode_binary = os.path.abspath(pcb2gcode_binary)
-
+    dry_run = args.dry_run
     have_valgrind = shutil.which("valgrind") is not None
     return_code = 0
     try:
@@ -75,9 +80,13 @@ def main() -> None:
             cmd = [pcb2gcode_binary]
 
         start = time.perf_counter()
-        result = subprocess.run(cmd, cwd=example_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        print(result.stdout, end="")
-        return_code = result.returncode
+        if dry_run:
+            print(shlex.join(cmd))
+            return_code = 0
+        else:
+            result = subprocess.run(cmd, cwd=example_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            print(result.stdout, end="")
+            return_code = result.returncode
         elapsed = time.perf_counter() - start
         print(f"real {elapsed:.3f} seconds")
         if return_code != 0:
