@@ -17,7 +17,6 @@ endif()
 # They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON
 # (see above). CTest labels: integration_expect_success vs integration_expect_failure.
 # Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
-set(_pcb2gcode_ci_geos_pinned "")
 set(_pcb2gcode_ci_yml "${CMAKE_SOURCE_DIR}/.github/workflows/ci.yml")
 # Re-run configure when CI’s GEOS pin changes (file(READ) is not tracked by default).
 set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
@@ -31,6 +30,9 @@ if(EXISTS "${_pcb2gcode_ci_yml}")
   if(_pcb2gcode_ci_geos_match)
     set(_pcb2gcode_ci_geos_pinned "${CMAKE_MATCH_1}")
   endif()
+else()
+  message(WARNING "Could not find .github/workflows/ci.yml")
+  set(_pcb2gcode_ci_geos_pinned "")
 endif()
 
 set(_pcb2gcode_integration_geos_ok OFF)
