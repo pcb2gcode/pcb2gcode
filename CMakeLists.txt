@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(
   pcb2gcode
-  VERSION 3.0.3
+  VERSION 3.0.4
   DESCRIPTION "Isolation routing and drilling G-code generator for PCBs"
   HOMEPAGE_URL "https://github.com/pcb2gcode/pcb2gcode"
   LANGUAGES C CXX)

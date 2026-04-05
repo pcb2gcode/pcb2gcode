@@ -1,4 +1,4 @@
-( pcb2gcode 3.0.3 )
+( pcb2gcode 3.0.4 )
 ( Gcode for mach4 )
 
 G94 ( Inches per minute feed rate. )
