@@ -31,46 +31,48 @@ template: |
   ## What’s Changed
 
   $CHANGES
+# Conventional Commits-style PR titles: <type>[(scope)][!]: <description>
+# https://www.conventionalcommits.org/en/v1.0.0-beta.4/
 autolabeler:
   - label: 'feature'
     title:
-      - '/feat:/i'
-      - '/feature:/i'
-      - '/enhancement:/i'
+      - '/^feat(\([^)]+\))?!?:/i'
+      - '/^feature(\([^)]+\))?!?:/i'
+      - '/^enhancement(\([^)]+\))?!?:/i'
   - label: 'performance'
     title:
-      - '/perf:/i'
-      - '/performance:/i'
+      - '/^perf(\([^)]+\))?!?:/i'
+      - '/^performance(\([^)]+\))?!?:/i'
   - label: 'bug'
     title:
-      - '/fix:/i'
-      - '/bugfix:/i'
-      - '/bug:/i'
+      - '/^fix(\([^)]+\))?!?:/i'
+      - '/^bugfix(\([^)]+\))?!?:/i'
+      - '/^bug(\([^)]+\))?!?:/i'
   - label: 'build'
     title:
-      - '/build:/i'
+      - '/^build(\([^)]+\))?!?:/i'
   - label: 'documentation'
     title:
-      - '/docs:/i'
-      - '/documentation:/i'
-      - '/doc:/i'
+      - '/^docs(\([^)]+\))?!?:/i'
+      - '/^documentation(\([^)]+\))?!?:/i'
+      - '/^doc(\([^)]+\))?!?:/i'
   - label: 'testing'
     title:
-      - '/tests:/i'
-      - '/test:/i'
-      - '/testing:/i'
+      - '/^tests(\([^)]+\))?!?:/i'
+      - '/^test(\([^)]+\))?!?:/i'
+      - '/^testing(\([^)]+\))?!?:/i'
   - label: 'ci'
     title:
-      - '/ci:/i'
+      - '/^ci(\([^)]+\))?!?:/i'
   - label: 'refactoring'
     title:
-      - '/refactoring:/i'
-      - '/refactor:/i'
+      - '/^refactoring(\([^)]+\))?!?:/i'
+      - '/^refactor(\([^)]+\))?!?:/i'
   - label: 'style'
     title:
-      - '/style:/i'
-      - '/whitespace:/i'
+      - '/^style(\([^)]+\))?!?:/i'
+      - '/^whitespace(\([^)]+\))?!?:/i'
   - label: 'chore'
     title:
-      - '/chore:/i'
-      - '/chores:/i'
+      - '/^chore(\([^)]+\))?!?:/i'
+      - '/^chores(\([^)]+\))?!?:/i'
