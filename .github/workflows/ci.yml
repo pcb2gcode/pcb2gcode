@@ -43,7 +43,7 @@ jobs:
         os: [ubuntu, windows]
         boost: ['latest', '1_83']
         geos:
-          - &geos_version '3.14.1'
+          - &geos_version 'main'
           - 'none'
         compiler: ['g++', 'clang++', 'g++-10']
         exclude:
