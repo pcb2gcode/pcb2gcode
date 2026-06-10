@@ -90,7 +90,7 @@ jobs:
           pkgconf
           gcc
           gtk2
-          gtkmm
+          gtkmm3
           ccache
           gdk-pixbuf2
           imagemagick
@@ -117,7 +117,7 @@ jobs:
       if: matrix.os == 'ubuntu'
       run: |
         sudo apt-get update
-        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++
+        sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++ libgtkmm-3.0-dev
         if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
           sudo apt-get install -y clang libclang-rt-dev llvm grcov
         fi
