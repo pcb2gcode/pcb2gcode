@@ -97,7 +97,7 @@ jobs:
           lcov
           zip:
     - name: Checkout pcb2gcode source
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Check for ci workflow changes
       id: ci-changed
       uses: dorny/paths-filter@v4
