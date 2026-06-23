@@ -188,7 +188,7 @@ jobs:
         fi
 
     - name: Restore cache
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       if: ${{ inputs.no_restore_cache != true && (steps.ci-changed.outputs.ci != 'true' || steps.allow-ci-cache-label.outputs.allowed == 'true' || inputs.allow_ci_cache_despite_ci_changes == true) }}
       with:
         path: ${{ steps.sanitize-key.outputs.path }}
@@ -200,7 +200,7 @@ jobs:
 
 ### Setup ccache
     - name: Restore ccache
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       if: ${{ inputs.no_restore_ccache != true }}
       with:
         path: ${{ steps.sanitize-key.outputs.ccache_path }}
@@ -513,13 +513,13 @@ jobs:
         name: version-${{ steps.sanitize-key.outputs.key }}.txt
         path: version.txt
     - name: Save cache
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@v6
       if: env.UPDATE_CACHE == 'true'
       with:
         path: ${{ steps.sanitize-key.outputs.path }}
         key: ${{ steps.sanitize-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
     - name: Save ccache
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@v6
       with:
         path: ${{ steps.sanitize-key.outputs.ccache_path }}
         key: ccache-${{ steps.sanitize-key.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
