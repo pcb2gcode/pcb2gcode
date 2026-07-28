@@ -500,7 +500,7 @@ jobs:
         compression-level: 0
     - name: Upload coverage to coveralls
       if: matrix.code_coverage != ''
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.8
       with:
         flag-name: ci-${{ steps.sanitize-key.outputs.key }}
         parallel: true
@@ -533,7 +533,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Finalize coverage
-      uses: coverallsapp/github-action@v2.3.6
+      uses: coverallsapp/github-action@v2.3.8
       with:
         parallel-finished: true
   release:
