@@ -4,6 +4,55 @@ pcb2gcode is a command-line software for the isolation, routing and drilling of 
 It takes Gerber files as input and it outputs gcode files, suitable for the milling of PCBs.
 It also includes an Autoleveller, useful for the automatic dynamic calibration of the milling depth.
 
+It includes native **Model Context Protocol (MCP)** server capability (`--mcp`), allowing AI assistants like Claude Desktop, Cursor, and Antigravity to directly execute PCB isolation and routing.
+
+## Model Context Protocol (MCP) Server
+
+`pcb2gcode` includes a native Model Context Protocol (MCP) server mode over stdio (`--mcp`). This enables AI coding assistants (such as Antigravity, Cursor, and Claude Desktop) to invoke `pcb2gcode` directly for PCB isolation and routing.
+
+### Quick Setup (Ubuntu / WSL)
+
+Run the setup script inside your Ubuntu or WSL terminal. It automatically installs dependencies, applies Ubuntu 24.04 workarounds, compiles `pcb2gcode`, and generates `mcp-config.json` in the project root:
+
+```bash
+chmod +x setup-ubuntu.sh
+./setup-ubuntu.sh
+```
+
+### MCP Client Configuration
+
+Copy the contents of the generated `mcp-config.json` file into your MCP client configuration (e.g., `mcp.json` or `claude_desktop_config.json`).
+
+**Example (WSL environment calling from Windows):**
+```json
+{
+  "mcpServers": {
+    "pcb2gcode": {
+      "command": "wsl.exe",
+      "args": [
+        "-e",
+        "/home/user/pcb2gcode/build/pcb2gcode",
+        "--mcp"
+      ]
+    }
+  }
+}
+```
+
+**Example (Native Linux environment):**
+```json
+{
+  "mcpServers": {
+    "pcb2gcode": {
+      "command": "/home/user/pcb2gcode/build/pcb2gcode",
+      "args": [
+        "--mcp"
+      ]
+    }
+  }
+}
+```
+
 pcb2gcodeGUI, the official GUI for pcb2gcode, is available [here](https://github.com/pcb2gcode/pcb2gcodeGUI).
 
 If you find this project useful, consider [donating money to charity](https://payments.wikimedia.org/index.php?title=Special:PaypalExpressGateway&appeal=JimmyQuote&ffname=paypal_ec&recurring=&currency=USD&amount=0&payment_method=paypal&uselang=en&utm_medium=Waystogive&utm_campaign=C11_Waystogive&utm_source=Waystogive).

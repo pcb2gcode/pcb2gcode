@@ -155,6 +155,7 @@ set(PCB2GCODE_MAIN_SOURCES
     gerberimporter.cpp
     layer.cpp
     main.cpp
+    mcp_server.cpp
     merge_near_points.cpp
     ngc_exporter.cpp
     options.cpp

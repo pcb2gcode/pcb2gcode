@@ -205,7 +205,8 @@ options::options()
         default_value(std::vector<CommaSeparated<string>>{{"millproject"}})->multitoken(),
         "list of comma-separated config files")
        ("help,?", "produce help message")
-       ("version,V", "show the current software version");
+       ("version,V", "show the current software version")
+       ("mcp", "run as a Model Context Protocol (MCP) server over stdio");
 
    po::options_description drilling_options("Drilling options, for making holes in the PCB");
    drilling_options.add_options()
