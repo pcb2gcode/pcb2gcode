@@ -5,7 +5,7 @@
  */
 
 #include "mcp_server.hpp"
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 
 #include <iostream>
 #include <string>

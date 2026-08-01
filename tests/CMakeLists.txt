@@ -150,6 +150,10 @@ pcb2gcode_add_test_executable(
   segment_tree_tests
   segment_tree_tests.cpp)
 
+pcb2gcode_add_test_executable(
+  mcp_server_tests
+  mcp_server_tests.cpp)
+
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(ProcessorCount)
   ProcessorCount(PCB2GCODE_CTEST_JOBS_VALUE)

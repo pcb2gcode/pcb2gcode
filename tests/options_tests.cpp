@@ -91,4 +91,8 @@ BOOST_AUTO_TEST_CASE(milling_overlap) {
       pcb2gcode_parse_exception);
 }
 
+BOOST_AUTO_TEST_CASE(mcp_option) {
+  BOOST_CHECK_EQUAL(get_count("pcb2gcode --mcp", "mcp"), 1);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
