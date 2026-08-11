@@ -153,6 +153,24 @@ pcb2gcode_add_test_executable(
 pcb2gcode_add_test_executable(
   mcp_server_tests
   mcp_server_tests.cpp)
+# The tools/call handler fork/execs the pcb2gcode binary; hand the tests the
+# built path so they can exercise every branch (version/help/run/unknown).
+target_compile_definitions(mcp_server_tests PRIVATE
+  "PCB2GCODE_TEST_BINARY=\"$<TARGET_FILE:pcb2gcode>\"")
+add_dependencies(mcp_server_tests pcb2gcode)
+
+# End-to-end test: spawn the real pcb2gcode --mcp subprocess, exchange one
+# initialize + tools/list request, close stdin, and require a clean exit.
+add_test(
+  NAME mcp_stdio_shutdown_test
+  COMMAND
+    "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/tools/run_mcp_stdin_test.py"
+    "$<TARGET_FILE:pcb2gcode>"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_tests_properties(mcp_stdio_shutdown_test PROPERTIES
+  LABELS "integration_expect_success"
+  TIMEOUT 60)
 
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(ProcessorCount)
