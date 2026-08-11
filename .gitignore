@@ -62,3 +62,7 @@ __pycache__/
 
 #clangd cache directory
 /.cache/
+
+# MCP generated config files
+*-mcp-config.json
+mcp-config.json

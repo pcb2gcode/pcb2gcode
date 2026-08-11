@@ -45,6 +45,7 @@ using std::string;
 #include "drill.hpp"
 #include "options.hpp"
 #include "units.hpp"
+#include "mcp_server.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
@@ -53,6 +54,11 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     options::parse(argc, argv);      //parse the command line parameters
 
     po::variables_map& vm = options::get_vm();      //get the cli parameters
+
+    if (vm.count("mcp")) {
+      run_mcp_server(argv[0]);
+      return;
+    }
 
     if (vm.count("version")) {       //return version and quit
       cout << PCB2GCODE_PROJECT_VERSION << endl;

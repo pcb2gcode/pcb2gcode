@@ -66,6 +66,16 @@ find_package(Boost 1.60 CONFIG REQUIRED COMPONENTS program_options)
 pkg_check_modules(GERBV REQUIRED IMPORTED_TARGET libgerbv>=2.1.0)
 find_package(Git QUIET)
 
+include(FetchContent)
+find_package(nlohmann_json 3.11 QUIET)
+if(NOT nlohmann_json_FOUND)
+  FetchContent_Declare(
+    nlohmann_json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+  )
+  FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
 set(PCB2GCODE_GIT_VERSION "unknown")
 if(GIT_FOUND)
   execute_process(
@@ -155,6 +165,7 @@ set(PCB2GCODE_MAIN_SOURCES
     gerberimporter.cpp
     layer.cpp
     main.cpp
+    mcp_server.cpp
     merge_near_points.cpp
     ngc_exporter.cpp
     options.cpp
@@ -184,7 +195,7 @@ function(pcb2gcode_apply_common target_name)
       $<$<COMPILE_LANGUAGE:CXX>:-Wall>)
   target_include_directories(
     "${target_name}" PRIVATE "${CMAKE_BINARY_DIR}" "${CMAKE_SOURCE_DIR}" "${PCB2GCODE_SRC_DIR}")
-  target_link_libraries("${target_name}" PRIVATE Boost::program_options PkgConfig::GERBV)
+  target_link_libraries("${target_name}" PRIVATE Boost::program_options PkgConfig::GERBV nlohmann_json::nlohmann_json)
   target_include_directories("${target_name}" SYSTEM PRIVATE ${GERBV_INCLUDE_DIRS})
   target_compile_options("${target_name}" PRIVATE ${GERBV_CFLAGS_OTHER})
   target_compile_definitions(
