@@ -74,6 +74,10 @@ if(NOT nlohmann_json_FOUND)
     URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
   )
   FetchContent_MakeAvailable(nlohmann_json)
+  # CMake 3.x/4.x compatibility: create alias if not already defined
+  if(NOT TARGET nlohmann_json::nlohmann_json)
+    add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+  endif()
 endif()
 
 set(PCB2GCODE_GIT_VERSION "unknown")
