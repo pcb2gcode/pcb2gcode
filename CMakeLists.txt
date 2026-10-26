@@ -183,6 +183,24 @@ set(PCB2GCODE_MAIN_SOURCES
     trim_paths.cpp
     voronoi.cpp)
 
+# TODO: Revisit if we upgrade Boost or change the GCC version used in CI.
+#
+# GCC 12+ emits -Wmaybe-uninitialized false positives from inside
+# Boost.Geometry's envelope / svg_mapper machinery (indexed.hpp,
+# envelope/range.hpp). The two translation units below instantiate the
+# svg_mapper / envelope templates that trip the warning, so we demote
+# the error to a plain warning for just those files on GCC >= 12. The
+# rest of the tree stays strict. If a future Boost release adds its own
+# diagnostic pragmas, or we move to a GCC version that no longer trips
+# the false positive, remove this block.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+   AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+  set_source_files_properties(
+    "${PCB2GCODE_SRC_DIR}/bg_operators.cpp"
+    "${PCB2GCODE_SRC_DIR}/wkt_to_svg.cpp"
+    PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
+endif()
+
 if(PCB2GCODE_HAS_GEOS)
   separate_arguments(PCB2GCODE_GEOS_CFLAGS_LIST NATIVE_COMMAND "${PCB2GCODE_GEOS_CFLAGS}")
   separate_arguments(PCB2GCODE_GEOS_LDFLAGS_LIST NATIVE_COMMAND "${PCB2GCODE_GEOS_LDFLAGS}")
