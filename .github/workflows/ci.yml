@@ -40,32 +40,55 @@ jobs:
     name: ${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}
     strategy:
       matrix:
-        os: [ubuntu, windows]
+        # Each matrix cell uses whatever g++/clang++ ships with the
+        # runner image. This keeps pcb2gcode, Boost, and gerbv all on
+        # the same libstdc++ ABI and sidesteps the "undefined
+        # reference to ...@GLIBCXX_3.4.XX" link failures that come
+        # from mixing compiler versions on a single runner. If you
+        # want to test a specific g++ version, add a new runner
+        # image to this list rather than installing a side-by-side
+        # g++-N on top of an existing image.
+        os: [ubuntu-latest, ubuntu-24.04, windows-latest]
         boost: ['latest', '1_83']
         geos:
           - &geos_version 'main'
           - 'none'
-        compiler: ['g++', 'clang++', 'g++-10']
+        compiler: ['g++', 'clang++']
         exclude:
-          - os: windows
+          - os: windows-latest
             boost: '1_83' # TODO: Build with boost 1.83 on Windows.
-          - os: windows
+          - os: windows-latest
             compiler: 'clang++' # TODO: Make clang work on Windows.
-          - os: windows
-            compiler: 'g++-10' # TODO: Make g++-10 work on Windows.
         include:
-          - geos: *geos_version
-            os: ubuntu
-            code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON" # TODO: Add code coverage for Windows.
-          - os: ubuntu
+          # Derive os_family from each full OS label so the per-step
+          # conditions and shells below can stay unchanged (and so
+          # adding another ubuntu-N.NN runner later is a one-line
+          # matrix bump plus one include entry).
+          - os: ubuntu-latest
+            os_family: ubuntu
             shell: '/usr/bin/bash -l -e -o pipefail {0}'
             local_install_path: '$HOME/.local'
             ccache_path: '$HOME/.ccache'
-          - os: windows
+          - os: ubuntu-24.04
+            os_family: ubuntu
+            shell: '/usr/bin/bash -l -e -o pipefail {0}'
+            local_install_path: '$HOME/.local'
+            ccache_path: '$HOME/.ccache'
+          - os: windows-latest
+            os_family: windows
             shell: msys2 {0}
             local_install_path: '/d/a/pcb2gcode/.local'
             ccache_path: '/d/a/pcb2gcode/.ccache'
-    runs-on: ${{ matrix.os }}-latest
+          # Enable code coverage on every (ubuntu*, geos=main) row,
+          # matching the pre-split behaviour. TODO: Add code
+          # coverage for Windows.
+          - geos: *geos_version
+            os: ubuntu-latest
+            code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON"
+          - geos: *geos_version
+            os: ubuntu-24.04
+            code_coverage: "-DPCB2GCODE_ENABLE_CODE_COVERAGE=ON"
+    runs-on: ${{ matrix.os }}
     env:
       GERBV_GIT_TAG: v2.13.0
     defaults:
@@ -73,7 +96,7 @@ jobs:
         shell: ${{ matrix.shell }}
     steps:
     - name: Setup msys2
-      if: matrix.os == 'windows'
+      if: matrix.os_family == 'windows'
       uses: msys2/setup-msys2@v2
       with:
         msystem: UCRT64
@@ -114,20 +137,17 @@ jobs:
         fi
         echo "allowed=$allowed" >> $GITHUB_OUTPUT
     - name: Ubuntu specific setup
-      if: matrix.os == 'ubuntu'
+      if: matrix.os_family == 'ubuntu'
       run: |
         sudo apt-get update
         sudo apt-get install libgtkmm-2.4-dev moreutils autopoint libc6-dbg librsvg2-dev ccache g++ libgtkmm-3.0-dev
         if [[ "${{ matrix.compiler }}" == "clang++" ]]; then
           sudo apt-get install -y clang libclang-rt-dev llvm grcov
         fi
-        if [[ "${{ matrix.compiler }}" == "g++-10" ]]; then
-          sudo apt-get install -y g++-10
-        fi
         sudo apt-get install libperlio-gzip-perl libjson-perl libcapture-tiny-perl libjson-xs-perl libdatetime-perl python3-setuptools
         pip3 install --user wheel colour_runner unittest2 termcolor concurrencytest
     - name: Install clang (Windows)
-      if: matrix.os == 'windows' && matrix.compiler == 'clang++'
+      if: matrix.os_family == 'windows' && matrix.compiler == 'clang++'
       run: pacman -S --noconfirm clang
     - name: Setup paths and env
       run: |
@@ -149,19 +169,15 @@ jobs:
           echo "export CC=$(which gcc)" >> ~/.bash_profile
           echo "export CXX=$(which g++)" >> ~/.bash_profile
         fi
-        if [[ "${{ matrix.compiler }}" == "g++-10" ]]; then
-          echo "export CC=$(which gcc-10)" >> ~/.bash_profile
-          echo "export CXX=$(which g++-10)" >> ~/.bash_profile
-        fi
       env:
         GITHUB_JSON: ${{ toJSON(github) }}
     - name: Windows specific setup
-      if: matrix.os == 'windows'
+      if: matrix.os_family == 'windows'
       run: |
         lcov --version
 ### Install boost from apt-get
     - name: Ubuntu boost
-      if: matrix.boost == 'latest' && matrix.os == 'ubuntu'
+      if: matrix.boost == 'latest' && matrix.os_family == 'ubuntu'
       run:
         sudo apt-get install -y libboost-program-options-dev libboost-test-dev
 
@@ -178,7 +194,22 @@ jobs:
     - name: Sanitize cache key
       id: sanitize-key
       run: |
-        echo "key=$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
+        # Include a short fingerprint of ${CXX} in the cache key so that
+        # ABI-breaking compiler changes invalidate the cache. Without
+        # this, when the Ubuntu runner image bumps its default g++
+        # (e.g. g++-13 -> g++-15), the restored LOCAL_INSTALL_PATH may
+        # contain libraries (Boost, gerbv) built against a different
+        # libstdc++ ABI than the current compiler can link against,
+        # which surfaces as "undefined reference to ...@GLIBCXX_3.4.XX"
+        # at link time. The cxx-sig suffix makes those cache entries
+        # distinct and forces a clean rebuild.
+        if [[ -n "${CXX:-}" ]] && command -v "$CXX" >/dev/null 2>&1; then
+          cxx_sig=$("$CXX" --version 2>/dev/null | head -n1 | sha256sum | cut -c1-12)
+        else
+          cxx_sig=nocxx
+        fi
+        raw_key='${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}'
+        echo "key=$(echo "${raw_key}_cxx-${cxx_sig}" | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
         if command -v cygpath; then
           echo "path=$(cygpath -w ${{ matrix.local_install_path }})" >> $GITHUB_OUTPUT
           echo "ccache_path=$(cygpath -w ${{ matrix.ccache_path }})" >> $GITHUB_OUTPUT
@@ -231,9 +262,24 @@ jobs:
           done
           tar xjf "boost_${BOOST}.tar.bz2"
           pushd boost_${BOOST}
+          # IMPORTANT: Teach bjam about ${CXX} explicitly. ./bootstrap.sh
+          # and ./b2 default to the first "g++" on PATH, which on current
+          # Ubuntu runners is g++-15. If our matrix cell uses a different
+          # compiler (e.g. g++-12 or clang++), the resulting libboost_*.so
+          # ends up referencing newer libstdc++ ABI symbols (e.g.
+          # GLIBCXX_3.4.32) that the matrix compiler can't resolve at
+          # link time. The user-config.jam below forces bjam to call
+          # exactly $CXX, so Boost's libstdc++ ABI matches pcb2gcode's.
+          if [[ "${{ matrix.compiler }}" == clang* ]]; then
+            BOOST_TOOLSET=clang
+          else
+            BOOST_TOOLSET=gcc
+          fi
+          echo "using ${BOOST_TOOLSET} : custom : ${CXX} ;" > "$HOME/user-config.jam"
+          cat "$HOME/user-config.jam"
           ./bootstrap.sh --with-libraries=program_options,test --prefix=${LOCAL_INSTALL_PATH}
-          ./b2 -j ${NUM_CPUS}
-          ./b2 install
+          ./b2 --user-config="$HOME/user-config.jam" toolset=${BOOST_TOOLSET}-custom -j ${NUM_CPUS}
+          ./b2 --user-config="$HOME/user-config.jam" toolset=${BOOST_TOOLSET}-custom install
           popd
           popd
         fi
@@ -261,7 +307,7 @@ jobs:
 
 ### Coverage setup
     - name: coverage specific setup
-      if: matrix.code_coverage != '' && matrix.os == 'ubuntu'
+      if: matrix.code_coverage != '' && matrix.os_family == 'ubuntu'
       run: |
         pushd ~
         git clone --branch=v2.4 --depth=1 https://github.com/linux-test-project/lcov.git
@@ -288,9 +334,12 @@ jobs:
           echo "GERBV commit: $(git rev-parse HEAD)"
           mkdir build
           pushd build
-          if [[ "${{ matrix.os }}" == "windows" ]]; then
+          if [[ "${{ matrix.os_family }}" == "windows" ]]; then
             cmake --preset msys2-ucrt64-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           else
+            # gerbv is just a C library we link against, so whichever
+            # compiler its preset picks doesn't need to match
+            # pcb2gcode's.
             cmake --preset linux-gnu-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           fi
           make -j 1
@@ -304,7 +353,7 @@ jobs:
 
 ### Valgrind setup
     - name: Install valgrind
-      if: matrix.os == 'ubuntu'
+      if: matrix.os_family == 'ubuntu'
       run: |
         if ! valgrind --version; then
           git ls-remote git://sourceware.org/git/valgrind.git master > ${LOCAL_INSTALL_PATH}/bin/valgrind.version
@@ -374,12 +423,12 @@ jobs:
         find tests/data/gerbv_example -mindepth 1 -maxdepth 1 -type d | ./tools/parallel.py -j ${NUM_CPUS} --halt now -- ./tools/run_example.py '{}' --pcb2gcode-binary $pcb2gcode_binary $code_coverage_arg
     - name: >
         Run unit tests
-        ${{ matrix.code_coverage == '' && matrix.os == 'ubuntu' && 'with valgrind' || 'without valgrind' }}
+        ${{ matrix.code_coverage == '' && matrix.os_family == 'ubuntu' && 'with valgrind' || 'without valgrind' }}
       env:
         VERBOSE: 1
       run: |
         CTEST_ARGS=(--test-dir build --output-on-failure -j ${NUM_CPUS})
-        if [[ "${{ matrix.code_coverage }}" == "" && "${{ matrix.os }}" == "ubuntu" ]]; then
+        if [[ "${{ matrix.code_coverage }}" == "" && "${{ matrix.os_family }}" == "ubuntu" ]]; then
           export CTEST_MEMORYCHECK_COMMAND=valgrind
           CTEST_ARGS+=(-T memcheck)
         fi
@@ -397,7 +446,7 @@ jobs:
         name: lcov-${{ steps.sanitize-key.outputs.key }}
         path: build/lcov.info
     - name: Prepare build for upload for Ubuntu
-      if: matrix.os != 'windows'
+      if: matrix.os_family != 'windows'
       run: |
         mkdir -p pcb2gcode-${PCB2GCODE_VERSION}/.libs
         cp ./build/pcb2gcode pcb2gcode-${PCB2GCODE_VERSION}/
@@ -426,7 +475,7 @@ jobs:
         GEOS: ${{ matrix.geos }}
     # TODO: Fix upload for windows
     - name: Prepare build for upload for Windows
-      if: matrix.os == 'windows' && false
+      if: matrix.os_family == 'windows' && false
       run: |
         mkdir pcb2gcode-${PCB2GCODE_VERSION}
         pushd pcb2gcode-${PCB2GCODE_VERSION}
@@ -485,14 +534,14 @@ jobs:
       env:
         GEOS: ${{ matrix.geos }}
     - name: Upload build for Ubuntu
-      if: matrix.os != 'windows'
+      if: matrix.os_family != 'windows'
       uses: actions/upload-artifact@v7
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
         path: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}.tar.gz
         compression-level: 0
     - name: Upload build for Windows # TODO: Fix upload for windows
-      if: matrix.os == 'windows' && false
+      if: matrix.os_family == 'windows' && false
       uses: actions/upload-artifact@v7
       with:
         name: pcb2gcode-${{ steps.sanitize-key.outputs.key }}-${{ env.PCB2GCODE_VERSION }}
