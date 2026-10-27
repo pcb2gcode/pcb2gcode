@@ -193,7 +193,22 @@ jobs:
     - name: Sanitize cache key
       id: sanitize-key
       run: |
-        echo "key=$(echo '${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}' | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
+        # Include a short fingerprint of ${CXX} in the cache key so that
+        # ABI-breaking compiler changes invalidate the cache. Without
+        # this, when the Ubuntu runner image bumps its default g++
+        # (e.g. g++-13 -> g++-15), the restored LOCAL_INSTALL_PATH may
+        # contain libraries (Boost, gerbv) built against a different
+        # libstdc++ ABI than the current compiler can link against,
+        # which surfaces as "undefined reference to ...@GLIBCXX_3.4.XX"
+        # at link time. The cxx-sig suffix makes those cache entries
+        # distinct and forces a clean rebuild.
+        if [[ -n "${CXX:-}" ]] && command -v "$CXX" >/dev/null 2>&1; then
+          cxx_sig=$("$CXX" --version 2>/dev/null | head -n1 | sha256sum | cut -c1-12)
+        else
+          cxx_sig=nocxx
+        fi
+        raw_key='${{ matrix.os }}_${{ matrix.boost }}_${{ matrix.compiler }}_${{ matrix.geos }}'
+        echo "key=$(echo "${raw_key}_cxx-${cxx_sig}" | sed 's/+/plus/g')" >> $GITHUB_OUTPUT
         if command -v cygpath; then
           echo "path=$(cygpath -w ${{ matrix.local_install_path }})" >> $GITHUB_OUTPUT
           echo "ccache_path=$(cygpath -w ${{ matrix.ccache_path }})" >> $GITHUB_OUTPUT
@@ -246,9 +261,24 @@ jobs:
           done
           tar xjf "boost_${BOOST}.tar.bz2"
           pushd boost_${BOOST}
+          # IMPORTANT: Teach bjam about ${CXX} explicitly. ./bootstrap.sh
+          # and ./b2 default to the first "g++" on PATH, which on current
+          # Ubuntu runners is g++-15. If our matrix cell uses a different
+          # compiler (e.g. g++-12 or clang++), the resulting libboost_*.so
+          # ends up referencing newer libstdc++ ABI symbols (e.g.
+          # GLIBCXX_3.4.32) that the matrix compiler can't resolve at
+          # link time. The user-config.jam below forces bjam to call
+          # exactly $CXX, so Boost's libstdc++ ABI matches pcb2gcode's.
+          if [[ "${{ matrix.compiler }}" == clang* ]]; then
+            BOOST_TOOLSET=clang
+          else
+            BOOST_TOOLSET=gcc
+          fi
+          echo "using ${BOOST_TOOLSET} : custom : ${CXX} ;" > "$HOME/user-config.jam"
+          cat "$HOME/user-config.jam"
           ./bootstrap.sh --with-libraries=program_options,test --prefix=${LOCAL_INSTALL_PATH}
-          ./b2 -j ${NUM_CPUS}
-          ./b2 install
+          ./b2 --user-config="$HOME/user-config.jam" toolset=${BOOST_TOOLSET}-custom -j ${NUM_CPUS}
+          ./b2 --user-config="$HOME/user-config.jam" toolset=${BOOST_TOOLSET}-custom install
           popd
           popd
         fi

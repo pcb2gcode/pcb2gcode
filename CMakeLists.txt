@@ -201,6 +201,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
       "${PCB2GCODE_SRC_DIR}/bg_operators.cpp"
       "${PCB2GCODE_SRC_DIR}/voronoi.cpp"
       "${PCB2GCODE_SRC_DIR}/wkt_to_svg.cpp"
+      # Every test file in the suite instantiates bg::envelope /
+      # bg::return_envelope / bg::expand (directly or via svg_mapper),
+      # so they all trip the same false positive on GCC 12+.
+      "${PCB2GCODE_TESTS_DIR}/gerberimporter_tests.cpp"
+      "${PCB2GCODE_TESTS_DIR}/geos_helpers_tests.cpp"
+      "${PCB2GCODE_TESTS_DIR}/path_finding_tests.cpp"
       "${PCB2GCODE_TESTS_DIR}/voronoi_tests.cpp"
       PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
 endif()
