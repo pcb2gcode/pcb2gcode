@@ -53,6 +53,21 @@ jobs:
             compiler: 'clang++' # TODO: Make clang work on Windows.
           - os: windows
             compiler: 'g++-12' # TODO: Make g++-12 work on Windows.
+          # The apt-installed system Boost on current Ubuntu runners
+          # (libboost-*-dev == 1.90.0) is built with the system g++
+          # (currently g++-15) and references newer libstdc++ ABI
+          # symbols like std::ios_base_library_init@GLIBCXX_3.4.32.
+          # g++-12 ships its own older /usr/lib/gcc/.../12/libstdc++.so
+          # that doesn't export those symbols, so linking fails. The
+          # (os=ubuntu, compiler=g++-12, boost=1_83) cell still
+          # exercises g++-12 end-to-end (that one builds Boost from
+          # source with g++-12, so the ABIs match). Revisit this
+          # exclude when either (a) the matrix moves off g++-12 or
+          # (b) the Ubuntu runner's default g++ regresses to one
+          # that doesn't export GLIBCXX_3.4.32.
+          - os: ubuntu
+            compiler: 'g++-12'
+            boost: 'latest'
         include:
           - geos: *geos_version
             os: ubuntu

@@ -201,6 +201,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
       "${PCB2GCODE_SRC_DIR}/bg_operators.cpp"
       "${PCB2GCODE_SRC_DIR}/voronoi.cpp"
       "${PCB2GCODE_SRC_DIR}/wkt_to_svg.cpp"
+      "${PCB2GCODE_TESTS_DIR}/voronoi_tests.cpp"
       PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
 endif()
 
