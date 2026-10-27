@@ -337,27 +337,10 @@ jobs:
           if [[ "${{ matrix.os_family }}" == "windows" ]]; then
             cmake --preset msys2-ucrt64-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           else
-            # Invoke cmake directly (do NOT use gerbv's linux-gnu-gcc
-            # preset) for two reasons:
-            #   1. The preset's toolchain file hardcodes
-            #      CMAKE_C_COMPILER=gcc / CMAKE_CXX_COMPILER=g++, which
-            #      overrides any -D compiler flags we try to pass.
-            #      Harmless today (matrix uses system gcc too), but
-            #      guards against a future matrix cell introducing a
-            #      different compiler.
-            #   2. The preset's toolchain file also does
-            #      `add_compile_definitions(_GNU_SOURCE)`. Without it,
-            #      glibc's <strings.h> doesn't expose strncasecmp and
-            #      gerbv/src/main.c fails to build (notably on clang).
-            cmake \
-              -G "Unix Makefiles" \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_C_COMPILER="$CC" \
-              -DCMAKE_CXX_COMPILER="$CXX" \
-              -DCMAKE_C_FLAGS="-D_GNU_SOURCE" \
-              -DCMAKE_CXX_FLAGS="-D_GNU_SOURCE" \
-              -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH} \
-              ..
+            # gerbv is just a C library we link against, so whichever
+            # compiler its preset picks doesn't need to match
+            # pcb2gcode's.
+            cmake --preset linux-gnu-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           fi
           make -j 1
           make install
