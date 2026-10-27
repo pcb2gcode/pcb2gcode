@@ -187,18 +187,21 @@ set(PCB2GCODE_MAIN_SOURCES
 #
 # GCC 12+ emits -Wmaybe-uninitialized false positives from inside
 # Boost.Geometry's envelope / svg_mapper machinery (indexed.hpp,
-# envelope/range.hpp). The two translation units below instantiate the
-# svg_mapper / envelope templates that trip the warning, so we demote
-# the error to a plain warning for just those files on GCC >= 12. The
-# rest of the tree stays strict. If a future Boost release adds its own
+# envelope/range.hpp). The translation units listed below instantiate
+# the svg_mapper / envelope / expand templates that trip the warning,
+# so we demote the error to a plain warning for just those files on
+# GCC >= 12; the rest of the tree stays strict. If you hit the same
+# warning in another file, add it to the list rather than widening the
+# suppression tree-wide. If a future Boost release adds its own
 # diagnostic pragmas, or we move to a GCC version that no longer trips
 # the false positive, remove this block.
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
-  set_source_files_properties(
-    "${PCB2GCODE_SRC_DIR}/bg_operators.cpp"
-    "${PCB2GCODE_SRC_DIR}/wkt_to_svg.cpp"
-    PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
+    set_source_files_properties(
+      "${PCB2GCODE_SRC_DIR}/bg_operators.cpp"
+      "${PCB2GCODE_SRC_DIR}/voronoi.cpp"
+      "${PCB2GCODE_SRC_DIR}/wkt_to_svg.cpp"
+      PROPERTIES COMPILE_OPTIONS "-Wno-error=maybe-uninitialized")
 endif()
 
 if(PCB2GCODE_HAS_GEOS)

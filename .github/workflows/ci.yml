@@ -292,14 +292,24 @@ jobs:
             cmake --preset msys2-ucrt64-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           else
             # Build gerbv with the same compiler as pcb2gcode so the two
-            # agree on the libstdc++ ABI. Without this, the gerbv preset
-            # picks the system default g++, which on newer Ubuntu runners
-            # can reference GLIBCXX symbols that an older matrix compiler
-            # (e.g. g++-12) can't resolve at link time.
-            cmake --preset linux-gnu-gcc \
+            # agree on the libstdc++ ABI. Do NOT use gerbv's
+            # linux-gnu-gcc preset here: it pins
+            # CMAKE_C_COMPILER=gcc / CMAKE_CXX_COMPILER=g++ in a way
+            # that overrides -D flags passed on the command line, so
+            # libgerbv.so ends up built with the system default g++
+            # (e.g. g++-15 on current Ubuntu runners). That makes
+            # libgerbv.so reference GLIBCXX symbols (e.g.
+            # std::ios_base_library_init@GLIBCXX_3.4.32) that an older
+            # matrix compiler like g++-12 can't resolve at link time.
+            # Invoke cmake directly instead so $CC / $CXX from the
+            # matrix's ~/.bash_profile take effect.
+            cmake \
+              -G "Unix Makefiles" \
+              -DCMAKE_BUILD_TYPE=Release \
               -DCMAKE_C_COMPILER="$CC" \
               -DCMAKE_CXX_COMPILER="$CXX" \
-              -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+              -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH} \
+              ..
           fi
           make -j 1
           make install
