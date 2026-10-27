@@ -291,7 +291,15 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows" ]]; then
             cmake --preset msys2-ucrt64-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           else
-            cmake --preset linux-gnu-gcc -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
+            # Build gerbv with the same compiler as pcb2gcode so the two
+            # agree on the libstdc++ ABI. Without this, the gerbv preset
+            # picks the system default g++, which on newer Ubuntu runners
+            # can reference GLIBCXX symbols that an older matrix compiler
+            # (e.g. g++-12) can't resolve at link time.
+            cmake --preset linux-gnu-gcc \
+              -DCMAKE_C_COMPILER="$CC" \
+              -DCMAKE_CXX_COMPILER="$CXX" \
+              -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release .. -DCMAKE_INSTALL_PREFIX=${LOCAL_INSTALL_PATH}
           fi
           make -j 1
           make install
