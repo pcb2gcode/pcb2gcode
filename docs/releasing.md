@@ -30,9 +30,10 @@ Publish the draft from the [Releases](https://github.com/pcb2gcode/pcb2gcode/rel
 3. Choose a component:
    - **auto** reads the open draft and picks major, minor, or patch. Run it again on the same draft and the version stays put.
    - **major**, **minor**, or **patch** adds one of those to the version currently in `CMakeLists.txt`. Each click adds another.
-4. The workflow commits `chore: set version to X.Y.Z` as `github-actions[bot]` and starts a CI run on `master`. The push itself does not start CI; the action dispatches that run.
-5. Wait for that CI run to finish. It rebuilds the binaries with the new version and replaces the draft archives. The tarball names look like `pcb2gcode-…-X.Y.Z-g<sha>.tar.gz`.
-6. Open the draft, check the tag name, the notes, and `pcb2gcode --version` inside an archive, then publish it.
+4. The workflow opens a pull request, `chore: set version to X.Y.Z`, from the branch `release-version`. `master` only accepts changes through a pull request, and it requires the **Finalize coverage** check, so the action does not push to `master`. Running the action again updates that same pull request. The pull request is labeled `skip-changelog`, so it stays out of the draft notes.
+5. Merge the pull request after CI is green.
+6. The merge starts CI on `master`. That run rebuilds the binaries with the new version and replaces the draft archives. The tarball names look like `pcb2gcode-…-X.Y.Z-g<sha>.tar.gz`.
+7. Open the draft, check the tag name, the notes, and `pcb2gcode --version` inside an archive, then publish it.
 
 **auto** also leaves the version unchanged when the draft notes contain no pull request. Release Drafter writes `* No changes` in that case and still proposes a patch; the action ignores that proposal.
 

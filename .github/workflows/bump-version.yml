@@ -1,7 +1,8 @@
 name: Update release version
 
-# Refreshes the draft release, then sets CMakeLists.txt VERSION from it.
-# The draft stays unpublished. Publish it from the GitHub Releases page
+# Refreshes the calculated draft version, then opens a pull request that sets
+# CMakeLists.txt VERSION. master is protected, so this workflow cannot push
+# there. The draft stays unpublished. Publish it from the GitHub Releases page
 # when the notes and archives look right.
 on:
   workflow_dispatch:
@@ -19,7 +20,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 jobs:
   bump:
@@ -31,11 +31,13 @@ jobs:
         with:
           fetch-depth: 0
           ref: master
-      - name: Update the draft release
+      - name: Read the draft version
         id: draft
         uses: release-drafter/release-drafter@v7
         with:
-          # Leave the release as a draft. Publishing stays a manual step.
+          # Read the calculated version without moving the draft tag. The tag
+          # moves when the version pull request merges and master CI runs.
+          dry-run: true
           publish: false
       - name: Choose the project version
         id: bump
@@ -49,23 +51,36 @@ jobs:
             --resolved-version "$RESOLVED_VERSION" \
             --last-tag "$last_tag" \
             --write
-      - name: Point the draft at that version
-        uses: release-drafter/release-drafter@v7
-        with:
-          publish: false
-          version: ${{ steps.bump.outputs.version }}
-      - name: Commit the version
-        if: steps.bump.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add CMakeLists.txt
-          git commit -m "chore: set version to ${{ steps.bump.outputs.version }}"
-          git push origin HEAD:master
-      # A push made with the workflow token does not start CI. Dispatch it so
-      # the draft archives are rebuilt with this version.
-      - name: Rebuild master
+      - name: Open a pull request
         if: steps.bump.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run ci.yml --ref master
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -eu
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="release-version"
+          git checkout -B "$branch"
+          git add CMakeLists.txt
+          git commit -m "chore: set version to ${VERSION}"
+          if git fetch origin "$branch"; then
+            git push --force-with-lease origin "HEAD:${branch}"
+          else
+            git push -u origin "HEAD:${branch}"
+          fi
+          gh label create skip-changelog \
+            --description "Exclude from the draft release notes" \
+            --color "ededed" \
+            --force
+          body="$(printf '%s\n' \
+            "Set the project version to ${VERSION}." \
+            "" \
+            "\`master\` accepts this change only through a pull request. Merging it starts CI, which updates the draft release and replaces the Linux archives. Publish the draft from the Releases page when it looks right.")"
+          title="chore: set version to ${VERSION}"
+          existing="$(gh pr list --head "$branch" --base master --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --title "$title" --body "$body" --add-label skip-changelog
+          else
+            gh pr create --base master --head "$branch" --title "$title" --body "$body" --label skip-changelog
+          fi

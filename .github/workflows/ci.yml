@@ -609,8 +609,8 @@ jobs:
       with:
         parallel-finished: true
   release:
-    # workflow_dispatch covers the CI run started by Update release version.
-    # A push made with the workflow token does not start this workflow itself.
+    # A merge to master, including the version pull request, refreshes the draft.
+    # workflow_dispatch covers a manual CI run on master.
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
       && github.ref == 'refs/heads/master'
