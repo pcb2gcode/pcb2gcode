@@ -58,7 +58,7 @@ jobs:
           # keep the two in sync when upgrading. 'none' builds without GEOS
           # so we don't regress the no-GEOS code path.
           - 'main'
-          - &geos_version '3.14.1'
+          - &geos_version '3.15.0'
           - 'none'
         compiler: ['g++', 'clang++']
         exclude:
