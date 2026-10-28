@@ -162,6 +162,22 @@ set_tests_properties(mcp_stdio_shutdown_test PROPERTIES
   LABELS "integration_expect_success"
   TIMEOUT 60)
 
+# src/wkt_to_svg.cpp is its own executable, so ctest has to run that binary
+# to cover it. One test per stdin shape (see tools/run_wkt_to_svg_test.py).
+foreach(_wkt_case IN ITEMS
+    empty linestring multilinestring polygon multipolygon
+    ignored blank_line_stops combined)
+  add_test(
+    NAME "wkt_to_svg_${_wkt_case}"
+    COMMAND
+      "${Python3_EXECUTABLE}"
+      "${CMAKE_SOURCE_DIR}/tools/run_wkt_to_svg_test.py"
+      "$<TARGET_FILE:wkt_to_svg>"
+      "${_wkt_case}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  set_tests_properties("wkt_to_svg_${_wkt_case}" PROPERTIES LABELS "unit_test")
+endforeach()
+
 if(PCB2GCODE_ENABLE_CODE_COVERAGE)
   include(ProcessorCount)
   ProcessorCount(PCB2GCODE_CTEST_JOBS_VALUE)
@@ -186,7 +202,7 @@ if(PCB2GCODE_ENABLE_CODE_COVERAGE)
       NAME lcov
       EXECUTABLE "${CMAKE_CTEST_COMMAND}"
       EXECUTABLE_ARGS --output-on-failure -j ${PCB2GCODE_CTEST_JOBS_VALUE}
-      DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
+      DEPENDENCIES pcb2gcode wkt_to_svg ${PCB2GCODE_TEST_TARGETS}
       INCLUDE "src/*"
       ${_nlohmann_cov_exclude})
   else()
@@ -194,7 +210,7 @@ if(PCB2GCODE_ENABLE_CODE_COVERAGE)
       NAME lcov
       EXECUTABLE "${CMAKE_CTEST_COMMAND}"
       EXECUTABLE_ARGS --output-on-failure -j ${PCB2GCODE_CTEST_JOBS_VALUE}
-      DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
+      DEPENDENCIES pcb2gcode wkt_to_svg ${PCB2GCODE_TEST_TARGETS}
       LCOV_ARGS --ignore-errors mismatch,inconsistent --rc branch_coverage=1 --rc function_coverage=1 --no-external
       EXCLUDE ${_pcb2gcode_coverage_excludes})
   endif()
