@@ -4,52 +4,57 @@ tag-template: 'v$RESOLVED_VERSION'
 # major. A feature is minor. Everything else, including an unlabeled change,
 # is a patch. The "Update release version" action writes this into
 # CMakeLists.txt; the draft release stays unpublished until you publish it.
-version-resolver:
-  major:
-    labels:
-      - 'major'
-  minor:
-    labels:
-      - 'minor'
-  patch:
-    labels:
-      - 'patch'
-  default: patch
 categories:
   - type: version-resolver
     semver-increment: major
     when:
       conventional:
         breaking: true
-  - title: '✨ Features'
-    labels:
-      - 'feature'
+  - type: version-resolver
+    semver-increment: major
+    when:
+      label: 'major'
+  - type: version-resolver
     semver-increment: minor
+    when:
+      label: 'minor'
+  - type: version-resolver
+    semver-increment: patch
+    when:
+      label: 'patch'
+  # Fallback when no other version-resolver category matches.
+  - type: version-resolver
+    semver-increment: patch
+  - title: '✨ Features'
+    semver-increment: minor
+    when:
+      label: 'feature'
   - title: '🚀 Performance'
-    labels:
-      - 'performance'
+    when:
+      label: 'performance'
   - title: '🪲 Bug Fixes'
-    labels:
-      - 'bug'
+    when:
+      label: 'bug'
   - title: '🔨 Build'
-    labels:
-      - 'build'
+    when:
+      label: 'build'
   - title: '📘 Documentation'
-    labels:
-      - 'documentation'
+    when:
+      label: 'documentation'
   - title: '✅ Testing'
-    labels:
-      - 'testing'
-      - 'ci'
+    when:
+      labels:
+        - 'testing'
+        - 'ci'
   - title: '♻️ Refactoring'
-    labels:
-      - 'refactoring'
+    when:
+      label: 'refactoring'
   - title: '🎨 Style'
-    labels:
-      - 'style'
+    when:
+      label: 'style'
   - title: '🧹 Chores'
-    labels:
-      - 'chore'
+    when:
+      label: 'chore'
 template: |
   ## What’s Changed
 
