@@ -609,7 +609,11 @@ jobs:
       with:
         parallel-finished: true
   release:
-    if: github.event_name == 'push'
+    # workflow_dispatch covers the CI run started by Update release version.
+    # A push made with the workflow token does not start this workflow itself.
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && github.ref == 'refs/heads/master'
     needs: [build-and-test]
     name: Draft Release
     runs-on: ubuntu-latest
@@ -620,16 +624,23 @@ jobs:
       # otherwise, read permission is required at least
       pull-requests: write
     steps:
+      - name: Check out the project version
+        uses: actions/checkout@v7
+      - name: Read project version
+        id: project_version
+        run: python3 tools/bump_release_version.py --print-current
       - name: Download the artifacts to release
         id: download-artifacts
         uses: actions/download-artifact@v8
-      - run: echo "PCB2GCODE_VERSION=$(cat version/version.txt)" >> $GITHUB_ENV
       - name: Draft release
         id: release_drafter
         uses: release-drafter/release-drafter@v7
-        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-        # with:
-        #   config-name: my-config.yml
+        with:
+          # The tag matches CMakeLists.txt. The Update release version
+          # action is what moves that number. This job leaves the release
+          # as a draft.
+          publish: false
+          version: ${{ steps.project_version.outputs.version }}
       - name: Delete existing release assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

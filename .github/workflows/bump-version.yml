@@ -1,0 +1,71 @@
+name: Update release version
+
+# Refreshes the draft release, then sets CMakeLists.txt VERSION from it.
+# The draft stays unpublished. Publish it from the GitHub Releases page
+# when the notes and archives look right.
+on:
+  workflow_dispatch:
+    inputs:
+      part:
+        description: 'Version component to bump'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+        default: auto
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  bump:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: master
+      - name: Update the draft release
+        id: draft
+        uses: release-drafter/release-drafter@v7
+        with:
+          # Leave the release as a draft. Publishing stays a manual step.
+          publish: false
+      - name: Choose the project version
+        id: bump
+        env:
+          RESOLVED_VERSION: ${{ steps.draft.outputs.resolved_version }}
+          RELEASE_BODY: ${{ steps.draft.outputs.body }}
+        run: |
+          last_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*')
+          python3 tools/bump_release_version.py \
+            --part "${{ inputs.part }}" \
+            --resolved-version "$RESOLVED_VERSION" \
+            --last-tag "$last_tag" \
+            --write
+      - name: Point the draft at that version
+        uses: release-drafter/release-drafter@v7
+        with:
+          publish: false
+          version: ${{ steps.bump.outputs.version }}
+      - name: Commit the version
+        if: steps.bump.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt
+          git commit -m "chore: set version to ${{ steps.bump.outputs.version }}"
+          git push origin HEAD:master
+      # A push made with the workflow token does not start CI. Dispatch it so
+      # the draft archives are rebuilt with this version.
+      - name: Rebuild master
+        if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref master

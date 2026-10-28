@@ -5,6 +5,7 @@
  */
 
 #include "mcp_server.hpp"
+#include "pcb2gcode_version.hpp"
 #include <nlohmann/json.hpp>
 
 #include <iostream>
@@ -223,7 +224,7 @@ void run_mcp_server(const char* exec_path) {
                     }},
                     {"serverInfo", {
                         {"name", "pcb2gcode"},
-                        {"version", "3.0.4"}
+                        {"version", PCB2GCODE_PROJECT_VERSION}
                     }}
                 };
                 send_response(resp);
