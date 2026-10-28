@@ -5,6 +5,11 @@ tag-template: 'v$RESOLVED_VERSION'
 # is a patch. The "Update release version" action writes this into
 # CMakeLists.txt; the draft release stays unpublished until you publish it.
 categories:
+  # The version bump pull request carries this label so it stays out of the
+  # notes and does not count as another patch.
+  - type: pre-exclude
+    when:
+      label: 'skip-changelog'
   - type: version-resolver
     semver-increment: major
     when:
