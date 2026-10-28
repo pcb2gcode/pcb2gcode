@@ -171,13 +171,24 @@ if(PCB2GCODE_ENABLE_CODE_COVERAGE)
     math(EXPR PCB2GCODE_CTEST_JOBS_VALUE "${PCB2GCODE_CTEST_JOBS_VALUE} * 4")
   endif()
   get_property(PCB2GCODE_TEST_TARGETS GLOBAL PROPERTY PCB2GCODE_TEST_TARGETS)
+  # FetchContent unpacks nlohmann_json under the build tree. lcov --no-external
+  # still keeps it, because --directory is the build dir, so those headers count
+  # as internal. Drop that tree. grcov globs do not let * cross a slash, so the
+  # clang pattern uses **.
+  set(_pcb2gcode_coverage_excludes "tests/*")
+  set(_nlohmann_cov_exclude "")
+  if(nlohmann_json_SOURCE_DIR)
+    list(APPEND _pcb2gcode_coverage_excludes "${nlohmann_json_SOURCE_DIR}/*")
+    set(_nlohmann_cov_exclude EXCLUDE "${nlohmann_json_SOURCE_DIR}/**")
+  endif()
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     setup_target_for_coverage_lcov(
       NAME lcov
       EXECUTABLE "${CMAKE_CTEST_COMMAND}"
       EXECUTABLE_ARGS --output-on-failure -j ${PCB2GCODE_CTEST_JOBS_VALUE}
       DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
-      INCLUDE "src/*")
+      INCLUDE "src/*"
+      ${_nlohmann_cov_exclude})
   else()
     setup_target_for_coverage_lcov(
       NAME lcov
@@ -185,6 +196,6 @@ if(PCB2GCODE_ENABLE_CODE_COVERAGE)
       EXECUTABLE_ARGS --output-on-failure -j ${PCB2GCODE_CTEST_JOBS_VALUE}
       DEPENDENCIES pcb2gcode ${PCB2GCODE_TEST_TARGETS}
       LCOV_ARGS --ignore-errors mismatch,inconsistent --rc branch_coverage=1 --rc function_coverage=1 --no-external
-      EXCLUDE "tests/*")
+      EXCLUDE ${_pcb2gcode_coverage_excludes})
   endif()
 endif()
