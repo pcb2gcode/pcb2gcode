@@ -58,7 +58,7 @@ jobs:
           # keep the two in sync when upgrading. 'none' builds without GEOS
           # so we don't regress the no-GEOS code path.
           - 'main'
-          - &geos_version '3.14.1'
+          - &geos_version '3.15.0'
           - 'none'
         compiler: ['g++', 'clang++']
         exclude:
@@ -66,20 +66,6 @@ jobs:
             boost: '1_83' # TODO: Build with boost 1.83 on Windows.
           - os: windows-latest
             compiler: 'clang++' # TODO: Make clang work on Windows.
-          # libgeos 3.14.1 has a latent Windows-only linker bug: the
-          # C API (libgeos_c.dll) references
-          # DistanceToPoint::computeDistance(..., CoordinateXY const&, ...)
-          # but libgeos.dll on Windows doesn't export that overload
-          # (missing __declspec on an in-progress CoordinateXY refactor
-          # that landed on main after the 3.14.1 release). Linux doesn't
-          # care about export markers so the Ubuntu matrix cells build
-          # fine. Excluding this cell on Windows loses no test coverage:
-          # integration tests only enable themselves when GEOS matches
-          # PCB2GCODE_INTEGRATION_GEOS_VERSION (3.14.1), so they'd stay
-          # DISABLED on Windows either way. Revisit when either a 3.14.x
-          # patch release ships the DLL export fix or we bump the pin.
-          - os: windows-latest
-            geos: '3.14.1'
         include:
           # Derive os_family from each full OS label so the per-step
           # conditions and shells below can stay unchanged (and so
