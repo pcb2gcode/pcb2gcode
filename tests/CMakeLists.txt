@@ -23,7 +23,7 @@ endif()
 # They stay registered but are DISABLED unless PCB2GCODE_RUN_INTEGRATION_TESTS is ON.
 # CTest labels: integration_expect_success vs integration_expect_failure.
 # Regenerate expected/ with tools/run_gerbv_example_test.py --regenerate-expected.
-set(PCB2GCODE_INTEGRATION_GEOS_VERSION "3.14.1")
+set(PCB2GCODE_INTEGRATION_GEOS_VERSION "3.15.0")
 
 # Whole 15.x line, not later majors. CMAKE_CXX_COMPILER_VERSION is "15.2.0".
 set(_pcb2gcode_gxx15 OFF)
