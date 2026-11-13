@@ -6,6 +6,20 @@ It also includes an Autoleveller, useful for the automatic dynamic calibration o
 
 It includes native **Model Context Protocol (MCP)** server capability (`--mcp`), allowing AI assistants like Claude Desktop, Cursor, and Antigravity to directly execute PCB isolation and routing.
 
+## Documentation
+
+The [pcb2gcode wiki](https://github.com/pcb2gcode/pcb2gcode/wiki) explains the options, with pictures and sample configurations:
+
+* [Generic](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Generic): the `millproject` file, units, and other general options
+* [Common](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Common): CNC options shared by milling, drilling, and cutting, such as `--zsafe` and tiling
+* [Milling](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Milling): isolation milling from Gerber files, including `--voronoi`
+* [Drilling](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Drilling): drilling and milldrilling from Excellon files
+* [Outline](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Outline): cutting the board out along its edge, including bridges
+* [Optimizations](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Optimizations): tool path optimizations, and making pcb2gcode run faster
+* [Alignment for two-sided PCBs and offsets](https://github.com/pcb2gcode/pcb2gcode/wiki/Options:-Alignment-for-two-sided-PCB-and-offsets): alignment pins, `--zero-start`, `--mirror-axis`, and offsets
+
+`pcb2gcode --help` lists every option.
+
 ## Model Context Protocol (MCP) Server
 
 `pcb2gcode` includes a native Model Context Protocol (MCP) server mode over stdio (`--mcp`). This enables AI coding assistants (such as Antigravity, Cursor, and Claude Desktop) to invoke `pcb2gcode` directly for PCB isolation and routing.
