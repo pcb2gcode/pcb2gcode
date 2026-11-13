@@ -80,8 +80,13 @@ if(NOT nlohmann_json_FOUND)
   endif()
 endif()
 
-set(PCB2GCODE_GIT_VERSION "unknown")
-if(GIT_FOUND)
+# Archives made by git archive, such as GitHub's source downloads, carry the
+# commit in cmake/git_archive_commit.txt. Otherwise ask git, but only when the
+# source directory is the checkout itself: a tarball unpacked inside another
+# repository must not report that repository's commit.
+file(STRINGS "${CMAKE_SOURCE_DIR}/cmake/git_archive_commit.txt" PCB2GCODE_GIT_VERSION
+     REGEX "^[0-9a-f]+$")
+if(NOT PCB2GCODE_GIT_VERSION AND GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
   execute_process(
     COMMAND "${GIT_EXECUTABLE}" describe --dirty --always --tags
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -204,8 +209,12 @@ function(pcb2gcode_apply_common target_name)
   target_compile_options("${target_name}" PRIVATE ${GERBV_CFLAGS_OTHER})
   target_compile_definitions(
     "${target_name}"
-    PRIVATE "GIT_VERSION=\"${PCB2GCODE_GIT_VERSION}\""
-            "GERBV_VERSION=\"${PCB2GCODE_GERBV_VERSION}\"")
+    PRIVATE "GERBV_VERSION=\"${PCB2GCODE_GERBV_VERSION}\"")
+  if(PCB2GCODE_GIT_VERSION)
+    target_compile_definitions(
+      "${target_name}"
+      PRIVATE "GIT_VERSION=\"${PCB2GCODE_GIT_VERSION}\"")
+  endif()
   if(PCB2GCODE_HAS_GEOS)
     target_compile_options("${target_name}" PRIVATE ${PCB2GCODE_GEOS_CFLAGS_LIST})
     target_link_options("${target_name}" PRIVATE ${PCB2GCODE_GEOS_LDFLAGS_LIST})

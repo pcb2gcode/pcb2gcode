@@ -129,9 +129,9 @@ BOOST_AUTO_TEST_CASE(mcp_server_tools_call_version_test) {
   BOOST_CHECK_EQUAL(resp["result"]["isError"], false);
   std::string text = resp["result"]["content"][0]["text"].get<std::string>();
   BOOST_CHECK_NE(text.find("Exit code: 0"), std::string::npos);
-  // `--version` prints a "Git commit:" metadata line; use it as a sentinel
+  // `--version` always prints a "Boost:" metadata line; use it as a sentinel
   // that we really invoked --version rather than something else.
-  BOOST_CHECK_NE(text.find("Git commit:"), std::string::npos);
+  BOOST_CHECK_NE(text.find("Boost:"), std::string::npos);
 }
 
 BOOST_AUTO_TEST_CASE(mcp_server_tools_call_help_test) {
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(mcp_server_tools_call_run_args_test) {
   BOOST_CHECK_EQUAL(resp["result"]["isError"], false);
   std::string text = resp["result"]["content"][0]["text"].get<std::string>();
   BOOST_CHECK_NE(text.find("Exit code: 0"), std::string::npos);
-  BOOST_CHECK_NE(text.find("Git commit:"), std::string::npos);
+  BOOST_CHECK_NE(text.find("Boost:"), std::string::npos);
 }
 
 BOOST_AUTO_TEST_CASE(mcp_server_tools_call_run_bad_arg_test) {
