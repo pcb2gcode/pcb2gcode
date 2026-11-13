@@ -8,6 +8,9 @@ namespace po = boost::program_options;
 #include "units.hpp"
 #include "available_drills.hpp"
 
+#include <regex>
+#include <utility>
+
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(options_tests)
@@ -45,6 +48,19 @@ variable_t get_value(const std::string& args, const std::string& variable) {
 int get_count(const std::string& args, const std::string& variable) {
   BOOST_CHECK_EQUAL(get_error_code(args), ERR_OK);
   return options::get_vm().count(variable);
+}
+
+// The code and message of the error from parsing and then checking args, or
+// ERR_OK.
+std::pair<ErrorCodes, std::string> get_check_error(const std::string& args) {
+  try {
+    parse(args);
+    options::check_parameters();
+  } catch (const pcb2gcode_parse_exception& e) {
+    cerr << e.what() << endl;
+    return {e.code(), e.what()};
+  }
+  return {ERR_OK, ""};
 }
 
 BOOST_AUTO_TEST_CASE(foo) {
@@ -93,6 +109,55 @@ BOOST_AUTO_TEST_CASE(milling_overlap) {
 
 BOOST_AUTO_TEST_CASE(mcp_option) {
   BOOST_CHECK_EQUAL(get_count("pcb2gcode --mcp", "mcp"), 1);
+}
+
+BOOST_AUTO_TEST_CASE(unknown_options_reported_together) {
+  auto error = get_check_error("pcb2gcode --safety=3 --drill-diameters=0.8");
+  BOOST_CHECK_EQUAL(error.first, ERR_UNKNOWNPARAMETER);
+  BOOST_CHECK_NE(error.second.find("--safety=3"), std::string::npos);
+  BOOST_CHECK_NE(error.second.find("--drill-diameters=0.8"), std::string::npos);
+}
+
+BOOST_AUTO_TEST_CASE(missing_options_reported_together) {
+  auto error = get_check_error("pcb2gcode --noconfigfile --back=board.gbr --drill=board.drl "
+                               "--mill-feed=100 --mill-speed=15000 --drill-feed=50 "
+                               "--drill-speed=10000");
+  // The first problem decides the exit code.
+  BOOST_CHECK_EQUAL(error.first, ERR_NOZSAFE);
+  for (const std::string option : {"zsafe", "zchange", "zwork", "zdrill"}) {
+    const std::string missing = "Missing --" + option + ",";
+    BOOST_CHECK_NE(error.second.find(missing), std::string::npos);
+    BOOST_CHECK_EQUAL(error.second.find(missing), error.second.rfind(missing));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(examples_in_errors_fix_them) {
+  const std::string args = "pcb2gcode --noconfigfile --back=board.gbr --outline=outline.gbr "
+                           "--drill=board.drl --al-back";
+  auto error = get_check_error(args);
+  BOOST_REQUIRE_NE(error.first, ERR_OK);
+  std::string fixed = args;
+  const std::regex example("For example: (--\\S+)");
+  for (std::sregex_iterator it(error.second.begin(), error.second.end(), example), end;
+       it != end; ++it) {
+    fixed += " " + (*it)[1].str();
+  }
+  BOOST_CHECK_EQUAL(get_check_error(fixed).first, ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(ignore_warnings_with_missing_options) {
+  BOOST_CHECK_EQUAL(get_check_error("pcb2gcode --noconfigfile --ignore-warnings "
+                                    "--back=board.gbr --outline=outline.gbr "
+                                    "--drill=board.drl").first,
+                    ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(zchange_below_zdrill) {
+  auto error = get_check_error("pcb2gcode --noconfigfile --drill=board.drl --zsafe=5mm "
+                               "--zchange=-3mm --zdrill=-2.5mm --drill-feed=500mm/min "
+                               "--drill-speed=10000rpm");
+  BOOST_CHECK_EQUAL(error.first, ERR_ZSAFELOWERZCHANGE);
+  BOOST_CHECK_NE(error.second.find("--zchange-absolute"), std::string::npos);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
