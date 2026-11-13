@@ -111,12 +111,18 @@ void options::parse(int argc, const char** argv) {
     try {
       po::parsed_options parsed = po::command_line_parser(argc, argv)
           .options(generic).style(style).allow_unregistered().run();
-      string unknown;
-      for (const string& token : po::collect_unrecognized(parsed.options, po::exclude_positional)) {
-        unknown += "Error: Unknown option " + token + "\n";
+      string unrecognized;
+      for (const po::option& option : parsed.options) {
+        const string token = boost::algorithm::join(option.original_tokens, " ");
+        if (option.position_key != -1) {
+          unrecognized += "Error: Unexpected argument " + token +
+                          ". Arguments need an option name, like --front=board.gbr\n";
+        } else if (option.unregistered) {
+          unrecognized += "Error: Unknown option " + token + "\n";
+        }
       }
-      if (!unknown.empty()) {
-        throw pcb2gcode_parse_exception(unknown + "Run pcb2gcode --help to see all the options.",
+      if (!unrecognized.empty()) {
+        throw pcb2gcode_parse_exception(unrecognized + "Run pcb2gcode --help to see all the options.",
                                         ERR_UNKNOWNPARAMETER);
       }
       po::store(parsed, instance().vm);
