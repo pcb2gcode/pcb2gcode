@@ -27,3 +27,8 @@ treated as a comment). Options that don't take an argument (like
 Unless configured otherwise, numeric values are in units of inch and
 inch/minute. When the \fB\-\-metric\fP option is given, they are in mm and
 mm/minute.
+[SEE ALSO]
+The pcb2gcode wiki explains the options in more detail, with pictures and
+examples:
+.br
+\%<https://github.com/pcb2gcode/pcb2gcode/wiki>
