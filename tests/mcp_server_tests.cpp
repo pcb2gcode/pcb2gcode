@@ -9,8 +9,8 @@
 
 using json = nlohmann::json;
 
-#ifndef PCB2GCODE_TEST_BINARY
-#error "PCB2GCODE_TEST_BINARY must be defined at build time (see tests/CMakeLists.txt)"
+#if !defined(PCB2GCODE_TEST_BINARY) || !defined(PCB2GCODE_TEST_PYTHON)
+#error "PCB2GCODE_TEST_BINARY and PCB2GCODE_TEST_PYTHON must be defined at build time (see tests/CMakeLists.txt)"
 #endif
 
 namespace {
@@ -203,6 +203,27 @@ BOOST_AUTO_TEST_CASE(mcp_server_unknown_method_test) {
   BOOST_CHECK_EQUAL(resp["error"]["code"], -32601);
   std::string msg = resp["error"]["message"].get<std::string>();
   BOOST_CHECK_NE(msg.find("totally_unknown_method"), std::string::npos);
+}
+
+BOOST_AUTO_TEST_CASE(mcp_server_tools_call_large_output_test) {
+  // The child writes far more than a pipe holds to stdout and then to stderr,
+  // so the server has to keep reading both while the child runs. pcb2gcode
+  // never prints that much, so Python is the child here.
+  const size_t bytes = 1 << 18;
+  const std::string n = std::to_string(bytes);
+  std::string input =
+      "{\"jsonrpc\":\"2.0\",\"id\":16,\"method\":\"tools/call\","
+      "\"params\":{\"name\":\"pcb2gcode_run\",\"arguments\":{\"args\":[\"-c\","
+      "\"import sys; sys.stdout.write('o' * " + n + "); sys.stdout.flush(); "
+      "sys.stderr.write('e' * " + n + ")\"]}}}\n";
+  json resp = json::parse(run_mcp_with_input(input, PCB2GCODE_TEST_PYTHON));
+  BOOST_CHECK_EQUAL(resp["id"], 16);
+  BOOST_CHECK_EQUAL(resp["result"]["isError"], false);
+  std::string text = resp["result"]["content"][0]["text"].get<std::string>();
+  BOOST_CHECK_NE(text.find("STDOUT:\n" + std::string(bytes, 'o') + "\n"),
+                 std::string::npos);
+  BOOST_CHECK_NE(text.find("STDERR:\n" + std::string(bytes, 'e') + "\n"),
+                 std::string::npos);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
