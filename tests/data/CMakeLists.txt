@@ -155,6 +155,12 @@ pcb2gcode_add_integration_script_test(
   PCB2GCODE_ARGS "--mill-feed-direction=invalid_value")
 
 pcb2gcode_add_integration_script_test(
+  integration_stray_argument
+  "tests/data/gerbv_example"
+  EXPECTED_EXIT 101
+  PCB2GCODE_ARGS "stray.gbr")
+
+pcb2gcode_add_integration_script_test(
   integration_zchange_below_zdrill
   "tests/data/gerbv_example/multivibrator-zchange-absolute"
   EXPECTED_EXIT 19

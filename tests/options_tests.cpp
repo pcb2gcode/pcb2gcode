@@ -118,6 +118,15 @@ BOOST_AUTO_TEST_CASE(unknown_options_reported_together) {
   BOOST_CHECK_NE(error.second.find("--drill-diameters=0.8"), std::string::npos);
 }
 
+BOOST_AUTO_TEST_CASE(stray_arguments_reported) {
+  auto error = get_check_error("pcb2gcode board.gbr --zsafe 5mm extra");
+  BOOST_CHECK_EQUAL(error.first, ERR_UNKNOWNPARAMETER);
+  BOOST_CHECK_NE(error.second.find("Unexpected argument board.gbr"), std::string::npos);
+  BOOST_CHECK_NE(error.second.find("Unexpected argument extra"), std::string::npos);
+  // 5mm is the value of --zsafe.
+  BOOST_CHECK_EQUAL(error.second.find("5mm"), std::string::npos);
+}
+
 BOOST_AUTO_TEST_CASE(missing_options_reported_together) {
   auto error = get_check_error("pcb2gcode --noconfigfile --back=board.gbr --drill=board.drl "
                                "--mill-feed=100 --mill-speed=15000 --drill-feed=50 "
