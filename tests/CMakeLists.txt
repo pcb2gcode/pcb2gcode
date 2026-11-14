@@ -145,9 +145,13 @@ pcb2gcode_add_test_executable(
   mcp_server_tests.cpp)
 # The tools/call handler fork/execs the pcb2gcode binary; hand the tests the
 # built path so they can exercise every branch (version/help/run/unknown).
+# Python stands in for pcb2gcode when a test needs more output than a pipe holds.
 target_compile_definitions(mcp_server_tests PRIVATE
-  "PCB2GCODE_TEST_BINARY=\"$<TARGET_FILE:pcb2gcode>\"")
+  "PCB2GCODE_TEST_BINARY=\"$<TARGET_FILE:pcb2gcode>\""
+  "PCB2GCODE_TEST_PYTHON=\"${Python3_EXECUTABLE}\"")
 add_dependencies(mcp_server_tests pcb2gcode)
+# A deadlock while reading the child's output hangs instead of failing.
+set_tests_properties(mcp_server_tests PROPERTIES TIMEOUT 60)
 
 # End-to-end test: spawn the real pcb2gcode --mcp subprocess, exchange one
 # initialize + tools/list request, close stdin, and require a clean exit.

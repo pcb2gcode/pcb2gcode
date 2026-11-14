@@ -13,15 +13,18 @@
 #include <vector>
 #include <sstream>
 #include <cstdlib>
+#include <cerrno>
 
 #ifndef _WIN32
 #include <unistd.h>
+#include <poll.h>
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #else
 #include <windows.h>
 #include <direct.h>
+#include <thread>
 #endif
 
 using json = nlohmann::json;
@@ -83,44 +86,49 @@ static ProcessResult run_process(const std::string& exec_path, const std::vector
         close(out_pipe[1]);
         close(err_pipe[1]);
 
+        // Read whichever pipe has data. Blocking on one pipe while the child
+        // fills the other one deadlocks.
+        pollfd fds[2] = {{out_pipe[0], POLLIN, 0}, {err_pipe[0], POLLIN, 0}};
+        std::string* outputs[2] = {&result.stdout_str, &result.stderr_str};
         char buffer[4096];
-        ssize_t bytes_read;
-
-        while (true) {
-            bool read_any = false;
-            bytes_read = read(out_pipe[0], buffer, sizeof(buffer));
-            if (bytes_read > 0) {
-                result.stdout_str.append(buffer, bytes_read);
-                read_any = true;
-            }
-            bytes_read = read(err_pipe[0], buffer, sizeof(buffer));
-            if (bytes_read > 0) {
-                result.stderr_str.append(buffer, bytes_read);
-                read_any = true;
-            }
-            if (!read_any) {
-                int status;
-                pid_t r = waitpid(pid, &status, WNOHANG);
-                if (r > 0) {
-                    while ((bytes_read = read(out_pipe[0], buffer, sizeof(buffer))) > 0) {
-                        result.stdout_str.append(buffer, bytes_read);
-                    }
-                    while ((bytes_read = read(err_pipe[0], buffer, sizeof(buffer))) > 0) {
-                        result.stderr_str.append(buffer, bytes_read);
-                    }
-                    if (WIFEXITED(status)) {
-                        result.exit_code = WEXITSTATUS(status);
-                    } else if (WIFSIGNALED(status)) {
-                        result.exit_code = 128 + WTERMSIG(status);
-                    }
-                    break;
+        while (fds[0].fd >= 0 || fds[1].fd >= 0) {
+            if (poll(fds, 2, -1) < 0) {
+                if (errno == EINTR) {
+                    continue;
                 }
-                usleep(5000);
+                break;
+            }
+            for (int i = 0; i < 2; i++) {
+                if (fds[i].revents == 0) {
+                    continue;
+                }
+                ssize_t bytes_read = read(fds[i].fd, buffer, sizeof(buffer));
+                if (bytes_read > 0) {
+                    outputs[i]->append(buffer, bytes_read);
+                } else if (bytes_read == 0 || errno != EINTR) {
+                    close(fds[i].fd);
+                    fds[i].fd = -1;
+                }
+            }
+        }
+        for (const pollfd& p : fds) {
+            if (p.fd >= 0) {
+                close(p.fd);
             }
         }
 
-        close(out_pipe[0]);
-        close(err_pipe[0]);
+        int status;
+        pid_t waited;
+        do {
+            waited = waitpid(pid, &status, 0);
+        } while (waited < 0 && errno == EINTR);
+        if (waited == pid) {
+            if (WIFEXITED(status)) {
+                result.exit_code = WEXITSTATUS(status);
+            } else if (WIFSIGNALED(status)) {
+                result.exit_code = 128 + WTERMSIG(status);
+            }
+        }
     }
 #else
     std::string cmd = "\"" + exec_path + "\"";
@@ -156,14 +164,18 @@ static ProcessResult run_process(const std::string& exec_path, const std::vector
         CloseHandle(hOutWrite);
         CloseHandle(hErrWrite);
 
-        char buffer[4096];
-        DWORD bytesRead;
-        while (ReadFile(hOutRead, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
-            result.stdout_str.append(buffer, bytesRead);
-        }
-        while (ReadFile(hErrRead, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
-            result.stderr_str.append(buffer, bytesRead);
-        }
+        auto drain = [](HANDLE pipe, std::string* output) {
+            char buffer[4096];
+            DWORD bytesRead;
+            while (ReadFile(pipe, buffer, sizeof(buffer), &bytesRead, NULL) && bytesRead > 0) {
+                output->append(buffer, bytesRead);
+            }
+        };
+        // Read stderr on its own thread. Reading one pipe to the end before
+        // the other deadlocks once the child fills the other one.
+        std::thread stderr_reader(drain, hErrRead, &result.stderr_str);
+        drain(hOutRead, &result.stdout_str);
+        stderr_reader.join();
 
         WaitForSingleObject(pi.hProcess, INFINITE);
         DWORD exitCode = 0;
