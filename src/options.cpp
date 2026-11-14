@@ -40,6 +40,25 @@ using std::to_string;
 using std::cerr;
 using std::endl;
 
+namespace {
+
+// A problem with the options.  check_parameters() collects all of them so
+// that the user can fix them in one go.
+struct OptionError {
+  string what;
+  ErrorCodes code;
+};
+
+// The message for an option that must be given but wasn't.  Give numeric
+// examples units so that they work with and without --metric.
+string missing_option(const string& option, const string& description,
+                      const string& example) {
+  return "Missing --" + option + ", " + description + ". For example: --" +
+         option + "=" + example;
+}
+
+} // namespace
+
 /******************************************************************************/
 /*
  */
@@ -90,12 +109,21 @@ void options::parse(int argc, const char** argv) {
     generic.add(instance().cli_options).add(instance().cfg_options);
 
     try {
-      po::store(po::parse_command_line(argc, argv, generic, style),
-                instance().vm);
+      po::parsed_options parsed = po::command_line_parser(argc, argv)
+          .options(generic).style(style).allow_unregistered().run();
+      string unknown;
+      for (const string& token : po::collect_unrecognized(parsed.options, po::exclude_positional)) {
+        unknown += "Error: Unknown option " + token + "\n";
+      }
+      if (!unknown.empty()) {
+        throw pcb2gcode_parse_exception(unknown + "Run pcb2gcode --help to see all the options.",
+                                        ERR_UNKNOWNPARAMETER);
+      }
+      po::store(parsed, instance().vm);
     } catch (std::logic_error& e) {
-      throw pcb2gcode_parse_exception(std::string("Error: You've supplied an invalid parameter.\n"
-                                                  "Details: ")
-                                      + e.what(), ERR_UNKNOWNPARAMETER);
+      throw pcb2gcode_parse_exception(std::string("Error: ") + e.what() +
+                                      "\nRun pcb2gcode --help to see all the options.",
+                                      ERR_UNKNOWNPARAMETER);
     }
 
     po::notify(instance().vm);
@@ -123,7 +151,8 @@ void options::parse(int argc, const char** argv) {
 
     if (instance().vm.count("tolerance")) {
       if (instance().vm.count("g64")) {
-        maybe_throw("You can't specify both tolerance and g64!", ERR_BOTHTOLERANCEG64);
+        maybe_throw("Error: --g64 and --tolerance can't both be set. --g64 is deprecated, so use "
+                    "only --tolerance.", ERR_BOTHTOLERANCEG64);
       }
     } else {
         const double cfactor = instance().vm["metric"].as<bool>() ? 25.4 : 1;
@@ -172,15 +201,15 @@ void options::parse_files(const std::vector<std::string>& config_files,
   // We do it in serve order so that the latter config file in the
   // list overrides the former.
   for (const auto& file : boost::adaptors::reverse(config_files)) {
+    std::ifstream stream(file);
+    if (!defaulted && stream.fail()) {
+      // If the user explicitly specified the config files to use
+      // then we will throw an error if any of those files are not
+      // found.
+      maybe_throw("Error: Can't open the configuration file \"" + file + "\" given with --config.",
+                  ERR_INVALIDPARAMETER);
+    }
     try {
-      std::ifstream stream(file);
-      if (!defaulted && stream.fail()) {
-        // If the user explicitly specified the config files to use
-        // then we will throw an error if any of those files are not
-        // found.
-        maybe_throw("Missing configuration file \"" + file + "\"",
-                    ERR_INVALIDPARAMETER);
-      }
       po::store(po::parse_config_file(stream, instance().cfg_options),
                 instance().vm);
     } catch (std::exception& e) {
@@ -362,7 +391,7 @@ options::options()
 /*
  */
 /******************************************************************************/
-static void check_generic_parameters(po::variables_map const& vm)
+static void check_generic_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
 {
     double unit;      //factor for imperial/metric conversion
 
@@ -372,11 +401,11 @@ static void check_generic_parameters(po::variables_map const& vm)
     //Check spinup(down)-time parameters:
 
     if (vm["spinup-time"].as<Time>().asMillisecond(1) < 0) {
-      options::maybe_throw("spinup-time can't be negative!", ERR_NEGATIVESPINUP);
+      errors.push_back({"--spinup-time can't be negative.", ERR_NEGATIVESPINUP});
     }
 
     if (vm.count("spindown-time") && vm["spindown-time"].as<Time>().asMillisecond(1) < 0) {
-      options::maybe_throw("spindown-time can't be negative!", ERR_NEGATIVESPINDOWN);
+      errors.push_back({"--spindown-time can't be negative.", ERR_NEGATIVESPINDOWN});
     }
 
     //---------------------------------------------------------------------------
@@ -391,7 +420,9 @@ static void check_generic_parameters(po::variables_map const& vm)
     //Check mirror-absolute parameter:
 
     if (!vm["mirror-absolute"].as<bool>()) {
-      options::maybe_throw("mirror-absolute is deprecated, it must be true.", ERR_FALSEMIRRORABSOLUTE);
+      errors.push_back({"--mirror-absolute=false isn't supported anymore. Remove it, and use "
+                        "--mirror-axis to choose where the back side is mirrored.",
+                        ERR_FALSEMIRRORABSOLUTE});
     }
 
     //---------------------------------------------------------------------------
@@ -411,7 +442,8 @@ static void check_generic_parameters(po::variables_map const& vm)
                  << endl;
 
         else if (vm["tolerance"].as<double>() < 0) {
-          options::maybe_throw("tolerance can't be negative!", ERR_NEGATIVETOLERANCE);
+          errors.push_back({"--tolerance can't be negative. Leave it out to use the default.",
+                            ERR_NEGATIVETOLERANCE});
         }
     }
 
@@ -435,25 +467,27 @@ static void check_generic_parameters(po::variables_map const& vm)
     //Check for tile parameters
 
     if (vm["tile-x"].as<int>() < 1) {
-      options::maybe_throw("tile-x can't be negative!", ERR_NEGATIVETILEX);
+      errors.push_back({"--tile-x must be at least 1.", ERR_NEGATIVETILEX});
     }
 
     if (vm["tile-y"].as<int>() < 1) {
-      options::maybe_throw("tile-y can't be negative!", ERR_NEGATIVETILEY);
+      errors.push_back({"--tile-y must be at least 1.", ERR_NEGATIVETILEY});
     }
 
     //---------------------------------------------------------------------------
     //Check for safety height parameter:
 
     if (!vm.count("zsafe")) {
-      options::maybe_throw("Error: Safety height not specified.", ERR_NOZSAFE);
+      errors.push_back({missing_option("zsafe", "the safety height for rapid moves", "5mm"),
+                        ERR_NOZSAFE});
     }
 
     //---------------------------------------------------------------------------
     //Check for zchange parameter parameter:
 
     if (!vm.count("zchange")) {
-      options::maybe_throw("Error: Tool changing height not specified.", ERR_NOZCHANGE);
+      errors.push_back({missing_option("zchange", "the tool change height", "10mm"),
+                        ERR_NOZCHANGE});
     }
 
     //---------------------------------------------------------------------------
@@ -462,30 +496,40 @@ static void check_generic_parameters(po::variables_map const& vm)
     if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>())
     {
         if (!vm.count("software")) {
-          options::maybe_throw("Error: unspecified or unsupported software, please specify a supported software (linuxcnc, mach3, mach4 or custom).", ERR_NOSOFTWARE);
+          errors.push_back({missing_option("software",
+                                           "the autoleveller's target software: linuxcnc, mach3, "
+                                           "mach4 or custom", "linuxcnc"),
+                            ERR_NOSOFTWARE});
         }
 
         if (!vm.count("al-x")) {
-          options::maybe_throw("Error: autoleveller probe width x not specified.", ERR_NOALX);
+          errors.push_back({missing_option("al-x", "the autoleveller's largest x distance between "
+                                           "probes", "15mm"),
+                            ERR_NOALX});
         } else if (vm["al-x"].as<Length>().asInch(unit) <= 0) {
-          options::maybe_throw("Error: al-x < 0!", ERR_NEGATIVEALX);
+          errors.push_back({"--al-x must be greater than 0.", ERR_NEGATIVEALX});
         }
 
         if (!vm.count("al-y")) {
-          options::maybe_throw("Error: autoleveller probe width y not specified.", ERR_NOALY);
+          errors.push_back({missing_option("al-y", "the autoleveller's largest y distance between "
+                                           "probes", "15mm"),
+                            ERR_NOALY});
         } else if (vm["al-y"].as<Length>().asInch(unit) <= 0) {
-          options::maybe_throw("Error: al-y < 0!", ERR_NEGATIVEALY);
+          errors.push_back({"--al-y must be greater than 0.", ERR_NEGATIVEALY});
         }
 
         if (!vm.count("al-probefeed")) {
-          options::maybe_throw("Error: autoleveller probe feed rate not specified.", ERR_NOALPROBEFEED);
+          errors.push_back({missing_option("al-probefeed", "the autoleveller's probing feed rate",
+                                           "100mm/min"),
+                            ERR_NOALPROBEFEED});
         } else if (vm["al-probefeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-          options::maybe_throw("Error: al-probefeed < 0!", ERR_NEGATIVEPROBEFEED);
+          errors.push_back({"--al-probefeed must be greater than 0.", ERR_NEGATIVEPROBEFEED});
         }
     }
     if (vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() != MillFeedDirection::ANY &&
         vm["tsp-2opt"].as<bool>()) {
-      options::maybe_throw("Error: Can't use tsp-2opt together with mill-feed-direction", ERR_INVALIDPARAMETER);
+      errors.push_back({"--mill-feed-direction doesn't work with --tsp-2opt, which is on by "
+                        "default. Add --tsp-2opt=false.", ERR_INVALIDPARAMETER});
     }
 }
 
@@ -493,7 +537,7 @@ static void check_generic_parameters(po::variables_map const& vm)
 /*
  */
 /******************************************************************************/
-static void check_milling_parameters(po::variables_map const& vm)
+static void check_milling_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
 {
 
     double unit;      //factor for imperial/metric conversion
@@ -504,46 +548,50 @@ static void check_milling_parameters(po::variables_map const& vm)
     {
 
       if (!vm.count("zwork")) {
-        options::maybe_throw("Error: --zwork not specified.", ERR_NOZWORK);
+        errors.push_back({missing_option("zwork", "the milling depth", "-0.05mm"), ERR_NOZWORK});
       } else if (vm["zwork"].as<Length>().asDouble() > 0){
         cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
       }
 
       if (!vm["vectorial"].as<bool>()) {
-        options::maybe_throw("Error: --vectorial is mandatory", ERR_INVALIDPARAMETER);
+        errors.push_back({"--vectorial=false isn't supported anymore. Remove it.",
+                          ERR_INVALIDPARAMETER});
       }
       if (!vm.count("mill-diameters")) {
-        options::maybe_throw("Error: no --mill-diameters specified.", ERR_NOOFFSET);
+        errors.push_back({missing_option("mill-diameters", "the diameters of the milling bits",
+                                         "0.2mm"),
+                          ERR_NOOFFSET});
       }
 
       if (!vm.count("mill-feed")) {
-        options::maybe_throw("Error: Milling feed [i/m or mm/m] not specified.", ERR_NOMILLFEED);
+        errors.push_back({missing_option("mill-feed", "the milling feed rate", "600mm/min"),
+                          ERR_NOMILLFEED});
       }
 
       if (!vm.count("mill-speed")) {
-        options::maybe_throw("Error: Milling speed [rpm] not specified.", ERR_NOMILLSPEED);
+        errors.push_back({missing_option("mill-speed", "the spindle speed for milling", "10000rpm"),
+                          ERR_NOMILLSPEED});
       }
 
-        // required parameters present. check for validity.
-      if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zwork"].as<Length>().asInch(unit)) {
-        options::maybe_throw("Error: The safety height --zsafe is lower than the milling "
-                             "height --zwork. Are you sure this is correct?", ERR_ZSAFELOWERZWORK);
+      if (vm.count("zsafe") && vm.count("zwork") &&
+          vm["zsafe"].as<Length>().asInch(unit) <= vm["zwork"].as<Length>().asInch(unit)) {
+        errors.push_back({"--zsafe must be higher than --zwork.", ERR_ZSAFELOWERZWORK});
       }
 
-      if (vm["mill-feed"].as<Velocity>().asDouble() <= 0) {
-        options::maybe_throw("Error: Negative or equal to 0 milling feed (--mill-feed).", ERR_NEGATIVEMILLFEED);
+      if (vm.count("mill-feed") && vm["mill-feed"].as<Velocity>().asDouble() <= 0) {
+        errors.push_back({"--mill-feed must be greater than 0.", ERR_NEGATIVEMILLFEED});
       }
 
       if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-        options::maybe_throw("Error: Negative or equal to 0 vertical milling feed (--mill-vertfeed).", ERR_NEGATIVEMILLVERTFEED);
+        errors.push_back({"--mill-vertfeed must be greater than 0.", ERR_NEGATIVEMILLVERTFEED});
       }
 
       if (vm.count("mill-infeed")>0 && vm["mill-infeed"].as<Length>().asInch(unit) <= 0.0) {
-        options::maybe_throw("Error: The milling infeed --mill-infeed. seems too low.", ERR_LOWMILLINFEED);
+        errors.push_back({"--mill-infeed must be greater than 0.", ERR_LOWMILLINFEED});
       }
 
-      if (vm["mill-speed"].as<Rpm>().asDouble() < 0) {
-        options::maybe_throw("Error: --mill-speed < 0.", ERR_NEGATIVEMILLSPEED);
+      if (vm.count("mill-speed") && vm["mill-speed"].as<Rpm>().asDouble() < 0) {
+        errors.push_back({"--mill-speed can't be negative.", ERR_NEGATIVEMILLSPEED});
       }
     }
 }
@@ -552,7 +600,7 @@ static void check_milling_parameters(po::variables_map const& vm)
 /*
  */
 /******************************************************************************/
-static void check_drilling_parameters(po::variables_map const& vm)
+static void check_drilling_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
 {
 
     double unit;      //factor for imperial/metric conversion
@@ -564,38 +612,42 @@ static void check_drilling_parameters(po::variables_map const& vm)
     {
 
         if (!vm.count("zdrill")) {
-          options::maybe_throw("Error: Drilling depth (--zdrill) not specified.\n", ERR_NOZDRILL);
+          errors.push_back({missing_option("zdrill", "the drilling depth", "-2.5mm"), ERR_NOZDRILL});
         }
 
-        if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
-          options::maybe_throw("Error: The safety height --zsafe is lower than the drilling "
-                               "height --zdrill!\n", ERR_ZSAFELOWERZDRILL);
+        if (vm.count("zsafe") && vm.count("zdrill") &&
+            vm["zsafe"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
+          errors.push_back({"--zsafe must be higher than --zdrill.", ERR_ZSAFELOWERZDRILL});
         }
 
-        if (!vm.count("zchange")) {
-          options::maybe_throw("Error: Drill bit changing height (--zchange) not specified.", ERR_NOZCHANGE);
-        } else if (!vm["zchange-absolute"].as<bool>() && vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
-          options::maybe_throw("Error: The safety height --zsafe is lower than the tool "
-                               "change height --zchange!", ERR_ZSAFELOWERZCHANGE);
+        // A missing --zchange was already reported with the generic parameters.
+        if (vm.count("zchange") && vm.count("zdrill") && !vm["zchange-absolute"].as<bool>() &&
+            vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
+          errors.push_back({"--zchange must be higher than --zdrill. If --zchange is a machine "
+                            "coordinate, add --zchange-absolute.", ERR_ZSAFELOWERZCHANGE});
         }
 
         if (!vm.count("drill-feed")) {
-          options::maybe_throw("Error:: Drilling feed (--drill-feed) not specified.", ERR_NODRILLFEED);
+          errors.push_back({missing_option("drill-feed", "the drilling feed rate", "500mm/min"),
+                            ERR_NODRILLFEED});
         } else if (vm["drill-feed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-          options::maybe_throw("Error: The drilling feed --drill-feed is <= 0.", ERR_NEGATIVEDRILLFEED);
+          errors.push_back({"--drill-feed must be greater than 0.", ERR_NEGATIVEDRILLFEED});
         }
 
         if (!vm.count("drill-speed")) {
-          options::maybe_throw("Error: Drilling spindle RPM (--drill-speed) not specified.", ERR_NODRILLSPEED);
+          errors.push_back({missing_option("drill-speed", "the spindle speed for drilling",
+                                           "10000rpm"),
+                            ERR_NODRILLSPEED});
         } else if (vm["drill-speed"].as<Rpm>().asRpm(1) < 0) {        //no need to support both directions?
-          options::maybe_throw("Error: --drill-speed < 0.", ERR_NEGATIVEDRILLSPEED);
+          errors.push_back({"--drill-speed can't be negative.", ERR_NEGATIVEDRILLSPEED});
         }
 
         if (vm.count("drill-front")) {
           cerr << "drill-front is deprecated, use drill-side.\n";
 
           if (!vm["drill-side"].defaulted()) {
-            options::maybe_throw("You can't specify both drill-front and drill-side!", ERR_BOTHDRILLFRONTSIDE);
+            errors.push_back({"--drill-front and --drill-side can't both be set. --drill-front is "
+                              "deprecated, so use only --drill-side.", ERR_BOTHDRILLFRONTSIDE});
           }
         }
     }
@@ -606,7 +658,7 @@ static void check_drilling_parameters(po::variables_map const& vm)
 /*
  */
 /******************************************************************************/
-static void check_cutting_parameters(po::variables_map const& vm) {
+static void check_cutting_parameters(po::variables_map const& vm, std::vector<OptionError>& errors) {
 
   double unit;      //factor for imperial/metric conversion
 
@@ -617,56 +669,71 @@ static void check_cutting_parameters(po::variables_map const& vm) {
       (vm.count("drill") &&
        (vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity())))) {
     if (!vm.count("zcut")) {
-      options::maybe_throw("Error: Board cutting depth (--zcut) not specified.", ERR_NOZCUT);
+      errors.push_back({missing_option("zcut", "the depth for cutting the outline and milldrilling",
+                                       "-2.5mm"),
+                        ERR_NOZCUT});
     } else if (vm["zcut"].as<Length>().asInch(unit) > 0) {
-      options::maybe_throw("Error: Cutting depth (--zcut) is greater than zero!", ERR_NEGATIVEZWORK);
+      errors.push_back({"--zcut can't be above 0, the surface of the board.", ERR_NEGATIVEZWORK});
     }
 
     if (!vm.count("cutter-diameter")) {
-      options::maybe_throw("Error: Cutter diameter not specified.", ERR_NOCUTTERDIAMETER);
+      errors.push_back({missing_option("cutter-diameter",
+                                       "the end mill diameter for cutting the outline and "
+                                       "milldrilling", "3mm"),
+                        ERR_NOCUTTERDIAMETER});
     }
 
     if (!vm.count("cut-feed")) {
-      options::maybe_throw("Error: Board cutting feed (--cut-feed) not specified.", ERR_NOCUTFEED);
+      errors.push_back({missing_option("cut-feed",
+                                       "the feed rate for cutting the outline and milldrilling",
+                                       "600mm/min"),
+                        ERR_NOCUTFEED});
     }
 
     if (!vm.count("cut-speed")) {
-      options::maybe_throw("Error: Board cutting spindle RPM (--cut-speed) not specified.", ERR_NOCUTSPEED);
+      errors.push_back({missing_option("cut-speed",
+                                       "the spindle speed for cutting the outline and milldrilling",
+                                       "10000rpm"),
+                        ERR_NOCUTSPEED});
     }
 
     if (!vm.count("cut-infeed")) {
-      options::maybe_throw("Error: Board cutting infeed (--cut-infeed) not specified.", ERR_NOCUTINFEED);
+      errors.push_back({missing_option("cut-infeed",
+                                       "the maximum depth of each pass when cutting the outline "
+                                       "and milldrilling", "1mm"),
+                        ERR_NOCUTINFEED});
     }
 
-    if (vm["zsafe"].as<Length>().asInch(unit) <= vm["zcut"].as<Length>().asInch(unit)) {
-      options::maybe_throw("Error: The safety height --zsafe is lower than the cutting "
-                           "height --zcut!", ERR_ZSAFELOWERZCUT);
+    if (vm.count("zsafe") && vm.count("zcut") &&
+        vm["zsafe"].as<Length>().asInch(unit) <= vm["zcut"].as<Length>().asInch(unit)) {
+      errors.push_back({"--zsafe must be higher than --zcut.", ERR_ZSAFELOWERZCUT});
     }
 
-    if (vm["cut-feed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-      options::maybe_throw("Error: The cutting feed --cut-feed is <= 0.", ERR_NEGATIVECUTFEED);
+    if (vm.count("cut-feed") && vm["cut-feed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
+      errors.push_back({"--cut-feed must be greater than 0.", ERR_NEGATIVECUTFEED});
     }
 
     if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-      options::maybe_throw("Error: The cutting vertical feed --cut-vertfeed is <= 0.", ERR_NEGATIVECUTVERTFEED);
+      errors.push_back({"--cut-vertfeed must be greater than 0.", ERR_NEGATIVECUTVERTFEED});
     }
 
-    if (vm["cut-speed"].as<Rpm>().asRpm(1) < 0) {        //no need to support both directions?
-      options::maybe_throw("Error: The cutting spindle speed --cut-speed is lower than 0.", ERR_NEGATIVESPINDLESPEED);
+    if (vm.count("cut-speed") && vm["cut-speed"].as<Rpm>().asRpm(1) < 0) {        //no need to support both directions?
+      errors.push_back({"--cut-speed can't be negative.", ERR_NEGATIVESPINDLESPEED});
     }
 
-    if (vm["cut-infeed"].as<Length>().asInch(unit) < 0.001) {
-      options::maybe_throw("Error: The cutting infeed --cut-infeed. seems too low.", ERR_LOWCUTINFEED);
+    if (vm.count("cut-infeed") && vm["cut-infeed"].as<Length>().asInch(unit) < 0.001) {
+      errors.push_back({"--cut-infeed must be at least 0.001in.", ERR_LOWCUTINFEED});
     }
 
     if (vm["bridges"].as<Length>().asInch(unit) < 0) {
-      options::maybe_throw("Error: negative bridge value.", ERR_NEGATIVEBRIDGE);
+      errors.push_back({"--bridges can't be negative.", ERR_NEGATIVEBRIDGE});
     }
 
     if (vm.count("cut-front")) {
       cerr << "cut-front is deprecated, use cut-side.\n";
       if (!vm["cut-side"].defaulted()) {
-        options::maybe_throw("You can't specify both cut-front and cut-side!\n", ERR_BOTHCUTFRONTSIDE);
+        errors.push_back({"--cut-front and --cut-side can't both be set. --cut-front is "
+                          "deprecated, so use only --cut-side.", ERR_BOTHCUTFRONTSIDE});
       }
     }
   }
@@ -679,13 +746,32 @@ static void check_cutting_parameters(po::variables_map const& vm) {
 void options::check_parameters()
 {
   po::variables_map const& vm = instance().vm;
+  std::vector<OptionError> errors;
 
   try {
-    check_generic_parameters(vm);
-    check_milling_parameters(vm);
-    check_cutting_parameters(vm);
-    check_drilling_parameters(vm);
+    check_generic_parameters(vm, errors);
+    check_milling_parameters(vm, errors);
+    check_cutting_parameters(vm, errors);
+    check_drilling_parameters(vm, errors);
   } catch (std::runtime_error& re) {
-    maybe_throw("Error: Invalid parameter. :-(", ERR_INVALIDPARAMETER);
+    errors.push_back({string("Invalid parameter: ") + re.what(), ERR_INVALIDPARAMETER});
   }
+
+  if (errors.empty()) {
+    return;
+  }
+  if (vm["ignore-warnings"].as<bool>()) {
+    for (const auto& error : errors) {
+      maybe_throw(error.what, error.code);
+    }
+    return;
+  }
+  string what;
+  for (const auto& error : errors) {
+    what += "Error: " + error.what + "\n";
+  }
+  what.pop_back();
+  // Scripts and tests rely on the exit code, which is the code of the first
+  // problem found.
+  throw pcb2gcode_parse_exception(what, errors.front().code);
 }
