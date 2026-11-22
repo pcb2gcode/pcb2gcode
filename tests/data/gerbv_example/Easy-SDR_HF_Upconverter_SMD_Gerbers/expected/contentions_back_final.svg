@@ -2,23 +2,23 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
 "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <!-- original:
-<svg width="310.133" height="187.253" viewBox="0 0 6461.1 3901.1" version="1.1"
+<svg width="310.284" height="187.404" viewBox="0 0 6464.25 3904.25" version="1.1"
 -->
-<svg width="3101.33" height="1872.53" viewBox="0 0 6461.1 3901.1" version="1.1"
+<svg width="3102.84" height="1874.04" viewBox="0 0 6464.25 3904.25" version="1.1"
 xmlns="http://www.w3.org/2000/svg"
 xmlns:xlink="http://www.w3.org/1999/xlink">
-<polyline points="139.894,1999.67 163.609,1999.45" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="139.894,1999.67 163.609,1999.45" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="289.816,3239.67 313.529,3239.45" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="289.816,3239.67 313.529,3239.45" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="313.315,2961.65 289.818,2961.43" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="313.315,2961.65 289.818,2961.43" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="4079.67,3761.21 4079.45,3737.71" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="4079.67,3761.21 4079.45,3737.71" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="4201.19,3439.66 4193.78,3439.45" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="4201.19,3439.66 4193.78,3439.45" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="6147.54,2319.45 6171.29,2319.67" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="6147.54,2319.45 6171.29,2319.67" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="6171.28,2041.43 6147.76,2041.65" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
-<polyline points="6171.28,2041.43 6147.76,2041.65" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="141.469,2001.25 165.184,2001.02" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="141.469,2001.25 165.184,2001.02" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="291.39,3241.25 315.104,3241.02" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="291.39,3241.25 315.104,3241.02" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="314.89,2963.23 291.393,2963.01" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="314.89,2963.23 291.393,2963.01" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="4081.24,3762.78 4081.02,3739.28" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="4081.24,3762.78 4081.02,3739.28" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="4202.77,3441.23 4195.35,3441.02" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="4202.77,3441.23 4195.35,3441.02" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="6149.12,2321.02 6172.86,2321.25" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="6149.12,2321.02 6172.86,2321.25" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="6172.86,2043.01 6149.33,2043.23" style="stroke:rgb(255,0,0);stroke-width:3.149606;fill:none;stroke-opacity:0.5;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
+<polyline points="6172.86,2043.01 6149.33,2043.23" style="stroke:rgb(0,0,0);stroke-width:1px;fill:none;stroke-opacity:1;stroke-linecap:round;stroke-linejoin:round;;fill:none"/>
 </svg>
