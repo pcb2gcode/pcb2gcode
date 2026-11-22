@@ -2,8 +2,9 @@ name: Label Pull Requests
 
 on:
   # pull_request_target event is required for autolabeler to support PRs from forks
+  # edited is included so that fixing a PR title re-runs the autolabeler and the title check
   pull_request_target:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize, edited]
 
 permissions:
   contents: read
@@ -18,6 +19,13 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
+      # pull_request_target checks out the base branch, so this reads the
+      # trusted release-drafter.yml and never runs code from the PR.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github
+
       # (Optional) GitHub Enterprise requires GHE_HOST variable set
       #- name: Set GHE_HOST
       #  run: |
@@ -28,3 +36,31 @@ jobs:
         # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
         # with:
         #   config-name: my-config.yml
+
+      # The autolabeler's title patterns are the source of truth for the
+      # accepted prefixes. Read the type from each pattern, such as
+      # /^feat(\([^)]+\))?!?:/i gives "feat".
+      - name: Read accepted PR title types
+        id: types
+        run: |
+          set -eu
+          yq -r '.autolabeler[] | .title[]?' .github/release-drafter.yml > titles.txt
+          test -s titles.txt
+          if grep -v -E '^/\^[A-Za-z]+' titles.txt; then
+            echo "::error::Cannot read a type from the title patterns above"
+            exit 1
+          fi
+          types="$(sed -E 's#^/\^([A-Za-z]+).*#\1#' titles.txt | sort -u)"
+          {
+            echo "types<<TYPES_EOF"
+            echo "$types"
+            echo "TYPES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # The autolabeler silently skips PRs whose title doesn't match its
+      # patterns, so fail here to make the author fix the title.
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: ${{ steps.types.outputs.types }}
