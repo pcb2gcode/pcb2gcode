@@ -249,7 +249,17 @@ options::options()
        ("milldrill", po::value<bool>()->default_value(false)->implicit_value(true), "[DEPRECATED] Use min-milldrill-hole-diameter=0 instead")
        ("milldrill-diameter", po::value<Length>(), "diameter of the end mill used for drilling with --milldrill")
        ("min-milldrill-hole-diameter", po::value<Length>()->default_value(Length(std::numeric_limits<double>::infinity())),
-        "minimum hole width or milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+        "minimum hole width for milldrilling.  Holes smaller than this are drilled.  This implies milldrill")
+       ("min-milldrill-entry-diameter",
+        po::value<Percent>()->default_value(parse_unit<Percent>("150%")),
+        "minimum initial hole width for milldrilling when multiple steps are used, as a fraction of milldrill-diameter")
+       ("max-milldrill-entry-diameter",
+        po::value<Percent>()->default_value(parse_unit<Percent>("190%")),
+        "maximum initial hole width for milldrilling in a single step, and the minimum size of the initial hole"
+        " when multiple steps are used, as a fraction of milldrill-diameter")
+       ("milldrill-stepover",
+        po::value<Percent>()->default_value(parse_unit<Percent>("50%")),
+        "maximum hole radius increase when milldrilling in multiple steps, as a fraction of milldrill-diameter")
        ("zdrill", po::value<Length>(), "drilling depth")
        ("zmilldrill", po::value<Length>(), "milldrilling depth")
        ("drill-feed", po::value<Velocity>(), "drill feed in [i/m] or [mm/m]")
@@ -749,6 +759,41 @@ static void check_cutting_parameters(po::variables_map const& vm, std::vector<Op
 /*
  */
 /******************************************************************************/
+static void check_milldrill_parameters(po::variables_map const& vm,
+                                       std::vector<OptionError>& errors) {
+  // These only matter when there are holes to milldrill.
+  if (!vm.count("drill") ||
+      !(vm["min-milldrill-hole-diameter"].as<Length>() <
+        Length(std::numeric_limits<double>::infinity()))) {
+    return;
+  }
+
+  const double min_entry = vm["min-milldrill-entry-diameter"].as<Percent>().asFraction(1);
+  const double max_entry = vm["max-milldrill-entry-diameter"].as<Percent>().asFraction(1);
+  const double stepover = vm["milldrill-stepover"].as<Percent>().asFraction(1);
+
+  // A stepover of more than 100% would leave an uncut ring between passes.
+  if (!(stepover > 0 && stepover <= 1)) {
+    errors.push_back({"--milldrill-stepover must be greater than 0% and at most 100%.",
+                      ERR_INVALIDMILLDRILLSTEPOVER});
+  }
+
+  // The cutter can't make a hole smaller than itself.
+  if (!(min_entry > 1)) {
+    errors.push_back({"--min-milldrill-entry-diameter must be greater than 100%, which is the "
+                      "milldrill diameter.", ERR_LOWMILLDRILLENTRY});
+  }
+
+  if (max_entry < min_entry) {
+    errors.push_back({"--max-milldrill-entry-diameter can't be less than "
+                      "--min-milldrill-entry-diameter.", ERR_MILLDRILLENTRYORDER});
+  }
+}
+
+/******************************************************************************/
+/*
+ */
+/******************************************************************************/
 void options::check_parameters()
 {
   po::variables_map const& vm = instance().vm;
@@ -758,6 +803,7 @@ void options::check_parameters()
     check_generic_parameters(vm, errors);
     check_milling_parameters(vm, errors);
     check_cutting_parameters(vm, errors);
+    check_milldrill_parameters(vm, errors);
     check_drilling_parameters(vm, errors);
   } catch (std::runtime_error& re) {
     errors.push_back({string("Invalid parameter: ") + re.what(), ERR_INVALIDPARAMETER});

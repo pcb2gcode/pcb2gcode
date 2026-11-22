@@ -107,9 +107,27 @@ diameter of the end mill used for
 drilling with \fB\-\-milldrill\fR
 .TP
 \fB\-\-min\-milldrill\-hole\-diameter\fR arg (=inf)
-minimum hole width or milldrilling.
+minimum hole width for milldrilling.
 Holes smaller than this are drilled.
 This implies milldrill
+.TP
+\fB\-\-min\-milldrill\-entry\-diameter\fR arg (=150 %)
+minimum initial hole width for
+milldrilling when multiple steps are
+used, as a fraction of
+milldrill\-diameter
+.TP
+\fB\-\-max\-milldrill\-entry\-diameter\fR arg (=190 %)
+maximum initial hole width for
+milldrilling in a single step, and the
+minimum size of the initial hole when
+multiple steps are used, as a fraction
+of milldrill\-diameter
+.TP
+\fB\-\-milldrill\-stepover\fR arg (=50 %)
+maximum hole radius increase when
+milldrilling in multiple steps, as a
+fraction of milldrill\-diameter
 .TP
 \fB\-\-zdrill\fR arg
 drilling depth

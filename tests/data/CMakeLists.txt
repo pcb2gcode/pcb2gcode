@@ -166,6 +166,36 @@ pcb2gcode_add_integration_script_test(
   EXPECTED_EXIT 19
   PCB2GCODE_ARGS "--zchange-absolute=false")
 
+pcb2gcode_add_integration_script_test(
+  integration_milldrill_stepover_zero
+  "tests/data/gerbv_example/milldrill_multi_step"
+  EXPECTED_EXIT 57
+  PCB2GCODE_ARGS "--milldrill-stepover=0%")
+
+pcb2gcode_add_integration_script_test(
+  integration_milldrill_stepover_negative
+  "tests/data/gerbv_example/milldrill_multi_step"
+  EXPECTED_EXIT 57
+  PCB2GCODE_ARGS "--milldrill-stepover=-50%")
+
+pcb2gcode_add_integration_script_test(
+  integration_milldrill_stepover_over_100
+  "tests/data/gerbv_example/milldrill_multi_step"
+  EXPECTED_EXIT 57
+  PCB2GCODE_ARGS "--milldrill-stepover=150%")
+
+pcb2gcode_add_integration_script_test(
+  integration_milldrill_min_entry_not_above_cutter
+  "tests/data/gerbv_example/milldrill_multi_step"
+  EXPECTED_EXIT 58
+  PCB2GCODE_ARGS "--min-milldrill-entry-diameter=100%")
+
+pcb2gcode_add_integration_script_test(
+  integration_milldrill_max_entry_below_min_entry
+  "tests/data/gerbv_example/milldrill_multi_step"
+  EXPECTED_EXIT 59
+  PCB2GCODE_ARGS "--max-milldrill-entry-diameter=120%")
+
 get_property(
   _pcb2gcode_integration_regenerate_targets
   GLOBAL
