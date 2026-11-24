@@ -11,10 +11,13 @@ if(RSVG_VERSION VERSION_GREATER_EQUAL "2.52")
 endif()
 
 # Integration tests pin an exact (Boost, GEOS) pair so their expected/ outputs
-# stay reproducible across CI cells and developer machines. When upgrading to a
-# newer known-good GEOS release, update both PCB2GCODE_INTEGRATION_GEOS_VERSION
-# below AND the geos matrix in .github/workflows/ci.yml so a matrix cell exists
-# that satisfies the pin.
+# stay reproducible across CI cells and developer machines. The GEOS pin is
+# tied to two other places: &geos_version in the geos matrix of
+# .github/workflows/ci.yml must be the same version, so that a matrix cell
+# satisfies the pin, and the GEOS regexes in .github/renovate.json must match
+# both lines so that Renovate bumps them together. When you change any of the
+# three, adjust the other two. If the versions differ, CI skips the integration
+# tests that compare against expected/ and still passes.
 # g++ 15 changes floating-point results enough that those golden bytes no longer
 # match. clang++ and other g++ majors still match, so the pin stays and only
 # g++ 15 is excluded. Drop the exclusion once GCC 15 output is stable or

@@ -53,10 +53,14 @@ jobs:
         geos:
           # 'main' tracks libgeos master so we notice upstream breakage early.
           # &geos_version is anchored on the pinned known-good release that
-          # integration tests gate against (see
-          # PCB2GCODE_INTEGRATION_GEOS_VERSION in tests/CMakeLists.txt);
-          # keep the two in sync when upgrading. 'none' builds without GEOS
-          # so we don't regress the no-GEOS code path.
+          # integration tests gate against. It is tied to two other places:
+          # PCB2GCODE_INTEGRATION_GEOS_VERSION in tests/CMakeLists.txt must
+          # be the same version, and the GEOS regexes in
+          # .github/renovate.json must match both lines so that Renovate
+          # bumps them together. When you change any of the three, adjust
+          # the other two. If the versions differ, CI skips the integration
+          # tests that compare against expected/ and still passes. 'none'
+          # builds without GEOS so we don't regress the no-GEOS code path.
           - 'main'
           - &geos_version '3.15.0'
           - 'none'
