@@ -419,7 +419,8 @@ jobs:
         PCB2GCODE_VERSION=$(./build/pcb2gcode --version | head -1)-g${GIT_COMMIT}
         echo "PCB2GCODE_VERSION=$PCB2GCODE_VERSION" >> $GITHUB_ENV
 
-### Run examples.  Don't run them if code_coverage is set because they are too slow.  Only on ubuntu because it has valgrind.
+### Run examples on every matrix cell. run_example.py uses valgrind only on Ubuntu, where it is installed,
+### and skips it when code coverage is on because coverage and valgrind together are too slow.
     - name: Run examples
       if: (github.event_name == 'schedule' || inputs.examples_enabled == true)
       run: |
