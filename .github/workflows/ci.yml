@@ -62,7 +62,7 @@ jobs:
           # tests that compare against expected/ and still passes. 'none'
           # builds without GEOS so we don't regress the no-GEOS code path.
           - 'main'
-          - &geos_version '3.15.0'
+          - &geos_version '3.15.1'
           - 'none'
         compiler: ['g++', 'clang++']
         exclude:
