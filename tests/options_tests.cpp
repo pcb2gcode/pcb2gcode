@@ -440,6 +440,9 @@ BOOST_AUTO_TEST_CASE(dump_option_details) {
   BOOST_CHECK_EQUAL(drill_front["implicit"], "true");
   BOOST_CHECK_EQUAL(find_option(dumped, "g64")["replaced_by"], "tolerance");
   BOOST_CHECK(!find_option(dumped, "g64").contains("value_map"));
+  // A number of passes doesn't carry over to a length.
+  BOOST_CHECK_EQUAL(find_option(dumped, "extra-passes")["deprecated"], true);
+  BOOST_CHECK(!find_option(dumped, "extra-passes").contains("replaced_by"));
   BOOST_CHECK_EQUAL(find_option(dumped, "vectorial")["deprecated"], true);
   BOOST_CHECK(!find_option(dumped, "mirror-yaxis").contains("implicit"));
 

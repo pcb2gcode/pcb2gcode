@@ -93,6 +93,8 @@ const std::map<string, OptionDetails>& option_details() {
                              .note("with --basename: <basename>_milldrill.ngc")},
     {"front", OptionDetails().input("gerber").when("always")},
     {"back", OptionDetails().input("gerber").when("always")},
+    // extra-passes has no replacement: the --isolation-width that matches a
+    // number of passes depends on the tool diameter and the overlap.
     {"mill-vertfeed", OptionDetails().note("half of --mill-feed")},
     {"mill-infeed", OptionDetails().note("the whole --zwork depth in one pass")},
     {"front-output",
