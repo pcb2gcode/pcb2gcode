@@ -1,8 +1,15 @@
 #ifndef UNITS_HPP
 #define UNITS_HPP
 
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <locale>
+#include <sstream>
+#include <stdexcept>
 #include <string>
+#include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 #include <boost/units/quantity.hpp>
@@ -69,11 +76,19 @@ class Lexer {
       throw units_parse_exception("double", text);
     }
   }
+  // The words that can separate the two units of a ratio, like mm/min.
+  static const std::vector<std::string>& divisions() {
+    static const std::vector<std::string> divisions{"/", "per"};
+    return divisions;
+  }
   void get_division() {
     get_whitespace();
-    if (!get_exact("/") && !get_exact("per")) {
-      throw units_parse_exception("division", input.substr(pos));
+    for (const auto& division : divisions()) {
+      if (get_exact(division)) {
+        return;
+      }
     }
+    throw units_parse_exception("division", input.substr(pos));
   }
   void get_percent() {
     get_whitespace();
@@ -126,6 +141,10 @@ class UnitBase {
 
   double asDouble() const {
     return value;
+  }
+  // The unit that the value is in, or none for a bare number.
+  const boost::optional<quantity>& unit() const {
+    return one;
   }
   friend std::ostream& operator<<(std::ostream& s, const UnitBase<dimension_t>& length) {
     if (length.one) {
@@ -219,6 +238,66 @@ struct percent_base_unit :
 typedef percent_base_unit::unit_type percent_unit;
 const boost::units::quantity<percent_unit> percent(1*percent_base_unit::unit_type());
 
+// A unit and the names that pcb2gcode reads it from.  pcb2gcode writes the
+// first name.
+template <typename quantity_t>
+struct UnitName {
+  std::vector<std::string> names;
+  quantity_t quantity;
+};
+
+template <typename quantity_t>
+boost::optional<quantity_t> find_unit(const std::vector<UnitName<quantity_t>>& units,
+                                      const std::string& name) {
+  for (const auto& unit : units) {
+    if (std::find(unit.names.cbegin(), unit.names.cend(), name) != unit.names.cend()) {
+      return unit.quantity;
+    }
+  }
+  return boost::none;
+}
+
+template <typename quantity_t>
+quantity_t get_named_unit(const std::vector<UnitName<quantity_t>>& units, Lexer& lex,
+                          const std::string& what) {
+  const std::string name = lex.get_word();
+  const boost::optional<quantity_t> unit = find_unit(units, name);
+  if (!unit) {
+    throw units_parse_exception(what, name);
+  }
+  return *unit;
+}
+
+// Whether two quantities are equal, apart from rounding.
+inline bool same_quantity(double a, double b) {
+  return std::abs(a - b) <= 1e-12 * std::max(std::abs(a), std::abs(b));
+}
+
+template <typename quantity_t>
+boost::optional<std::string> find_unit_name(const std::vector<UnitName<quantity_t>>& units,
+                                            const quantity_t& quantity) {
+  for (const auto& unit : units) {
+    if (same_quantity(unit.quantity.value(), quantity.value())) {
+      return unit.names.front();
+    }
+  }
+  return boost::none;
+}
+
+// The name of a ratio of two named units, like mm/min.  Several ratios can be
+// the same quantity, like m/s and mm/ms, so prefer the earlier denominators.
+template <typename numerator_t, typename denominator_t, typename quantity_t>
+boost::optional<std::string> find_ratio_unit_name(const quantity_t& quantity) {
+  for (const auto& denominator : denominator_t::named_units()) {
+    for (const auto& numerator : numerator_t::named_units()) {
+      if (same_quantity((numerator.quantity / denominator.quantity).value(), quantity.value())) {
+        return numerator.names.front() + Lexer::divisions().front() + denominator.names.front();
+      }
+    }
+  }
+  return boost::none;
+}
+
 // shortcuts for Units defined below.
 typedef Unit<boost::units::si::length> Length;
 typedef Unit<boost::units::si::time> Time;
@@ -234,30 +313,20 @@ class Unit<boost::units::si::length> : public UnitBase<boost::units::si::length>
   double asInch(double factor) const {
     return as(factor, inch);
   }
+  static const std::vector<UnitName<quantity>>& named_units() {
+    static const std::vector<UnitName<quantity>> units{
+      {{"mm", "millimeter", "millimeters"}, boost::units::si::meter/1000.0},
+      {{"m", "meter", "meters"}, 1.0*boost::units::si::meter},
+      {{"in", "inch", "inches"}, inch},
+      {{"thou", "thous", "mil", "mils"}, thou},
+    };
+    return units;
+  }
   static quantity get_unit(Lexer& lex) {
-    std::string unit = lex.get_word();
-    if (unit == "mm" ||
-        unit == "millimeter" ||
-        unit == "millimeters") {
-      return boost::units::si::meter/1000.0;
-    }
-    if (unit == "m" ||
-        unit == "meter" ||
-        unit == "meters`") {
-      return 1 * boost::units::si::meter;
-    }
-    if (unit == "in" ||
-        unit == "inch" ||
-        unit == "inches") {
-      return inch;
-    }
-    if (unit == "thou" ||
-        unit == "thous" ||
-        unit == "mil" ||
-        unit == "mils") {
-      return thou;
-    }
-    throw units_parse_exception("length units", unit);
+    return get_named_unit(named_units(), lex, "length units");
+  }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    return find_unit_name(named_units(), unit);
   }
   Length operator-() const {
     return Length(-value, one);
@@ -274,26 +343,19 @@ class Unit<boost::units::si::time> : public UnitBase<boost::units::si::time> {
   double asMillisecond(double factor) const {
     return as(factor, boost::units::si::second/1000.0);
   }
+  static const std::vector<UnitName<quantity>>& named_units() {
+    static const std::vector<UnitName<quantity>> units{
+      {{"s", "second", "seconds"}, 1.0*boost::units::si::second},
+      {{"ms", "millisecond", "milliseconds", "millis"}, boost::units::si::second/1000.0},
+      {{"min", "mins", "minute", "minutes"}, minute},
+    };
+    return units;
+  }
   static quantity get_unit(Lexer& lex) {
-    std::string unit = lex.get_word();
-    if (unit == "s" ||
-        unit == "second" ||
-        unit == "seconds") {
-      return 1.0*boost::units::si::second;
-    }
-    if (unit == "ms" ||
-        unit == "millisecond" ||
-        unit == "milliseconds" ||
-        unit == "millis") {
-      return boost::units::si::second/1000.0;
-    }
-    if (unit == "min" ||
-        unit == "mins" ||
-        unit == "minute" ||
-        unit == "minutes") {
-      return minute;
-    }
-    throw units_parse_exception("time units", unit);
+    return get_named_unit(named_units(), lex, "time units");
+  }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    return find_unit_name(named_units(), unit);
   }
 };
 
@@ -304,19 +366,18 @@ class Unit<revolution_unit> : public UnitBase<revolution_unit> {
   double asRevolution(double factor) const {
     return as(factor, 1.0*revolution);
   }
+  static const std::vector<UnitName<quantity>>& named_units() {
+    static const std::vector<UnitName<quantity>> units{
+      {{"rev", "revs", "revolution", "revolutions", "rotation", "rotations", "cycle", "cycles"},
+       1.0*revolution},
+    };
+    return units;
+  }
   static quantity get_unit(Lexer& lex) {
-    std::string unit = lex.get_word();
-    if (unit == "rotation" ||
-        unit == "rotations" ||
-        unit == "revolutions" ||
-        unit == "revolution" ||
-        unit == "rev" ||
-        unit == "revs" ||
-        unit == "cycle" ||
-        unit == "cycles") {
-      return 1.0*revolution;
-    }
-    throw units_parse_exception("revolution units", unit);
+    return get_named_unit(named_units(), lex, "revolution units");
+  }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    return find_unit_name(named_units(), unit);
   }
 };
 
@@ -336,6 +397,9 @@ class Unit<boost::units::si::velocity> : public UnitBase<boost::units::si::veloc
     denominator = Time::get_unit(lex);
     return numerator/denominator;
   }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    return find_ratio_unit_name<Length, Time>(unit);
+  }
 };
 
 
@@ -352,13 +416,16 @@ class Unit<rpm_unit> : public UnitBase<rpm_unit> {
   double asRpm(double factor) const {
     return as(factor, 1.0 * rpm);
   }
+  static const std::vector<UnitName<quantity>>& named_units() {
+    static const std::vector<UnitName<quantity>> units{{{"rpm", "RPM"}, 1.0*rpm}};
+    return units;
+  }
   static quantity get_unit(Lexer& lex) {
     // It's either "revolution/time" or "revolution per time" or "rpm".
     auto old_pos = lex.pos;
-    std::string unit = lex.get_word();
-    if (unit == "rpm" ||
-        unit == "RPM") {
-      return 1.0*rpm;
+    const boost::optional<quantity> unit = find_unit(named_units(), lex.get_word());
+    if (unit) {
+      return *unit;
     }
     lex.pos = old_pos;
 
@@ -368,6 +435,13 @@ class Unit<rpm_unit> : public UnitBase<rpm_unit> {
     lex.get_division();
     denominator = Time::get_unit(lex);
     return numerator/denominator;
+  }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    const boost::optional<std::string> name = find_unit_name(named_units(), unit);
+    if (name) {
+      return name;
+    }
+    return find_ratio_unit_name<Revolution, Time>(unit);
   }
 };
 
@@ -381,9 +455,16 @@ class Unit<percent_unit> : public UnitBase<percent_unit> {
   double asFraction(double factor) const {
     return as(factor, 100.0 * percent);
   }
+  static const std::vector<UnitName<quantity>>& named_units() {
+    static const std::vector<UnitName<quantity>> units{{{"%"}, 1.0*percent}};
+    return units;
+  }
   static quantity get_unit(Lexer& lex) {
     lex.get_percent();
     return 1.0*percent;
+  }
+  static boost::optional<std::string> unit_name(const quantity& unit) {
+    return find_unit_name(named_units(), unit);
   }
 };
 
@@ -421,6 +502,42 @@ unit_t parse_unit(const std::string& s) {
     throw boost::program_options::invalid_option_value("While parsing \"" + s + "\": Extra characters at end of option");
   }
   return unit_t(value, one);
+}
+
+// The shortest text that reads back as exactly this number.  It has no
+// exponent because parse_unit doesn't accept one.  parse_unit can't read
+// "inf" either.
+inline std::string format_number(double value) {
+  if (std::isinf(value)) {
+    return value > 0 ? "inf" : "-inf";
+  }
+  std::string text;
+  for (int precision = 0; precision <= 400; precision++) {
+    std::ostringstream out;
+    out.imbue(std::locale::classic());
+    out << std::fixed << std::setprecision(precision) << value;
+    text = out.str();
+    std::istringstream in(text);
+    in.imbue(std::locale::classic());
+    double parsed;
+    if (in >> parsed && parsed == value) {
+      break;
+    }
+  }
+  return text;
+}
+
+// The value as pcb2gcode reads it, like "0.0001in" or "50in/min".
+template <typename dimension_t>
+std::string to_input_syntax(const Unit<dimension_t>& unit) {
+  if (!unit.unit() || std::isinf(unit.asDouble())) {
+    return format_number(unit.asDouble());
+  }
+  const boost::optional<std::string> name = Unit<dimension_t>::unit_name(*unit.unit());
+  if (!name) {
+    throw std::logic_error("No name for the unit of " + format_number(unit.asDouble()));
+  }
+  return format_number(unit.asDouble()) + *name;
 }
 
 template <typename dimension_t>
@@ -517,81 +634,88 @@ std::vector<T> flatten(const std::vector<CommaSeparated<T>>& all) {
   return ret;
 }
 
+// A value of an enum option and the names that pcb2gcode reads it from,
+// ignoring case.  pcb2gcode writes the first name.
+template <typename enum_t>
+struct EnumChoice {
+  enum_t value;
+  std::vector<std::string> names;
+};
+
+// The choices of each enum option, specialized below.
+template <typename enum_t>
+const std::vector<EnumChoice<enum_t>>& enum_choices();
+
+template <typename enum_t>
+std::istream& read_enum(std::istream& in, enum_t& value) {
+  std::string token(std::istreambuf_iterator<char>(in), {});
+  for (const auto& choice : enum_choices<enum_t>()) {
+    for (const auto& name : choice.names) {
+      if (boost::iequals(token, name)) {
+        value = choice.value;
+        return in;
+      }
+    }
+  }
+  throw boost::program_options::invalid_option_value(token);
+}
+
+template <typename enum_t>
+std::ostream& write_enum(std::ostream& out, enum_t value) {
+  for (const auto& choice : enum_choices<enum_t>()) {
+    if (choice.value == value) {
+      return out << choice.names.front();
+    }
+  }
+  return out << static_cast<int>(value);
+}
+
 namespace BoardSide {
 enum BoardSide {
   AUTO,
   FRONT,
   BACK
 };
+} // namespace BoardSide
 
-inline std::istream& operator>>(std::istream& in, BoardSide& boardside)
-{
-  std::string token(std::istreambuf_iterator<char>(in), {});
-  if (boost::iequals(token, "auto")) {
-    boardside = BoardSide::AUTO;
-  } else if (boost::iequals(token, "front")) {
-    boardside = BoardSide::FRONT;
-  } else if (boost::iequals(token, "back")) {
-    boardside = BoardSide::BACK;
-  } else {
-    throw boost::program_options::invalid_option_value(token);
-  }
-  return in;
+template <>
+inline const std::vector<EnumChoice<BoardSide::BoardSide>>& enum_choices<BoardSide::BoardSide>() {
+  static const std::vector<EnumChoice<BoardSide::BoardSide>> choices{
+    {BoardSide::AUTO, {"auto"}},
+    {BoardSide::FRONT, {"front"}},
+    {BoardSide::BACK, {"back"}},
+  };
+  return choices;
 }
 
-inline std::ostream& operator<<(std::ostream& out, const BoardSide& boardside)
-{
-  switch (boardside) {
-    case BoardSide::AUTO:
-      out << "auto";
-      break;
-    case BoardSide::FRONT:
-      out << "front";
-      break;
-    case BoardSide::BACK:
-      out << "back";
-      break;
-  }
-  return out;
+namespace BoardSide {
+inline std::istream& operator>>(std::istream& in, BoardSide& boardside) {
+  return read_enum(in, boardside);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const BoardSide& boardside) {
+  return write_enum(out, boardside);
 }
 } // namespace BoardSide
 
-namespace Software {
-
-inline std::istream& operator>>(std::istream& in, Software& software)
-{
-  std::string token(std::istreambuf_iterator<char>(in), {});
-  if (boost::iequals(token, "Custom")) {
-    software = CUSTOM;
-  } else if (boost::iequals(token, "LinuxCNC")) {
-    software = LINUXCNC;
-  } else if (boost::iequals(token, "Mach4")) {
-    software = MACH4;
-  } else if (boost::iequals(token, "Mach3")) {
-    software = MACH3;
-  } else {
-    throw boost::program_options::invalid_option_value(token);
-  }
-  return in;
+template <>
+inline const std::vector<EnumChoice<Software::Software>>& enum_choices<Software::Software>() {
+  static const std::vector<EnumChoice<Software::Software>> choices{
+    {Software::LINUXCNC, {"linuxcnc"}},
+    {Software::MACH3, {"mach3"}},
+    {Software::MACH4, {"mach4"}},
+    {Software::CUSTOM, {"custom"}},
+  };
+  return choices;
 }
 
-inline std::ostream& operator<<(std::ostream& out, const Software& software)
-{
-  switch (software) {
-    case CUSTOM:
-      out << "custom";
-      break;
-    case LINUXCNC:
-      out << "linuxcnc";
-      break;
-    case MACH4:
-      out << "mach4";
-      break;
-    case MACH3:
-      out << "mach3";
-      break;
-  }
-  return out;
+namespace Software {
+inline std::istream& operator>>(std::istream& in, Software& software) {
+  return read_enum(in, software);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const Software& software) {
+  return write_enum(out, software);
 }
 } // namespace Software
 
@@ -601,22 +725,26 @@ enum MillFeedDirection {
   CLIMB,
   CONVENTIONAL
 };
+} // namespace MillFeedDirection
 
+template <>
+inline const std::vector<EnumChoice<MillFeedDirection::MillFeedDirection>>&
+enum_choices<MillFeedDirection::MillFeedDirection>() {
+  static const std::vector<EnumChoice<MillFeedDirection::MillFeedDirection>> choices{
+    {MillFeedDirection::ANY, {"any"}},
+    {MillFeedDirection::CLIMB, {"climb", "clockwise"}},
+    {MillFeedDirection::CONVENTIONAL, {"conventional", "anticlockwise", "counterclockwise"}},
+  };
+  return choices;
+}
+
+namespace MillFeedDirection {
 inline std::istream& operator>>(std::istream& in, MillFeedDirection& millfeeddirection) {
-  std::string token(std::istreambuf_iterator<char>(in), {});
-  if (boost::iequals(token, "climb") ||
-      boost::iequals(token, "clockwise")) {
-    millfeeddirection = MillFeedDirection::CLIMB;
-  } else if (boost::iequals(token, "conventional") ||
-             boost::iequals(token, "anticlockwise") ||
-             boost::iequals(token, "counterclockwise")) {
-    millfeeddirection = MillFeedDirection::CONVENTIONAL;
-  } else if (boost::iequals(token, "any")) {
-    millfeeddirection = MillFeedDirection::ANY;
-  } else {
-    throw boost::program_options::invalid_option_value(token);
-  }
-  return in;
+  return read_enum(in, millfeeddirection);
+}
+
+inline std::ostream& operator<<(std::ostream& out, const MillFeedDirection& millfeeddirection) {
+  return write_enum(out, millfeeddirection);
 }
 } // namespace MillFeedDirection
 
