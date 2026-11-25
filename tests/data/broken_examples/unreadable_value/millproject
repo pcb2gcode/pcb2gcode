@@ -5,3 +5,4 @@ zwork=-0.1mm
 mill-feed-direction=sideways
 mill-feed=1rpm
 mill-speed=10000rpm
+mill-speed=20000rpm

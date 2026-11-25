@@ -186,8 +186,8 @@ BOOST_AUTO_TEST_CASE(ignore_warnings_with_unreadable_config_values) {
   // A run stops at the first value that it can't read.
   BOOST_CHECK_EQUAL(get_check_error("pcb2gcode" + config).first, ERR_INVALIDPARAMETER);
   // --ignore-warnings goes on without them.  The options keep their defaults,
-  // the rest of the file is read, and the run stops only for a value that it
-  // needs.
+  // a repeated option keeps its first value, the rest of the file is read, and
+  // the run stops only for a value that it needs.
   const auto error = get_check_error("pcb2gcode --ignore-warnings" + config);
   BOOST_CHECK_EQUAL(error.first, ERR_NOMILLFEED);
   BOOST_CHECK_EQUAL(error.second, "Error: Missing --mill-feed, the milling feed rate. For "

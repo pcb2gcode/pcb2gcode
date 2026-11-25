@@ -423,30 +423,24 @@ string options::help()
 }
 
 /* po::store stops at the first value that it can't read and leaves that
- * option without a value, not even its default.  So with --ignore-warnings,
- * the options are stored again without it, and it keeps its earlier value.
+ * option without a value, not even its default.  So each option is tried on
+ * a copy, with the ones before it that could be read, and with
+ * --ignore-warnings the options that can't be read keep their earlier values.
  */
-static void store_config_file(po::parsed_options parsed, const string& error) {
+static void store_config_file(const po::parsed_options& parsed, const string& error) {
   po::variables_map& vm = options::get_vm();
-  while (true) {
-    const po::variables_map before = vm;
+  po::parsed_options readable(parsed.description, parsed.m_options_prefix);
+  for (const po::option& option : parsed.options) {
+    readable.options.push_back(option);
+    po::variables_map tried = vm;
     try {
-      po::store(parsed, vm);
-      return;
+      po::store(readable, tried);
     } catch (std::exception& e) {
-      vm = before;
+      readable.options.pop_back();
       options::maybe_throw(error + e.what(), ERR_INVALIDPARAMETER);
-      const auto* named = dynamic_cast<const po::error_with_option_name*>(&e);
-      const auto unread = std::remove_if(
-          parsed.options.begin(), parsed.options.end(), [&](const po::option& option) {
-            return named != nullptr && option.string_key == named->get_option_name();
-          });
-      if (unread == parsed.options.end()) {
-        return;
-      }
-      parsed.options.erase(unread, parsed.options.end());
     }
   }
+  po::store(readable, vm);
 }
 
 /******************************************************************************/
