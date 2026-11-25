@@ -286,8 +286,6 @@ json types_json() {
   return types;
 }
 
-// Outside of any function, so that coverage tools don't map each macro
-// expansion as a region of code.
 constexpr std::pair<int, const char*> EXIT_CODES[] = {
 #define PCB2GCODE_ERROR_CODE_PAIR(name, value) {value, #name},
   PCB2GCODE_ERROR_CODES(PCB2GCODE_ERROR_CODE_PAIR)
