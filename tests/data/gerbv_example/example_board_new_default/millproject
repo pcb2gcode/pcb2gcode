@@ -25,3 +25,4 @@ zchange=1.0
 
 #zero-start=false
 #mirror-axis=1in
+manifest=manifest.json

@@ -1,0 +1,67 @@
+{
+  "format_version": 1,
+  "files": [
+    {
+      "path": "back.ngc",
+      "type": "gcode",
+      "layer": "back",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 5.08
+        }
+      ]
+    },
+    {
+      "path": "contentions_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "contentions",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 5.08
+    },
+    {
+      "path": "outp0_original_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "original"
+    },
+    {
+      "path": "processed_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 5.08
+    },
+    {
+      "path": "processed_back_final.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 5.08
+    },
+    {
+      "path": "traced_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 5.08
+    },
+    {
+      "path": "traced_back_final.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 5.08
+    }
+  ]
+}

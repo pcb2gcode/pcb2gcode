@@ -20,6 +20,31 @@ The [pcb2gcode wiki](https://github.com/pcb2gcode/pcb2gcode/wiki) explains the o
 
 `pcb2gcode --help` lists every option.
 
+## Output manifest
+
+`--manifest=FILE` writes a JSON list of every file that the run wrote, for GUIs and scripts that would otherwise have to guess names like `outp3_masked_front.svg`. A relative `FILE` goes in `--output-dir`, like the G-code. The manifest is only written when the run succeeds.
+
+```json
+{
+  "format_version": 1,
+  "files": [
+    {"path": "back.ngc", "type": "gcode", "layer": "back",
+     "tools": [{"number": 1, "diameter_mm": 3.0}, {"number": 2, "diameter_mm": 0.2}]},
+    {"path": "outp2_masked_back.svg", "type": "svg", "layer": "back", "stage": "masked"},
+    {"path": "traced_back_final_1.svg", "type": "svg", "layer": "back", "stage": "traced",
+     "final": true, "tool_index": 1, "tool_diameter_mm": 0.2}
+  ]
+}
+```
+
+* `path` is relative to the directory of the manifest, or absolute for a file outside of it. The files are sorted by `path`.
+* `layer` is `front`, `back`, `outline`, `drill` or `milldrill`.
+* G-code files list their `tools` in the order that they are used, with the T number and the diameter in mm.
+* The `stage` of an SVG is `original` (the input), `masked` (cut to the outline), `processed` (Voronoi regions and toolpaths), `traced` (just the toolpaths) or `contentions` (where the clearance couldn't be kept). Images of toolpaths also have the `tool_index` (from 0, in `--mill-diameters` order), the `tool_diameter_mm` and `final`, which is true for the toolpaths after post-processing, as they are in the G-code.
+* `format_version` only changes when a reader could break. Ignore any keys that you don't know.
+
+With `--no-export`, toolpaths aren't computed, so only the `original` and `masked` images are written.
+
 ## Model Context Protocol (MCP) Server
 
 `pcb2gcode` includes a native Model Context Protocol (MCP) server mode over stdio (`--mcp`). This enables AI coding assistants (such as Antigravity, Cursor, and Claude Desktop) to invoke `pcb2gcode` directly for PCB isolation and routing.

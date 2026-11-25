@@ -17,6 +17,9 @@ new tree, and skips comparison (use this to refresh golden files).
 Use --expected-exit-code when pcb2gcode is supposed to fail; the default is 0.
 If the expected exit code is not zero, the script does not compare output to expected/.
 
+If the output has a manifest.json (from --manifest), the script also checks that it
+lists exactly the other files in the output (see tools/check_manifest.py).
+
 Extra pcb2gcode arguments (--pcb2gcode-arg) are passed through as given; if they do
 not already include --output-dir (or --output-dir=…), this script appends
 --output-dir with its managed path. When an argument starts with - (e.g. --foo=bar),
@@ -42,6 +45,7 @@ _SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPT_DIR not in sys.path:
     sys.path.insert(0, _SCRIPT_DIR)
 from fix_up_expected import fix_up_expected  # noqa: E402
+from check_manifest import check_manifest  # noqa: E402
 
 
 def _sanitize_for_path(s):
@@ -187,6 +191,12 @@ def main():
 
         if args.expected_exit_code != 0:
             return 0
+
+        manifest_problems = check_manifest(effective_out)
+        for problem in manifest_problems:
+            print(problem, file=sys.stderr)
+        if manifest_problems:
+            return 1
 
         fix_up_expected(effective_out)
 

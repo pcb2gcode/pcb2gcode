@@ -144,6 +144,10 @@ pcb2gcode_add_test_executable(
   segment_tree_tests.cpp)
 
 pcb2gcode_add_test_executable(
+  output_manifest_tests
+  output_manifest_tests.cpp)
+
+pcb2gcode_add_test_executable(
   mcp_server_tests
   mcp_server_tests.cpp)
 # The tools/call handler fork/execs the pcb2gcode binary; hand the tests the

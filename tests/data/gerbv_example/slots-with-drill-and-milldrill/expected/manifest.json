@@ -1,0 +1,39 @@
+{
+  "format_version": 1,
+  "files": [
+    {
+      "path": "drill.ngc",
+      "type": "gcode",
+      "layer": "drill",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 0.4
+        }
+      ]
+    },
+    {
+      "path": "milldrill.ngc",
+      "type": "gcode",
+      "layer": "milldrill",
+      "tools": [
+        {
+          "number": 2,
+          "diameter_mm": 1.016
+        }
+      ]
+    },
+    {
+      "path": "original_drill.svg",
+      "type": "svg",
+      "layer": "drill",
+      "stage": "original"
+    },
+    {
+      "path": "original_milldrill.svg",
+      "type": "svg",
+      "layer": "milldrill",
+      "stage": "original"
+    }
+  ]
+}

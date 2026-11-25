@@ -1,0 +1,29 @@
+{
+  "format_version": 1,
+  "files": [
+    {
+      "path": "original_drill.svg",
+      "type": "svg",
+      "layer": "drill",
+      "stage": "original"
+    },
+    {
+      "path": "outp0_original_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "original"
+    },
+    {
+      "path": "outp1_original_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "original"
+    },
+    {
+      "path": "outp2_masked_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "masked"
+    }
+  ]
+}
