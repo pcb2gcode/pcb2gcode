@@ -287,10 +287,15 @@ json types_json() {
 }
 
 json exit_codes_json() {
+  static const std::pair<int, const char*> exit_codes[] = {
+#define PCB2GCODE_ERROR_CODE_PAIR(name, value) {value, #name},
+    PCB2GCODE_ERROR_CODES(PCB2GCODE_ERROR_CODE_PAIR)
+#undef PCB2GCODE_ERROR_CODE_PAIR
+  };
   json codes = json::array();
-#define PCB2GCODE_ERROR_CODE_JSON(name, value) codes.push_back({{"code", value}, {"name", #name}});
-  PCB2GCODE_ERROR_CODES(PCB2GCODE_ERROR_CODE_JSON)
-#undef PCB2GCODE_ERROR_CODE_JSON
+  for (const auto& exit_code : exit_codes) {
+    codes.push_back({{"code", exit_code.first}, {"name", exit_code.second}});
+  }
   return codes;
 }
 
