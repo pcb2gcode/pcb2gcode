@@ -293,15 +293,17 @@ void do_pcb2gcode(int argc, const char* argv[]) {
 
     std::map<std::string, std::tuple<GerberImporter, std::shared_ptr<RoutingMill>, bool, bool>> prepared_layers;
 
+    // With --ignore-warnings, a layer whose file can't be read is left out.
     cout << "Importing front side... " << flush;
     if (vm.count("front") > 0) {
       string frontfile = vm["front"].as<string>();
       GerberImporter importer(tolerance);
-      if (!importer.load_file(frontfile)) {
+      if (importer.load_file(frontfile)) {
+        prepared_layers.emplace("front", std::make_tuple(std::move(importer), isolator, false, ymirror));
+        cout << "DONE.\n";
+      } else {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      prepared_layers.emplace("front", std::make_tuple(std::move(importer), isolator, false, ymirror));
-      cout << "DONE.\n";
     } else {
       cout << "not specified.\n";
     }
@@ -310,11 +312,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("back") > 0) {
       string backfile = vm["back"].as<string>();
       GerberImporter importer(tolerance);
-      if (!importer.load_file(backfile)) {
+      if (importer.load_file(backfile)) {
+        prepared_layers.emplace("back", std::make_tuple(std::move(importer), isolator, true, ymirror));
+        cout << "DONE.\n";
+      } else {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      prepared_layers.emplace("back", std::make_tuple(std::move(importer), isolator, true, ymirror));
-      cout << "DONE.\n";
     } else {
       cout << "not specified.\n";
     }
@@ -323,11 +326,12 @@ void do_pcb2gcode(int argc, const char* argv[]) {
     if (vm.count("outline") > 0) {
       string outline = vm["outline"].as<string>();
       GerberImporter importer(tolerance);
-      if (!importer.load_file(outline)) {
+      if (importer.load_file(outline)) {
+        prepared_layers.emplace("outline", std::make_tuple(std::move(importer), cutter, !workSide(vm, "cut"), ymirror));
+        cout << "DONE.\n";
+      } else {
         options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
       }
-      prepared_layers.emplace("outline", std::make_tuple(std::move(importer), cutter, !workSide(vm, "cut"), ymirror));
-      cout << "DONE.\n";
     } else {
       cout << "not specified.\n";
     }
@@ -354,7 +358,8 @@ void do_pcb2gcode(int argc, const char* argv[]) {
             {
               auto importer = make_shared<GerberImporter>(tolerance);
               if (!importer->load_file(vm["drill"].as<string>())) {
-                options::maybe_throw("ERROR.", ERR_INVALIDPARAMETER);
+                // Like ExcellonProcessor does when it can't read the file.
+                throw drill_exception();
               }
               min = importer->get_bounding_box().min_corner();
               max = importer->get_bounding_box().max_corner();

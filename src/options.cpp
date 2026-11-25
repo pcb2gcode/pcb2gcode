@@ -130,6 +130,11 @@ const std::vector<OptionRule>& option_rules() {
   const auto equal = &OptionCondition::equal;
   const auto set = &OptionCondition::set;
   const auto given = &OptionCondition::given;
+  // Every mill and the driller use zsafe and zchange.
+  const OptionCondition processing = set("front") || set("back") || set("outline") || set("drill");
+  // The autoleveller reads its values only for a side that has a layer.
+  const OptionCondition autolevelled = (equal("al-front", "true") && set("front")) ||
+                                       (equal("al-back", "true") && set("back"));
   static const std::vector<OptionRule> rules{
     range("spinup-time").at_least("0")
         .fails_with(ERR_NEGATIVESPINUP, "--spinup-time can't be negative."),
@@ -139,26 +144,29 @@ const std::vector<OptionRule>& option_rules() {
         .fails_with(ERR_FALSEMIRRORABSOLUTE,
                     "--mirror-absolute=false isn't supported anymore. Remove it, and use "
                     "--mirror-axis to choose where the back side is mirrored."),
-    range("tolerance").at_least("0")
+    range("tolerance").above("0")
         .fails_with(ERR_NEGATIVETOLERANCE,
-                    "--tolerance can't be negative. Leave it out to use the default."),
+                    "--tolerance must be greater than 0, because arcs are cut as straight lines "
+                    "that stay within the tolerance of the arc. Leave it out to use the default."),
     range("tile-x").at_least("1").fails_with(ERR_NEGATIVETILEX, "--tile-x must be at least 1."),
     range("tile-y").at_least("1").fails_with(ERR_NEGATIVETILEY, "--tile-y must be at least 1."),
-    required("zsafe", "the safety height for rapid moves", "5mm").fails_with(ERR_NOZSAFE),
-    required("zchange", "the tool change height", "10mm").fails_with(ERR_NOZCHANGE),
+    required("zsafe", "the safety height for rapid moves", "5mm")
+        .needed_when(processing).fails_with(ERR_NOZSAFE),
+    required("zchange", "the tool change height", "10mm")
+        .needed_when(processing).fails_with(ERR_NOZCHANGE),
     required("software", "the autoleveller's target software: linuxcnc, mach3, mach4 or custom",
              "linuxcnc")
-        .when("autolevelling").fails_with(ERR_NOSOFTWARE),
+        .when("autolevelling").needed_when(autolevelled).fails_with(ERR_NOSOFTWARE),
     required("al-x", "the autoleveller's largest x distance between probes", "15mm")
-        .when("autolevelling").fails_with(ERR_NOALX),
+        .when("autolevelling").needed_when(autolevelled).fails_with(ERR_NOALX),
     range("al-x").above("0").when("autolevelling")
         .fails_with(ERR_NEGATIVEALX, "--al-x must be greater than 0."),
     required("al-y", "the autoleveller's largest y distance between probes", "15mm")
-        .when("autolevelling").fails_with(ERR_NOALY),
+        .when("autolevelling").needed_when(autolevelled).fails_with(ERR_NOALY),
     range("al-y").above("0").when("autolevelling")
         .fails_with(ERR_NEGATIVEALY, "--al-y must be greater than 0."),
     required("al-probefeed", "the autoleveller's probing feed rate", "100mm/min")
-        .when("autolevelling").fails_with(ERR_NOALPROBEFEED),
+        .when("autolevelling").needed_when(autolevelled).fails_with(ERR_NOALPROBEFEED),
     range("al-probefeed").above("0").when("autolevelling")
         .fails_with(ERR_NEGATIVEPROBEFEED, "--al-probefeed must be greater than 0."),
     forbidden(!equal("mill-feed-direction", "any") && equal("tsp-2opt", "true"),
@@ -414,6 +422,27 @@ string options::help()
     return msg.str();
 }
 
+/* po::store stops at the first value that it can't read and leaves that
+ * option without a value, not even its default.  So each option is tried on
+ * a copy, with the ones before it that could be read, and with
+ * --ignore-warnings the options that can't be read keep their earlier values.
+ */
+static void store_config_file(const po::parsed_options& parsed, const string& error) {
+  po::variables_map& vm = options::get_vm();
+  po::parsed_options readable(parsed.description, parsed.m_options_prefix);
+  for (const po::option& option : parsed.options) {
+    readable.options.push_back(option);
+    po::variables_map tried = vm;
+    try {
+      po::store(readable, tried);
+    } catch (std::exception& e) {
+      readable.options.pop_back();
+      options::maybe_throw(error + e.what(), ERR_INVALIDPARAMETER);
+    }
+  }
+  po::store(readable, vm);
+}
+
 /******************************************************************************/
 /*
  */
@@ -431,13 +460,15 @@ void options::parse_files(const std::vector<std::string>& config_files,
       maybe_throw("Error: Can't open the configuration file \"" + file + "\" given with --config.",
                   ERR_INVALIDPARAMETER);
     }
+    const string error = "Error parsing configuration file \"" + file + "\": ";
+    po::parsed_options parsed(&instance().cfg_options);
     try {
-      po::store(po::parse_config_file(stream, instance().cfg_options),
-                instance().vm);
+      parsed = po::parse_config_file(stream, instance().cfg_options);
     } catch (std::exception& e) {
-      maybe_throw("Error parsing configuration file \"" + file + "\": " +
-                  e.what(), ERR_INVALIDPARAMETER);
+      maybe_throw(error + e.what(), ERR_INVALIDPARAMETER);
+      continue;
     }
+    store_config_file(parsed, error);
   }
   po::notify(instance().vm);
 }
@@ -662,10 +693,6 @@ static void warn_about_parameters(const OptionCatalog& catalog, po::variables_ma
         if (vm["tolerance"].as<double>() > tolerance_th)
             cerr << "Warning: high tolerance value (allowed deviation from toolpath) given.\n"
                  << endl;
-
-        else if (vm["tolerance"].as<double>() == 0)
-            cerr << "Warning: Deviation from commanded toolpath set to 0 (tolerance=0). No smooth milling is most likely!\n"
-                 << endl;
     }
 
     if (vm.count("svg")) {
@@ -708,13 +735,18 @@ void options::check_parameters()
     errors.push_back({string("Invalid parameter: ") + re.what(), ERR_INVALIDPARAMETER});
   }
 
-  if (errors.empty()) {
-    return;
-  }
   if (vm["ignore-warnings"].as<bool>()) {
+    std::vector<OptionError> needed;
     for (const auto& error : errors) {
-      maybe_throw(error.what, error.code);
+      if (error.needed) {
+        needed.push_back(error);
+      } else {
+        maybe_throw(error.what, error.code);
+      }
     }
+    errors = needed;
+  }
+  if (errors.empty()) {
     return;
   }
   string what;

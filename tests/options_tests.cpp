@@ -160,10 +160,57 @@ BOOST_AUTO_TEST_CASE(examples_in_errors_fix_them) {
 }
 
 BOOST_AUTO_TEST_CASE(ignore_warnings_with_missing_options) {
-  BOOST_CHECK_EQUAL(get_check_error("pcb2gcode --noconfigfile --ignore-warnings "
-                                    "--back=board.gbr --outline=outline.gbr "
-                                    "--drill=board.drl").first,
+  // A run with files to mill and drill can't do without these values.
+  auto error = get_check_error("pcb2gcode --noconfigfile --ignore-warnings "
+                               "--back=board.gbr --outline=outline.gbr --drill=board.drl");
+  BOOST_CHECK_EQUAL(error.first, ERR_NOZSAFE);
+  for (const std::string option : {"zsafe", "zchange", "zwork", "mill-feed", "mill-speed", "zcut",
+                                   "cutter-diameter", "cut-feed", "cut-speed", "cut-infeed",
+                                   "zdrill", "drill-feed", "drill-speed"}) {
+    BOOST_CHECK_NE(error.second.find("Missing --" + option + ","), std::string::npos);
+  }
+  // Without files, nothing needs them.
+  BOOST_CHECK_EQUAL(get_check_error("pcb2gcode --noconfigfile --ignore-warnings").first, ERR_OK);
+  // The other problems are still ignored.
+  const std::string milling = "pcb2gcode --noconfigfile --ignore-warnings --back=board.gbr "
+                              "--zsafe=-1mm --zchange=10mm --zwork=-0.1mm --mill-feed=100mm/min "
+                              "--mill-speed=10000rpm --tile-x=0";
+  BOOST_CHECK_EQUAL(get_check_error(milling).first, ERR_OK);
+  // The autoleveller's values are needed only for a layer that it levels.
+  BOOST_CHECK_EQUAL(get_check_error(milling + " --al-front").first, ERR_OK);
+  BOOST_CHECK_EQUAL(get_check_error(milling + " --al-back").first, ERR_NOSOFTWARE);
+}
+
+BOOST_AUTO_TEST_CASE(ignore_warnings_with_unreadable_config_values) {
+  const std::string config = " --config=tests/data/broken_examples/unreadable_value/millproject";
+  // A run stops at the first value that it can't read.
+  BOOST_CHECK_EQUAL(get_check_error("pcb2gcode" + config).first, ERR_INVALIDPARAMETER);
+  // --ignore-warnings goes on without them.  The options keep their defaults,
+  // a repeated option keeps its first value, the rest of the file is read, and
+  // the run stops only for a value that it needs.
+  const auto error = get_check_error("pcb2gcode --ignore-warnings" + config);
+  BOOST_CHECK_EQUAL(error.first, ERR_NOMILLFEED);
+  BOOST_CHECK_EQUAL(error.second, "Error: Missing --mill-feed, the milling feed rate. For "
+                                  "example: --mill-feed=600mm/min");
+  const po::variables_map& vm = options::get_vm();
+  BOOST_CHECK(vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() ==
+              MillFeedDirection::ANY);
+  BOOST_CHECK_EQUAL(vm.count("mill-feed"), 0U);
+  BOOST_CHECK_EQUAL(vm["mill-speed"].as<Rpm>().asRpm(1), 10000);
+  // A value on the command line still wins.
+  BOOST_CHECK_EQUAL(get_check_error("pcb2gcode --ignore-warnings --mill-feed=100mm/min" +
+                                    config).first,
                     ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(zero_tolerance) {
+  const std::string start = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm";
+  auto error = get_check_error(start + " --tolerance=0");
+  BOOST_CHECK_EQUAL(error.first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_NE(error.second.find("--tolerance must be greater than 0"), std::string::npos);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --tolerance=-1").first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --g64=0").first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --tolerance=0.0001").first, ERR_OK);
 }
 
 BOOST_AUTO_TEST_CASE(zchange_below_zdrill) {
@@ -238,8 +285,6 @@ string check_warnings(const string& args) {
 BOOST_AUTO_TEST_CASE(warnings) {
   const string start = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm";
   BOOST_CHECK_NE(check_warnings(start + " --tolerance=1").find("high tolerance"), string::npos);
-  BOOST_CHECK_NE(check_warnings(start + " --tolerance=0").find("Deviation from commanded toolpath"),
-                 string::npos);
   BOOST_CHECK_EQUAL(check_warnings(start + " --tolerance=0.001").find("Warning"), string::npos);
   BOOST_CHECK_NE(check_warnings(start + " --svg=board.svg").find("--svg is deprecated"),
                  string::npos);
@@ -537,7 +582,7 @@ BOOST_AUTO_TEST_CASE(dump_option_details) {
   BOOST_CHECK(tolerance["default"].is_null());
   BOOST_CHECK_EQUAL(tolerance["bare_unit"], "in");
   BOOST_CHECK_EQUAL(tolerance["metric_bare_unit"], "mm");
-  BOOST_CHECK_EQUAL(tolerance["range"], (json{{"min", "0"}}));
+  BOOST_CHECK_EQUAL(tolerance["range"], (json{{"min", "0"}, {"min_exclusive", true}}));
 
   const json help = find_option(dumped, "help");
   BOOST_CHECK_EQUAL(help["type"], "none");

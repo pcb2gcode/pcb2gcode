@@ -102,6 +102,8 @@ struct OptionError {
   ErrorCodes code;
   // The options that the failed rule involves.
   std::vector<std::string> options;
+  // The run needs the missing value, so --ignore-warnings can't skip this.
+  bool needed = false;
 };
 
 struct OptionCatalog;
@@ -133,6 +135,9 @@ class OptionRule {
   OptionRule& when(const std::string& condition);
   // The rule doesn't apply while this holds.
   OptionRule& unless(const OptionCondition& condition);
+  // A required value is needed only while this holds, instead of whenever the
+  // rule applies.
+  OptionRule& needed_when(const OptionCondition& condition);
   // Required rules make their own message.
   OptionRule& fails_with(ErrorCodes code, const std::string& message = "");
 
@@ -158,6 +163,7 @@ class OptionRule {
   boost::optional<Limit> min_;
   boost::optional<Limit> max_;
   boost::optional<OptionCondition> unless_;
+  boost::optional<OptionCondition> needed_;
   OptionCondition if_;
   ErrorCodes code_;
   std::string message_;
