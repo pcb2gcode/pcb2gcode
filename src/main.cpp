@@ -81,6 +81,11 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       return;
     }
 
+    if (vm.count("dump-options")) {
+      cout << options::dump_options() << endl;
+      return;
+    }
+
     options::check_parameters();      //check the cli parameters
 
     //---------------------------------------------------------------------------

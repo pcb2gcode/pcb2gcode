@@ -109,6 +109,11 @@ pcb2gcode_add_integration_script_test(
   PCB2GCODE_ARGS "--help")
 
 pcb2gcode_add_integration_script_test(
+  integration_cli_dump_options
+  "tests/data/gerbv_example"
+  PCB2GCODE_ARGS "--dump-options")
+
+pcb2gcode_add_integration_script_test(
   integration_tsp_2opt_with_mill_feed_direction
   "tests/data/gerbv_example/am-test"
   EXPECTED_EXIT 100

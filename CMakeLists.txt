@@ -177,6 +177,7 @@ set(PCB2GCODE_MAIN_SOURCES
     mcp_server.cpp
     merge_near_points.cpp
     ngc_exporter.cpp
+    option_metadata.cpp
     options.cpp
     outline_bridges.cpp
     output_manifest.cpp
