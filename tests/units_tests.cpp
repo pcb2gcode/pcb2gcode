@@ -162,6 +162,17 @@ BOOST_AUTO_TEST_CASE(units_input_syntax) {
     BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Percent>(text)), text);
   }
   BOOST_CHECK_EQUAL(to_input_syntax(Length(std::numeric_limits<double>::infinity())), "inf");
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Revolution>("4 cycles")), "4rev");
+}
+
+BOOST_AUTO_TEST_CASE(unnamed_units) {
+  // parse_unit only makes units that have names, so these can't be written.
+  BOOST_CHECK_THROW(to_input_syntax(Length(1, 2.0 * inch)), std::logic_error);
+  BOOST_CHECK_THROW(to_input_syntax(Velocity(1, 7.0 * boost::units::si::meters_per_second)),
+                    std::logic_error);
+  std::stringstream text;
+  text << static_cast<BoardSide::BoardSide>(3);
+  BOOST_CHECK_EQUAL(text.str(), "3");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -210,6 +210,120 @@ BOOST_AUTO_TEST_CASE(range_rules) {
                     ERR_MILLDRILLENTRYORDER);
 }
 
+BOOST_AUTO_TEST_CASE(deprecated_sides) {
+  const string drill = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm --drill=board.drl "
+                       "--zdrill=-2mm --drill-feed=100mm/min --drill-speed=10000rpm";
+  BOOST_CHECK_EQUAL(get_check_error(drill + " --drill-front").first, ERR_OK);
+  BOOST_CHECK_EQUAL(get_check_error(drill + " --drill-front --drill-side=back").first,
+                    ERR_BOTHDRILLFRONTSIDE);
+  const string outline = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm "
+                         "--outline=outline.gbr --zcut=-2mm --cutter-diameter=2mm "
+                         "--cut-feed=100mm/min --cut-speed=10000rpm --cut-infeed=1mm";
+  BOOST_CHECK_EQUAL(get_check_error(outline + " --cut-front=false").first, ERR_OK);
+  BOOST_CHECK_EQUAL(get_check_error(outline + " --cut-front --cut-side=front").first,
+                    ERR_BOTHCUTFRONTSIDE);
+}
+
+// What check_parameters() prints to stderr for args.
+string check_warnings(const string& args) {
+  std::stringstream warnings;
+  struct RestoreCerr {
+    std::streambuf* buffer;
+    ~RestoreCerr() { cerr.rdbuf(buffer); }
+  } restore{cerr.rdbuf(warnings.rdbuf())};
+  BOOST_CHECK_EQUAL(get_check_error(args).first, ERR_OK);
+  return warnings.str();
+}
+
+BOOST_AUTO_TEST_CASE(warnings) {
+  const string start = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm";
+  BOOST_CHECK_NE(check_warnings(start + " --tolerance=1").find("high tolerance"), string::npos);
+  BOOST_CHECK_NE(check_warnings(start + " --tolerance=0").find("Deviation from commanded toolpath"),
+                 string::npos);
+  BOOST_CHECK_EQUAL(check_warnings(start + " --tolerance=0.001").find("Warning"), string::npos);
+  BOOST_CHECK_NE(check_warnings(start + " --svg=board.svg").find("--svg is deprecated"),
+                 string::npos);
+  BOOST_CHECK_NE(check_warnings(start + " --back=board.gbr --zwork=0.1mm --mill-feed=1 "
+                                "--mill-speed=1").find("--zwork) is greater than zero"),
+                 string::npos);
+  BOOST_CHECK_NE(check_warnings(start + " --drill=board.drl --zdrill=-2mm --drill-feed=1 "
+                                "--drill-speed=1 --drill-front").find("drill-front is deprecated"),
+                 string::npos);
+  BOOST_CHECK_NE(check_warnings(start + " --outline=outline.gbr --zcut=-2mm "
+                                "--cutter-diameter=2mm --cut-feed=1 --cut-speed=1 "
+                                "--cut-infeed=1mm --cut-front").find("cut-front is deprecated"),
+                 string::npos);
+}
+
+BOOST_AUTO_TEST_CASE(conditions) {
+  parse("pcb2gcode --noconfigfile --drill=board.drl");
+  const po::variables_map& vm = options::get_vm();
+  const auto set = &OptionCondition::set;
+  // An option without a value is never equal to anything.
+  BOOST_CHECK(!OptionCondition::equal("software", "linuxcnc").holds(vm));
+  BOOST_CHECK(OptionCondition::equal("drill-side", "auto").holds(vm));
+  BOOST_CHECK(!OptionCondition::given("drill-side").holds(vm));
+  BOOST_CHECK(OptionCondition::given("drill").holds(vm));
+  // Only numbers can be compared with inf.
+  BOOST_CHECK_THROW(OptionCondition::finite("drill").holds(vm), std::logic_error);
+  BOOST_CHECK_THROW(OptionCondition::finite("mill-diameters").holds(vm), std::logic_error);
+  BOOST_CHECK_THROW(OptionCondition::finite("pre-milling-gcode").holds(vm), std::logic_error);
+  BOOST_CHECK(!(set("front") || set("back") || set("outline")).holds(vm));
+  BOOST_CHECK((set("drill") && !set("front") && set("zchange-absolute")).holds(vm));
+  // Chains stay flat.
+  BOOST_CHECK_EQUAL((set("front") || set("back") || set("outline")).to_json().dump(),
+                    R"({"any":[{"set":"front"},{"set":"back"},{"set":"outline"}]})");
+  BOOST_CHECK_EQUAL((set("a") && (set("b") && set("c"))).to_json().dump(),
+                    R"({"all":[{"set":"a"},{"set":"b"},{"set":"c"}]})");
+}
+
+// A catalog made by hand, for what pcb2gcode's own options don't use.
+BOOST_AUTO_TEST_CASE(small_catalog) {
+  po::options_description description;
+  description.add_options()
+      ("width", po::value<Length>(), "a width")
+      ("depth", po::value<Length>()->default_value(parse_unit<Length>("1mm")), "a depth");
+  const std::vector<OptionGroup> groups{{"test", "Test options", "always", false, {"width"}}};
+  const std::vector<NamedCondition> conditions{{"always", "Always.", OptionCondition()}};
+  const std::map<string, OptionDetails> details;
+  const std::vector<OptionRule> rules{
+      OptionRule::range("width").below("2mm").fails_with(ERR_INVALIDPARAMETER, "too wide"),
+      OptionRule::greater_or_equal("width", "depth").fails_with(ERR_INVALIDPARAMETER, "shallow")};
+  const OptionCatalog catalog{description, groups, conditions, details, rules};
+
+  for (const auto& width_and_errors : std::vector<std::pair<string, std::vector<string>>>{
+           {"1mm", {}}, {"2mm", {"too wide"}}, {"0.5mm", {"shallow"}}}) {
+    po::variables_map vm;
+    po::store(po::command_line_parser(std::vector<string>{"--width=" + width_and_errors.first})
+                  .options(description).run(), vm);
+    std::vector<string> errors;
+    for (const auto& rule : rules) {
+      const auto error = rule.check(vm, catalog, 1);
+      if (error) {
+        errors.push_back(error->what);
+      }
+    }
+    BOOST_CHECK(errors == width_and_errors.second);
+  }
+  const json dumped = json::parse(dump_catalog(catalog));
+  BOOST_CHECK_EQUAL(dumped["rules"][0]["max"], "2mm");
+  BOOST_CHECK_EQUAL(dumped["rules"][0]["max_exclusive"], true);
+  BOOST_CHECK_EQUAL(dumped["options"][0]["range"], (json{{"max", "2mm"}, {"max_exclusive", true}}));
+
+  // Mistakes in the catalog are bugs, so they throw.
+  po::variables_map vm;
+  vm.insert({"height", po::variable_value(boost::any(Length(1)), false)});
+  BOOST_CHECK_THROW(OptionRule::range("height").at_least("0").check(vm, catalog, 1),
+                    std::logic_error);
+  BOOST_CHECK_THROW(OptionRule::required("height", "a height", "1mm").when("never")
+                        .check(vm, catalog, 1),
+                    std::logic_error);
+  const std::vector<OptionGroup> wrong_groups{{"test", "Test options", "always", false, {"height"}}};
+  BOOST_CHECK_THROW(dump_catalog(OptionCatalog{description, wrong_groups, conditions, details,
+                                               rules}),
+                    std::logic_error);
+}
+
 BOOST_AUTO_TEST_CASE(rule_errors_name_their_options) {
   parse("pcb2gcode --noconfigfile --zsafe=1mm --zchange=10mm --back=board.gbr --zwork=2mm "
         "--mill-feed=1 --mill-speed=1");
@@ -475,6 +589,15 @@ BOOST_AUTO_TEST_CASE(dump_conditions) {
   BOOST_CHECK_EQUAL(conditions["milldrilling"]["expression"], milldrilling);
   BOOST_CHECK_EQUAL(conditions["cutting"]["expression"],
                     (json{{"any", json::array({outline, milldrilling})}}));
+}
+
+BOOST_AUTO_TEST_CASE(format_values) {
+  BOOST_CHECK(reformat("pre-milling-gcode", {"M3", "G4 P1"}) ==
+              (std::vector<string>{"M3", "G4 P1"}));
+  BOOST_CHECK(reformat("drills-available", {"1mm:-0.1mm:+0.2mm,2mm", "3mm"}) ==
+              (std::vector<string>{"1mm:-0.1mm:+0.2mm,2mm", "3mm"}));
+  // pcb2gcode has no options of this type.
+  BOOST_CHECK(!format_option_value(boost::any(1.5f)));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
