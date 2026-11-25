@@ -173,6 +173,19 @@ set_tests_properties(mcp_stdio_shutdown_test PROPERTIES
   LABELS "integration_expect_success"
   TIMEOUT 60)
 
+# End-to-end test: run pcb2gcode --dump-options the way a GUI would and compare
+# its options with --help.
+add_test(
+  NAME dump_options_test
+  COMMAND
+    "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/tools/run_dump_options_test.py"
+    "$<TARGET_FILE:pcb2gcode>"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+set_tests_properties(dump_options_test PROPERTIES
+  LABELS "integration_expect_success"
+  TIMEOUT 60)
+
 # src/wkt_to_svg.cpp is its own executable, so ctest has to run that binary
 # to cover it. One test per stdin shape (see tools/run_wkt_to_svg_test.py).
 foreach(_wkt_case IN ITEMS

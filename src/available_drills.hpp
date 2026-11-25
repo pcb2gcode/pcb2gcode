@@ -29,6 +29,16 @@ class AvailableDrill {
     out << ":" << negative_tolerance << ":+" << positive_tolerance;
     return out;
   }
+  // The drill as --drills-available reads it.
+  friend std::string to_input_syntax(const AvailableDrill& drill) {
+    std::string text = to_input_syntax(drill.diameter_);
+    if (drill.negative_tolerance == Length(-std::numeric_limits<double>::infinity()) &&
+        drill.positive_tolerance == Length( std::numeric_limits<double>::infinity())) {
+      return text;
+    }
+    return text + ":" + to_input_syntax(drill.negative_tolerance) + ":+" +
+           to_input_syntax(drill.positive_tolerance);
+  }
   void read(const std::string& input_string) {
     std::vector<std::string> drill_parts;
     boost::split(drill_parts, input_string, boost::is_any_of(":"));

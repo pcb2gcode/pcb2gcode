@@ -53,5 +53,13 @@ BOOST_AUTO_TEST_CASE(parse_available_drills) {
   BOOST_CHECK_THROW(string_to_available_drills("1:0.1:0.2:0.3"), po::validation_error);
 }
 
+BOOST_AUTO_TEST_CASE(available_drill_input_syntax) {
+  BOOST_CHECK_EQUAL(to_input_syntax(AvailableDrill(parse_unit<Length>("1mm"))), "1mm");
+  const AvailableDrill drill(parse_unit<Length>("1mm"), parse_unit<Length>("-0.2mm"),
+                             parse_unit<Length>("0.1mm"));
+  BOOST_CHECK_EQUAL(to_input_syntax(drill), "1mm:-0.2mm:+0.1mm");
+  BOOST_CHECK_EQUAL(string_to_available_drills(to_input_syntax(drill)), AvailableDrills({drill}));
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()

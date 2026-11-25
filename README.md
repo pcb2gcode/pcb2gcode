@@ -92,6 +92,41 @@ Copy the contents of the generated `mcp-config.json` file into your MCP client c
 }
 ```
 
+## Option metadata for GUIs (`--dump-options`)
+
+`pcb2gcode --dump-options --noconfigfile` prints every option as JSON, so that a GUI can build its forms from the installed pcb2gcode instead of keeping its own copy of the options. It exits without checking options or reading input files. Pass `--noconfigfile` so that a `millproject` in the working directory can't break it; the output depends only on the binary. A pcb2gcode without the flag exits with code 101 (unknown option).
+
+```json
+{
+  "format_version": 1,
+  "program": "pcb2gcode",
+  "version": "3.2.0",
+  "git_commit": "v3.2.0-1-gabcdef0",
+  "types": {"length": {"bare_unit": "in", "metric_bare_unit": "mm", "units": [{"name": "mm", "aliases": ["millimeter", "millimeters"], "factor": 0.001}, ...]}, ...},
+  "conditions": {"milling": {"description": "A front or back gerber file is given.", "expression": {"any": [{"set": "front"}, {"set": "back"}]}}, ...},
+  "groups": [{"id": "cli", "title": "command line only options"}, ...],
+  "options": [{"name": "zwork", "group": "milling", "description": "...", "type": "length", "default": null, "example": "-0.05mm", "required_when": "milling", "used_when": "milling"}, ...],
+  "rules": [{"kind": "greater", "options": ["zsafe", "zwork"], "when": "milling", "code": 15, "message": "--zsafe must be higher than --zwork."}, ...],
+  "exit_codes": [{"code": 0, "name": "ERR_OK"}, ...]
+}
+```
+
+* `format_version` changes only when the format changes incompatibly. New keys, types, rule kinds and expression nodes can appear without a change, so a reader should cope with them: ignore unknown keys, treat options of an unknown type as strings, and skip rules of an unknown kind. Treat an unknown expression node as true in `used_when` and `required_when`, so the option still gets a value, and skip a rule whose `when`, `if` or `unless` contains one. pcb2gcode still checks the rules that a reader skips.
+* `types` explains the syntax of each value type: the units that it accepts and what a number without a unit means. Lengths and velocities without a unit are in inches (in/min), or millimeters (mm/min) with `--metric`; times without a unit are in milliseconds; a percentage without `%` is a fraction (0.5 is 50%).
+* `groups` and `options` are in `--help` order. Each option has `name`, `group`, `description`, `type`, `default` and `used_when`, and, when they apply:
+  * `default`: in pcb2gcode's own syntax (`"0.0001in"`, `"50in/min"`, `"any"`), `null` if there is none, or a list of values for `repeatable` options. `"inf"` means infinity, which pcb2gcode can't read back: leave the option out to get it. `default_note` explains defaults that depend on other options, like `mill-vertfeed`'s "half of --mill-feed".
+  * `implicit`: the value of the option without `=value`, like `"true"` for `--voronoi`.
+  * `repeatable` (the option can be given several times), `comma_separated` (each value can be a list separated by commas) and `multitoken` (one option can take several values on the command line).
+  * `choices` for enums, each with its `aliases`, matched ignoring case.
+  * `range`: the limits that pcb2gcode checks, like `{"min": "0", "min_exclusive": true, "max": "100%"}`.
+  * `example`, `required_when`: a valid value for an option that pcb2gcode requires while the named condition holds.
+  * `bare_unit`, `metric_bare_unit`: the units of plain numbers that are lengths, like `tolerance`.
+  * `cli_only` (not allowed in configuration files), `deprecated`, `replaced_by`, `value_map` (how old values map to the replacement; without it the value carries over). A deprecated option has `replaced_by` only when its values convert like that. `extra-passes` has none: it still works, and pcb2gcode mills whichever needs more passes, it or `--isolation-width`. With a tool of diameter d and an overlap of o, n extra passes cover an isolation width of d + n × (d − o).
+  * `path` (`input_file`, `output_file` or `directory`), `file_format` (`gerber`, `excellon`, `gcode`, `text`, `millproject`, or `json` for `--manifest`), and `relative_to` for output files, which are inside `--output-dir`.
+* `conditions` are the named conditions that `used_when`, `required_when` and the rules refer to. An expression is `true`, `{"set": option}` (it has a value, maybe its default), `{"given": option}` (given on the command line or in a configuration file), `{"equal": [option, value]}`, `{"finite": option}` (set and not `inf`), `{"not": expression}`, `{"any": [expressions]}` or `{"all": [expressions]}`.
+* `rules` are the checks that pcb2gcode runs on the options before it does any work, in order, with the exact error message and exit code. pcb2gcode reports every rule that fails and exits with the code of the first. A rule applies only while its `when` condition holds. Kinds: `required` (the option must have a value), `range` (the value must be within `min` and `max`), `greater` and `greater_or_equal` (between two options, both set, unless the `unless` expression holds), and `forbidden` (the `if` expression must not hold).
+* `exit_codes` lists the exit codes. 1 is also the exit code of unexpected errors, like an `--output-dir` that doesn't exist.
+
 pcb2gcodeGUI, the official GUI for pcb2gcode, is available [here](https://github.com/pcb2gcode/pcb2gcodeGUI).
 
 If you find this project useful, consider [donating money to charity](https://payments.wikimedia.org/index.php?title=Special:PaypalExpressGateway&appeal=JimmyQuote&ffname=paypal_ec&recurring=&currency=USD&amount=0&payment_method=paypal&uselang=en&utm_medium=Waystogive&utm_campaign=C11_Waystogive&utm_source=Waystogive).

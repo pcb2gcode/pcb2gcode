@@ -114,4 +114,65 @@ BOOST_AUTO_TEST_CASE(parse_MillFeedDirection) {
   BOOST_CHECK_THROW(parse_unit<MillFeedDirection::MillFeedDirection>("all"), po::validation_error);
 }
 
+BOOST_AUTO_TEST_CASE(write_enums) {
+  std::stringstream text;
+  text << MillFeedDirection::ANY << " " << MillFeedDirection::CONVENTIONAL << " "
+       << BoardSide::AUTO << " " << Software::LINUXCNC;
+  BOOST_CHECK_EQUAL(text.str(), "any conventional auto linuxcnc");
+  BOOST_CHECK_EQUAL(parse_unit<Software::Software>("LinuxCNC"), Software::LINUXCNC);
+  BOOST_CHECK_EQUAL(parse_unit<BoardSide::BoardSide>("Back"), BoardSide::BACK);
+  BOOST_CHECK_THROW(parse_unit<BoardSide::BoardSide>("top"), po::validation_error);
+}
+
+BOOST_AUTO_TEST_CASE(format_numbers) {
+  BOOST_CHECK_EQUAL(format_number(0), "0");
+  BOOST_CHECK_EQUAL(format_number(50), "50");
+  BOOST_CHECK_EQUAL(format_number(-0.05), "-0.05");
+  BOOST_CHECK_EQUAL(format_number(0.0001), "0.0001");
+  // No exponent, which pcb2gcode can't read.
+  BOOST_CHECK_EQUAL(format_number(2.54e-5), "0.0000254");
+  BOOST_CHECK_EQUAL(format_number(1e20), "100000000000000000000");
+  BOOST_CHECK_EQUAL(format_number(std::numeric_limits<double>::infinity()), "inf");
+  BOOST_CHECK_EQUAL(format_number(-std::numeric_limits<double>::infinity()), "-inf");
+  BOOST_CHECK_EQUAL(parse_unit<Length>(format_number(1.0 / 3)).asInch(1), 1.0 / 3);
+}
+
+BOOST_AUTO_TEST_CASE(units_input_syntax) {
+  for (const std::string text : {"0.0001in", "-2.5mm", "3m", "10thou", "4"}) {
+    BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Length>(text)), text);
+  }
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Length>(" 25.4 millimeters ")), "25.4mm");
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Length>("2 meters")), "2m");
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Length>("2 mils")), "2thou");
+  for (const std::string text : {"50in/min", "600mm/min", "5m/s", "4"}) {
+    BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Velocity>(text)), text);
+  }
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Velocity>("1 inch per second")), "1in/s");
+  // The same quantity as m/s.
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Velocity>("3mm/ms")), "3m/s");
+  for (const std::string text : {"1ms", "2s", "3min", "4"}) {
+    BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Time>(text)), text);
+  }
+  for (const std::string text : {"10000rpm", "2rev/s", "5"}) {
+    BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Rpm>(text)), text);
+  }
+  // The same quantity as rpm.
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Rpm>("2 cycles per minute")), "2rpm");
+  for (const std::string text : {"150%", "0.5"}) {
+    BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Percent>(text)), text);
+  }
+  BOOST_CHECK_EQUAL(to_input_syntax(Length(std::numeric_limits<double>::infinity())), "inf");
+  BOOST_CHECK_EQUAL(to_input_syntax(parse_unit<Revolution>("4 cycles")), "4rev");
+}
+
+BOOST_AUTO_TEST_CASE(unnamed_units) {
+  // parse_unit only makes units that have names, so these can't be written.
+  BOOST_CHECK_THROW(to_input_syntax(Length(1, 2.0 * inch)), std::logic_error);
+  BOOST_CHECK_THROW(to_input_syntax(Velocity(1, 7.0 * boost::units::si::meters_per_second)),
+                    std::logic_error);
+  std::stringstream text;
+  text << static_cast<BoardSide::BoardSide>(3);
+  BOOST_CHECK_EQUAL(text.str(), "3");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -126,7 +126,11 @@ function(setup_target_for_coverage_lcov)
     )
 
     # 3. Run grcov to generate lcov.info
+    # grcov gives llvm-cov one binary at a time, so llvm-cov looks up the other
+    # binaries in the profile on the debuginfod servers in DEBUGINFOD_URLS,
+    # which login shells on Ubuntu set.  A slow server stalls the coverage.
     set(GRCOV_CMD
+        ${CMAKE_COMMAND} -E env --unset=DEBUGINFOD_URLS
         ${GRCOV_PATH} ${PROJECT_BINARY_DIR}/${Coverage_NAME}
         --binary-path ${PROJECT_BINARY_DIR}
         --source-dir ${PROJECT_SOURCE_DIR}

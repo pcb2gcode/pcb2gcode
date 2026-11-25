@@ -21,10 +21,13 @@
  */
 
 #include "options.hpp"
+#include "option_metadata.hpp"
 #include "pcb2gcode_version.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <list>
+#include <sstream>
 #include <boost/exception/all.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/reversed.hpp>
@@ -42,19 +45,232 @@ using std::endl;
 
 namespace {
 
-// A problem with the options.  check_parameters() collects all of them so
-// that the user can fix them in one go.
-struct OptionError {
-  string what;
-  ErrorCodes code;
-};
+// The conditions that decide which options pcb2gcode uses and checks.
+const std::vector<NamedCondition>& option_conditions() {
+  const auto set = &OptionCondition::set;
+  const auto equal = &OptionCondition::equal;
+  const OptionCondition milldrilling =
+      set("drill") && OptionCondition::finite("min-milldrill-hole-diameter");
+  static const std::vector<NamedCondition> conditions{
+    {"always", "Always.", OptionCondition()},
+    {"milling", "A front or back gerber file is given.", set("front") || set("back")},
+    {"drilling", "A drill file is given.", set("drill")},
+    {"milldrilling", "A drill file is given and --min-milldrill-hole-diameter isn't inf, so "
+     "holes at least that wide are milled.", milldrilling},
+    {"cutting", "An outline is given, or holes are milldrilled.", set("outline") || milldrilling},
+    {"autolevelling", "The autoleveller is on for a side.",
+     equal("al-front", "true") || equal("al-back", "true")},
+  };
+  return conditions;
+}
 
-// The message for an option that must be given but wasn't.  Give numeric
-// examples units so that they work with and without --metric.
-string missing_option(const string& option, const string& description,
-                      const string& example) {
-  return "Missing --" + option + ", " + description + ". For example: --" +
-         option + "=" + example;
+// What --dump-options says about options beyond their declarations.
+const std::map<string, OptionDetails>& option_details() {
+  const std::map<string, string> sides{{"true", "front"}, {"false", "back"}};
+  const string auto_side = "auto: the front, unless only --back is given";
+  static const std::map<string, OptionDetails> details{
+    {"config", OptionDetails().input("millproject")},
+    {"g64", OptionDetails().replaced("tolerance").length_number()},
+    {"tolerance", OptionDetails().length_number().note("0.0004 inches")},
+    {"output-dir", OptionDetails().directory().note("empty: the working directory")},
+    {"manifest", OptionDetails().output("json")},
+    {"preamble-text", OptionDetails().input("text")},
+    {"preamble", OptionDetails().input("gcode")},
+    {"postamble", OptionDetails().input("gcode")},
+    {"drill", OptionDetails().input("excellon").when("always")},
+    {"milldrill", OptionDetails().replaced("min-milldrill-hole-diameter", {{"true", "0"}})},
+    {"milldrill-diameter", OptionDetails().when("milldrilling").note("--cutter-diameter")},
+    {"min-milldrill-hole-diameter", OptionDetails().note("inf: no hole is milldrilled")},
+    {"min-milldrill-entry-diameter", OptionDetails().when("milldrilling")},
+    {"max-milldrill-entry-diameter", OptionDetails().when("milldrilling")},
+    {"milldrill-stepover", OptionDetails().when("milldrilling")},
+    {"zmilldrill", OptionDetails().when("milldrilling").note("--zdrill")},
+    {"drill-front", OptionDetails().replaced("drill-side", sides)},
+    {"drill-side", OptionDetails().note(auto_side)},
+    {"drill-output",
+     OptionDetails().output("gcode").note("with --basename: <basename>_drill.ngc")},
+    {"nom6", OptionDetails().when("always")},
+    {"milldrill-output", OptionDetails().output("gcode").when("milldrilling")
+                             .note("with --basename: <basename>_milldrill.ngc")},
+    {"front", OptionDetails().input("gerber").when("always")},
+    {"back", OptionDetails().input("gerber").when("always")},
+    // extra-passes has no replacement: the --isolation-width that matches a
+    // number of passes depends on the tool diameter and the overlap.
+    {"mill-vertfeed", OptionDetails().note("half of --mill-feed")},
+    {"mill-infeed", OptionDetails().note("the whole --zwork depth in one pass")},
+    {"front-output",
+     OptionDetails().output("gcode").note("with --basename: <basename>_front.ngc")},
+    {"back-output",
+     OptionDetails().output("gcode").note("with --basename: <basename>_back.ngc")},
+    {"outline", OptionDetails().input("gerber").when("always")},
+    {"cut-vertfeed", OptionDetails().note("half of --cut-feed")},
+    {"cut-front", OptionDetails().replaced("cut-side", sides)},
+    {"cut-side", OptionDetails().note(auto_side)},
+    {"bridgesnum", OptionDetails().note("no bridges unless --bridges is more than 0")},
+    {"zbridges", OptionDetails().note("--zsafe")},
+    {"outline-output",
+     OptionDetails().output("gcode").note("with --basename: <basename>_outline.ngc")},
+    {"backtrack", OptionDetails().note("inf: retrace a milled path whenever that's faster")},
+    {"al-front", OptionDetails().when("always")},
+    {"al-back", OptionDetails().when("always")},
+    // Tiling uses it too.
+    {"software", OptionDetails().when("always").note("custom, for tiling")},
+    {"spindown-time", OptionDetails().note("--spinup-time")},
+  };
+  return details;
+}
+
+// The checks that check_parameters() runs, in order.  pcb2gcode reports every
+// failure and exits with the code of the first.
+const std::vector<OptionRule>& option_rules() {
+  const auto required = &OptionRule::required;
+  const auto range = &OptionRule::range;
+  const auto greater = &OptionRule::greater;
+  const auto forbidden = &OptionRule::forbidden;
+  const auto equal = &OptionCondition::equal;
+  const auto set = &OptionCondition::set;
+  const auto given = &OptionCondition::given;
+  static const std::vector<OptionRule> rules{
+    range("spinup-time").at_least("0")
+        .fails_with(ERR_NEGATIVESPINUP, "--spinup-time can't be negative."),
+    range("spindown-time").at_least("0")
+        .fails_with(ERR_NEGATIVESPINDOWN, "--spindown-time can't be negative."),
+    forbidden(!equal("mirror-absolute", "true"), {"mirror-absolute"})
+        .fails_with(ERR_FALSEMIRRORABSOLUTE,
+                    "--mirror-absolute=false isn't supported anymore. Remove it, and use "
+                    "--mirror-axis to choose where the back side is mirrored."),
+    range("tolerance").at_least("0")
+        .fails_with(ERR_NEGATIVETOLERANCE,
+                    "--tolerance can't be negative. Leave it out to use the default."),
+    range("tile-x").at_least("1").fails_with(ERR_NEGATIVETILEX, "--tile-x must be at least 1."),
+    range("tile-y").at_least("1").fails_with(ERR_NEGATIVETILEY, "--tile-y must be at least 1."),
+    required("zsafe", "the safety height for rapid moves", "5mm").fails_with(ERR_NOZSAFE),
+    required("zchange", "the tool change height", "10mm").fails_with(ERR_NOZCHANGE),
+    required("software", "the autoleveller's target software: linuxcnc, mach3, mach4 or custom",
+             "linuxcnc")
+        .when("autolevelling").fails_with(ERR_NOSOFTWARE),
+    required("al-x", "the autoleveller's largest x distance between probes", "15mm")
+        .when("autolevelling").fails_with(ERR_NOALX),
+    range("al-x").above("0").when("autolevelling")
+        .fails_with(ERR_NEGATIVEALX, "--al-x must be greater than 0."),
+    required("al-y", "the autoleveller's largest y distance between probes", "15mm")
+        .when("autolevelling").fails_with(ERR_NOALY),
+    range("al-y").above("0").when("autolevelling")
+        .fails_with(ERR_NEGATIVEALY, "--al-y must be greater than 0."),
+    required("al-probefeed", "the autoleveller's probing feed rate", "100mm/min")
+        .when("autolevelling").fails_with(ERR_NOALPROBEFEED),
+    range("al-probefeed").above("0").when("autolevelling")
+        .fails_with(ERR_NEGATIVEPROBEFEED, "--al-probefeed must be greater than 0."),
+    forbidden(!equal("mill-feed-direction", "any") && equal("tsp-2opt", "true"),
+              {"mill-feed-direction", "tsp-2opt"})
+        .fails_with(ERR_INVALIDPARAMETER,
+                    "--mill-feed-direction doesn't work with --tsp-2opt, which is on by "
+                    "default. Add --tsp-2opt=false."),
+
+    required("zwork", "the milling depth", "-0.05mm").when("milling").fails_with(ERR_NOZWORK),
+    forbidden(!equal("vectorial", "true"), {"vectorial"}).when("milling")
+        .fails_with(ERR_INVALIDPARAMETER, "--vectorial=false isn't supported anymore. Remove it."),
+    required("mill-diameters", "the diameters of the milling bits", "0.2mm")
+        .when("milling").fails_with(ERR_NOOFFSET),
+    required("mill-feed", "the milling feed rate", "600mm/min")
+        .when("milling").fails_with(ERR_NOMILLFEED),
+    required("mill-speed", "the spindle speed for milling", "10000rpm")
+        .when("milling").fails_with(ERR_NOMILLSPEED),
+    greater("zsafe", "zwork").when("milling")
+        .fails_with(ERR_ZSAFELOWERZWORK, "--zsafe must be higher than --zwork."),
+    range("mill-feed").above("0").when("milling")
+        .fails_with(ERR_NEGATIVEMILLFEED, "--mill-feed must be greater than 0."),
+    range("mill-vertfeed").above("0").when("milling")
+        .fails_with(ERR_NEGATIVEMILLVERTFEED, "--mill-vertfeed must be greater than 0."),
+    range("mill-infeed").above("0").when("milling")
+        .fails_with(ERR_LOWMILLINFEED, "--mill-infeed must be greater than 0."),
+    range("mill-speed").at_least("0").when("milling")
+        .fails_with(ERR_NEGATIVEMILLSPEED, "--mill-speed can't be negative."),
+
+    required("zcut", "the depth for cutting the outline and milldrilling", "-2.5mm")
+        .when("cutting").fails_with(ERR_NOZCUT),
+    range("zcut").at_most("0").when("cutting")
+        .fails_with(ERR_NEGATIVEZWORK, "--zcut can't be above 0, the surface of the board."),
+    required("cutter-diameter", "the end mill diameter for cutting the outline and milldrilling",
+             "3mm")
+        .when("cutting").fails_with(ERR_NOCUTTERDIAMETER),
+    required("cut-feed", "the feed rate for cutting the outline and milldrilling", "600mm/min")
+        .when("cutting").fails_with(ERR_NOCUTFEED),
+    required("cut-speed", "the spindle speed for cutting the outline and milldrilling",
+             "10000rpm")
+        .when("cutting").fails_with(ERR_NOCUTSPEED),
+    required("cut-infeed",
+             "the maximum depth of each pass when cutting the outline and milldrilling", "1mm")
+        .when("cutting").fails_with(ERR_NOCUTINFEED),
+    greater("zsafe", "zcut").when("cutting")
+        .fails_with(ERR_ZSAFELOWERZCUT, "--zsafe must be higher than --zcut."),
+    range("cut-feed").above("0").when("cutting")
+        .fails_with(ERR_NEGATIVECUTFEED, "--cut-feed must be greater than 0."),
+    range("cut-vertfeed").above("0").when("cutting")
+        .fails_with(ERR_NEGATIVECUTVERTFEED, "--cut-vertfeed must be greater than 0."),
+    range("cut-speed").at_least("0").when("cutting")
+        .fails_with(ERR_NEGATIVESPINDLESPEED, "--cut-speed can't be negative."),
+    range("cut-infeed").at_least("0.001in").when("cutting")
+        .fails_with(ERR_LOWCUTINFEED, "--cut-infeed must be at least 0.001in."),
+    range("bridges").at_least("0").when("cutting")
+        .fails_with(ERR_NEGATIVEBRIDGE, "--bridges can't be negative."),
+    forbidden(set("cut-front") && given("cut-side"), {"cut-front", "cut-side"}).when("cutting")
+        .fails_with(ERR_BOTHCUTFRONTSIDE, "--cut-front and --cut-side can't both be set. "
+                    "--cut-front is deprecated, so use only --cut-side."),
+
+    // A stepover of more than 100% would leave an uncut ring between passes.
+    range("milldrill-stepover").above("0").at_most("100%").when("milldrilling")
+        .fails_with(ERR_INVALIDMILLDRILLSTEPOVER,
+                    "--milldrill-stepover must be greater than 0% and at most 100%."),
+    // The cutter can't make a hole smaller than itself.
+    range("min-milldrill-entry-diameter").above("100%").when("milldrilling")
+        .fails_with(ERR_LOWMILLDRILLENTRY, "--min-milldrill-entry-diameter must be greater than "
+                    "100%, which is the milldrill diameter."),
+    OptionRule::greater_or_equal("max-milldrill-entry-diameter", "min-milldrill-entry-diameter")
+        .when("milldrilling")
+        .fails_with(ERR_MILLDRILLENTRYORDER, "--max-milldrill-entry-diameter can't be less than "
+                    "--min-milldrill-entry-diameter."),
+
+    required("zdrill", "the drilling depth", "-2.5mm").when("drilling").fails_with(ERR_NOZDRILL),
+    greater("zsafe", "zdrill").when("drilling")
+        .fails_with(ERR_ZSAFELOWERZDRILL, "--zsafe must be higher than --zdrill."),
+    greater("zchange", "zdrill").unless(equal("zchange-absolute", "true")).when("drilling")
+        .fails_with(ERR_ZSAFELOWERZCHANGE, "--zchange must be higher than --zdrill. If --zchange "
+                    "is a machine coordinate, add --zchange-absolute."),
+    required("drill-feed", "the drilling feed rate", "500mm/min")
+        .when("drilling").fails_with(ERR_NODRILLFEED),
+    range("drill-feed").above("0").when("drilling")
+        .fails_with(ERR_NEGATIVEDRILLFEED, "--drill-feed must be greater than 0."),
+    required("drill-speed", "the spindle speed for drilling", "10000rpm")
+        .when("drilling").fails_with(ERR_NODRILLSPEED),
+    range("drill-speed").at_least("0").when("drilling")
+        .fails_with(ERR_NEGATIVEDRILLSPEED, "--drill-speed can't be negative."),
+    forbidden(set("drill-front") && given("drill-side"), {"drill-front", "drill-side"})
+        .when("drilling")
+        .fails_with(ERR_BOTHDRILLFRONTSIDE, "--drill-front and --drill-side can't both be set. "
+                    "--drill-front is deprecated, so use only --drill-side."),
+  };
+  return rules;
+}
+
+// options_description has no getter for its caption, but it prints it first.
+string caption(const po::options_description& description) {
+  std::stringstream help;
+  help << description;
+  string caption;
+  std::getline(help, caption);
+  if (!caption.empty() && caption.back() == ':') {
+    caption.pop_back();
+  }
+  return caption;
+}
+
+std::vector<string> option_names(const po::options_description& description) {
+  std::vector<string> names;
+  for (const auto& option : description.options()) {
+    names.push_back(option->long_name());
+  }
+  return names;
 }
 
 } // namespace
@@ -241,7 +457,8 @@ options::options()
         "list of comma-separated config files")
        ("help,?", "produce help message")
        ("version,V", "show the current software version")
-       ("mcp", "run as a Model Context Protocol (MCP) server over stdio");
+       ("mcp", "run as a Model Context Protocol (MCP) server over stdio")
+       ("dump-options", "print every option with its type, default, limits and description as JSON");
 
    po::options_description drilling_options("Drilling options, for making holes in the PCB");
    drilling_options.add_options()
@@ -276,7 +493,7 @@ options::options()
        ("nog81", po::value<bool>()->default_value(false)->implicit_value(true), "replace G81 with G0+G1")
        ("nom6", po::value<bool>()->default_value(false)->implicit_value(true), "do not emit M6 on tool changes")
        ("milldrill-output", po::value<string>()->default_value("milldrill.ngc"), "output file for milldrilling");
-   cfg_options.add(drilling_options);
+   add_group("drilling", "drilling", drilling_options);
 
    po::options_description milling_options("Milling options, for milling traces into the PCB");
    milling_options.add_options()
@@ -311,7 +528,7 @@ options::options()
        ("preserve-thermal-reliefs", po::value<bool>()->default_value(true)->implicit_value(true), "generate mill paths for thermal reliefs in voronoi mode")
        ("front-output", po::value<string>()->default_value("front.ngc"), "output file for front layer")
        ("back-output", po::value<string>()->default_value("back.ngc"), "output file for back layer");
-   cfg_options.add(milling_options);
+   add_group("milling", "milling", milling_options);
 
    po::options_description outline_options("Outline options, for cutting the PCB out of the FR4");
    outline_options.add_options()
@@ -329,20 +546,20 @@ options::options()
        ("bridgesnum", po::value<unsigned int>()->default_value(2), "specify how many bridges should be created")
        ("zbridges", po::value<Length>(), "bridges height (Z-coordinates while engraving bridges, default to zsafe) ")
        ("outline-output", po::value<string>()->default_value("outline.ngc"), "output file for outline");
-   cfg_options.add(outline_options);
+   add_group("outline", "cutting", outline_options);
 
    po::options_description optimization_options("Optimization options, for faster PCB creation, smaller output files, and different algorithms.");
    optimization_options.add_options()
        ("optimise", po::value<Length>()->default_value(parse_unit<Length>("0.0001in"))->implicit_value(parse_unit<Length>("0.0001in")),
         "Reduce output file size by up to 40% while accepting a little loss of precision.  Larger values reduce file sizes and processing time even further.  Set to 0 to disable.")
        ("eulerian-paths", po::value<bool>()->default_value(true)->implicit_value(true), "Don't mill the same path twice if milling loops overlap.  This can save up to 50% of milling time.  Enabled by default.")
-       ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "enable or disable the vectorial rendering engine")
+       ("vectorial", po::value<bool>()->default_value(true)->implicit_value(true), "[DEPRECATED, must always be true] enable or disable the vectorial rendering engine")
        ("tsp-2opt", po::value<bool>()->default_value(true)->implicit_value(true), "use TSP 2OPT to find a faster toolpath (but slows down gcode generation)")
        ("path-finding-limit", po::value<size_t>()->default_value(1), "Use path finding for up to this many steps in the search (more is slower but makes a faster gcode path)")
        ("g0-vertical-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("50in/min")), "speed of vertical G0 movements, for use in path-finding")
        ("g0-horizontal-speed", po::value<Velocity>()->default_value(parse_unit<Velocity>("100in/min")), "speed of horizontal G0 movements, for use in path-finding")
        ("backtrack", po::value<Velocity>()->default_value(std::numeric_limits<double>::infinity()), "allow retracing a milled path if it's faster than retract-move-lower.  For example, set to 5in/s if you are willing to remill 5 inches of trace in order to save 1 second of milling time.");
-   cfg_options.add(optimization_options);
+   add_group("optimization", "always", optimization_options);
 
    po::options_description autolevelling_options("Autolevelling options, for generating gcode to automatically probe the board and adjust milling depth to the actual board height");
    autolevelling_options.add_options()
@@ -361,7 +578,7 @@ options::options()
        ("al-probecode", po::value<string>()->default_value("G31"), "custom probe code (default is G31)")
        ("al-probevar", po::value<unsigned int>()->default_value(2002), "number of the variable where the result of the probing is saved (default is 2002)")
        ("al-setzzero", po::value<string>()->default_value("G92 Z0"), "gcode for setting the actual position as zero (default is G92 Z0)");
-   cfg_options.add(autolevelling_options);
+   add_group("autolevelling", "autolevelling", autolevelling_options);
 
    po::options_description alignment_options("Alignment options, useful for aligning the milling on opposite sides of the PCB");
    alignment_options.add_options()
@@ -372,7 +589,7 @@ options::options()
         "[DEPRECATED, must always be true] mirror back side along absolute zero instead of board center")
        ("mirror-axis", po::value<Length>()->default_value(Length(0)), "For two-sided boards, the PCB needs to be flipped along the axis x=VALUE")
        ("mirror-yaxis", po::value<bool>()->default_value(false), "For two-sided boards, the PCB needs to be flipped along the y axis instead");
-   cfg_options.add(alignment_options);
+   add_group("alignment", "always", alignment_options);
 
    po::options_description cnc_options("CNC options, common to all the milling, drilling, and cutting");
    cnc_options.add_options()
@@ -383,7 +600,7 @@ options::options()
        ("zchange-absolute", po::value<bool>()->default_value(false)->implicit_value(true), "use zchange as a machine coordinates height (G53)")
        ("tile-x", po::value<int>()->default_value(1), "number of tiling columns. Default value is 1")
        ("tile-y", po::value<int>()->default_value(1), "number of tiling rows. Default value is 1");
-   cfg_options.add(cnc_options);
+   add_group("cnc", "always", cnc_options);
 
    cfg_options.add_options()
        ("ignore-warnings", po::value<bool>()->default_value(false)->implicit_value(true), "Ignore warnings")
@@ -402,48 +619,40 @@ options::options()
        ("no-export", po::value<bool>()->default_value(false)->implicit_value(true), "skip the exporting process")
        ("sanity-checks", po::value<bool>()->default_value(false)->implicit_value(true), "run sanity checks")
        ("single-thread", po::value<bool>()->default_value(false)->implicit_value(true), "disable multi-threading");
+
+   // --help shows the command line options, then the generic options that
+   // aren't in a group, then the groups.
+   std::vector<string> generic;
+   for (const auto& name : option_names(cfg_options)) {
+     if (std::none_of(groups.cbegin(), groups.cend(), [&](const OptionGroup& group) {
+           return std::count(group.options.cbegin(), group.options.cend(), name) > 0;
+         })) {
+       generic.push_back(name);
+     }
+   }
+   groups.insert(groups.begin(),
+                 {{"cli", caption(cli_options), "always", true, option_names(cli_options)},
+                  {"generic", caption(cfg_options), "always", false, generic}});
+   all_options.add(cli_options).add(cfg_options);
+}
+
+void options::add_group(const string& id, const string& used_when,
+                        const po::options_description& group) {
+  cfg_options.add(group);
+  groups.push_back({id, caption(group), used_when, false, option_names(group)});
 }
 
 /******************************************************************************/
 /*
  */
 /******************************************************************************/
-static void check_generic_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
+// The problems that don't stop pcb2gcode.
+static void warn_about_parameters(const OptionCatalog& catalog, po::variables_map const& vm)
 {
-    double unit;      //factor for imperial/metric conversion
-
-    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
-
-    //---------------------------------------------------------------------------
-    //Check spinup(down)-time parameters:
-
-    if (vm["spinup-time"].as<Time>().asMillisecond(1) < 0) {
-      errors.push_back({"--spinup-time can't be negative.", ERR_NEGATIVESPINUP});
-    }
-
-    if (vm.count("spindown-time") && vm["spindown-time"].as<Time>().asMillisecond(1) < 0) {
-      errors.push_back({"--spindown-time can't be negative.", ERR_NEGATIVESPINDOWN});
-    }
-
-    //---------------------------------------------------------------------------
-    //Check g64 parameter:
-
     if (vm.count("g64"))
     {
         cerr << "g64 is deprecated, use tolerance.\n";
     }
-
-    //---------------------------------------------------------------------------
-    //Check mirror-absolute parameter:
-
-    if (!vm["mirror-absolute"].as<bool>()) {
-      errors.push_back({"--mirror-absolute=false isn't supported anymore. Remove it, and use "
-                        "--mirror-axis to choose where the back side is mirrored.",
-                        ERR_FALSEMIRRORABSOLUTE});
-    }
-
-    //---------------------------------------------------------------------------
-    //Check tolerance parameter:
 
     //Upper threshold value of tolerance parameter for warning
     double tolerance_th = vm["metric"].as<bool>() ? 0.2 : 0.008;
@@ -457,22 +666,11 @@ static void check_generic_parameters(po::variables_map const& vm, std::vector<Op
         else if (vm["tolerance"].as<double>() == 0)
             cerr << "Warning: Deviation from commanded toolpath set to 0 (tolerance=0). No smooth milling is most likely!\n"
                  << endl;
-
-        else if (vm["tolerance"].as<double>() < 0) {
-          errors.push_back({"--tolerance can't be negative. Leave it out to use the default.",
-                            ERR_NEGATIVETOLERANCE});
-        }
     }
-
-    //---------------------------------------------------------------------------
-    //Check svg parameter:
 
     if (vm.count("svg")) {
       cerr << "--svg is deprecated and has no effect anymore, use --vectorial to generate SVGs.\n";
     }
-
-    //---------------------------------------------------------------------------
-    //Check for available board dimensions:
 
     if (vm.count("drill")
             && !(vm.count("front") || vm.count("back") || vm.count("outline")))
@@ -480,315 +678,18 @@ static void check_generic_parameters(po::variables_map const& vm, std::vector<Op
         cerr << "Warning: Board dimensions unknown. Gcode for drilling will be probably misaligned.\n";
     }
 
-    //---------------------------------------------------------------------------
-    //Check for tile parameters
-
-    if (vm["tile-x"].as<int>() < 1) {
-      errors.push_back({"--tile-x must be at least 1.", ERR_NEGATIVETILEX});
+    if (catalog.condition("milling").holds(vm) && vm.count("zwork") &&
+        vm["zwork"].as<Length>().asDouble() > 0) {
+      cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
     }
 
-    if (vm["tile-y"].as<int>() < 1) {
-      errors.push_back({"--tile-y must be at least 1.", ERR_NEGATIVETILEY});
-    }
-
-    //---------------------------------------------------------------------------
-    //Check for safety height parameter:
-
-    if (!vm.count("zsafe")) {
-      errors.push_back({missing_option("zsafe", "the safety height for rapid moves", "5mm"),
-                        ERR_NOZSAFE});
-    }
-
-    //---------------------------------------------------------------------------
-    //Check for zchange parameter parameter:
-
-    if (!vm.count("zchange")) {
-      errors.push_back({missing_option("zchange", "the tool change height", "10mm"),
-                        ERR_NOZCHANGE});
-    }
-
-    //---------------------------------------------------------------------------
-    //Check for autoleveller parameters
-
-    if (vm["al-front"].as<bool>() || vm["al-back"].as<bool>())
-    {
-        if (!vm.count("software")) {
-          errors.push_back({missing_option("software",
-                                           "the autoleveller's target software: linuxcnc, mach3, "
-                                           "mach4 or custom", "linuxcnc"),
-                            ERR_NOSOFTWARE});
-        }
-
-        if (!vm.count("al-x")) {
-          errors.push_back({missing_option("al-x", "the autoleveller's largest x distance between "
-                                           "probes", "15mm"),
-                            ERR_NOALX});
-        } else if (vm["al-x"].as<Length>().asInch(unit) <= 0) {
-          errors.push_back({"--al-x must be greater than 0.", ERR_NEGATIVEALX});
-        }
-
-        if (!vm.count("al-y")) {
-          errors.push_back({missing_option("al-y", "the autoleveller's largest y distance between "
-                                           "probes", "15mm"),
-                            ERR_NOALY});
-        } else if (vm["al-y"].as<Length>().asInch(unit) <= 0) {
-          errors.push_back({"--al-y must be greater than 0.", ERR_NEGATIVEALY});
-        }
-
-        if (!vm.count("al-probefeed")) {
-          errors.push_back({missing_option("al-probefeed", "the autoleveller's probing feed rate",
-                                           "100mm/min"),
-                            ERR_NOALPROBEFEED});
-        } else if (vm["al-probefeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-          errors.push_back({"--al-probefeed must be greater than 0.", ERR_NEGATIVEPROBEFEED});
-        }
-    }
-    if (vm["mill-feed-direction"].as<MillFeedDirection::MillFeedDirection>() != MillFeedDirection::ANY &&
-        vm["tsp-2opt"].as<bool>()) {
-      errors.push_back({"--mill-feed-direction doesn't work with --tsp-2opt, which is on by "
-                        "default. Add --tsp-2opt=false.", ERR_INVALIDPARAMETER});
-    }
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-static void check_milling_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
-{
-
-    double unit;      //factor for imperial/metric conversion
-
-    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
-
-    if (vm.count("front") || vm.count("back"))
-    {
-
-      if (!vm.count("zwork")) {
-        errors.push_back({missing_option("zwork", "the milling depth", "-0.05mm"), ERR_NOZWORK});
-      } else if (vm["zwork"].as<Length>().asDouble() > 0){
-        cerr << "Warning: Engraving depth (--zwork) is greater than zero!\n";
-      }
-
-      if (!vm["vectorial"].as<bool>()) {
-        errors.push_back({"--vectorial=false isn't supported anymore. Remove it.",
-                          ERR_INVALIDPARAMETER});
-      }
-      if (!vm.count("mill-diameters")) {
-        errors.push_back({missing_option("mill-diameters", "the diameters of the milling bits",
-                                         "0.2mm"),
-                          ERR_NOOFFSET});
-      }
-
-      if (!vm.count("mill-feed")) {
-        errors.push_back({missing_option("mill-feed", "the milling feed rate", "600mm/min"),
-                          ERR_NOMILLFEED});
-      }
-
-      if (!vm.count("mill-speed")) {
-        errors.push_back({missing_option("mill-speed", "the spindle speed for milling", "10000rpm"),
-                          ERR_NOMILLSPEED});
-      }
-
-      if (vm.count("zsafe") && vm.count("zwork") &&
-          vm["zsafe"].as<Length>().asInch(unit) <= vm["zwork"].as<Length>().asInch(unit)) {
-        errors.push_back({"--zsafe must be higher than --zwork.", ERR_ZSAFELOWERZWORK});
-      }
-
-      if (vm.count("mill-feed") && vm["mill-feed"].as<Velocity>().asDouble() <= 0) {
-        errors.push_back({"--mill-feed must be greater than 0.", ERR_NEGATIVEMILLFEED});
-      }
-
-      if (vm.count("mill-vertfeed") && vm["mill-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-        errors.push_back({"--mill-vertfeed must be greater than 0.", ERR_NEGATIVEMILLVERTFEED});
-      }
-
-      if (vm.count("mill-infeed")>0 && vm["mill-infeed"].as<Length>().asInch(unit) <= 0.0) {
-        errors.push_back({"--mill-infeed must be greater than 0.", ERR_LOWMILLINFEED});
-      }
-
-      if (vm.count("mill-speed") && vm["mill-speed"].as<Rpm>().asDouble() < 0) {
-        errors.push_back({"--mill-speed can't be negative.", ERR_NEGATIVEMILLSPEED});
-      }
-    }
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-static void check_drilling_parameters(po::variables_map const& vm, std::vector<OptionError>& errors)
-{
-
-    double unit;      //factor for imperial/metric conversion
-
-    unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
-
-    //only check the parameters if a drill file is given
-    if (vm.count("drill"))
-    {
-
-        if (!vm.count("zdrill")) {
-          errors.push_back({missing_option("zdrill", "the drilling depth", "-2.5mm"), ERR_NOZDRILL});
-        }
-
-        if (vm.count("zsafe") && vm.count("zdrill") &&
-            vm["zsafe"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
-          errors.push_back({"--zsafe must be higher than --zdrill.", ERR_ZSAFELOWERZDRILL});
-        }
-
-        // A missing --zchange was already reported with the generic parameters.
-        if (vm.count("zchange") && vm.count("zdrill") && !vm["zchange-absolute"].as<bool>() &&
-            vm["zchange"].as<Length>().asInch(unit) <= vm["zdrill"].as<Length>().asInch(unit)) {
-          errors.push_back({"--zchange must be higher than --zdrill. If --zchange is a machine "
-                            "coordinate, add --zchange-absolute.", ERR_ZSAFELOWERZCHANGE});
-        }
-
-        if (!vm.count("drill-feed")) {
-          errors.push_back({missing_option("drill-feed", "the drilling feed rate", "500mm/min"),
-                            ERR_NODRILLFEED});
-        } else if (vm["drill-feed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-          errors.push_back({"--drill-feed must be greater than 0.", ERR_NEGATIVEDRILLFEED});
-        }
-
-        if (!vm.count("drill-speed")) {
-          errors.push_back({missing_option("drill-speed", "the spindle speed for drilling",
-                                           "10000rpm"),
-                            ERR_NODRILLSPEED});
-        } else if (vm["drill-speed"].as<Rpm>().asRpm(1) < 0) {        //no need to support both directions?
-          errors.push_back({"--drill-speed can't be negative.", ERR_NEGATIVEDRILLSPEED});
-        }
-
-        if (vm.count("drill-front")) {
-          cerr << "drill-front is deprecated, use drill-side.\n";
-
-          if (!vm["drill-side"].defaulted()) {
-            errors.push_back({"--drill-front and --drill-side can't both be set. --drill-front is "
-                              "deprecated, so use only --drill-side.", ERR_BOTHDRILLFRONTSIDE});
-          }
-        }
-    }
-
-}
-
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-static void check_cutting_parameters(po::variables_map const& vm, std::vector<OptionError>& errors) {
-
-  double unit;      //factor for imperial/metric conversion
-
-  unit = vm["metric"].as<bool>() ? (1. / 25.4) : 1;
-
-  //only check the parameters if an outline file is given or milldrill is enabled
-  if (vm.count("outline") ||
-      (vm.count("drill") &&
-       (vm["min-milldrill-hole-diameter"].as<Length>() < Length(std::numeric_limits<double>::infinity())))) {
-    if (!vm.count("zcut")) {
-      errors.push_back({missing_option("zcut", "the depth for cutting the outline and milldrilling",
-                                       "-2.5mm"),
-                        ERR_NOZCUT});
-    } else if (vm["zcut"].as<Length>().asInch(unit) > 0) {
-      errors.push_back({"--zcut can't be above 0, the surface of the board.", ERR_NEGATIVEZWORK});
-    }
-
-    if (!vm.count("cutter-diameter")) {
-      errors.push_back({missing_option("cutter-diameter",
-                                       "the end mill diameter for cutting the outline and "
-                                       "milldrilling", "3mm"),
-                        ERR_NOCUTTERDIAMETER});
-    }
-
-    if (!vm.count("cut-feed")) {
-      errors.push_back({missing_option("cut-feed",
-                                       "the feed rate for cutting the outline and milldrilling",
-                                       "600mm/min"),
-                        ERR_NOCUTFEED});
-    }
-
-    if (!vm.count("cut-speed")) {
-      errors.push_back({missing_option("cut-speed",
-                                       "the spindle speed for cutting the outline and milldrilling",
-                                       "10000rpm"),
-                        ERR_NOCUTSPEED});
-    }
-
-    if (!vm.count("cut-infeed")) {
-      errors.push_back({missing_option("cut-infeed",
-                                       "the maximum depth of each pass when cutting the outline "
-                                       "and milldrilling", "1mm"),
-                        ERR_NOCUTINFEED});
-    }
-
-    if (vm.count("zsafe") && vm.count("zcut") &&
-        vm["zsafe"].as<Length>().asInch(unit) <= vm["zcut"].as<Length>().asInch(unit)) {
-      errors.push_back({"--zsafe must be higher than --zcut.", ERR_ZSAFELOWERZCUT});
-    }
-
-    if (vm.count("cut-feed") && vm["cut-feed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-      errors.push_back({"--cut-feed must be greater than 0.", ERR_NEGATIVECUTFEED});
-    }
-
-    if (vm.count("cut-vertfeed") && vm["cut-vertfeed"].as<Velocity>().asInchPerMinute(unit) <= 0) {
-      errors.push_back({"--cut-vertfeed must be greater than 0.", ERR_NEGATIVECUTVERTFEED});
-    }
-
-    if (vm.count("cut-speed") && vm["cut-speed"].as<Rpm>().asRpm(1) < 0) {        //no need to support both directions?
-      errors.push_back({"--cut-speed can't be negative.", ERR_NEGATIVESPINDLESPEED});
-    }
-
-    if (vm.count("cut-infeed") && vm["cut-infeed"].as<Length>().asInch(unit) < 0.001) {
-      errors.push_back({"--cut-infeed must be at least 0.001in.", ERR_LOWCUTINFEED});
-    }
-
-    if (vm["bridges"].as<Length>().asInch(unit) < 0) {
-      errors.push_back({"--bridges can't be negative.", ERR_NEGATIVEBRIDGE});
-    }
-
-    if (vm.count("cut-front")) {
+    if (catalog.condition("cutting").holds(vm) && vm.count("cut-front")) {
       cerr << "cut-front is deprecated, use cut-side.\n";
-      if (!vm["cut-side"].defaulted()) {
-        errors.push_back({"--cut-front and --cut-side can't both be set. --cut-front is "
-                          "deprecated, so use only --cut-side.", ERR_BOTHCUTFRONTSIDE});
-      }
     }
-  }
-}
 
-/******************************************************************************/
-/*
- */
-/******************************************************************************/
-static void check_milldrill_parameters(po::variables_map const& vm,
-                                       std::vector<OptionError>& errors) {
-  // These only matter when there are holes to milldrill.
-  if (!vm.count("drill") ||
-      !(vm["min-milldrill-hole-diameter"].as<Length>() <
-        Length(std::numeric_limits<double>::infinity()))) {
-    return;
-  }
-
-  const double min_entry = vm["min-milldrill-entry-diameter"].as<Percent>().asFraction(1);
-  const double max_entry = vm["max-milldrill-entry-diameter"].as<Percent>().asFraction(1);
-  const double stepover = vm["milldrill-stepover"].as<Percent>().asFraction(1);
-
-  // A stepover of more than 100% would leave an uncut ring between passes.
-  if (!(stepover > 0 && stepover <= 1)) {
-    errors.push_back({"--milldrill-stepover must be greater than 0% and at most 100%.",
-                      ERR_INVALIDMILLDRILLSTEPOVER});
-  }
-
-  // The cutter can't make a hole smaller than itself.
-  if (!(min_entry > 1)) {
-    errors.push_back({"--min-milldrill-entry-diameter must be greater than 100%, which is the "
-                      "milldrill diameter.", ERR_LOWMILLDRILLENTRY});
-  }
-
-  if (max_entry < min_entry) {
-    errors.push_back({"--max-milldrill-entry-diameter can't be less than "
-                      "--min-milldrill-entry-diameter.", ERR_MILLDRILLENTRYORDER});
-  }
+    if (catalog.condition("drilling").holds(vm) && vm.count("drill-front")) {
+      cerr << "drill-front is deprecated, use drill-side.\n";
+    }
 }
 
 /******************************************************************************/
@@ -801,11 +702,8 @@ void options::check_parameters()
   std::vector<OptionError> errors;
 
   try {
-    check_generic_parameters(vm, errors);
-    check_milling_parameters(vm, errors);
-    check_cutting_parameters(vm, errors);
-    check_milldrill_parameters(vm, errors);
-    check_drilling_parameters(vm, errors);
+    warn_about_parameters(catalog(), vm);
+    check_rules(catalog(), vm, errors);
   } catch (std::runtime_error& re) {
     errors.push_back({string("Invalid parameter: ") + re.what(), ERR_INVALIDPARAMETER});
   }
@@ -827,4 +725,15 @@ void options::check_parameters()
   // Scripts and tests rely on the exit code, which is the code of the first
   // problem found.
   throw pcb2gcode_parse_exception(what, errors.front().code);
+}
+
+OptionCatalog options::catalog()
+{
+  return OptionCatalog{instance().all_options, instance().groups, option_conditions(),
+                       option_details(), option_rules()};
+}
+
+std::string options::dump_options()
+{
+  return dump_catalog(catalog());
 }
