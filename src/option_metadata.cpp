@@ -286,14 +286,17 @@ json types_json() {
   return types;
 }
 
-json exit_codes_json() {
-  static const std::pair<int, const char*> exit_codes[] = {
+// Outside of any function, so that coverage tools don't map each macro
+// expansion as a region of code.
+constexpr std::pair<int, const char*> EXIT_CODES[] = {
 #define PCB2GCODE_ERROR_CODE_PAIR(name, value) {value, #name},
-    PCB2GCODE_ERROR_CODES(PCB2GCODE_ERROR_CODE_PAIR)
+  PCB2GCODE_ERROR_CODES(PCB2GCODE_ERROR_CODE_PAIR)
 #undef PCB2GCODE_ERROR_CODE_PAIR
-  };
+};
+
+json exit_codes_json() {
   json codes = json::array();
-  for (const auto& exit_code : exit_codes) {
+  for (const auto& exit_code : EXIT_CODES) {
     codes.push_back({{"code", exit_code.first}, {"name", exit_code.second}});
   }
   return codes;
