@@ -73,6 +73,7 @@ const std::map<string, OptionDetails>& option_details() {
     {"g64", OptionDetails().replaced("tolerance").length_number()},
     {"tolerance", OptionDetails().length_number().note("0.0004 inches")},
     {"output-dir", OptionDetails().directory().note("empty: the working directory")},
+    {"manifest", OptionDetails().output("json")},
     {"preamble-text", OptionDetails().input("text")},
     {"preamble", OptionDetails().input("gcode")},
     {"postamble", OptionDetails().input("gcode")},

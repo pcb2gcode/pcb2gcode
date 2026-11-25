@@ -565,6 +565,14 @@ BOOST_AUTO_TEST_CASE(dump_option_details) {
   BOOST_CHECK_EQUAL(front["file_format"], "gerber");
   BOOST_CHECK_EQUAL(front["used_when"], "always");
   BOOST_CHECK_EQUAL(find_option(dumped, "front-output")["relative_to"], "output-dir");
+  const json manifest = find_option(dumped, "manifest");
+  BOOST_CHECK_EQUAL(manifest["group"], "generic");
+  BOOST_CHECK_EQUAL(manifest["type"], "string");
+  BOOST_CHECK(manifest["default"].is_null());
+  BOOST_CHECK_EQUAL(manifest["used_when"], "always");
+  BOOST_CHECK_EQUAL(manifest["path"], "output_file");
+  BOOST_CHECK_EQUAL(manifest["file_format"], "json");
+  BOOST_CHECK_EQUAL(manifest["relative_to"], "output-dir");
   BOOST_CHECK_EQUAL(find_option(dumped, "output-dir")["path"], "directory");
 
   BOOST_CHECK_EQUAL(find_option(dumped, "cut-infeed")["range"], (json{{"min", "0.001in"}}));
