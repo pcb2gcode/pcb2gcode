@@ -1,0 +1,7 @@
+back=../../gerbv_example/multivibrator/multivibrator-B.Cu.gbr
+zsafe=1mm
+zchange=10mm
+zwork=-0.1mm
+mill-feed-direction=sideways
+mill-feed=1rpm
+mill-speed=10000rpm

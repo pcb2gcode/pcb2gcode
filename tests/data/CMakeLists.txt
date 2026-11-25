@@ -149,6 +149,18 @@ pcb2gcode_add_integration_script_test(
   PCB2GCODE_ARGS "--ignore-warnings")
 
 pcb2gcode_add_integration_script_test(
+  integration_unreadable_config_value
+  "tests/data/broken_examples/unreadable_value"
+  EXPECTED_EXIT 100)
+
+# --ignore-warnings goes on without --mill-feed, which the milling needs.
+pcb2gcode_add_integration_script_test(
+  integration_ignore_warnings_unreadable_config_value
+  "tests/data/broken_examples/unreadable_value"
+  EXPECTED_EXIT 13
+  PCB2GCODE_ARGS "--ignore-warnings")
+
+pcb2gcode_add_integration_script_test(
   integration_provided_config_am_test
   "tests/data/gerbv_example/am-test"
   PCB2GCODE_ARGS "--config=millproject")

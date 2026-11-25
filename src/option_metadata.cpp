@@ -606,6 +606,11 @@ OptionRule& OptionRule::unless(const OptionCondition& condition) {
   return *this;
 }
 
+OptionRule& OptionRule::needed_when(const OptionCondition& condition) {
+  needed_ = condition;
+  return *this;
+}
+
 OptionRule& OptionRule::fails_with(ErrorCodes code, const string& message) {
   code_ = code;
   if (!message.empty()) {
@@ -631,10 +636,11 @@ boost::optional<OptionError> OptionRule::check(const po::variables_map& vm,
   if (!catalog.condition(when_).holds(vm)) {
     return boost::none;
   }
-  const OptionError error{message_, code_, options_};
+  OptionError error{message_, code_, options_};
   switch (kind) {
     case Kind::REQUIRED:
       if (vm.count(options_[0]) == 0) {
+        error.needed = !needed_ || needed_->holds(vm);
         return error;
       }
       break;
