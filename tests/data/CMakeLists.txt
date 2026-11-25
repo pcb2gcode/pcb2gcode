@@ -93,6 +93,20 @@ foreach(_bad_layer IN ITEMS front back outline drill)
     PCB2GCODE_ARGS "--${_bad_layer}=non_existant_file")
 endforeach()
 
+# With --ignore-warnings, a layer whose file can't be read is left out and the
+# others come out the same.  am-test-voronoi has only a back side, so its
+# expected/ still applies.
+pcb2gcode_add_integration_script_test(
+  integration_ignore_warnings_bad_front
+  "tests/data/gerbv_example/am-test-voronoi"
+  PCB2GCODE_ARGS "--front=non_existant_file" "--ignore-warnings")
+
+pcb2gcode_add_integration_script_test(
+  integration_ignore_warnings_bad_drill
+  "tests/data/gerbv_example"
+  PCB2GCODE_ARGS "--noconfigfile" "--ignore-warnings" "--drill=non_existant_file" "--zsafe=1mm"
+                 "--zchange=10mm" "--zdrill=-1mm" "--drill-feed=100mm/min" "--drill-speed=10000rpm")
+
 pcb2gcode_add_integration_script_test(
   integration_broken_invalid_config
   "tests/data/broken_examples/invalid-config"
