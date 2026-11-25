@@ -189,7 +189,7 @@ void Board::createLayers(std::map<std::string, std::tuple<GerberImporter, std::s
 
     // DEBUG output
     for (layer_t layer : layers) {
-      layer.second.surface.save_debug_image(string("original_") + layer.second.get_name());
+      layer.second.surface.save_debug_image("original");
     }
 
     // mask layers with outline
@@ -201,7 +201,7 @@ void Board::createLayers(std::map<std::string, std::tuple<GerberImporter, std::s
       for (auto& layer : layers) {
         if (layer.first != "outline") {
           layer.second.add_mask(outline_layer);
-          layer.second.surface.save_debug_image(string("masked_") + layer.second.get_name());
+          layer.second.surface.save_debug_image("masked");
         }
       }
     }

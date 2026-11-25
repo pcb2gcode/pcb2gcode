@@ -56,6 +56,7 @@ using std::map;
 #include "units.hpp"
 #include "available_drills.hpp"
 #include "bg_operators.hpp"
+#include "output_manifest.hpp"
 
 using std::pair;
 using std::make_pair;
@@ -272,6 +273,12 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         error_message << "Can't open for writing: " << filename;
         throw std::invalid_argument(error_message.str());
       }
+      vector<output_manifest::Tool> tools;
+      for (const auto& hole : holes) {
+        const auto& bit = bits.at(hole.first);
+        tools.push_back({hole.first, bit.unit == "mm" ? bit.diameter / 25.4 : bit.diameter});
+      }
+      output_manifest::add_gcode(filename, "drill", tools);
     }
     //write header to .ngc file
     for (string s : header)
@@ -370,7 +377,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 
     of.close();
 
-    save_svg(bits, holes, of_dir, "original_drill.svg");
+    save_svg(bits, holes, of_dir, "drill");
 }
 
 /******************************************************************************/
@@ -624,6 +631,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
         error_message << "Can't open for writing: " << filename;
         throw std::invalid_argument(error_message.str());
       }
+      output_manifest::add_gcode(filename, "milldrill", {{holes.front().first, target.tool_diameter}});
     }
 
     // write header to .ngc file
@@ -712,7 +720,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
              << " bigger than the milling tool." << endl;
     }
 
-    save_svg(bits, holes, of_dir, "original_milldrill.svg");
+    save_svg(bits, holes, of_dir, "milldrill");
 }
 
 /******************************************************************************/
@@ -722,7 +730,7 @@ void ExcellonProcessor::export_ngc(const string of_dir, const boost::optional<st
 void ExcellonProcessor::save_svg(
     const map<int, drillbit>& bits,
     const vector<pair<int, multi_linestring_type_fp>>& holes,
-    const string& of_dir, const string& of_name) {
+    const string& of_dir, const string& layer) {
     if (holes.size() == 0) {
       return;
     }
@@ -735,7 +743,9 @@ void ExcellonProcessor::save_svg(
     const string svg_dimensions =
         str(boost::format("width=\"%1%\" height=\"%2%\" viewBox=\"0 0 %3% %4%\"") % width % height % viewBox_width % viewBox_height);
 
-    ofstream svg_out (build_filename(of_dir, of_name));
+    const string filename = build_filename(of_dir, "original_" + layer + ".svg");
+    ofstream svg_out (filename);
+    output_manifest::add_svg(filename, layer, "original");
     bg::svg_mapper<point_type_fp> mapper (svg_out, viewBox_width, viewBox_height, svg_dimensions);
 
     mapper.add(board_dimensions);

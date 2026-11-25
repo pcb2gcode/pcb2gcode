@@ -53,6 +53,7 @@ using std::dynamic_pointer_cast;
 using boost::format;
 
 #include "units.hpp"
+#include "output_manifest.hpp"
 
 namespace {
 std::mutex export_log_mutex;
@@ -288,6 +289,13 @@ void NGC_Exporter::export_layer(Layer& layer, string of_name, boost::optional<au
       error_message << "Can't open for writing: " << of_name;
       throw std::invalid_argument(error_message.str());
     }
+    vector<output_manifest::Tool> tools;
+    for (size_t toolpaths_index = 0; toolpaths_index < all_toolpaths.size(); toolpaths_index++) {
+      if (all_toolpaths[toolpaths_index].second.size() > 0) {
+        tools.push_back({static_cast<int>(toolpaths_index + 1), all_toolpaths[toolpaths_index].first});
+      }
+    }
+    output_manifest::add_gcode(of_name, layername, tools);
 
     // write header to .ngc file
     for ( string s : header )

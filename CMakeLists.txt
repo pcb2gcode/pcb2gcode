@@ -179,6 +179,7 @@ set(PCB2GCODE_MAIN_SOURCES
     ngc_exporter.cpp
     options.cpp
     outline_bridges.cpp
+    output_manifest.cpp
     path_finding.cpp
     segment_tree.cpp
     segmentize.cpp
