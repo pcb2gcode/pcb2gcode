@@ -1,0 +1,156 @@
+{
+  "format_version": 1,
+  "files": [
+    {
+      "path": "back.ngc",
+      "type": "gcode",
+      "layer": "back",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 3.0
+        },
+        {
+          "number": 2,
+          "diameter_mm": 0.2
+        }
+      ]
+    },
+    {
+      "path": "milldrill.ngc",
+      "type": "gcode",
+      "layer": "milldrill",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 0.8
+        }
+      ]
+    },
+    {
+      "path": "original_milldrill.svg",
+      "type": "svg",
+      "layer": "milldrill",
+      "stage": "original"
+    },
+    {
+      "path": "outline.ngc",
+      "type": "gcode",
+      "layer": "outline",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 1.5
+        }
+      ]
+    },
+    {
+      "path": "outp0_original_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "original"
+    },
+    {
+      "path": "outp1_original_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "original"
+    },
+    {
+      "path": "outp2_masked_back.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "masked"
+    },
+    {
+      "path": "processed_back_0.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 3.0
+    },
+    {
+      "path": "processed_back_1.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 1,
+      "tool_diameter_mm": 0.2
+    },
+    {
+      "path": "processed_back_final_0.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 3.0
+    },
+    {
+      "path": "processed_back_final_1.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "processed",
+      "final": true,
+      "tool_index": 1,
+      "tool_diameter_mm": 0.2
+    },
+    {
+      "path": "processed_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 1.5
+    },
+    {
+      "path": "traced_back_0.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 3.0
+    },
+    {
+      "path": "traced_back_1.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 1,
+      "tool_diameter_mm": 0.2
+    },
+    {
+      "path": "traced_back_final_0.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 3.0
+    },
+    {
+      "path": "traced_back_final_1.svg",
+      "type": "svg",
+      "layer": "back",
+      "stage": "traced",
+      "final": true,
+      "tool_index": 1,
+      "tool_diameter_mm": 0.2
+    },
+    {
+      "path": "traced_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 1.5
+    }
+  ]
+}

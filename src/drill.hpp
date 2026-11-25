@@ -118,7 +118,7 @@ private:
     void save_svg(
         const std::map<int, drillbit>& bits,
         const std::vector<std::pair<int, multi_linestring_type_fp>>& holes,
-        const std::string& of_dir, const std::string& of_name);
+        const std::string& of_dir, const std::string& layer);
 
     const box_type_fp board_dimensions;
     const coordinate_type_fp board_center_x;

@@ -58,7 +58,7 @@ class Surface_vectorial {
 
   std::vector<std::pair<coordinate_type_fp, multi_linestring_type_fp>> get_toolpath(
       std::shared_ptr<RoutingMill> mill, bool mirror, bool ymirror);
-  void save_debug_image(std::string message);
+  void save_debug_image(const std::string& stage);
   void enable_filling();
   void add_mask(Surface_vectorial const& surface,
                 std::shared_ptr<RoutingMill> manufacturer);
@@ -116,10 +116,12 @@ protected:
       const std::shared_ptr<RoutingMill>& mill,
       const boost::optional<const path_finding::PathFindingSurface*>& path_finding_surface,
       std::vector<std::pair<linestring_type_fp, bool>> toolpath) const;
-  void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
+  void write_svgs(const std::string& tool_suffix, bool is_final, size_t tool_index,
+                  coordinate_type_fp tool_diameter,
                   const std::vector<std::vector<std::pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                   coordinate_type_fp tolerance, bool find_contentions) const;
-  void write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
+  void write_svgs(const std::string& tool_suffix, bool is_final, size_t tool_index,
+                  coordinate_type_fp tool_diameter,
                   const multi_linestring_type_fp& toolpaths,
                   coordinate_type_fp tolerance, bool find_contentions) const;
 };

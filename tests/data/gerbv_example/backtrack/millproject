@@ -32,3 +32,4 @@ mill-feed=100
 mill-vertfeed=25
 mill-speed=12000
 backtrack=1000mm/s
+manifest=manifest.json

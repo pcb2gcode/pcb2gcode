@@ -7,3 +7,4 @@ mill-feed=6
 mill-speed=30000
 zchange=1.0
 g64=0.0004
+manifest=manifest.json

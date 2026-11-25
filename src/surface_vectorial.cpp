@@ -73,6 +73,7 @@ using boost::make_optional;
 #include "path_finding.hpp"
 #include "trim_paths.hpp"
 #include "svg_writer.hpp"
+#include "output_manifest.hpp"
 #include "disjoint_set.hpp"
 #include "consistent_rand.hpp"
 
@@ -176,7 +177,8 @@ vector<polygon_type_fp> find_thermal_reliefs(const multi_polygon_type_fp& millin
   return holes;
 }
 
-void Surface_vectorial::write_svgs(const std::string& tool_suffix, coordinate_type_fp tool_diameter,
+void Surface_vectorial::write_svgs(const std::string& tool_suffix, bool is_final, size_t tool_index,
+                coordinate_type_fp tool_diameter,
                 const multi_linestring_type_fp& toolpaths,
                 coordinate_type_fp tolerance, bool find_contentions) const {
   vector<vector<pair<linestring_type_fp, bool>>> new_trace_toolpaths;
@@ -184,15 +186,21 @@ void Surface_vectorial::write_svgs(const std::string& tool_suffix, coordinate_ty
   for (const auto& ls : toolpaths) {
     new_trace_toolpaths.front().push_back(make_pair(ls, true));
   }
-  write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, tolerance, find_contentions);
+  write_svgs(tool_suffix, is_final, tool_index, tool_diameter, new_trace_toolpaths, tolerance, find_contentions);
 }
 
-void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp tool_diameter,
+void Surface_vectorial::write_svgs(const string& tool_suffix, bool is_final, size_t tool_index,
+                                   coordinate_type_fp tool_diameter,
                                    const vector<vector<pair<linestring_type_fp, bool>>>& new_trace_toolpaths,
                                    coordinate_type_fp tolerance, bool find_contentions) const {
+  const auto svg_filename = [&](const string& stage) {
+    return build_filename(outputdir, stage + "_" + name + (is_final ? "_final" : "") + tool_suffix + ".svg");
+  };
   // Now set up the debug images, one per tool.
-  svg_writer debug_image(build_filename(outputdir, "processed_" + name + tool_suffix + ".svg"), bounding_box);
-  svg_writer traced_debug_image(build_filename(outputdir, "traced_" + name + tool_suffix + ".svg"), bounding_box);
+  svg_writer debug_image(svg_filename("processed"), bounding_box);
+  output_manifest::add_svg(svg_filename("processed"), name, "processed", is_final, tool_index, tool_diameter);
+  svg_writer traced_debug_image(svg_filename("traced"), bounding_box);
+  output_manifest::add_svg(svg_filename("traced"), name, "traced", is_final, tool_index, tool_diameter);
   optional<svg_writer> contentions_image;
   ConsistentRand::srand(1);
   debug_image.add(voronoi, 0.2, false);
@@ -219,7 +227,8 @@ void Surface_vectorial::write_svgs(const string& tool_suffix, coordinate_type_fp
         temp2 = temp2 & temp;
         if (bg::length(temp2) > 0) {
           if (!contentions_image) {
-            contentions_image.emplace(build_filename(outputdir, "contentions_" + name + tool_suffix + ".svg"), bounding_box);
+            contentions_image.emplace(svg_filename("contentions"), bounding_box);
+            output_manifest::add_svg(svg_filename("contentions"), name, "contentions", is_final, tool_index, tool_diameter);
           }
           contentions_image->add(temp2, tool_diameter, 255, 0, 0);
         }
@@ -1031,10 +1040,10 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       }
 
       const string tool_suffix = tool_count > 1 ? "_" + std::to_string(tool_index) : "";
-      write_svgs(tool_suffix, tool_diameter, new_trace_toolpaths, isolator->tolerance, tool_index == tool_count - 1);
+      write_svgs(tool_suffix, false, tool_index, tool_diameter, new_trace_toolpaths, isolator->tolerance, tool_index == tool_count - 1);
       auto new_toolpath = flatten(new_trace_toolpaths);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(mill, boost::make_optional(&path_finding_surface), new_toolpath);
-      write_svgs("_final" + tool_suffix, tool_diameter, combined_toolpath, isolator->tolerance, tool_index == tool_count - 1);
+      write_svgs(tool_suffix, true, tool_index, tool_diameter, combined_toolpath, isolator->tolerance, tool_index == tool_count - 1);
       results[tool_index] = make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror));
     }
     // Now process any lines that need drawing.
@@ -1052,7 +1061,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
         attach_ls(path, new_trace_toolpath, MillFeedDirection::ANY, path_finder);
       }
       const string tool_suffix = "_lines_" + std::to_string(tool_diameter);
-      write_svgs(tool_suffix, tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
+      write_svgs(tool_suffix, false, results.size(), tool_diameter, {new_trace_toolpath}, mill->tolerance, false);
       multi_linestring_type_fp combined_toolpath = post_process_toolpath(isolator, boost::none, new_trace_toolpath);
       results.push_back(make_pair(tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror)));
     }
@@ -1080,7 +1089,7 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
       }
       new_trace_toolpaths[trace_index] = new_trace_toolpath;
     }
-    write_svgs("", cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
+    write_svgs("", false, 0, cutter->tool_diameter, new_trace_toolpaths, mill->tolerance, false);
     auto new_toolpath = flatten(new_trace_toolpaths);
     multi_linestring_type_fp combined_toolpath = post_process_toolpath(cutter, boost::none, new_toolpath);
     return {make_pair(cutter->tool_diameter, mirror_toolpath(combined_toolpath, mirror, ymirror))};
@@ -1088,10 +1097,12 @@ vector<pair<coordinate_type_fp, multi_linestring_type_fp>> Surface_vectorial::ge
   throw std::logic_error("Can't mill with something other than a Cutter or an Isolator.");
 }
 
-void Surface_vectorial::save_debug_image(string message)
+void Surface_vectorial::save_debug_image(const string& stage)
 {
-    const string filename = (boost::format("outp%d_%s.svg") % debug_image_index % message).str();
-    svg_writer debug_image(build_filename(outputdir, filename), bounding_box);
+    const string filename = build_filename(
+        outputdir, (boost::format("outp%d_%s_%s.svg") % debug_image_index % stage % name).str());
+    svg_writer debug_image(filename, bounding_box);
+    output_manifest::add_svg(filename, name, stage);
 
     ConsistentRand::srand(1);
     debug_image.add(vectorial_surface.first, 1, true);

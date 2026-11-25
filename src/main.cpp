@@ -46,6 +46,7 @@ using std::string;
 #include "options.hpp"
 #include "units.hpp"
 #include "mcp_server.hpp"
+#include "output_manifest.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/version.hpp>
@@ -420,6 +421,10 @@ void do_pcb2gcode(int argc, const char* argv[]) {
       }
 
       exporter->export_all(vm);
+    }
+
+    if (vm.count("manifest")) {
+      output_manifest::write(build_filename(outputdir, vm["manifest"].as<string>()));
     }
 
     cout << "END." << endl;

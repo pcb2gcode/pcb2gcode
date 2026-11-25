@@ -1,0 +1,99 @@
+{
+  "format_version": 1,
+  "files": [
+    {
+      "path": "outp0_original_front.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "original"
+    },
+    {
+      "path": "outp1_original_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "original"
+    },
+    {
+      "path": "outp2_masked_front.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "masked"
+    },
+    {
+      "path": "processed_front.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 0.45
+    },
+    {
+      "path": "processed_front_final.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "processed",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 0.45
+    },
+    {
+      "path": "processed_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "processed",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 1.2
+    },
+    {
+      "path": "test-Edge.Cuts-front-1.2mm.nc",
+      "type": "gcode",
+      "layer": "outline",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 1.2
+        }
+      ]
+    },
+    {
+      "path": "test-F.Cu-front-0.3mm.nc",
+      "type": "gcode",
+      "layer": "front",
+      "tools": [
+        {
+          "number": 1,
+          "diameter_mm": 0.45
+        }
+      ]
+    },
+    {
+      "path": "traced_front.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 0.45
+    },
+    {
+      "path": "traced_front_final.svg",
+      "type": "svg",
+      "layer": "front",
+      "stage": "traced",
+      "final": true,
+      "tool_index": 0,
+      "tool_diameter_mm": 0.45
+    },
+    {
+      "path": "traced_outline.svg",
+      "type": "svg",
+      "layer": "outline",
+      "stage": "traced",
+      "final": false,
+      "tool_index": 0,
+      "tool_diameter_mm": 1.2
+    }
+  ]
+}
