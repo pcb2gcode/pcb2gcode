@@ -132,6 +132,12 @@ pcb2gcode_add_integration_script_test(
   PCB2GCODE_ARGS "--spinup-time=-5")
 
 pcb2gcode_add_integration_script_test(
+  integration_zero_tolerance
+  "tests/data/gerbv_example/multivibrator"
+  EXPECTED_EXIT 50
+  PCB2GCODE_ARGS "--tolerance=0")
+
+pcb2gcode_add_integration_script_test(
   integration_zero_mill_infeed
   "tests/data/gerbv_example/am-test"
   EXPECTED_EXIT 55

@@ -166,6 +166,16 @@ BOOST_AUTO_TEST_CASE(ignore_warnings_with_missing_options) {
                     ERR_OK);
 }
 
+BOOST_AUTO_TEST_CASE(zero_tolerance) {
+  const std::string start = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm";
+  auto error = get_check_error(start + " --tolerance=0");
+  BOOST_CHECK_EQUAL(error.first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_NE(error.second.find("--tolerance must be greater than 0"), std::string::npos);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --tolerance=-1").first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --g64=0").first, ERR_NEGATIVETOLERANCE);
+  BOOST_CHECK_EQUAL(get_check_error(start + " --tolerance=0.0001").first, ERR_OK);
+}
+
 BOOST_AUTO_TEST_CASE(zchange_below_zdrill) {
   auto error = get_check_error("pcb2gcode --noconfigfile --drill=board.drl --zsafe=5mm "
                                "--zchange=-3mm --zdrill=-2.5mm --drill-feed=500mm/min "
@@ -238,8 +248,6 @@ string check_warnings(const string& args) {
 BOOST_AUTO_TEST_CASE(warnings) {
   const string start = "pcb2gcode --noconfigfile --zsafe=5mm --zchange=10mm";
   BOOST_CHECK_NE(check_warnings(start + " --tolerance=1").find("high tolerance"), string::npos);
-  BOOST_CHECK_NE(check_warnings(start + " --tolerance=0").find("Deviation from commanded toolpath"),
-                 string::npos);
   BOOST_CHECK_EQUAL(check_warnings(start + " --tolerance=0.001").find("Warning"), string::npos);
   BOOST_CHECK_NE(check_warnings(start + " --svg=board.svg").find("--svg is deprecated"),
                  string::npos);
@@ -537,7 +545,7 @@ BOOST_AUTO_TEST_CASE(dump_option_details) {
   BOOST_CHECK(tolerance["default"].is_null());
   BOOST_CHECK_EQUAL(tolerance["bare_unit"], "in");
   BOOST_CHECK_EQUAL(tolerance["metric_bare_unit"], "mm");
-  BOOST_CHECK_EQUAL(tolerance["range"], (json{{"min", "0"}}));
+  BOOST_CHECK_EQUAL(tolerance["range"], (json{{"min", "0"}, {"min_exclusive", true}}));
 
   const json help = find_option(dumped, "help");
   BOOST_CHECK_EQUAL(help["type"], "none");

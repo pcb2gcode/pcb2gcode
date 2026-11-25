@@ -139,9 +139,10 @@ const std::vector<OptionRule>& option_rules() {
         .fails_with(ERR_FALSEMIRRORABSOLUTE,
                     "--mirror-absolute=false isn't supported anymore. Remove it, and use "
                     "--mirror-axis to choose where the back side is mirrored."),
-    range("tolerance").at_least("0")
+    range("tolerance").above("0")
         .fails_with(ERR_NEGATIVETOLERANCE,
-                    "--tolerance can't be negative. Leave it out to use the default."),
+                    "--tolerance must be greater than 0, because arcs are cut as straight lines "
+                    "that stay within the tolerance of the arc. Leave it out to use the default."),
     range("tile-x").at_least("1").fails_with(ERR_NEGATIVETILEX, "--tile-x must be at least 1."),
     range("tile-y").at_least("1").fails_with(ERR_NEGATIVETILEY, "--tile-y must be at least 1."),
     required("zsafe", "the safety height for rapid moves", "5mm").fails_with(ERR_NOZSAFE),
@@ -661,10 +662,6 @@ static void warn_about_parameters(const OptionCatalog& catalog, po::variables_ma
     {
         if (vm["tolerance"].as<double>() > tolerance_th)
             cerr << "Warning: high tolerance value (allowed deviation from toolpath) given.\n"
-                 << endl;
-
-        else if (vm["tolerance"].as<double>() == 0)
-            cerr << "Warning: Deviation from commanded toolpath set to 0 (tolerance=0). No smooth milling is most likely!\n"
                  << endl;
     }
 
